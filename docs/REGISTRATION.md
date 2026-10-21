@@ -5,6 +5,15 @@ Keep all form values in frontend state until Register is pressed. Send and
 verify OTP on that same page. Registration saves the full form once; autosave
 is available only after registration succeeds.
 
+## Google signup and normal signup
+
+Normal signup opens the common form directly and uses the existing inline
+phone OTP verification before registration. Google signup first exchanges a
+Firebase ID token at `POST /auth/google`, then opens the same form when the
+response says `nextScreen:"onboarding"`. Link the phone using the Google
+response's Laravel bearer. Returning users follow saved routing state.
+See [Firebase backend and app-team handoff](FIREBASE_GOOGLE_AUTH.md).
+
 ## Start Laravel
 
 Requirements: PHP 8.2+, Composer, `pdo_mysql`, MySQL 8.
@@ -27,7 +36,7 @@ DB_DATABASE=your_database
 DB_USERNAME=your_mysql_user
 DB_PASSWORD=your_mysql_password
 JWT_SECRET=your_random_secret_at_least_32_bytes_long
-OTP_TEST_MODE=true
+OTP_TEST_MODE=false
 MSG91_AUTH_KEY=your_msg91_auth_key
 MSG91_TEMPLATE_ID=your_approved_msg91_template_id
 ```
@@ -35,15 +44,10 @@ MSG91_TEMPLATE_ID=your_approved_msg91_template_id
 This workspace already has APP_KEY and a generated JWT_SECRET. Keep JWT_SECRET
 private and stable. On a fresh deployment, generate a random value using
 `php -r 'echo bin2hex(random_bytes(32)), PHP_EOL;'` and put it in `.env`.
-Indian numbers use MSG91; the configured template must accept the `code`
-variable. Other countries use `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and
-`TWILIO_FROM_NUMBER`. For current local testing, `OTP_TEST_MODE=true` is
-enabled in this workspace: a random six-digit OTP is returned in the response
-without calling an SMS provider. No SMS credentials are needed for this mode.
-It only works with `APP_ENV=local` or `testing`. Production always uses SMS
-and never returns an OTP, even if the test flag is enabled. Later set
-`OTP_TEST_MODE=false`, configure the SMS credentials, and clear config cache
-to use real SMS delivery.
+SMS uses the selected provider (`OTP_SMS_PROVIDER`); WhatsApp uses Meta Cloud API.
+This workspace selects Muzztech SMS and both delivery channels, with simulation disabled.
+Complete provider credentials and approved templates before testing real delivery.
+See [dual-channel setup](OTP_DELIVERY.md). Local/testing `OTP_TEST_MODE=true` returns the code without sending messages.
 
 ```bash
 php artisan config:clear
@@ -58,6 +62,13 @@ using the app's booking, comment, consent and chat features; see
 Local base URL: `http://127.0.0.1:8000`. Routes have **no `/api` prefix**.
 For a phone on the same Wi-Fi, use `http://YOUR_COMPUTER_LAN_IP:8000`.
 Android emulator uses `http://10.0.2.2:8000`. Use HTTPS on your deployed host.
+
+## Muzztech SMS provider
+
+The backend can use `OTP_SMS_PROVIDER=muzztech` with the account's key, sender
+and actual approved template ID. See [Muzztech OTP configuration](MUZZTECH_OTP.md)
+for the message placeholder, phone/response format and acceptance checks.
+The mobile API contract and Google phone-linking steps remain the same.
 
 ## Run in Postman
 
@@ -88,15 +99,10 @@ curl -X POST "$REG_API_BASE/auth/otp/request" \
 Success: `{"ok":true,"expiresInMinutes":10}`. Resend uses the same endpoint.
 Maximum three OTP requests per phone in ten minutes.
 
-In local/testing with `OTP_TEST_MODE=true`, the response also contains:
-
-```json
-{"ok":true,"expiresInMinutes":10,"testMode":true,"otp":"483921"}
-```
-
-The OTP is randomly generated for each request; use the actual response
-value as `code` in Verify OTP. Expiry, attempt limits, hashing, and one-time
-verification still apply.
+Live responses include channel statuses without the OTP. Enter the received SMS or
+WhatsApp code in Verify OTP. Local/testing simulation returns `testMode:true` and
+`simulated` channel statuses and `otp` for verification testing, without delivery. Expiry, attempt
+limits, hashing and one-time verification still apply.
 
 ## 2. Verify OTP on the same page
 

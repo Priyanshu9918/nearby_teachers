@@ -300,7 +300,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"ok\": true,\n  \"expiresInMinutes\": 10,\n  \"testMode\": true,\n  \"otp\": \"483921\"\n}"
+              "body": "{\n  \"ok\": true,\n  \"expiresInMinutes\": 10,\n  \"testMode\": true,\n  \"channels\": {\n    \"sms\": \"simulated\"\n  },\n  \"otp\": \"483921\"\n}"
             },
             {
               "name": "Mock — 429 Too many codes requested. Try again in a few minutes.",
@@ -653,7 +653,7 @@
                 "google"
               ]
             },
-            "description": "Use a Firebase Google ID token from the mobile SDK. If required, request OTP then link-phone with this returned bearer. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits.",
+            "description": "Use the Firebase user ID token obtained after Google sign-in in the mobile Firebase SDK. Follow nextScreen and nextStep. Incomplete accounts open common onboarding; if phoneVerificationRequired, request OTP then PATCH link-phone with the returned Laravel bearer. See docs/FIREBASE_GOOGLE_AUTH.md for Firebase setup and app-team handoff. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits.",
             "auth": {
               "type": "noauth"
             },
@@ -692,7 +692,7 @@
                     "google"
                   ]
                 },
-                "description": "Use a Firebase Google ID token from the mobile SDK. If required, request OTP then link-phone with this returned bearer. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits.",
+                "description": "Use the Firebase user ID token obtained after Google sign-in in the mobile Firebase SDK. Follow nextScreen and nextStep. Incomplete accounts open common onboarding; if phoneVerificationRequired, request OTP then PATCH link-phone with the returned Laravel bearer. See docs/FIREBASE_GOOGLE_AUTH.md for Firebase setup and app-team handoff. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits.",
                 "auth": {
                   "type": "noauth"
                 },
@@ -742,7 +742,7 @@
                     "google"
                   ]
                 },
-                "description": "Use a Firebase Google ID token from the mobile SDK. If required, request OTP then link-phone with this returned bearer. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits.",
+                "description": "Use the Firebase user ID token obtained after Google sign-in in the mobile Firebase SDK. Follow nextScreen and nextStep. Incomplete accounts open common onboarding; if phoneVerificationRequired, request OTP then PATCH link-phone with the returned Laravel bearer. See docs/FIREBASE_GOOGLE_AUTH.md for Firebase setup and app-team handoff. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits.",
                 "auth": {
                   "type": "noauth"
                 },
@@ -792,7 +792,7 @@
                     "google"
                   ]
                 },
-                "description": "Use a Firebase Google ID token from the mobile SDK. If required, request OTP then link-phone with this returned bearer. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits.",
+                "description": "Use the Firebase user ID token obtained after Google sign-in in the mobile Firebase SDK. Follow nextScreen and nextStep. Incomplete accounts open common onboarding; if phoneVerificationRequired, request OTP then PATCH link-phone with the returned Laravel bearer. See docs/FIREBASE_GOOGLE_AUTH.md for Firebase setup and app-team handoff. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits.",
                 "auth": {
                   "type": "noauth"
                 },

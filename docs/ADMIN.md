@@ -56,11 +56,12 @@ user detail and chat history access, and CSV exports, are recorded in
 separate from API admin audit records, whose actor is a database user.
 Admin responses use `Cache-Control: no-store, private`.
 
-Authentication tracking starts at deployment. It records successful and
-controller-rejected email/Google sign-ins, OTP verifications and completed
-registration events with status, known user ID, submitted email, IP address,
-user agent and timestamp. Validation/throttle errors raised before controller
-responses are not recorded. OTP verification is not classified as a login.
+Authentication tracking starts at deployment. It records returned email/Google
+sign-in, OTP verification and registration responses, including failures,
+with status, known user ID, submitted email, IP address and user agent.
+Returned JSON validation/throttle failures are recorded when tracking runs;
+failures before the tracking middleware runs are not. OTP verification is
+not classified as a login.
 The history does not track active sessions, logout, device identity or online
 status. Historical logins are unavailable; existing user creation and
 registration-completion timestamps remain reportable. A recording failure
@@ -91,6 +92,18 @@ The browser portal uses the configured admin email/hash and does not require a
 database `is_admin` user.
 
 ## Sections and available operations
+
+The admin workspace uses the application's navy, soft-blue and white theme.
+Use **Find a page** in the sidebar to jump to management pages or reports.
+Reports are grouped under People, Chat & lessons, Community & support,
+Learning catalog, Insights & activity, and Admin access logs. New registry
+reports without a mapped group appear under Other reports.
+
+The overview highlights user/chat/booking/message totals, account management
+shortcuts, registration activity and a searchable report library. The mobile
+menu opens as a drawer with keyboard focus handling and Escape-to-close.
+Account/catalog creation forms collapse when browsing existing records and
+open for creation, editing or validation errors.
 
 Each section supports listing, adding, editing, and deleting records.
 

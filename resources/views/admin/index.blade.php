@@ -37,15 +37,19 @@
             <h1>{{ $label }}</h1>
             <p>Create and maintain {{ strtolower($label) }} in your platform.</p>
         </div>
+        <div class="heading-actions">
         @if ($count !== null)
             <span class="count-pill">{{ number_format($count) }} {{ \Illuminate\Support\Str::plural(strtolower($label), $count) }}</span>
         @endif
+            <a class="btn btn-primary" href="{{ route('admin.create', ['section' => $routeSection]) }}">Add {{ \Illuminate\Support\Str::singular(strtolower($label)) }} <x-admin-icon name="arrow" /></a>
+        </div>
     </div>
 
-    <section class="panel" aria-labelledby="create-heading">
-        <div class="panel-head">
+    <details class="panel record-form" @if($isEditing || $errors->any() || request()->routeIs('admin.create')) open @endif>
+        <summary class="panel-head">
             <div><h2 id="create-heading">{{ $isEditing ? 'Edit' : 'Add' }} {{ \Illuminate\Support\Str::singular(strtolower($label)) }}</h2><p>{{ $isEditing ? 'Update the record details and save your changes.' : 'Enter the details below to create a new record.' }}</p></div>
-        </div>
+            <x-admin-icon name="chevron" />
+        </summary>
         <div class="panel-body">
             <form method="post" action="{{ $formAction }}">
                 @csrf @if ($isEditing) @method('put') @endif
@@ -98,7 +102,7 @@
                 </div>
             </form>
         </div>
-    </section>
+    </details>
 
     <section class="panel" aria-labelledby="records-heading">
         <div class="panel-head">

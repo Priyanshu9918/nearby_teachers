@@ -71,9 +71,9 @@ Store tokens using the app platform's secure credential storage.
 
 | Screen / action | Requests and next step |
 |---|---|
-| App launch | Restore bearer, `GET /auth/session`, then `GET /auth/onboarding`. Use `registrationCompleted`, `mobileVerified` and `nextStep` to route. |
+| App launch | Restore bearer, `GET /auth/session`, then `GET /auth/onboarding`. Use `nextScreen` for routing and `nextStep` for the required action. |
 | New phone registration | OTP request → OTP verify → retain token → submit one full registration form. |
-| Google sign-in | Firebase Google sign-in → `/auth/google` → if required, OTP request → `/auth/link-phone` with the Google response bearer. |
+| Google sign-in | Firebase Google sign-in → `/auth/google` → follow `nextScreen`; incomplete users open the common form with inline phone linking if required. |
 | Returning user | `/auth/login` with email/password → restore onboarding state. |
 | Student after registration | Follow `nextStepEndpoint: /auth/date-of-birth`; ages 13–17 require guardian consent for contact actions. |
 | Teacher/institute after registration | Follow `nextStepEndpoint: /profiles/me`; save subjects, rates, modes and coordinates for the listing. |
@@ -91,10 +91,10 @@ listing coordinates; other-city search requires `online` in `lessonModes`.
 |---|---|---|---|
 | `POST /auth/otp/request` | Public | `phone` | `{"ok":true,"expiresInMinutes":10}` |
 | `POST /auth/otp/verify` | Public | `phone`, `code` | `{token,user,mobileVerified:true}`; creates a minimal identity for a new phone. |
-| `POST /auth/google` | Public | `firebaseIdToken` | `{token,user,mobileVerified,phoneVerificationRequired}`; requires a verified Google email. |
+| `POST /auth/google` | Public | `firebaseIdToken` | Laravel token, user and common routing fields (`nextScreen`, `nextStep`, completion/phone flags); requires a verified Google email. |
 | `PATCH /auth/link-phone` | Bearer | `phone`, `code` | `{user,mobileVerified:true}`; a phone linked to another account returns `409`. |
-| `POST /auth/login` | Public | `email`, `password` | `{token,user,mobileVerified,phoneVerificationRequired}`; phone login body field is prohibited. |
-| `GET /auth/session` | Bearer | — | `{user,mobileVerified}` |
+| `POST /auth/login` | Public | `email`, `password` | Laravel token, user and common screen-routing fields; phone login body field is prohibited. |
+| `GET /auth/session` | Bearer | — | User and common screen-routing fields; use this to resume after app restart. |
 | `GET /auth/onboarding` | Bearer | — | Onboarding payload below. |
 | `POST /auth/register` | Verified | Full registration form below | Onboarding payload plus `nextStepEndpoint`; saves once. |
 | `POST /auth/onboarding/complete` | Verified | Same registration form | Alias of `/auth/register`. |
@@ -199,14 +199,19 @@ Onboarding response example after successful teacher registration (abbreviated):
 }
 ```
 
-`nextStepEndpoint` is added on completion, not on every draft read. `canSubmit`
+Google/email login, OTP verification, phone linking, session and onboarding
+responses share `nextScreen`, `nextStep` and `nextStepEndpoint`. Incomplete
+users open `nextScreen:"onboarding"`; `nextStep:"mobile_verification"` can be
+completed inline on that screen. Completed users resume their pending
+phone/age/guardian step or home. See [Firebase backend and app handoff](FIREBASE_GOOGLE_AUTH.md).
+`canSubmit`
 reflects saved server state; before registration the unsaved device form can be
 valid even when this is false. Use `mobileVerified` for the verification badge,
 local field validation for the submit button, and field errors from `422`.
 
 Phone codes expire in 10 minutes, allow five attempts, and use the newest code.
-Local/testing OTP mode can additionally return `testMode:true` and `otp`; use
-that actual random value. Production never returns the OTP. Email codes are
+Local/testing `OTP_TEST_MODE=true` returns `testMode:true`, `otp` and simulated
+channel statuses without sending messages. Production never returns the OTP. Live dual-channel behavior is documented in [OTP delivery](OTP_DELIVERY.md). Email codes are
 single-use, expire after 10 minutes, allow five attempts, and are invalidated
 on resend. Email verification is not a separate login gate. More details:
 [registration](REGISTRATION.md), [email recovery](EMAIL_AUTH.md).

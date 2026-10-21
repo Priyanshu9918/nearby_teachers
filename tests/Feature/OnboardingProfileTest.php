@@ -132,6 +132,10 @@ class OnboardingProfileTest extends TestCase
         $query->shouldReceive('lockForUpdate')->once()->andReturnSelf();
         $query->shouldReceive('first')->once()->andReturn($user);
 
+        $activity = \Mockery::mock(Builder::class);
+        DB::shouldReceive('table')->with('auth_activity')->once()->andReturn($activity);
+        $activity->shouldReceive('insert')->once()->with(\Mockery::on(fn ($row) => $row['status_code'] === 422 && $row['successful'] === false))->andReturn(true);
+
         $this->postJson('/auth/onboarding/complete', [], ['Authorization' => 'Bearer onboarding-token'])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['accountType', 'fullName', 'email', 'password', 'termsAccepted', 'acknowledgeTeachersNotBackgroundChecked']);

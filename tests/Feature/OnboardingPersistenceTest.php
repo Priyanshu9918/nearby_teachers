@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Services\AuthenticationService;
+use App\Services\OtpDelivery;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -15,6 +16,8 @@ class OnboardingPersistenceTest extends TestCase
     private string $userId;
 
     private bool $transactionStarted = false;
+
+    private string $lastOtp;
 
     protected function setUp(): void
     {
@@ -159,7 +162,7 @@ class OnboardingPersistenceTest extends TestCase
             ->assertUnprocessable()->assertJsonValidationErrors('code');
     }
 
-    public function test_test_mode_returns_a_verifiable_random_otp_without_sending_sms(): void
+    public function test_test_mode_returns_verifiable_otp_without_sending_messages(): void
     {
         config([
             'services.nearby_teacher.otp_test_mode' => true,
@@ -170,9 +173,11 @@ class OnboardingPersistenceTest extends TestCase
         $this->app->instance(AuthenticationService::class, new AuthenticationService);
         Http::fake();
         $phone = '+919876543210';
+        $this->captureOtp();
         $response = $this->postJson('/auth/otp/request', ['phone' => $phone])
             ->assertOk()->assertJsonPath('testMode', true)->assertJsonPath('expiresInMinutes', 10);
         $code = $response->json('otp');
+        $this->assertSame($this->lastOtp, $code);
         $this->assertMatchesRegularExpression('/^[0-9]{6}$/', $code);
         $stored = DB::table('otp_codes')->where('phone', $phone)->first();
         $this->assertNotSame($code, $stored->code_hash);
@@ -206,5 +211,17 @@ class OnboardingPersistenceTest extends TestCase
             'termsAccepted' => true,
             'acknowledgeTeachersNotBackgroundChecked' => true,
         ];
+    }
+
+    private function captureOtp(): void
+    {
+        $real = app(OtpDelivery::class);
+        $spy = \Mockery::mock(OtpDelivery::class);
+        $spy->shouldReceive('send')->andReturnUsing(function ($phone, $code, $country) use ($real) {
+            $this->lastOtp = $code;
+
+            return $real->send($phone, $code, $country);
+        });
+        $this->app->instance(OtpDelivery::class, $spy);
     }
 }

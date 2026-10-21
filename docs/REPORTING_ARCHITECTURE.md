@@ -65,6 +65,7 @@ Current event coverage starts when migration `000029` is deployed:
 
 | Event | Recorded metadata |
 |---|---|
+| `identity.google_linked` | Previous/new link flag, local user ID; Firebase UID/email/token are not duplicated |
 | `registration.completed` | Previous/new account type and completion timestamp |
 | `booking.created` | Initial status, lesson mode, requested time and price |
 | `booking.status_changed` | Previous/new status; repeated same-status requests add no change event |
@@ -119,3 +120,11 @@ to a disposable MySQL database ending in `_test`. They exercise report
 extension without controller changes, explicit columns, access control,
 search/date/participant filters, CSV output, transactional rollback, surviving
 source deletion and real booking/chat operations.
+
+OTP delivery adds the `otp-delivery` registry report backed by append-only
+`otp_delivery_attempts`. Each per-channel result is paired transactionally with an
+`otp.delivery_result` business event; snapshots allow only channel, provider and
+status. History includes only the last four phone digits and no code or raw gateway
+payload. Results measure submission acknowledgement, not actual delivery. Historical
+requests before this feature and receipt webhooks are not covered. See
+[OTP delivery](OTP_DELIVERY.md) for partial failure and external-send limitations.

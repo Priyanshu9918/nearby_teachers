@@ -2,8 +2,8 @@
 @section('title', $title)
 @section('breadcrumb', $title)
 @section('content')
-<div class="page-heading"><div><p class="eyebrow">Project reports</p><h1>{{ $title }}</h1><p>Search records, inspect linked users and export matching results.</p></div></div>
-<div class="panel panel-body"><label for="report-picker">Choose report</label><select id="report-picker" onchange="window.location.href=this.value" style="max-width:100%;padding:10px;margin-left:12px">@foreach ($availableReports as $key => $entry)<option value="{{ route('admin.reports.index', ['report' => $key]) }}" @selected($report === $key)>{{ $entry->title }}</option>@endforeach</select></div>
+<div class="page-heading"><div><p class="eyebrow">Project reports</p><h1>{{ $title }}</h1><p>Search records, inspect linked users and export matching results.</p></div><a class="btn" href="{{ route('admin.dashboard') }}#report-library">All reports <x-admin-icon name="arrow" /></a></div>
+<div class="panel panel-body report-picker"><label for="report-picker">Switch report</label><select id="report-picker" onchange="window.location.href=this.value">@foreach ($availableReports as $key => $entry)<option value="{{ route('admin.reports.index', ['report' => $key]) }}" @selected($report === $key)>{{ $entry->title }}</option>@endforeach</select></div>
 @if ($report === 'logins')<div class="flash">Tracking begins when this feature is deployed. OTP verification is separate from login. Validation/throttle rejections before the controller are not logged. These are authentication events, not a list of currently online users.</div>@endif
 @if ($report === 'activity')<div class="flash">History begins when tracking is enabled. Includes completed registration, booking creation/status changes and message creation metadata. Message text remains in conversation history. Other actions appear when their tracking is added.</div>@endif
 @include('admin.reports.filters')

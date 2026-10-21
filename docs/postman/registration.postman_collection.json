@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Nearby Teacher - Registration and Autosave",
-    "description": "Run Send OTP, enter the received code in otp, then Verify OTP (stores token). Submit ONE registration request for the selected role. Form values stay on the client before registration. Autosave is allowed only after registration. Use an unused phone/email for a new registration; an existing registered phone should sign in instead. Real SMS needs configured provider credentials. In local/testing with OTP_TEST_MODE=true, Send OTP returns otp in JSON and automatically stores it for Verify OTP. No SMS credentials are needed in that mode. Password login is email-only. Forgot/reset-password codes are delivered by email and never returned in payload, even when mobile OTP testing is enabled. Start the notifications queue worker and set emailCode from the received email. After reset log in again. Saved responses named Mock are fictional examples checked against controller response shapes, not live server captures. In Postman expand a request and select its saved example to preview the status, headers and JSON body without sending it. Mock tokens and IDs are illustrative; use real credentials/IDs for live requests.",
+    "description": "Run Send OTP, enter the received code in otp, then Verify OTP (stores token). Submit ONE registration request for the selected role. Form values stay on the client before registration. Autosave is allowed only after registration. Use an unused phone/email for a new registration; an existing registered phone should sign in instead. Real SMS needs configured provider credentials. OTP is returned only in local/testing when OTP_TEST_MODE=true. Enter the code received by SMS or WhatsApp in the otp collection variable. Local/testing OTP_TEST_MODE=true skips delivery and returns otp in JSON. Password login is email-only. Forgot/reset-password codes are delivered by email and never returned in payload, even when mobile OTP testing is enabled. Start the notifications queue worker and set emailCode from the received email. After reset log in again. Saved responses named Mock are fictional examples checked against controller response shapes, not live server captures. In Postman expand a request and select its saved example to preview the status, headers and JSON body without sending it. Mock tokens and IDs are illustrative; use real credentials/IDs for live requests.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -76,11 +76,7 @@
           "listen": "test",
           "script": {
             "type": "text/javascript",
-            "exec": [
-              "if (pm.response.code === 200 && pm.response.json().testMode === true) {",
-              "  pm.collectionVariables.set(\"otp\", pm.response.json().otp);",
-              "}"
-            ]
+            "exec": []
           }
         }
       ],
@@ -163,7 +159,7 @@
             }
           ],
           "cookie": [],
-          "body": "{\n  \"ok\": true,\n  \"expiresInMinutes\": 10,\n  \"testMode\": true,\n  \"otp\": \"483921\"\n}"
+          "body": "{\n  \"ok\": true,\n  \"expiresInMinutes\": 10,\n  \"testMode\": true,\n  \"channels\": {\n    \"sms\": \"simulated\"\n  },\n  \"otp\": \"483921\"\n}"
         },
         {
           "name": "Mock — 429 Too many codes requested. Try again in a few minutes.",

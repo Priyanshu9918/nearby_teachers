@@ -38,11 +38,12 @@ usually use camelCase; raw record response fields usually use snake_case.
 
 ## Authentication and account setup
 
-For local testing, `OTP_TEST_MODE=true` with `APP_ENV=local` or `testing`
-makes `POST /auth/otp/request` skip SMS and include `testMode: true` and the
-random six-digit `otp` in its JSON response. Use that value as `code` in
-`POST /auth/otp/verify`. Production never returns this field. Set the flag
-to `false` and configure the SMS provider to enable real delivery.
+OTP codes are returned only when `OTP_TEST_MODE=true` in local/testing environments. With `OTP_DELIVERY_CHANNELS=sms,whatsapp`,
+the same code is submitted to both channels. Responses include `channels` statuses:
+`200` when all are accepted, `202` with `partialDelivery:true` when one succeeds,
+and `503` when neither succeeds. Accepted means gateway acknowledgement, not confirmed
+handset delivery. Local/testing `OTP_TEST_MODE=true` skips delivery and includes `testMode:true` and `otp` in JSON. Production never exposes
+the code. See [dual-channel setup](OTP_DELIVERY.md).
 
 | Method | Path | Access | Request | Result / notes |
 |---|---|---|---|---|

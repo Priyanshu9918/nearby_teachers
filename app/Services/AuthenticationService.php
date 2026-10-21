@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Reporting\BusinessActivityRecorder;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
@@ -44,7 +46,7 @@ class AuthenticationService
         }
 
         $user->password_set = (bool) ($user->password_set ?? filled($user->password_hash ?? null));
-        unset($user->password_hash);
+        unset($user->password_hash, $user->parental_consent_token);
 
         return $user;
     }
@@ -91,71 +93,83 @@ class AuthenticationService
             return null;
         }
 
-        return $this->resolveFirebaseUserId($claims);
+        // Raw Firebase compatibility must use the same verified Google identity rules.
+        return $this->resolveGoogleUser($claims)?->id;
+    }
+
+    public function firebaseProjectId(): ?string
+    {
+        $projectId = config('services.nearby_teacher.firebase_project_id');
+        if (! is_string($projectId) || trim($projectId) === '') {
+            $projectId = $this->serviceAccount()['project_id'] ?? null;
+        }
+
+        return is_string($projectId) && trim($projectId) !== '' ? trim($projectId) : null;
+    }
+
+    public function firebaseCertificates(): array
+    {
+        $cached = Cache::get('firebase.securetoken.certificates');
+        if (is_array($cached) && $cached !== []) {
+            return $cached;
+        }
+        try {
+            $response = Http::timeout(5)->get(self::FIREBASE_CERTIFICATES_URL)->throw();
+            $certificates = $response->json();
+            if (! is_array($certificates) || $certificates === [] || count(array_filter($certificates, 'is_string')) !== count($certificates)) {
+                throw new RuntimeException('Firebase returned invalid verification certificates.');
+            }
+            preg_match('/max-age=(\d+)/i', $response->header('Cache-Control'), $matches);
+            $ttl = isset($matches[1]) ? min((int) $matches[1], 86400) : 300;
+            if ($ttl > 0) {
+                Cache::put('firebase.securetoken.certificates', $certificates, $ttl);
+            }
+
+            return $certificates;
+        } catch (ConnectionException|RequestException $exception) {
+            report($exception);
+            throw new RuntimeException('Firebase token verification is temporarily unavailable.', 0, $exception);
+        }
     }
 
     public function verifyFirebaseClaims(string $token): ?object
     {
-        $serviceAccount = $this->serviceAccount();
-        $projectId = $serviceAccount['project_id'] ?? null;
-
-        if (! is_string($projectId) || $projectId === '') {
-            return null;
-        }
-
         try {
-            $certificates = Cache::remember(
-                'firebase.securetoken.certificates',
-                now()->addMinutes(50),
-                static function (): array {
-                    $response = Http::timeout(5)->get(self::FIREBASE_CERTIFICATES_URL);
-                    $response->throw();
-                    $certificates = $response->json();
-
-                    if (! is_array($certificates)) {
-                        throw new RuntimeException('Firebase returned an invalid token certificate response.');
-                    }
-
-                    return $certificates;
-                }
-            );
-        } catch (ConnectionException $exception) {
-            report($exception);
-
-            throw new RuntimeException('Firebase token verification is temporarily unavailable.', 0, $exception);
-        } catch (RequestException $exception) {
-            report($exception);
-
-            throw new RuntimeException('Firebase token verification is temporarily unavailable.', 0, $exception);
-        }
-
-        try {
+            if (strlen($token) > 16384) {
+                return null;
+            }
             $segments = explode('.', $token);
             if (count($segments) !== 3) {
                 return null;
             }
             $header = json_decode(JWT::urlsafeB64Decode($segments[0]), true, 512, JSON_THROW_ON_ERROR);
             $keyId = $header['kid'] ?? null;
-            if (! is_string($keyId) || ! isset($certificates[$keyId]) || ! is_string($certificates[$keyId])) {
+            if (($header['alg'] ?? null) !== 'RS256' || ! is_string($keyId) || $keyId === '' || strlen($keyId) > 256) {
+                return null;
+            }
+        } catch (Throwable) {
+            return null;
+        }
+        $projectId = $this->firebaseProjectId();
+        if ($projectId === null) {
+            throw new RuntimeException('FIREBASE_PROJECT_ID is not configured.');
+        }
+        $certificates = $this->firebaseCertificates();
+        try {
+            if (! isset($certificates[$keyId])) {
                 return null;
             }
             $claims = JWT::decode($token, new Key($certificates[$keyId], 'RS256'));
         } catch (Throwable) {
             return null;
         }
-
         $now = now()->timestamp;
-        $issuer = 'https://securetoken.google.com/'.$projectId;
-
         if (($claims->aud ?? null) !== $projectId
-            || ($claims->iss ?? null) !== $issuer
-            || ! is_string($claims->sub ?? null)
-            || $claims->sub === ''
-            || strlen($claims->sub) > 128
-            || ! isset($claims->iat, $claims->exp)
-            || $claims->iat > $now
-            || $claims->exp <= $now
-            || $claims->exp - $claims->iat > 3600) {
+            || ($claims->iss ?? null) !== 'https://securetoken.google.com/'.$projectId
+            || ! is_string($claims->sub ?? null) || $claims->sub === '' || strlen($claims->sub) > 128
+            || ! is_int($claims->iat ?? null) || ! is_int($claims->exp ?? null) || ! is_int($claims->auth_time ?? null)
+            || $claims->iat > $now || $claims->exp <= $now || $claims->exp <= $claims->iat
+            || $claims->exp - $claims->iat > 3600 || $claims->auth_time > $now || $claims->auth_time < 0) {
             return null;
         }
 
@@ -193,32 +207,48 @@ class AuthenticationService
 
     public function resolveGoogleUser(object $claims): ?object
     {
-        $googleId = $claims->sub ?? null;
-        $email = strtolower(trim((string) ($claims->email ?? '')));
-        if (! is_string($googleId) || $googleId === '' || $email === '') {
+        if (($claims->firebase->sign_in_provider ?? null) !== 'google.com'
+            || ($claims->email_verified ?? false) !== true
+            || ! is_string($claims->sub ?? null) || $claims->sub === ''
+            || ! is_string($claims->email ?? null)
+            || filter_var($claims->email, FILTER_VALIDATE_EMAIL) === false) {
             return null;
         }
+        try {
+            return DB::transaction(fn () => $this->resolveGoogleIdentity($claims), 3);
+        } catch (UniqueConstraintViolationException) {
+            // A concurrent first sign-in may have created/linked this identity already.
+            return DB::transaction(fn () => $this->resolveGoogleIdentity($claims), 3);
+        }
+    }
 
-        $user = DB::table('users')->where('google_id', $googleId)->first();
+    private function resolveGoogleIdentity(object $claims): ?object
+    {
+        $googleId = $claims->sub;
+        $email = strtolower(trim($claims->email));
+        $user = DB::table('users')->where('google_id', $googleId)->lockForUpdate()->first();
         if ($user !== null) {
+            if ($user->suspended_at !== null) {
+                return $user;
+            }
             if (! $this->firebaseSessionAllowed($user, $claims)) {
                 return null;
             }
-            $emailOwner = DB::table('users')->where('email', $email)->where('id', '!=', $user->id)->exists();
-            if ($emailOwner) {
+            $emailOwner = DB::table('users')->where('email', $email)->where('id', '!=', $user->id)->lockForUpdate()->first();
+            if ($emailOwner !== null) {
                 return null;
             }
             DB::table('users')->where('id', $user->id)->update([
-                'email' => $email,
-                'email_verified_at' => now(),
-                'updated_at' => now(),
+                'email' => $email, 'email_verified_at' => now(), 'updated_at' => now(),
             ]);
 
             return DB::table('users')->where('id', $user->id)->first();
         }
-
-        $user = DB::table('users')->where('email', $email)->first();
+        $user = DB::table('users')->where('email', $email)->lockForUpdate()->first();
         if ($user !== null) {
+            if ($user->suspended_at !== null) {
+                return $user;
+            }
             if (! $this->firebaseSessionAllowed($user, $claims)) {
                 return null;
             }
@@ -226,26 +256,23 @@ class AuthenticationService
                 return null;
             }
             DB::table('users')->where('id', $user->id)->update([
-                'google_id' => $googleId,
-                'email_verified_at' => now(),
-                'updated_at' => now(),
+                'google_id' => $googleId, 'email_verified_at' => now(), 'updated_at' => now(),
             ]);
+            app(BusinessActivityRecorder::class)->record('identity.google_linked', $user->id, $user->id,
+                before: ['linked' => false], after: ['linked' => true]);
 
             return DB::table('users')->where('id', $user->id)->first();
         }
-
         $id = (string) Str::uuid();
         $name = $claims->name ?? null;
         DB::table('users')->insert([
-            'id' => $id,
-            'account_type' => 'learner',
-            'full_name' => is_string($name) && trim($name) !== '' ? trim($name) : 'New user',
-            'email' => $email,
-            'google_id' => $googleId,
-            'email_verified_at' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
+            'id' => $id, 'account_type' => 'learner',
+            'full_name' => is_string($name) && trim($name) !== '' ? Str::limit(trim($name), 160, '') : 'New user',
+            'email' => $email, 'google_id' => $googleId, 'email_verified_at' => now(),
+            'created_at' => now(), 'updated_at' => now(),
         ]);
+        app(BusinessActivityRecorder::class)->record('identity.google_linked', $id, $id,
+            before: ['linked' => false], after: ['linked' => true]);
 
         return DB::table('users')->where('id', $id)->first();
     }
@@ -253,6 +280,17 @@ class AuthenticationService
     private function serviceAccount(): array
     {
         $json = config('services.nearby_teacher.firebase_service_account_json');
+        $path = config('services.nearby_teacher.firebase_service_account_path');
+        if (is_string($path) && trim($path) !== '') {
+            $file = str_starts_with($path, DIRECTORY_SEPARATOR) ? $path : base_path($path);
+            if (! is_file($file) || ! is_readable($file)) {
+                throw new RuntimeException('Firebase service account file is missing or unreadable.');
+            }
+            $json = file_get_contents($file);
+            if ($json === false) {
+                throw new RuntimeException('Firebase service account file could not be read.');
+            }
+        }
 
         if (! is_string($json) || $json === '') {
             return [];
@@ -261,73 +299,13 @@ class AuthenticationService
         try {
             $account = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
         } catch (Throwable $exception) {
-            throw new RuntimeException('FIREBASE_SERVICE_ACCOUNT_JSON is not valid JSON.', 0, $exception);
+            throw new RuntimeException('Firebase service account is not valid JSON.');
         }
 
-        if (! is_array($account)) {
+        if (! is_array($account) || array_is_list($account)) {
             throw new RuntimeException('FIREBASE_SERVICE_ACCOUNT_JSON must contain a JSON object.');
         }
 
         return $account;
-    }
-
-    private function resolveFirebaseUserId(object $claims): ?string
-    {
-        $firebase = $claims->firebase ?? null;
-        $provider = is_object($firebase) ? ($firebase->sign_in_provider ?? null) : null;
-        $googleId = $provider === 'google.com' ? ($claims->sub ?? null) : null;
-        $phone = $claims->phone_number ?? null;
-        $email = $claims->email ?? null;
-        $phoneVerifiedAt = $provider === 'phone' && is_string($phone) && $phone !== '' ? now() : null;
-
-        if (! is_string($googleId) && ! is_string($phone) && ! is_string($email)) {
-            return null;
-        }
-
-        $user = DB::table('users')
-            ->where(function ($query) use ($googleId, $phone, $email): void {
-                if (is_string($googleId)) {
-                    $query->orWhere('google_id', $googleId);
-                }
-                if (is_string($phone) && $phone !== '') {
-                    $query->orWhere('phone', $phone);
-                }
-                if (is_string($email) && $email !== '') {
-                    $query->orWhere('email', $email);
-                }
-            })
-            ->first();
-
-        if ($user !== null) {
-            if (! $this->firebaseSessionAllowed($user, $claims)) {
-                return null;
-            }
-            if ($phoneVerifiedAt !== null && $user->phone_verified_at === null) {
-                DB::table('users')->where('id', $user->id)->update([
-                    'phone_verified_at' => $phoneVerifiedAt,
-                    'updated_at' => now(),
-                ]);
-            }
-
-            return $user->id;
-        }
-
-        $userId = (string) Str::uuid();
-        $name = $claims->name ?? 'New user';
-        $now = now();
-
-        DB::table('users')->insert([
-            'id' => $userId,
-            'account_type' => 'learner',
-            'full_name' => is_string($name) && $name !== '' ? $name : 'New user',
-            'email' => is_string($email) && $email !== '' ? $email : null,
-            'phone' => is_string($phone) && $phone !== '' ? $phone : null,
-            'phone_verified_at' => $phoneVerifiedAt,
-            'google_id' => is_string($googleId) ? $googleId : null,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
-
-        return $userId;
     }
 }

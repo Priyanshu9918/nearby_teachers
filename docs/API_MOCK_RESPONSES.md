@@ -26,7 +26,8 @@ Mock — 200 OTP requested — local/testing only (`Content-Type: application/js
   "ok": true,
   "expiresInMinutes": 10,
   "testMode": true,
-  "otp": "483921"
+  "otp": "483921",
+  "channels": {"sms": "simulated"}
 }
 ```
 

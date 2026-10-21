@@ -46,3 +46,8 @@ pnpm-debug.log*
 Thumbs.db
 *.swp
 *.swo
+
+# Firebase backend credentials
+/storage/app/private/firebase/*
+!/storage/app/private/firebase/.gitignore
+/nearby_teacher.json

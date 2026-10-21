@@ -4,13 +4,15 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\SendNotificationEmail;
+use App\Reporting\BusinessActivityRecorder;
 use App\Services\AuthenticationService;
+use App\Services\OnboardingState;
+use App\Services\OtpDelivery;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -31,7 +33,7 @@ class AuthController extends Controller
 
     private const LANGUAGES = ['en', 'hi', 'es', 'fr', 'ar', 'zh', 'pt', 'ru'];
 
-    public function __construct(private readonly AuthenticationService $authentication) {}
+    public function __construct(private readonly AuthenticationService $authentication, private readonly OtpDelivery $delivery) {}
 
     public function requestOtp(Request $request): JsonResponse
     {
@@ -55,25 +57,41 @@ class AuthController extends Controller
             'created_at' => now(),
         ]);
 
-        if (config('services.nearby_teacher.otp_test_mode') && app()->environment(['local', 'testing'])) {
-            return response()->json([
-                'ok' => true,
-                'expiresInMinutes' => self::OTP_TTL_MINUTES,
-                'testMode' => true,
-                'otp' => $code,
-            ]);
-        }
-
         try {
-            $this->sendOtp($phone, $code, $country);
+            $delivery = $this->delivery->send($phone, $code, $country);
         } catch (Throwable $exception) {
             DB::table('otp_codes')->where('id', $id)->update(['consumed_at' => now()]);
             Log::error('OTP delivery failed.', ['exception' => $exception::class]);
 
             return response()->json(['error' => 'Unable to send a verification code right now. Please try again later.'], 503);
         }
+        $statuses = array_map(fn (array $channel) => $channel['status'], $delivery['channels']);
+        $accepted = count(array_filter($statuses, fn (string $status) => in_array($status, ['accepted', 'simulated'], true)));
+        DB::transaction(function () use ($id, $phone, $delivery, $accepted): void {
+            foreach ($delivery['channels'] as $channel => $result) {
+                $attemptId = (string) Str::uuid();
+                DB::table('otp_delivery_attempts')->insert([
+                    'id' => $attemptId, 'otp_code_id' => $id, 'channel' => $channel,
+                    'provider' => $result['provider'], 'status' => $result['status'],
+                    'phone_last_four' => substr($phone, -4), 'created_at' => now(),
+                ]);
+                app(BusinessActivityRecorder::class)->record('otp.delivery_result', $attemptId, null,
+                    after: ['channel' => $channel, 'provider' => $result['provider'], 'status' => $result['status']]);
+            }
+            if ($accepted === 0) {
+                DB::table('otp_codes')->where('id', $id)->update(['consumed_at' => now()]);
+            }
+        });
+        if ($accepted === 0) {
+            return response()->json(['error' => 'Unable to send a verification code right now. Please try again later.', 'channels' => $statuses], 503);
+        }
+        $partial = $accepted < count($statuses);
 
-        return response()->json(['ok' => true, 'expiresInMinutes' => self::OTP_TTL_MINUTES]);
+        return response()->json([
+            'ok' => true, 'expiresInMinutes' => self::OTP_TTL_MINUTES, 'channels' => $statuses,
+            ...($partial ? ['partialDelivery' => true] : []),
+            ...($delivery['testMode'] && app()->environment(['local', 'testing']) ? ['testMode' => true, 'otp' => $code] : []),
+        ], $partial ? 202 : 200);
     }
 
     public function verifyOtp(Request $request): JsonResponse
@@ -147,14 +165,19 @@ class AuthController extends Controller
         return response()->json([
             'token' => $this->authentication->issueOtpToken($user->id, (int) ($user->auth_version ?? 0)),
             'user' => $user,
-            'mobileVerified' => $user->phone_verified_at !== null,
+            'authMethod' => 'phone_otp',
+            ...app(OnboardingState::class)->forUser($user),
         ]);
     }
 
     public function googleSignIn(Request $request): JsonResponse
     {
-        $data = $request->validate(['firebaseIdToken' => ['required', 'string']]);
-        $claims = $this->authentication->verifyFirebaseClaims($data['firebaseIdToken']);
+        $data = $request->validate(['firebaseIdToken' => ['required', 'string', 'max:16384']]);
+        try {
+            $claims = $this->authentication->verifyFirebaseClaims($data['firebaseIdToken']);
+        } catch (\RuntimeException) {
+            return response()->json(['error' => 'Google sign-in is temporarily unavailable. Please try again later.', 'code' => 'FIREBASE_AUTH_UNAVAILABLE'], 503);
+        }
         if ($claims === null || ($claims->firebase->sign_in_provider ?? null) !== 'google.com') {
             return response()->json(['error' => 'That Google sign-in could not be verified. Try again.'], 400);
         }
@@ -169,11 +192,15 @@ class AuthController extends Controller
             return response()->json(['error' => 'This Google account conflicts with an existing account. Log in with the linked account or contact support.'], 409);
         }
 
+        if ($user->suspended_at !== null) {
+            return response()->json(['error' => 'This account has been suspended.', 'suspended' => true], 403);
+        }
+
         return response()->json([
             'token' => $this->authentication->issueSessionToken($user->id, (int) ($user->auth_version ?? 0)),
             'user' => $user,
-            'mobileVerified' => $user->phone_verified_at !== null,
-            'phoneVerificationRequired' => $user->phone_verified_at === null,
+            'authMethod' => 'google',
+            ...app(OnboardingState::class)->forUser($user),
         ]);
     }
 
@@ -183,7 +210,7 @@ class AuthController extends Controller
 
         return response()->json([
             'user' => $user,
-            'mobileVerified' => $user->phone_verified_at !== null,
+            ...app(OnboardingState::class)->forUser($user),
         ]);
     }
 
@@ -208,8 +235,8 @@ class AuthController extends Controller
         return response()->json([
             'token' => $this->authentication->issueSessionToken($user->id, (int) ($user->auth_version ?? 0)),
             'user' => $user,
-            'mobileVerified' => $user->phone_verified_at !== null,
-            'phoneVerificationRequired' => $user->phone_verified_at === null,
+            'authMethod' => 'password',
+            ...app(OnboardingState::class)->forUser($user),
         ]);
     }
 
@@ -296,16 +323,19 @@ class AuthController extends Controller
             'updated_at' => now(),
         ]);
 
-        return response()->json([
-            'user' => $this->authentication->publicUser(DB::table('users')->where('id', $user->id)->first()),
-            'mobileVerified' => true,
-        ]);
+        $fresh = $this->authentication->publicUser(DB::table('users')->where('id', $user->id)->first());
+
+        return response()->json(['user' => $fresh, ...app(OnboardingState::class)->forUser($fresh)]);
     }
 
     public function linkGoogle(Request $request): JsonResponse
     {
-        $data = $request->validate(['firebaseIdToken' => ['required', 'string']]);
-        $claims = $this->authentication->verifyFirebaseClaims($data['firebaseIdToken']);
+        $data = $request->validate(['firebaseIdToken' => ['required', 'string', 'max:16384']]);
+        try {
+            $claims = $this->authentication->verifyFirebaseClaims($data['firebaseIdToken']);
+        } catch (\RuntimeException) {
+            return response()->json(['error' => 'Google sign-in is temporarily unavailable. Please try again later.', 'code' => 'FIREBASE_AUTH_UNAVAILABLE'], 503);
+        }
 
         if ($claims === null) {
             return response()->json(['error' => 'That Google sign-in could not be verified. Try again.'], 400);
@@ -313,34 +343,38 @@ class AuthController extends Controller
         if (($claims->firebase->sign_in_provider ?? null) !== 'google.com') {
             return response()->json(['error' => 'That token was not from a Google sign-in.'], 400);
         }
-        if (($claims->email_verified ?? false) !== true) {
+        if (($claims->email_verified ?? false) !== true || ! is_string($claims->email ?? null) || filter_var($claims->email, FILTER_VALIDATE_EMAIL) === false) {
             return response()->json(['error' => 'Use a verified Google email address to continue.'], 400);
         }
 
         $user = $request->attributes->get('authenticated_user');
-        $existing = DB::table('users')->select('id')->where(function ($query) use ($claims): void {
-            $query->where('google_id', $claims->sub);
-            if (isset($claims->email) && is_string($claims->email)) {
-                $query->orWhere('email', $claims->email);
+
+        return DB::transaction(function () use ($user, $claims): JsonResponse {
+            $current = DB::table('users')->where('id', $user->id)->lockForUpdate()->first();
+            abort_if($current === null, 401);
+            if ($current->google_id !== null && $current->google_id !== $claims->sub) {
+                return response()->json(['error' => 'This account is already linked to another Google identity.'], 409);
             }
-        })->first();
+            $existing = DB::table('users')->where('id', '!=', $current->id)->where(function ($query) use ($claims): void {
+                $query->where('google_id', $claims->sub)->orWhere('email', strtolower(trim($claims->email)));
+            })->lockForUpdate()->first();
+            if ($existing !== null) {
+                return response()->json(['error' => 'This Google account is already linked to a different account. Log in with that account or contact support.'], 409);
+            }
+            DB::table('users')->where('id', $current->id)->update([
+                'google_id' => $claims->sub,
+                'email' => $current->email ?? strtolower(trim($claims->email)),
+                'email_verified_at' => $current->email === null || strcasecmp($current->email, $claims->email) === 0 ? now() : $current->email_verified_at,
+                'updated_at' => now(),
+            ]);
+            if ($current->google_id === null) {
+                app(BusinessActivityRecorder::class)->record('identity.google_linked', $current->id, $current->id,
+                    before: ['linked' => false], after: ['linked' => true]);
+            }
+            $fresh = $this->authentication->publicUser(DB::table('users')->where('id', $current->id)->first());
 
-        if ($existing !== null && $existing->id !== $user->id) {
-            return response()->json([
-                'error' => 'This Google account is already linked to a different account. Log in with that account to manage it, or contact BSL for help combining accounts.',
-            ], 409);
-        }
-
-        DB::table('users')->where('id', $user->id)->update([
-            'google_id' => $claims->sub,
-            'email' => $user->email ?? ($claims->email ?? null),
-            'email_verified_at' => $user->email === null || strcasecmp($user->email, $claims->email) === 0 ? now() : ($user->email_verified_at ?? null),
-            'updated_at' => now(),
-        ]);
-
-        return response()->json([
-            'user' => $this->authentication->publicUser(DB::table('users')->where('id', $user->id)->first()),
-        ]);
+            return response()->json(['user' => $fresh, ...app(OnboardingState::class)->forUser($fresh)]);
+        });
     }
 
     public function setDateOfBirth(Request $request): JsonResponse
@@ -513,48 +547,6 @@ class AuthController extends Controller
     private function emptyLessonModes(): array
     {
         return ['lesson_modes' => '[]'];
-    }
-
-    private function sendOtp(string $phone, string $code, ?string $country): void
-    {
-        if ($country === 'IN') {
-            $authKey = config('services.nearby_teacher.msg91_auth_key');
-            if (! filled($authKey) || ! filled(config('services.nearby_teacher.msg91_template_id'))) {
-                throw new \RuntimeException('MSG91 credentials are not configured.');
-            }
-
-            Http::timeout(10)
-                ->withHeaders(['authkey' => $authKey])
-                ->post('https://control.msg91.com/api/v5/flow/', [
-                    'template_id' => config('services.nearby_teacher.msg91_template_id'),
-                    'short_url' => '0',
-                    'recipients' => [[
-                        'mobiles' => preg_replace('/\D/', '', $phone),
-                        'code' => $code,
-                    ]],
-                ])
-                ->throw();
-
-            return;
-        }
-
-        $accountSid = config('services.nearby_teacher.twilio_account_sid');
-        $authToken = config('services.nearby_teacher.twilio_auth_token');
-        $fromNumber = config('services.nearby_teacher.twilio_from_number');
-
-        if (! filled($accountSid) || ! filled($authToken) || ! filled($fromNumber)) {
-            throw new \RuntimeException('Twilio credentials are not configured.');
-        }
-
-        Http::asForm()
-            ->withBasicAuth($accountSid, $authToken)
-            ->timeout(10)
-            ->post("https://api.twilio.com/2010-04-01/Accounts/{$accountSid}/Messages.json", [
-                'To' => $phone,
-                'From' => $fromNumber,
-                'Body' => "Your Nearby Teacher verification code is {$code}. Valid for 10 minutes. Do not share this code with anyone.",
-            ])
-            ->throw();
     }
 
     private function sendGuardianConsentEmail(string $fullName, string $guardianContact, string $token): void

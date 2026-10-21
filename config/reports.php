@@ -2,6 +2,11 @@
 
 // Explicit report contracts: new database columns are never exposed automatically.
 return [
+    'otp-delivery' => [
+        'title' => 'OTP channel submissions', 'table' => 'otp_delivery_attempts', 'timestamp' => 'created_at',
+        'columns' => ['id', 'otp_code_id', 'channel', 'provider', 'status', 'phone_last_four', 'created_at'],
+        'participants' => [], 'search' => ['channel', 'provider', 'status'],
+    ],
     'activity' => [
         'title' => 'Business activity history', 'table' => 'business_activity', 'timestamp' => 'created_at',
         'columns' => ['id', 'event', 'entity_type', 'entity_id', 'actor_user_id', 'related_user_id', 'version', 'before_data', 'after_data', 'created_at'],

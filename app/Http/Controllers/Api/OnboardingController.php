@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Reporting\BusinessActivityRecorder;
+use App\Services\OnboardingState;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -73,13 +74,7 @@ class OnboardingController extends Controller
                 after: ['account_type' => $accountType, 'profile_completed_at' => now()->toDateTimeString()]);
         });
         $fresh = DB::table('users')->where('id', $user->id)->first();
-        $accountType = $fresh->account_type;
         $payload = $this->payload($fresh);
-        $payload['profileCompleted'] = true;
-        $payload['nextStep'] = $accountType === 'learner' ? 'age_verification' : 'home';
-        $payload['nextStepEndpoint'] = $accountType === 'learner'
-            ? '/auth/date-of-birth'
-            : '/profiles/me';
 
         return response()->json($payload);
     }
@@ -255,7 +250,7 @@ class OnboardingController extends Controller
 
         $user = clone $user;
         $passwordSet = (bool) ($user->password_set ?? filled($user->password_hash ?? null));
-        unset($user->password_hash, $user->password_set);
+        unset($user->password_hash, $user->password_set, $user->parental_consent_token);
 
         $mobileVerified = $user->phone_verified_at !== null;
         $accountType = (string) $user->account_type;
@@ -301,7 +296,7 @@ class OnboardingController extends Controller
             'blockers' => $mobileVerified ? [] : ['mobile_not_verified'],
             'missingFields' => $missing,
             'savedAt' => $user->updated_at ?? null,
-            'nextStep' => $this->suggestedNextStep($mobileVerified, $profileCompleted, $accountType),
+            ...app(OnboardingState::class)->forUser($user),
             'draft' => $draft,
             'user' => $user,
         ];
@@ -347,18 +342,6 @@ class OnboardingController extends Controller
         }
 
         return $missing;
-    }
-
-    private function suggestedNextStep(bool $mobileVerified, bool $profileCompleted, string $accountType): string
-    {
-        if (! $mobileVerified) {
-            return 'mobile_verification';
-        }
-        if (! $profileCompleted) {
-            return 'complete_profile';
-        }
-
-        return $accountType === 'learner' ? 'age_verification' : 'home';
     }
 
     private function mobileNotVerifiedResponse(): JsonResponse

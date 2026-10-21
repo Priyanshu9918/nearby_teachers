@@ -77,6 +77,22 @@ Requirements: PHP 8.2+, Composer, the `pdo_mysql` PHP extension, MySQL 8, and No
    The Laravel public-site equivalents are now served at `/`, `/site/*`,
    `/download`, `/sitemap.xml`, and `/robots.txt`.
 
+## Muzztech SMS OTP
+
+The Laravel OTP sender supports Muzztech with `OTP_SMS_PROVIDER=muzztech`.
+See [configuration and acceptance checks](docs/MUZZTECH_OTP.md). Provider
+credentials stay server-side. Laravel also supports sending the same OTP through
+SMS and Meta WhatsApp, with per-channel response statuses and admin reporting.
+See [dual-channel OTP setup](docs/OTP_DELIVERY.md); codes are returned in JSON only for local/testing `OTP_TEST_MODE=true`.
+
+## Firebase Google signup/signin
+
+The Laravel backend verifies Firebase Google ID tokens using `FIREBASE_PROJECT_ID`
+and public certificates; no service-account private key is required for this
+flow. Run `php artisan firebase:check` after configuration. Google and normal
+registration share onboarding, with `nextScreen`/`nextStep` routing from saved
+state. See [backend setup and app-team handoff](docs/FIREBASE_GOOGLE_AUTH.md).
+
 ## Laravel mobile API status
 
 The Laravel application preserves these existing Express URL paths:
@@ -773,11 +789,9 @@ call `sendOtpSms(e164Phone, code, country)`.
 **Not yet built:** a periodic cleanup job for expired/consumed
 `otp_codes` rows — the table will grow unbounded without one. A simple
 `DELETE FROM otp_codes WHERE expires_at < now() - interval '1 day'` on a
-daily cron is enough. Also not built: WhatsApp-based OTP delivery, which
-runs cheaper than SMS in most regions ($0.0014/message in India vs
-MSG91's ~$0.008) and tends to have better delivery reliability since
-it's app-based rather than carrier-based — worth considering as a
-future addition, not a blocker for launch.
+daily cron is enough. The Laravel backend now supports WhatsApp OTP via Meta Cloud
+API; see [dual-channel setup](docs/OTP_DELIVERY.md). The legacy Node sender described
+in this section has not been extended with that adapter.
 
 ## Legacy Express stack
 
