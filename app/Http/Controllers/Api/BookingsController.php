@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\SendNotificationEmail;
+use App\Reporting\BusinessActivityRecorder;
 use App\Support\CursorPage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -43,17 +44,21 @@ class BookingsController extends Controller
 
         $bookingId = (string) Str::uuid();
         $now = now();
-        DB::table('bookings')->insert([
-            'id' => $bookingId,
-            'learner_id' => $user->id,
-            'provider_id' => $data['providerId'],
-            'subject_id' => $data['subjectId'] ?? null,
-            'mode' => $data['mode'],
-            'requested_time' => $data['requestedTime'],
-            'price' => $data['price'] ?? null,
-            'created_at' => $now,
-            'updated_at' => $now,
-        ]);
+        DB::transaction(function () use ($bookingId, $user, $data, $now): void {
+            DB::table('bookings')->insert([
+                'id' => $bookingId,
+                'learner_id' => $user->id,
+                'provider_id' => $data['providerId'],
+                'subject_id' => $data['subjectId'] ?? null,
+                'mode' => $data['mode'],
+                'requested_time' => $data['requestedTime'],
+                'price' => $data['price'] ?? null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+            app(BusinessActivityRecorder::class)->record('booking.created', $bookingId, $user->id, $data['providerId'],
+                after: ['status' => 'requested', 'mode' => $data['mode'], 'requested_time' => $data['requestedTime'], 'price' => $data['price'] ?? null]);
+        });
 
         if ($provider->email !== null) {
             $this->sendEmail(
@@ -110,6 +115,11 @@ class BookingsController extends Controller
                 'status' => $data['status'],
                 'updated_at' => now(),
             ]);
+            if ($booking->status !== $data['status']) {
+                app(BusinessActivityRecorder::class)->record('booking.status_changed', $id, $user->id,
+                    $booking->provider_id === $user->id ? $booking->learner_id : $booking->provider_id,
+                    before: ['status' => $booking->status], after: ['status' => $data['status']]);
+            }
 
             return (object) [...(array) $booking, 'status' => $data['status'], 'updated_at' => now()];
         });

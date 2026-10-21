@@ -29,7 +29,9 @@
             <span><strong>Nearby Teacher</strong><small>Administration</small></span>
         </a>
         <div class="side-label">Workspace</div>
-        <nav class="side-nav" aria-label="Admin sections">
+        <nav class="side-nav" aria-label="Admin sections" style="overflow:auto">
+            <a href="{{ route('admin.dashboard') }}" @class(['active' => request()->routeIs('admin.dashboard')])><span class="nav-icon">▤</span>Project dashboard</a>
+            <a href="{{ route('admin.reports.index', ['report' => 'users']) }}" @class(['active' => request()->routeIs('admin.reports.*')])><span class="nav-icon">▥</span>Project reports</a>
             @foreach (['subjects' => ['Subjects', '◈'], 'students' => ['Students', '♙'], 'teachers' => ['Teachers', '✦'], 'institutes' => ['Institutes', '▦']] as $key => [$label, $icon])
                 <a href="{{ route('admin.index', ['section' => $key]) }}" @class(['active' => ($section ?? '') === $key]) @if (($section ?? '') === $key) aria-current="page" @endif>
                     <span class="nav-icon" aria-hidden="true">{{ $icon }}</span>{{ $label }}

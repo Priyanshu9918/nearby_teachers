@@ -465,6 +465,7 @@ Use the public Socket.IO URL; a raw WebSocket client is not compatible.
 | Event | Direction | Payload / acknowledgement |
 |---|---|---|
 | `conversation.join` | App → server | `{conversationId}`; ack `{ok:true,room}` |
+| `chat.ping` | App → server | `{}`; ack `{ok:true,serverTime}`. Optional authenticated round-trip diagnostic; shares socket rate limits. |
 | `conversation.leave` | App → server | `{conversationId}` |
 | `message.send` | App → server | `{conversationId,body}`; ack `{ok:true,message}` or `{ok:false,status,error,errors?}` |
 | `message.sent` | Server → app | `{message}`; both participants' connected devices receive it. |
@@ -478,6 +479,11 @@ sessions last at most 15 minutes; reconnect to reauthorize and reload REST state
 A send acknowledgement confirms persistence, not delivery/read. Background/closed
 apps require separately integrated FCM/APNs. Full client example:
 [CHAT_SOCKET_IO.md](CHAT_SOCKET_IO.md).
+
+For manual testing, sign in to the developer portal and open
+`/developer#realtime`. The live tester supports connection, ping, join/leave,
+real message sends, ACK/event logs and copying a connection example without
+credentials. Use separate participant tokens in two tabs to check delivery.
 
 ## Feed and reviews
 

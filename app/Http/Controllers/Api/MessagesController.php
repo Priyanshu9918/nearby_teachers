@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Events\ChatMessageSent;
 use App\Http\Controllers\Controller;
+use App\Reporting\BusinessActivityRecorder;
 use App\Support\CursorPage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -78,6 +79,8 @@ class MessagesController extends Controller
                     'body' => $data['body'],
                     'created_at' => now(),
                 ]);
+                app(BusinessActivityRecorder::class)->record('message.created', $messageId, $user->id, $data['providerId'],
+                    after: ['conversation_id' => $conversationId]);
             }
 
             return [$conversationId, $messageId];
@@ -115,13 +118,19 @@ class MessagesController extends Controller
         }
 
         $id = (string) Str::uuid();
-        DB::table('messages')->insert([
-            'id' => $id,
-            'conversation_id' => $conversationId,
-            'sender_id' => $user->id,
-            'body' => $data['body'],
-            'created_at' => now(),
-        ]);
+        DB::transaction(function () use ($id, $conversationId, $user, $data): void {
+            DB::table('messages')->insert([
+                'id' => $id,
+                'conversation_id' => $conversationId,
+                'sender_id' => $user->id,
+                'body' => $data['body'],
+                'created_at' => now(),
+            ]);
+            $conversation = DB::table('conversations')->where('id', $conversationId)->first();
+            app(BusinessActivityRecorder::class)->record('message.created', $id, $user->id,
+                $conversation->learner_id === $user->id ? $conversation->provider_id : $conversation->learner_id,
+                after: ['conversation_id' => $conversationId]);
+        });
         $message = $this->savedMessage($id);
         event(new ChatMessageSent($message));
 

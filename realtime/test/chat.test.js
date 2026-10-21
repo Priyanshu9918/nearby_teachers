@@ -94,6 +94,20 @@ test('missing and invalid credentials cannot connect', { timeout: 10000 }, async
   }
 });
 
+test('authenticated chat ping acknowledges without calling the message API and is rate limited', { timeout: 10000 }, async (t) => {
+  const { connected, requests } = await setup(t);
+  const socket = await connected('learner-token');
+  for (let index = 0; index < 30; index++) {
+    const ack = await socket.timeout(2000).emitWithAck('chat.ping', {});
+    assert.equal(ack.ok, true);
+    assert.ok(Number.isFinite(Date.parse(ack.serverTime)));
+  }
+  const limited = await socket.timeout(2000).emitWithAck('chat.ping', {});
+  assert.equal(limited.status, 429);
+  assert.equal(limited.ok, false);
+  assert.deepEqual(requests.map((request) => request.path), ['/chat/socket/authorize']);
+});
+
 test('private room joins and message sending are authorized through Laravel', { timeout: 10000 }, async (t) => {
   const { connected, requests } = await setup(t);
   const socket = await connected('learner-token');

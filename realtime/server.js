@@ -154,6 +154,12 @@ function createChatServer(config) {
       }
     };
 
+    socket.on('chat.ping', (_payload, callback) => {
+      if (typeof callback !== 'function') return;
+      if (limited()) return callback({ ok: false, status: 429, error: 'Too many requests' });
+      callback({ ok: true, serverTime: new Date().toISOString() });
+    });
+
     socket.on('conversation.join', operation(async ({ conversationId }) => {
       const room = 'private-conversation.' + conversationId;
       if (!socket.rooms.has(room) && socket.rooms.size >= 52) {

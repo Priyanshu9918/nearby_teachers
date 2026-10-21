@@ -129,6 +129,7 @@
                             @endforeach
                             <td>
                                 <div class="table-actions">
+                                    @if ($section !== 'subjects')<a class="btn btn-small" href="{{ route('admin.reports.user', $record->id) }}">Full report</a>@endif
                                     <a class="btn btn-small" href="{{ route('admin.edit', ['section' => $routeSection, 'id' => $record->id]) }}">Edit</a>
                                     <form method="post" action="{{ route('admin.destroy', ['section' => $routeSection, 'id' => $record->id]) }}" onsubmit="return confirm('Delete this record? This action cannot be undone.')">
                                         @csrf @method('delete')

@@ -58,6 +58,38 @@ but still must authenticate.
 
 ## Mobile JavaScript / React Native
 
+### Developer portal live tester
+
+Open `/developer#realtime` after developer login. Enter the public Socket.IO
+origin, its path (normally `/socket.io/`), and a real participant's login token.
+For direct Node access use its reachable host and port; the portal defaults to
+the page's origin for deployments with a reverse proxy. Allow the portal's
+browser origin in `SOCKET_IO_CORS_ORIGINS`.
+
+Connect, then use **Ping / round trip**, **conversation.join**,
+**conversation.leave**, and **message.send**. Sending saves a real message.
+The bounded log shows acknowledgements, timing, `message.sent`, connection
+errors and server-triggered `session.expired`. Expiry is observed, not emitted
+by the tester. Sessions expire within 15 minutes; reconnect with a valid token.
+Use two tabs with the learner/provider tokens to check actual live delivery.
+If sending acknowledges but no live event arrives, check the broadcasts worker.
+ACK timeouts are ambiguous; inspect REST history before resending.
+
+`chat.ping` is an optional authenticated Socket.IO diagnostic event. Emit `{}`
+with an acknowledgement callback; response is
+`{ok:true,serverTime:"ISO-8601 timestamp"}`. It shares the socket's limit of
+30 operations per 10 seconds and returns `{ok:false,status:429,error}` when
+limited. It confirms Node round-trip connectivity, not database or queue health.
+App clients can use it for diagnostics; normal Socket.IO heartbeats already
+monitor the transport.
+
+**Copy app connection example** copies public URL/path with a token placeholder.
+Tokens stay in page memory and are not included in the copied example.
+The browser client is vendored under `public/vendor/socket.io/` (MIT license),
+so the tester does not require an external CDN or production dev dependencies.
+
+### App example
+
 Install `socket.io-client` in the mobile project. Use a Socket.IO 4 compatible
 client (Flutter can use its compatible Socket.IO client package).
 

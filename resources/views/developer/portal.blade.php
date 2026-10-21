@@ -103,6 +103,7 @@
             </section>
 
             <section class="tab" id="realtime" aria-label="WebSocket setup">
+                @include('developer.chat-tester')
                 <div class="panel">
                     <div class="panel-head"><div><h2>Chat and WebSockets</h2><p>Use Socket.IO 4 for live chat; Laravel validates and saves messages.</p></div><span class="category-badge">Chat and realtime</span></div>
                     <div class="panel-body guide-grid">

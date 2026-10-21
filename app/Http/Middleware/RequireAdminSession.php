@@ -14,6 +14,9 @@ class RequireAdminSession
             return redirect()->route('admin.login');
         }
 
-        return $next($request);
+        $response = $next($request);
+        $response->headers->set('Cache-Control', 'no-store, private');
+
+        return $response;
     }
 }

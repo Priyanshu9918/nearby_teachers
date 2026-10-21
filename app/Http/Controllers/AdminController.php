@@ -73,7 +73,7 @@ class AdminController extends Controller
 
     public function home(): RedirectResponse
     {
-        return redirect()->route('admin.index', ['section' => 'subjects']);
+        return redirect()->route('admin.dashboard');
     }
 
     public function index(string $section): View

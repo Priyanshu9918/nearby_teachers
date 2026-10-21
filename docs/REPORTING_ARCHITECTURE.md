@@ -1,0 +1,121 @@
+# Reporting architecture
+
+The owner may need new reports as the product grows. Reporting is therefore a
+shared module with explicit data contracts and a business history stream.
+This enables new reports on recorded data; it cannot reconstruct events or
+attributes that were never captured.
+
+## Components
+
+| Component | Responsibility |
+|---|---|
+| `config/reports.php` | Stable report keys, source tables, output columns, timestamp, participant links, searchable fields and computed values |
+| `ReportDefinition` / `ReportRegistry` | Immutable report descriptors and allowlisted key lookup |
+| `ReportQuery` | Common joins, search, participant filtering and deterministic ordering |
+| `ReportFilters` | Validation and timezone-aware, inclusive date ranges |
+| `CsvExporter` | Shared streamed CSV output with spreadsheet formula escaping |
+| `ReportAccessLog` | Record report reads, details and exports for browser admins |
+| `BusinessActivityRecorder` | Versioned, allowlisted before/after event metadata in the source transaction |
+| `AdminReportController` | HTTP orchestration and specialized user/conversation detail screens |
+
+Pages and exports use the same query. New columns in a database table do not
+automatically appear in reports. Registry SQL expressions are developer-authored
+source code; HTTP clients cannot supply expressions, joins, tables or columns.
+Views receive descriptors from the registry and do not depend on controller
+constants. All report endpoints retain admin-session protection and no-store
+response headers.
+
+## Add a report
+
+For example, to offer a focused booking timeline, add a config entry:
+
+```php
+'booking-timeline' => [
+    'title' => 'Booking timeline',
+    'table' => 'bookings',
+    'columns' => ['id', 'learner_id', 'provider_id', 'status', 'created_at'],
+    'timestamp' => 'created_at',
+    'participants' => ['learner_id', 'provider_id'],
+    'search' => ['status'],
+],
+```
+
+It appears automatically in report selection and dashboard totals. Search,
+date/user/type filters, pagination, audit logging and CSV export work without
+adding a route/controller/view. `participants` columns reference users and
+gain current names, emails and account types. A sender-filtered message report
+shows sent messages; conversation reports cover both participants.
+
+Complex aggregates with different semantics should get a dedicated query
+service and view, reusing filters/export/audit services. Specify the time field,
+units, denominator and status rules for each metric. Never sum prices in
+different currencies or label booking requests as paid revenue. Do not add an
+unrestricted SQL/report-builder endpoint.
+
+## Historical data
+
+`business_activity` contains immutable-by-application event records with:
+
+- Event name and schema version.
+- Entity type/ID and actor/related user IDs.
+- Explicit `before_data` and `after_data` snapshots.
+- Event timestamp and indexes for entity, participant and event timelines.
+
+Current event coverage starts when migration `000029` is deployed:
+
+| Event | Recorded metadata |
+|---|---|
+| `registration.completed` | Previous/new account type and completion timestamp |
+| `booking.created` | Initial status, lesson mode, requested time and price |
+| `booking.status_changed` | Previous/new status; repeated same-status requests add no change event |
+| `message.created` | Message ID, conversation ID and participant IDs; message text is not duplicated |
+
+Registration and booking changes record history inside existing source
+transactions. Booking creation and message sends wrap source writes and event
+recording together. A failure rolls both back. Socket broadcasts remain after
+the transaction commits. Source deletion does not cascade to event records;
+user joins may become empty while stored IDs and metadata remain available.
+There is no automatic backfill and no complete source-record archive.
+
+To add an event, declare its entity type and allowed snapshot keys in
+`BusinessActivityRecorder::EVENTS`, then call the recorder from the source
+mutation transaction. Unknown events/fields and out-of-transaction calls are
+rejected. For a changed schema, define and implement a new version; do not
+reinterpret existing version-1 snapshots. Rejected operations must not produce
+success events. Provide appropriate indexes and tests alongside the mutation.
+
+Existing `auth_activity` remains a separate stream for successful or
+controller-rejected login/OTP/registration responses, with IP/user-agent
+metadata. Its best-effort logging must not break authentication. Business
+state history has stronger transactional consistency. Neither stream is an
+online-session tracker, tamper-proof ledger or full history of every module.
+Admin edits/deletes, moderation, support transitions and uninstrumented paths
+need explicit events if historical questions about those actions are required.
+
+## Operations and growth
+
+Run migrations before deploying code that writes new event types/tables:
+
+```sh
+php artisan migrate --force
+php artisan optimize:clear
+php artisan optimize
+php artisan queue:restart
+```
+
+Reports use live MySQL data. Interactive pages are bounded; exports read in
+chunks of 500. Counts and text searches can still be expensive on large tables.
+Measure query plans and latency before adding indexes, cached aggregates,
+summary tables, read replicas or asynchronous exports. Do not call this an
+analytics warehouse or assume chunking removes query cost. Chunked exports are
+not point-in-time snapshots under concurrent writes.
+
+History growth must be monitored. No automatic history deletion is installed;
+define retention/anonymization rules before adding a cleanup job. New snapshots
+need field-level review so tokens and unnecessary personal data are not copied.
+
+Tests accept `REPORTING_TEST_DATABASE` and `ONBOARDING_TEST_DATABASE` pointing
+to a disposable MySQL database ending in `_test`. They exercise report
+extension without controller changes, explicit columns, access control,
+search/date/participant filters, CSV output, transactional rollback, surviving
+source deletion and real booking/chat operations.

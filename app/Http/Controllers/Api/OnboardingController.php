@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Reporting\BusinessActivityRecorder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -67,6 +68,9 @@ class OnboardingController extends Controller
             }
 
             $this->persistDraft($saved, $data, true);
+            app(BusinessActivityRecorder::class)->record('registration.completed', $saved->id, $saved->id,
+                before: ['account_type' => $saved->account_type, 'profile_completed_at' => $saved->profile_completed_at],
+                after: ['account_type' => $accountType, 'profile_completed_at' => now()->toDateTimeString()]);
         });
         $fresh = DB::table('users')->where('id', $user->id)->first();
         $accountType = $fresh->account_type;

@@ -18,7 +18,71 @@ for maintaining the subject catalog and learner/provider accounts.
    hash in the local, untracked `.env` and clears cached configuration.
 
 3. Start Laravel and visit `/admin`. Unauthenticated users are redirected to
-   `/admin/login`. Successful login opens the Subjects section.
+   `/admin/login`. Successful login opens the project dashboard.
+
+## Project dashboard and reports
+
+Deploy the reporting migration before opening the new dashboard:
+
+```sh
+php artisan migrate --force
+php artisan optimize:clear
+```
+
+`/admin/dashboard` shows platform totals, student/teacher/institute counts,
+completed registration count and user creation activity for the last 30 days.
+`/admin/reports/users` opens the report selector. Reports cover users and
+registrations, chat participants, authentication activity, bookings, reviews,
+feed posts/comments/likes, support, suggestions, safety reports, blocks,
+referrals, phone reveals, page views, provider profiles and subjects. Admin
+access logs are also available.
+
+Reports support text search, user UUID and participant account-type filters
+where applicable, date ranges for timestamped records, pagination and CSV
+export of all matching rows. Dates use the application timezone. CSV text
+starting with spreadsheet formula characters is escaped. Exports stream in
+chunks rather than loading the whole table into PHP memory.
+
+Open a user report to inspect registration/contact/consent/status data,
+the provider profile and subject assignments. Related-report links filter
+chat, bookings, reviews and activity by that user. Chat participant rows show
+the learner and teacher/institute with names, emails, message count and last
+message timestamp. **Read messages** opens searchable, paginated history with
+sender identity and timestamps, plus CSV export.
+
+All these routes require the separate browser admin session. Report listings,
+user detail and chat history access, and CSV exports, are recorded in
+`admin_report_access_log` using the configured browser admin email. This is
+separate from API admin audit records, whose actor is a database user.
+Admin responses use `Cache-Control: no-store, private`.
+
+Authentication tracking starts at deployment. It records successful and
+controller-rejected email/Google sign-ins, OTP verifications and completed
+registration events with status, known user ID, submitted email, IP address,
+user agent and timestamp. Validation/throttle errors raised before controller
+responses are not recorded. OTP verification is not classified as a login.
+The history does not track active sessions, logout, device identity or online
+status. Historical logins are unavailable; existing user creation and
+registration-completion timestamps remain reportable. A recording failure
+logs an operational warning without blocking authentication.
+
+Passwords/hashes, OTP values, bearer tokens, guardian consent tokens and
+infrastructure secrets are excluded. Reports show currently stored business
+records; deletion is not preserved as a complete historical snapshot. Selected
+registration, booking and message events are retained separately in the
+**Business activity history** report after the history migration is deployed.
+No payment
+ledger exists in this project, so booking prices are not a revenue report.
+
+New reports are registered centrally in `config/reports.php` and share query,
+filter, CSV and audit services. See [Reporting architecture](REPORTING_ARCHITECTURE.md)
+for extension contracts, event history coverage and future development rules.
+
+Integration checks use a disposable MySQL database only:
+
+```sh
+REPORTING_TEST_DATABASE=nearby_admin_reports_test php artisan test --filter=AdminReportingTest
+```
 
 Admin access is disabled when either setting is empty. Login is rate-limited
 after repeated failures, and successful authentication uses a regenerated

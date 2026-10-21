@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminReportController;
 use App\Http\Controllers\DeveloperController;
 use App\Http\Controllers\LocationLookupController;
 use App\Http\Controllers\WebsiteController;
@@ -46,6 +47,11 @@ Route::middleware(RequireDeveloperSession::class)->prefix('developer')->name('de
 Route::middleware(RequireAdminSession::class)->prefix('admin')->name('admin.')->group(function () {
     Route::post('/logout', [AdminController::class, 'logout'])->name('logout');
     Route::get('/', [AdminController::class, 'home'])->name('home');
+
+    Route::get('/dashboard', [AdminReportController::class, 'dashboard'])->name('dashboard');
+    Route::get('/reports/users/{id}', [AdminReportController::class, 'user'])->whereUuid('id')->name('reports.user');
+    Route::get('/reports/conversations/{id}', [AdminReportController::class, 'conversation'])->whereUuid('id')->name('reports.conversation');
+    Route::get('/reports/{report}', [AdminReportController::class, 'index'])->name('reports.index');
 
     Route::get('/{section}/create', [AdminController::class, 'create'])->name('create');
     Route::post('/{section}', [AdminController::class, 'store'])->name('store');
