@@ -1,0 +1,151 @@
+{
+  "_meta": {
+    "code": "hi",
+    "name": "Hindi",
+    "nativeName": "हिन्दी",
+    "rtl": false
+  },
+  "nav": {
+    "home": "होम",
+    "search": "खोजें",
+    "messages": "संदेश",
+    "feed": "फ़ीड",
+    "profile": "प्रोफ़ाइल"
+  },
+  "common": {
+    "appName": "Nearby Teacher",
+    "byBsl": "ब्रिटिश स्कूल ऑफ लैंग्वेज द्वारा",
+    "search": "खोजें",
+    "message": "संदेश भेजें",
+    "requestBooking": "बुकिंग का अनुरोध करें",
+    "call": "कॉल करें",
+    "whatsapp": "व्हाट्सएप",
+    "submit": "सबमिट करें",
+    "cancel": "रद्द करें",
+    "save": "सहेजें",
+    "edit": "प्रोफ़ाइल संपादित करें",
+    "logOut": "लॉग आउट",
+    "free": "मुफ़्त",
+    "verified": "BSL सत्यापित",
+    "loading": "लोड हो रहा है…",
+    "seeMore": "और देखें",
+    "back": "वापस",
+    "download": "ऐप डाउनलोड करें",
+    "openInApp": "ऐप में खोलें"
+  },
+  "home": {
+    "nearby": "नज़दीक",
+    "otherCity": "अन्य शहर / ऑनलाइन",
+    "radius3": "3km",
+    "radius7": "7km",
+    "radius14": "14km",
+    "freelancers": "नज़दीकी फ्रीलांसर",
+    "institutes": "नज़दीकी संस्थान"
+  },
+  "search": {
+    "placeholder": "विषय, शिक्षक खोजें…",
+    "teachersFoundNearby": "{count} शिक्षक नज़दीक मिले",
+    "distance": "{km}km दूर",
+    "rating": "{rating} ({count} समीक्षाएं)",
+    "lessonsCompleted": "{count} पाठ पूर्ण"
+  },
+  "profile": {
+    "trialNone": "कोई ट्रायल नहीं",
+    "trial1Day": "1-दिन का ट्रायल",
+    "trialWeek": "1-सप्ताह का ट्रायल",
+    "bio": "बायो",
+    "subjects": "विषय",
+    "lessonModes": "पढ़ाने के तरीके",
+    "ratePerHour": "प्रति घंटा दर",
+    "website": "वेबसाइट देखें",
+    "linkedIn": "लिंक्डइन देखें",
+    "instructors": "प्रशिक्षक"
+  },
+  "booking": {
+    "confirmed": "पाठ की पुष्टि हुई",
+    "addToCalendar": "कैलेंडर में जोड़ें",
+    "status_requested": "अनुरोधित",
+    "status_accepted": "स्वीकृत",
+    "status_declined": "अस्वीकृत",
+    "status_completed": "पूर्ण"
+  },
+  "review": {
+    "prompt": "आपका पाठ कैसा रहा?",
+    "commentPlaceholder": "टिप्पणी जोड़ें (वैकल्पिक)",
+    "submitReview": "समीक्षा सबमिट करें"
+  },
+  "settings": {
+    "title": "सेटिंग्स",
+    "location": "स्थान",
+    "notifications": "सूचनाएं",
+    "privacySafety": "गोपनीयता और सुरक्षा",
+    "reportProblem": "समस्या की रिपोर्ट करें",
+    "contactBsl": "BSL से संपर्क करें",
+    "referFriend": "किसी दोस्त को रेफ़र करें",
+    "language": "भाषा"
+  },
+  "safety": {
+    "disclaimerTitle": "संदेश भेजने या बुक करने से पहले",
+    "acknowledge": "मैं समझता/समझती हूं"
+  },
+  "feed": {
+    "title": "सिटी फ़ीड",
+    "lookingFor": "ढूंढ रहे हैं",
+    "newPost": "नई पोस्ट",
+    "like": "पसंद",
+    "comment": "टिप्पणी",
+    "share": "साझा करें"
+  },
+  "referral": {
+    "title": "किसी दोस्त को रेफ़र करें",
+    "subtitle": "एक दोस्त को नज़दीकी शिक्षक खोजने में मदद करें",
+    "shareLink": "अपना लिंक साझा करें",
+    "friendsJoined": "{count} दोस्त आपके लिंक से जुड़े"
+  },
+  "contactBsl": {
+    "title": "BSL से संपर्क करें",
+    "subject": "विषय",
+    "messagePlaceholder": "हम कैसे मदद कर सकते हैं?",
+    "pastTickets": "आपके पिछले टिकट"
+  },
+  "website": {
+    "cityDirectory": "सभी शहर",
+    "teachersIn": "{city} में शिक्षक",
+    "institutesIn": "{city} में संस्थान",
+    "contactDetailsInApp": "पूरी संपर्क जानकारी, समीक्षाएं, और बुकिंग ऐप में उपलब्ध हैं।",
+    "notFound": "पेज नहीं मिला",
+    "downloadPrompt": "संदेश भेजने, बुक करने, और पूरी प्रोफ़ाइल देखने के लिए ऐप डाउनलोड करें",
+    "openingApp": "ऐप खोला जा रहा है…",
+    "findNearYou": "अपने नज़दीक शिक्षक और संस्थान खोजें",
+    "citiesOnPlatform": "Nearby Teacher पर {count} शहर",
+    "noCitiesYet": "अभी तक कोई शहर सूचीबद्ध नहीं है — जल्द ही फिर से देखें।",
+    "listingsCount": "{count} लिस्टिंग",
+    "teachersAndInstitutesIn": "{city} में शिक्षक और संस्थान",
+    "subjectsCovered": "{count} विषय शामिल",
+    "subjectsTaughtIn": "{city} में पढ़ाए जाने वाले विषय",
+    "institutesHeading": "संस्थान",
+    "teachersHeading": "शिक्षक",
+    "noInstitutesIn": "{city} में अभी तक कोई संस्थान सूचीबद्ध नहीं है।",
+    "noTeachersIn": "{city} में अभी तक कोई व्यक्तिगत शिक्षक सूचीबद्ध नहीं है।",
+    "noReviewsYet": "अभी तक कोई समीक्षा नहीं",
+    "seeWhatsHappening": "{city} में क्या हो रहा है देखें",
+    "since": "{date} से",
+    "fromPriceHour": "{price}/घंटा से",
+    "priceHour": "{price}/घंटा",
+    "downloadToMessage": "संदेश भेजने या बुक करने के लिए ऐप डाउनलोड करें",
+    "poweredBy": "संचालित",
+    "allTeachersInstitutesIn": "{city} में सभी शिक्षक और संस्थान",
+    "cityFeedTitle": "{city} सिटी फ़ीड",
+    "feedSubtitle": "{city} में शिक्षक, संस्थान, और शिक्षार्थी अभी क्या पोस्ट कर रहे हैं।",
+    "seeAllHere": "यहां सभी शिक्षक और संस्थान देखें",
+    "noPostsYet": "{city} में अभी तक कोई पोस्ट नहीं है। सबसे पहले बनें — पोस्ट करने के लिए ऐप खोलें।",
+    "replyLikePost": "जवाब दें, पसंद करें, या अपनी खुद की पोस्ट करें — Nearby Teacher ऐप खोलें।",
+    "getApp": "ऐप प्राप्त करें"
+  },
+  "errors": {
+    "notFound": "नहीं मिला",
+    "somethingWrong": "कुछ गलत हो गया",
+    "tooManyRequests": "बहुत अधिक अनुरोध। कृपया थोड़ी देर बाद पुनः प्रयास करें।",
+    "invalidToken": "अमान्य या समाप्त हो चुका टोकन"
+  }
+}

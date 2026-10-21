@@ -1,0 +1,19 @@
+{
+  "name": "nearby-teacher-socketio",
+  "version": "1.0.0",
+  "private": true,
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node index.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "socket.io": "^4.8.1",
+    "dotenv": "^16.4.5",
+    "@socket.io/redis-adapter": "^8.3.0",
+    "redis": "^5.0.0"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.1"
+  }
+}

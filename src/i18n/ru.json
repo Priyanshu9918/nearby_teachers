@@ -1,0 +1,151 @@
+{
+  "_meta": {
+    "code": "ru",
+    "name": "Russian",
+    "nativeName": "Русский",
+    "rtl": false
+  },
+  "nav": {
+    "home": "Главная",
+    "search": "Поиск",
+    "messages": "Сообщения",
+    "feed": "Лента",
+    "profile": "Профиль"
+  },
+  "common": {
+    "appName": "Nearby Teacher",
+    "byBsl": "от British School of Language",
+    "search": "Поиск",
+    "message": "Написать",
+    "requestBooking": "Запросить бронирование",
+    "call": "Позвонить",
+    "whatsapp": "WhatsApp",
+    "submit": "Отправить",
+    "cancel": "Отмена",
+    "save": "Сохранить",
+    "edit": "Редактировать профиль",
+    "logOut": "Выйти",
+    "free": "Бесплатно",
+    "verified": "Проверено BSL",
+    "loading": "Загрузка…",
+    "seeMore": "Показать больше",
+    "back": "Назад",
+    "download": "Скачать приложение",
+    "openInApp": "Открыть в приложении"
+  },
+  "home": {
+    "nearby": "Рядом",
+    "otherCity": "Другой город / онлайн",
+    "radius3": "3км",
+    "radius7": "7км",
+    "radius14": "14км",
+    "freelancers": "Независимые преподаватели рядом",
+    "institutes": "Учебные центры рядом"
+  },
+  "search": {
+    "placeholder": "Поиск предмета, преподавателя…",
+    "teachersFoundNearby": "Найдено {count} преподавателей рядом",
+    "distance": "в {km}км",
+    "rating": "{rating} ({count} отзывов)",
+    "lessonsCompleted": "{count} занятий проведено"
+  },
+  "profile": {
+    "trialNone": "Без пробного занятия",
+    "trial1Day": "Пробное занятие — 1 день",
+    "trialWeek": "Пробное занятие — 1 неделя",
+    "bio": "О себе",
+    "subjects": "Предметы",
+    "lessonModes": "Формат занятий",
+    "ratePerHour": "Стоимость в час",
+    "website": "Перейти на сайт",
+    "linkedIn": "Открыть LinkedIn",
+    "instructors": "Преподаватели"
+  },
+  "booking": {
+    "confirmed": "Занятие подтверждено",
+    "addToCalendar": "Добавить в календарь",
+    "status_requested": "Запрошено",
+    "status_accepted": "Принято",
+    "status_declined": "Отклонено",
+    "status_completed": "Завершено"
+  },
+  "review": {
+    "prompt": "Как прошло занятие?",
+    "commentPlaceholder": "Добавьте комментарий (необязательно)",
+    "submitReview": "Отправить отзыв"
+  },
+  "settings": {
+    "title": "Настройки",
+    "location": "Местоположение",
+    "notifications": "Уведомления",
+    "privacySafety": "Конфиденциальность и безопасность",
+    "reportProblem": "Сообщить о проблеме",
+    "contactBsl": "Связаться с BSL",
+    "referFriend": "Пригласить друга",
+    "language": "Язык"
+  },
+  "safety": {
+    "disclaimerTitle": "Перед отправкой сообщения или бронированием",
+    "acknowledge": "Я понимаю"
+  },
+  "feed": {
+    "title": "Городская лента",
+    "lookingFor": "Ищу",
+    "newPost": "Новый пост",
+    "like": "Нравится",
+    "comment": "Комментировать",
+    "share": "Поделиться"
+  },
+  "referral": {
+    "title": "Пригласить друга",
+    "subtitle": "Помогите другу найти преподавателя рядом",
+    "shareLink": "Поделитесь своей ссылкой",
+    "friendsJoined": "{count} друзей присоединились по вашей ссылке"
+  },
+  "contactBsl": {
+    "title": "Связаться с BSL",
+    "subject": "Тема",
+    "messagePlaceholder": "Чем мы можем помочь?",
+    "pastTickets": "Ваши предыдущие обращения"
+  },
+  "website": {
+    "cityDirectory": "Все города",
+    "teachersIn": "Преподаватели в городе {city}",
+    "institutesIn": "Учебные центры в городе {city}",
+    "contactDetailsInApp": "Полные контактные данные, отзывы и бронирование доступны в приложении.",
+    "notFound": "Страница не найдена",
+    "downloadPrompt": "Скачайте приложение, чтобы писать сообщения, бронировать занятия и видеть полные профили",
+    "openingApp": "Открывается приложение…",
+    "findNearYou": "Найдите преподавателей и учебные центры рядом с вами",
+    "citiesOnPlatform": "{count} городов на Nearby Teacher",
+    "noCitiesYet": "Пока нет городов в списке — загляните позже.",
+    "listingsCount": "{count} объявлений",
+    "teachersAndInstitutesIn": "Преподаватели и учебные центры в городе {city}",
+    "subjectsCovered": "{count} предметов",
+    "subjectsTaughtIn": "Предметы, преподаваемые в городе {city}",
+    "institutesHeading": "Учебные центры",
+    "teachersHeading": "Преподаватели",
+    "noInstitutesIn": "В городе {city} пока нет учебных центров.",
+    "noTeachersIn": "В городе {city} пока нет отдельных преподавателей.",
+    "noReviewsYet": "Пока нет отзывов",
+    "seeWhatsHappening": "Смотрите, что происходит в городе {city}",
+    "since": "с {date}",
+    "fromPriceHour": "От {price}/час",
+    "priceHour": "{price}/час",
+    "downloadToMessage": "Скачайте приложение, чтобы написать или забронировать",
+    "poweredBy": "Работает на",
+    "allTeachersInstitutesIn": "Все преподаватели и центры в городе {city}",
+    "cityFeedTitle": "Городская лента {city}",
+    "feedSubtitle": "Что публикуют преподаватели, центры и учащиеся в городе {city} прямо сейчас.",
+    "seeAllHere": "Смотреть всех преподавателей и центры здесь",
+    "noPostsYet": "В городе {city} пока нет постов. Будьте первым — откройте приложение, чтобы опубликовать.",
+    "replyLikePost": "Отвечайте, ставьте лайки или публикуйте свои посты — откройте приложение Nearby Teacher.",
+    "getApp": "Получить приложение"
+  },
+  "errors": {
+    "notFound": "Не найдено",
+    "somethingWrong": "Что-то пошло не так",
+    "tooManyRequests": "Слишком много запросов. Подождите немного и попробуйте снова.",
+    "invalidToken": "Недействительный или просроченный токен"
+  }
+}

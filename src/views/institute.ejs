@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>" dir="<%= t._meta.rtl ? 'rtl' : 'ltr' %>">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><%= institute.full_name %> — <%= institute.city || t.common.appName %></title>
+<meta name="description" content="<%= (institute.description || (institute.full_name + ' — ' + t.common.appName)).slice(0, 155) %>">
+<meta property="og:title" content="<%= institute.full_name %>">
+<meta property="og:description" content="<%= institute.description || '' %>">
+<meta property="og:type" content="business.business">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Roboto, "Noto Sans Arabic", "Noto Sans SC", sans-serif; background: #f7f6f2; color: #2c2c2a; margin: 0; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 32px 20px 60px; }
+  .card { background: #fff; border: 1px solid #e2e0d8; border-radius: 16px; padding: 28px 24px; }
+  .logo { width: 64px; height: 64px; border-radius: 16px; background: #e1f5ee; color: #085041; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 600; overflow: hidden; }
+  .logo img { width: 100%; height: 100%; object-fit: cover; }
+  h1 { font-size: 22px; font-weight: 600; margin: 16px 0 2px; }
+  .meta { color: #73726c; font-size: 14px; margin: 0 0 4px; }
+  .badge { display: inline-block; font-size: 12px; padding: 3px 10px; border-radius: 10px; background: #eaf3de; color: #3b6d11; margin: 10px 6px 0 0; }
+  .badge.trial { background: #e6f1fb; color: #185fa5; }
+  .badge.free { background: #eaf3de; color: #3b6d11; font-weight: 600; }
+  .badge.bsl { background: #faece7; color: #993c1d; font-weight: 600; }
+  .bio { font-size: 15px; line-height: 1.6; margin: 20px 0; }
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+  .tag { font-size: 13px; padding: 5px 12px; border-radius: 12px; background: #f1efe8; }
+  .contact { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 500; }
+  .btn.primary { background: #185fa5; color: #fff; }
+  .btn.whatsapp { background: #0f6e56; color: #fff; }
+  .website-link { font-size: 13px; color: #185fa5; text-decoration: none; }
+  .footer-note { text-align: center; font-size: 13px; color: #888780; margin-top: 24px; }
+  .footer-note a { color: #185fa5; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="logo">
+      <% if (institute.avatar_url) { %><img src="<%= institute.avatar_url %>" alt="<%= institute.full_name %> logo">
+      <% } else { %><%= institute.full_name.split(' ').map(w => w[0]).slice(0,2).join('') %><% } %>
+    </div>
+    <h1><%= institute.full_name %></h1>
+    <p class="meta">
+      <% if (institute.city || institute.country) { %>
+        <%= [institute.city, institute.country].filter(Boolean).join(', ') %>
+      <% } %>
+      <% if (institute.rating_count > 0) { %>
+        · ★ <%= institute.rating_avg %> (<%= institute.rating_count %>)
+      <% } %>
+    </p>
+
+    <% if (institute.is_bsl_official) { %>
+      <span class="badge bsl"><%= t.common.verified %><% if (institute.bsl_official_since) { %> <%= t.website.since.replace('{date}', formatDate(institute.bsl_official_since, lang)) %><% } %></span>
+    <% } %>
+    <% if (institute.trial_days > 0) { %><span class="badge trial"><%= institute.trial_days === 7 ? t.profile.trialWeek : t.profile.trial1Day %></span><% } %>
+    <% const instituteRate = institute.starting_rate !== null && institute.starting_rate !== undefined ? parseFloat(institute.starting_rate) : null; %>
+    <% if (instituteRate === 0) { %><span class="badge free"><%= t.common.free %></span><% } %>
+
+    <% if (institute.website_url) { %><p style="margin-top:10px;"><a class="website-link" href="<%= institute.website_url %>"><%= t.profile.website %></a></p><% } %>
+
+    <% if (institute.description) { %><p class="bio"><%= institute.description %></p><% } %>
+
+    <% if (subjects.length) { %>
+    <div class="tags">
+      <% subjects.forEach(function(s) { %><span class="tag"><%= s.name %></span><% }); %>
+    </div>
+    <% } %>
+
+    <p class="meta"><%= t.search.lessonsCompleted.replace('{count}', institute.lessons_completed) %> · <%= instituteRate === 0 ? t.common.free : (instituteRate ? t.website.fromPriceHour.replace('{price}', formatPrice(instituteRate, institute.currency, lang)) : '') %></p>
+
+    <div class="contact">
+      <a class="btn primary" href="<%= downloadHref %>"><%= t.website.downloadToMessage %></a>
+    </div>
+    <p class="meta" style="margin-top:10px;"><%= t.website.contactDetailsInApp %></p>
+  </div>
+
+  <p class="footer-note"><%= t.website.poweredBy %> <a href="/site"><%= t.common.appName %></a> · <a href="/site/city/<%= encodeURIComponent(institute.city || '') %>"><%= t.website.allTeachersInstitutesIn.replace('{city}', institute.city) %></a> · <a href="/site/feed/<%= encodeURIComponent(institute.city || '') %>"><%= t.feed.title %></a></p>
+</div>
+</body>
+</html>

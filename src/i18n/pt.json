@@ -1,0 +1,151 @@
+{
+  "_meta": {
+    "code": "pt",
+    "name": "Portuguese",
+    "nativeName": "Português",
+    "rtl": false
+  },
+  "nav": {
+    "home": "Início",
+    "search": "Buscar",
+    "messages": "Mensagens",
+    "feed": "Feed",
+    "profile": "Perfil"
+  },
+  "common": {
+    "appName": "Nearby Teacher",
+    "byBsl": "por British School of Language",
+    "search": "Buscar",
+    "message": "Mensagem",
+    "requestBooking": "Solicitar aula",
+    "call": "Ligar",
+    "whatsapp": "WhatsApp",
+    "submit": "Enviar",
+    "cancel": "Cancelar",
+    "save": "Salvar",
+    "edit": "Editar perfil",
+    "logOut": "Sair",
+    "free": "Grátis",
+    "verified": "Verificado pela BSL",
+    "loading": "Carregando…",
+    "seeMore": "Ver mais",
+    "back": "Voltar",
+    "download": "Baixar o app",
+    "openInApp": "Abrir no app"
+  },
+  "home": {
+    "nearby": "Perto de mim",
+    "otherCity": "Outra cidade / online",
+    "radius3": "3km",
+    "radius7": "7km",
+    "radius14": "14km",
+    "freelancers": "Professores independentes por perto",
+    "institutes": "Institutos por perto"
+  },
+  "search": {
+    "placeholder": "Buscar matéria, professor…",
+    "teachersFoundNearby": "{count} professores encontrados por perto",
+    "distance": "a {km}km",
+    "rating": "{rating} ({count} avaliações)",
+    "lessonsCompleted": "{count} aulas concluídas"
+  },
+  "profile": {
+    "trialNone": "Sem aula experimental",
+    "trial1Day": "Teste de 1 dia",
+    "trialWeek": "Teste de 1 semana",
+    "bio": "Bio",
+    "subjects": "Matérias",
+    "lessonModes": "Modalidades de aula",
+    "ratePerHour": "Valor por hora",
+    "website": "Visitar site",
+    "linkedIn": "Ver LinkedIn",
+    "instructors": "Instrutores"
+  },
+  "booking": {
+    "confirmed": "Aula confirmada",
+    "addToCalendar": "Adicionar ao calendário",
+    "status_requested": "Solicitada",
+    "status_accepted": "Aceita",
+    "status_declined": "Recusada",
+    "status_completed": "Concluída"
+  },
+  "review": {
+    "prompt": "Como foi sua aula?",
+    "commentPlaceholder": "Adicione um comentário (opcional)",
+    "submitReview": "Enviar avaliação"
+  },
+  "settings": {
+    "title": "Configurações",
+    "location": "Localização",
+    "notifications": "Notificações",
+    "privacySafety": "Privacidade e segurança",
+    "reportProblem": "Reportar um problema",
+    "contactBsl": "Contatar a BSL",
+    "referFriend": "Indicar um amigo",
+    "language": "Idioma"
+  },
+  "safety": {
+    "disclaimerTitle": "Antes de enviar mensagem ou reservar",
+    "acknowledge": "Eu entendo"
+  },
+  "feed": {
+    "title": "Feed da cidade",
+    "lookingFor": "Procurando",
+    "newPost": "Nova publicação",
+    "like": "Curtir",
+    "comment": "Comentar",
+    "share": "Compartilhar"
+  },
+  "referral": {
+    "title": "Indicar um amigo",
+    "subtitle": "Ajude um amigo a encontrar um professor por perto",
+    "shareLink": "Compartilhe seu link",
+    "friendsJoined": "{count} amigos entraram pelo seu link"
+  },
+  "contactBsl": {
+    "title": "Contatar a BSL",
+    "subject": "Assunto",
+    "messagePlaceholder": "Como podemos ajudar?",
+    "pastTickets": "Seus tickets anteriores"
+  },
+  "website": {
+    "cityDirectory": "Todas as cidades",
+    "teachersIn": "Professores em {city}",
+    "institutesIn": "Institutos em {city}",
+    "contactDetailsInApp": "Dados de contato completos, avaliações e reservas estão disponíveis no app.",
+    "notFound": "Página não encontrada",
+    "downloadPrompt": "Baixe o app para enviar mensagens, reservar aulas e ver perfis completos",
+    "openingApp": "Abrindo o app…",
+    "findNearYou": "Encontre professores e institutos perto de você",
+    "citiesOnPlatform": "{count} cidades no Nearby Teacher",
+    "noCitiesYet": "Ainda não há cidades listadas — volte em breve.",
+    "listingsCount": "{count} anúncios",
+    "teachersAndInstitutesIn": "Professores e institutos em {city}",
+    "subjectsCovered": "{count} matérias cobertas",
+    "subjectsTaughtIn": "Matérias ensinadas em {city}",
+    "institutesHeading": "Institutos",
+    "teachersHeading": "Professores",
+    "noInstitutesIn": "Ainda não há institutos listados em {city}.",
+    "noTeachersIn": "Ainda não há professores individuais listados em {city}.",
+    "noReviewsYet": "Ainda sem avaliações",
+    "seeWhatsHappening": "Veja o que está acontecendo em {city}",
+    "since": "desde {date}",
+    "fromPriceHour": "A partir de {price}/hora",
+    "priceHour": "{price}/hora",
+    "downloadToMessage": "Baixe o app para enviar mensagem ou reservar",
+    "poweredBy": "Desenvolvido por",
+    "allTeachersInstitutesIn": "Todos os professores e institutos em {city}",
+    "cityFeedTitle": "Feed da cidade de {city}",
+    "feedSubtitle": "O que professores, institutos e alunos em {city} estão publicando agora.",
+    "seeAllHere": "Veja todos os professores e institutos aqui",
+    "noPostsYet": "Ainda não há publicações em {city}. Seja o primeiro — abra o app para publicar.",
+    "replyLikePost": "Responda, curta ou publique o seu — abra o app Nearby Teacher.",
+    "getApp": "Obter o app"
+  },
+  "errors": {
+    "notFound": "Não encontrado",
+    "somethingWrong": "Algo deu errado",
+    "tooManyRequests": "Muitas solicitações. Aguarde um momento e tente novamente.",
+    "invalidToken": "Token inválido ou expirado"
+  }
+}

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>" dir="<%= t._meta.rtl ? 'rtl' : 'ltr' %>">
+<head>
+<meta charset="UTF-8">
+<title><%= t.website.notFound %> — <%= t.common.appName %></title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { font-family: -apple-system, Segoe UI, Roboto, "Noto Sans Arabic", "Noto Sans SC", sans-serif; background: #f7f6f2; color: #2c2c2a; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+  .box { text-align: center; }
+  a { color: #185fa5; }
+</style>
+</head>
+<body>
+  <div class="box">
+    <h1 style="font-size:18px;font-weight:600;"><%= t.website.notFound %></h1>
+    <p style="color:#73726c;font-size:14px;"><%= message %></p>
+    <p><a href="/"><%= t.common.appName %></a></p>
+  </div>
+</body>
+</html>

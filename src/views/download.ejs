@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>" dir="<%= t._meta.rtl ? 'rtl' : 'ltr' %>">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><%= t.website.downloadPrompt %></title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Roboto, "Noto Sans", "Noto Sans Arabic", "Noto Sans SC", sans-serif; background: #f7f6f2; color: #2c2c2a; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+  .box { text-align: center; max-width: 380px; padding: 20px; width: 100%; }
+  h1 { font-size: 20px; font-weight: 600; margin: 0 0 8px; }
+  .sub { color: #73726c; font-size: 14px; margin: 0 0 24px; }
+  .links { display: flex; flex-direction: column; gap: 10px; }
+  .btn { display: block; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 500; }
+  .btn.ios { background: #2c2c2a; color: #fff; }
+  .btn.android { background: #185fa5; color: #fff; }
+  .btn.disabled { background: #e2e0d8; color: #888780; pointer-events: none; }
+  .note { font-size: 12px; color: #888780; margin-top: 20px; }
+  .lang-picker { margin-top: 28px; padding-top: 16px; border-top: 1px solid #e2e0d8; }
+  .lang-picker select { font-size: 13px; padding: 6px 10px; border-radius: 6px; border: 1px solid #d3d1c7; background: #fff; color: #2c2c2a; }
+</style>
+</head>
+<body>
+  <div class="box">
+    <h1><%= t.common.appName %></h1>
+    <p class="sub"><%= t.website.downloadPrompt %></p>
+    <div class="links">
+      <a class="btn ios <%= iosUrl ? '' : 'disabled' %>" href="<%= iosUrl || '#' %>">
+        <%= t.common.download %> — iOS
+      </a>
+      <a class="btn android <%= androidUrl ? '' : 'disabled' %>" href="<%= androidUrl || '#' %>">
+        <%= t.common.download %> — Android
+      </a>
+    </div>
+    <p class="note"><%= t.website.openingApp %></p>
+
+    <div class="lang-picker">
+      <label for="lang-select" style="display:block; font-size:12px; color:#888780; margin-bottom:6px;"><%= t.settings.language %></label>
+      <select id="lang-select" onchange="location.href = '?lang=' + this.value + (window.location.search.includes('ref=') ? '&ref=<%= ref %>' : '')">
+        <% languages.forEach(function(l) { %>
+          <option value="<%= l.code %>" <%= l.code === lang ? 'selected' : '' %>><%= l.nativeName %></option>
+        <% }); %>
+      </select>
+    </div>
+  </div>
+</body>
+</html>

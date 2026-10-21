@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>" dir="<%= t._meta.rtl ? 'rtl' : 'ltr' %>">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><%= t.website.cityFeedTitle.replace('{city}', city) %> — <%= t.common.appName %></title>
+<meta name="description" content="<%= t.website.feedSubtitle.replace('{city}', city) %>">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Roboto, "Noto Sans Arabic", "Noto Sans SC", sans-serif; background: #f7f6f2; color: #2c2c2a; margin: 0; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 32px 20px 60px; }
+  h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; }
+  .sub { color: #73726c; font-size: 14px; margin: 0 0 24px; }
+  .sub a { color: #185fa5; }
+  .post { background: #fff; border: 1px solid #e2e0d8; border-radius: 12px; padding: 16px 18px; margin-bottom: 12px; }
+  .post-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: #e6f1fb; color: #0c447c; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .author { font-size: 13px; font-weight: 600; margin: 0; }
+  .time { font-size: 12px; color: #888780; margin: 0; }
+  .type-tag { font-size: 11px; padding: 2px 8px; border-radius: 8px; background: #e6f1fb; color: #0c447c; margin-bottom: 6px; display: inline-block; }
+  .body { font-size: 14px; line-height: 1.6; margin: 6px 0 10px; }
+  .stats { display: flex; gap: 16px; font-size: 12px; color: #73726c; }
+  .empty { text-align: center; color: #73726c; padding: 40px 0; }
+  .cta { text-align: center; margin-top: 24px; padding: 20px; background: #fff; border-radius: 12px; border: 1px solid #e2e0d8; }
+  .cta a { display: inline-block; margin-top: 10px; padding: 10px 20px; background: #185fa5; color: #fff; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><%= t.website.cityFeedTitle.replace('{city}', city) %></h1>
+  <p class="sub"><%= t.website.feedSubtitle.replace('{city}', city) %> <a href="/site/city/<%= encodeURIComponent(city) %>"><%= t.website.seeAllHere %> →</a></p>
+
+  <% if (!posts.length) { %>
+    <p class="empty"><%= t.website.noPostsYet.replace('{city}', city) %></p>
+  <% } else { %>
+    <% posts.forEach(function(p) { %>
+      <div class="post">
+        <% if (p.post_type === 'request') { %><span class="type-tag"><%= t.feed.lookingFor %></span><% } %>
+        <div class="post-top">
+          <div class="avatar"><%= p.author_name.split(' ').map(w => w[0]).slice(0,2).join('') %></div>
+          <div>
+            <p class="author"><%= p.author_name %></p>
+            <p class="time"><%= formatDate(p.created_at, lang) %></p>
+          </div>
+        </div>
+        <p class="body"><%= p.body %></p>
+        <div class="stats">
+          <span>♡ <%= p.like_count %></span>
+          <span>💬 <%= p.comment_count %></span>
+        </div>
+      </div>
+    <% }); %>
+  <% } %>
+
+  <div class="cta">
+    <p style="margin:0; font-size:14px;"><%= t.website.replyLikePost %></p>
+    <a href="<%= downloadHref %>"><%= t.website.getApp %></a>
+  </div>
+</div>
+</body>
+</html>

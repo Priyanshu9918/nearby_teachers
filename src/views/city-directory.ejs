@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>" dir="<%= t._meta.rtl ? 'rtl' : 'ltr' %>">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><%= t.website.findNearYou %> — <%= t.common.appName %></title>
+<meta name="description" content="<%= t.website.findNearYou %> — <%= cities.length %> <%= t.common.appName %>.">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Roboto, "Noto Sans Arabic", "Noto Sans SC", sans-serif; background: #f7f6f2; color: #2c2c2a; margin: 0; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 32px 20px 60px; }
+  h1 { font-size: 24px; font-weight: 600; margin: 0 0 4px; }
+  .sub { color: #73726c; font-size: 14px; margin: 0 0 28px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+  .city-card { display: flex; align-items: center; justify-content: space-between; background: #fff; border: 1px solid #e2e0d8; border-radius: 10px; padding: 14px 16px; text-decoration: none; color: inherit; }
+  .city-card:hover { border-color: #b4b2a9; }
+  .city-name { font-size: 14px; font-weight: 600; margin: 0; }
+  .city-count { font-size: 12px; color: #73726c; margin: 2px 0 0; }
+  .empty { color: #73726c; font-size: 14px; text-align: center; padding: 40px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><%= t.website.findNearYou %></h1>
+  <p class="sub"><%= t.website.citiesOnPlatform.replace('{count}', cities.length) %></p>
+
+  <% if (!cities.length) { %>
+    <p class="empty"><%= t.website.noCitiesYet %></p>
+  <% } else { %>
+    <div class="grid">
+      <% cities.forEach(function(c) { %>
+        <a class="city-card" href="/site/city/<%= encodeURIComponent(c.city) %>">
+          <div>
+            <p class="city-name"><%= c.city %></p>
+            <p class="city-count"><%= t.website.listingsCount.replace('{count}', c.listing_count) %></p>
+          </div>
+        </a>
+      <% }); %>
+    </div>
+  <% } %>
+</div>
+</body>
+</html>

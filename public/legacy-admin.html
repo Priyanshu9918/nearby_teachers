@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Nearby Teacher — Legacy Node Admin</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --bg: #f7f6f2; --card: #fff; --border: #e2e0d8; --text: #2c2c2a; --muted: #73726c; --danger: #a32d2d; --accent: #185fa5; --success: #3b6d11; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 24px; }
+  h1 { font-size: 20px; font-weight: 500; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+  .token-bar { display: flex; gap: 8px; margin-bottom: 20px; }
+  .token-bar input { flex: 1; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; }
+  .token-bar button { padding: 8px 14px; border: 1px solid var(--border); border-radius: 6px; background: var(--card); cursor: pointer; font-size: 13px; }
+  .tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .tab { padding: 8px 14px; font-size: 13px; cursor: pointer; border-bottom: 2px solid transparent; color: var(--muted); }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 500; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .card-title { font-size: 13px; font-weight: 500; margin: 0 0 2px; }
+  .card-meta { font-size: 12px; color: var(--muted); margin: 0; }
+  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #f2e2e2; color: var(--danger); margin-right: 6px; }
+  .badge.fraud { background: #fcebeb; color: var(--danger); }
+  .actions { display: flex; gap: 6px; margin-top: 8px; }
+  .actions button { padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border); background: #fff; cursor: pointer; font-size: 12px; }
+  .actions button.primary { background: var(--success); color: #fff; border: none; }
+  .actions button.dismiss { color: var(--muted); }
+  .empty { color: var(--muted); font-size: 13px; padding: 20px 0; text-align: center; }
+  .verify-form { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .verify-form select, .verify-form input { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; }
+  .verify-form button { padding: 8px 14px; border-radius: 6px; border: none; background: var(--accent); color: #fff; cursor: pointer; font-size: 13px; }
+  .note { font-size: 12px; color: var(--muted); background: #fff8e8; border: 1px solid #f0dca0; border-radius: 6px; padding: 10px 12px; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<h1>Nearby Teacher — Admin</h1>
+<p class="sub">Internal review tool: fraud/safety reports, catalog suggestions, and profile verification.</p>
+
+<div class="note">
+  <strong>Auth placeholder:</strong> paste a Firebase ID token for an account with <code>is_admin = true</code> below.
+  Replace this with a real admin sign-in screen before giving this to non-developers — pasting a raw token is a
+  developer convenience, not a production login flow.
+</div>
+
+<div class="token-bar">
+  <input id="token" type="password" placeholder="Firebase ID token for an admin account" />
+  <button onclick="saveToken()">Save</button>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-tab="reports" onclick="switchTab('reports')">Reports</div>
+  <div class="tab" data-tab="suggestions" onclick="switchTab('suggestions')">Suggestions</div>
+  <div class="tab" data-tab="bsl" onclick="switchTab('bsl')">BSL Verified</div>
+  <div class="tab" data-tab="analytics" onclick="switchTab('analytics')">Analytics</div>
+  <div class="tab" data-tab="support" onclick="switchTab('support')">Support</div>
+  <div class="tab" data-tab="photos" onclick="switchTab('photos')">Photos</div>
+  <div class="tab" data-tab="messages" onclick="switchTab('messages')">Messages</div>
+  <div class="tab" data-tab="bookings" onclick="switchTab('bookings')">Bookings</div>
+  <div class="tab" data-tab="contact-stats" onclick="switchTab('contact-stats')">Contact Stats</div>
+  <div class="tab" data-tab="users" onclick="switchTab('users')">Users</div>
+</div>
+
+<div id="panel-reports" class="panel active">
+  <div id="reports-list"><p class="empty">Loading…</p></div>
+</div>
+
+<div id="panel-suggestions" class="panel">
+  <div id="suggestions-list"><p class="empty">Loading…</p></div>
+</div>
+
+<div id="panel-bsl" class="panel">
+  <div class="note" style="margin-bottom:16px">
+    <strong>BSL Verified</strong> is the only verification badge shown in the product — reserved for
+    directly-operated BSL centres. Franchise and MCP partner institutes are not eligible. Classify the
+    institute first, then grant the badge; granting will be rejected server-side if the institute isn't
+    classified as <code>bsl_direct</code>.
+  </div>
+
+  <p class="card-title" style="margin-bottom:8px">Step 1 — Classify the institute</p>
+  <div class="verify-form">
+    <input id="bsl-id-type" placeholder="Institute user_id (UUID)" style="width:280px" />
+    <select id="bsl-institute-type">
+      <option value="independent">Independent</option>
+      <option value="franchise">Franchise</option>
+      <option value="mcp_partner">MCP partner</option>
+      <option value="bsl_direct">BSL direct (eligible for BSL Verified)</option>
+    </select>
+    <button onclick="setInstituteType()">Set classification</button>
+  </div>
+
+  <p class="card-title" style="margin:20px 0 8px">Step 2 — Grant or revoke BSL Verified</p>
+  <div class="verify-form">
+    <input id="bsl-id-verify" placeholder="Institute user_id (UUID)" style="width:280px" />
+    <button onclick="grantBslVerified(true)">Grant BSL Verified</button>
+    <button onclick="grantBslVerified(false)" style="background:var(--danger)">Revoke</button>
+  </div>
+  <div id="bsl-result"></div>
+</div>
+
+<div id="panel-analytics" class="panel">
+  <div class="verify-form" style="margin-bottom:20px">
+    <select id="analytics-days" onchange="loadAnalytics()">
+      <option value="7">Last 7 days</option>
+      <option value="30" selected>Last 30 days</option>
+      <option value="90">Last 90 days</option>
+    </select>
+  </div>
+  <div id="analytics-content"><p class="empty">Loading…</p></div>
+</div>
+
+<div id="panel-support" class="panel">
+  <div class="verify-form" style="margin-bottom:16px">
+    <select id="support-status" onchange="loadSupportTickets()">
+      <option value="open" selected>Open</option>
+      <option value="in_progress">In progress</option>
+      <option value="resolved">Resolved</option>
+    </select>
+  </div>
+  <div id="support-list"><p class="empty">Loading…</p></div>
+</div>
+
+<div id="panel-photos" class="panel">
+  <div class="note" style="margin-bottom:16px">
+    Every new profile photo starts here before it appears anywhere public — on the app or the website.
+    No automated check is wired up; this is a manual queue.
+  </div>
+  <div id="photos-list"><p class="empty">Loading…</p></div>
+</div>
+
+<div id="panel-messages" class="panel">
+  <div class="note" style="margin-bottom:16px">
+    Full admin visibility into any conversation is a deliberate, disclosed product decision — not the
+    default choice. Every view is logged (who, which conversation, when) for accountability.
+  </div>
+  <div id="conversations-list"><p class="empty">Loading…</p></div>
+  <div id="conversation-detail" style="display:none; margin-top:16px;">
+    <button onclick="closeConversationDetail()" style="margin-bottom:12px">&larr; Back to conversations</button>
+    <div id="conversation-messages"></div>
+  </div>
+</div>
+
+<div id="panel-bookings" class="panel">
+  <div class="note" style="margin-bottom:16px">
+    Every booking request on the platform — who requested it, who it's for, subject, status.
+    List views are logged the same way as message access.
+  </div>
+  <div id="bookings-list"><p class="empty">Loading…</p></div>
+</div>
+
+<div id="panel-contact-stats" class="panel">
+  <div class="note" style="margin-bottom:16px">
+    Ranked most to least contacted — counts distinct conversations, not raw message volume.
+  </div>
+  <div style="display:flex; gap:20px; flex-wrap:wrap;">
+    <div style="flex:1; min-width:280px;">
+      <p class="card-title" style="margin-bottom:8px">Most-contacted teachers/institutes</p>
+      <div id="teacher-contact-stats"><p class="empty">Loading…</p></div>
+    </div>
+    <div style="flex:1; min-width:280px;">
+      <p class="card-title" style="margin-bottom:8px">Most-active students</p>
+      <div id="student-contact-stats"><p class="empty">Loading…</p></div>
+    </div>
+  </div>
+</div>
+
+<div id="panel-users" class="panel">
+  <div class="note" style="margin-bottom:16px">
+    Suspending an account blocks it from everything authenticated, platform-wide — not just messaging or
+    booking. An admin cannot suspend themselves.
+  </div>
+  <div class="verify-form" style="margin-bottom:20px">
+    <input id="suspend-user-id" placeholder="User ID to suspend" style="width:260px" />
+    <input id="suspend-reason" placeholder="Reason (shown to the user)" style="width:280px" />
+    <button onclick="suspendUser()" style="background:var(--danger, #c0392b)">Suspend</button>
+  </div>
+  <p class="card-title" style="margin-bottom:8px">Currently suspended</p>
+  <div id="suspended-users-list"><p class="empty">Loading…</p></div>
+</div>
+
+<script>
+const API_BASE = ''; // same origin as this page — set to the API's deployed URL if hosted separately
+
+function getToken() { return localStorage.getItem('nt_admin_token') || ''; }
+function saveToken() {
+  localStorage.setItem('nt_admin_token', document.getElementById('token').value.trim());
+  loadReports();
+  loadSuggestions();
+  loadAnalytics();
+  loadSupportTickets();
+  loadPendingPhotos();
+  loadConversations();
+  loadBookings();
+  loadContactStats();
+  loadSuspendedUsers();
+}
+
+document.getElementById('token').value = getToken();
+
+async function api(path, options = {}) {
+  const res = await fetch(API_BASE + path, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer ' + getToken(),
+      ...(options.headers || {}),
+    },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || ('Request failed: ' + res.status));
+  }
+  return res.json();
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
+}
+
+async function loadReports() {
+  const el = document.getElementById('reports-list');
+  try {
+    const { reports } = await api('/safety/reports?status=open');
+    if (!reports.length) { el.innerHTML = '<p class="empty">No open reports.</p>'; return; }
+    el.innerHTML = reports.map(r => `
+      <div class="card">
+        <div class="card-top">
+          <div>
+            <p class="card-title">${escapeHtml(r.target_type)} · ${escapeHtml(r.target_id)}</p>
+            <p class="card-meta">
+              <span class="badge ${r.reason_category === 'fraud' ? 'fraud' : ''}">${escapeHtml(r.reason_category)}</span>
+              reported by ${escapeHtml(r.reporter_name)} · ${new Date(r.created_at).toLocaleDateString()}
+            </p>
+            ${r.reason ? `<p class="card-meta" style="margin-top:6px">"${escapeHtml(r.reason)}"</p>` : ''}
+          </div>
+        </div>
+        <div class="actions">
+          <button class="primary" onclick="setReportStatus('${r.id}', 'reviewed')">Mark reviewed</button>
+          <button class="dismiss" onclick="setReportStatus('${r.id}', 'dismissed')">Dismiss</button>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    el.innerHTML = `<p class="empty">${escapeHtml(e.message)}</p>`;
+  }
+}
+
+async function setReportStatus(id, status) {
+  try {
+    await api(`/safety/reports/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+    loadReports();
+  } catch (e) { alert(e.message); }
+}
+
+async function loadSuggestions() {
+  const el = document.getElementById('suggestions-list');
+  try {
+    const { suggestions } = await api('/suggestions?status=open');
+    if (!suggestions.length) { el.innerHTML = '<p class="empty">No open suggestions.</p>'; return; }
+    el.innerHTML = suggestions.map(s => `
+      <div class="card">
+        <div class="card-top">
+          <div>
+            <p class="card-title">${escapeHtml(s.name)} <span class="card-meta">(${escapeHtml(s.suggestion_type)})</span></p>
+            <p class="card-meta">suggested by ${escapeHtml(s.submitted_by_name)} · ${new Date(s.created_at).toLocaleDateString()}</p>
+            ${s.notes ? `<p class="card-meta" style="margin-top:6px">"${escapeHtml(s.notes)}"</p>` : ''}
+          </div>
+        </div>
+        <div class="actions">
+          <button class="primary" onclick="setSuggestionStatus('${s.id}', 'added')">Mark added</button>
+          <button class="dismiss" onclick="setSuggestionStatus('${s.id}', 'declined')">Decline</button>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    el.innerHTML = `<p class="empty">${escapeHtml(e.message)}</p>`;
+  }
+}
+
+async function setSuggestionStatus(id, status) {
+  try {
+    await api(`/suggestions/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+    loadSuggestions();
+  } catch (e) { alert(e.message); }
+}
+
+async function setInstituteType() {
+  const id = document.getElementById('bsl-id-type').value.trim();
+  const institute_type = document.getElementById('bsl-institute-type').value;
+  const resultEl = document.getElementById('bsl-result');
+  if (!id) { resultEl.innerHTML = '<p class="empty">Enter an institute user_id first.</p>'; return; }
+  try {
+    const { profile } = await api(`/profiles/institute/${id}/type`, {
+      method: 'PATCH',
+      body: JSON.stringify({ institute_type }),
+    });
+    resultEl.innerHTML = `<div class="card">
+      <p class="card-title">Classification set</p>
+      <p class="card-meta">institute_type: ${escapeHtml(profile.institute_type)}</p>
+    </div>`;
+  } catch (e) { resultEl.innerHTML = `<p class="empty">${escapeHtml(e.message)}</p>`; }
+}
+
+async function grantBslVerified(verified) {
+  const id = document.getElementById('bsl-id-verify').value.trim();
+  const resultEl = document.getElementById('bsl-result');
+  if (!id) { resultEl.innerHTML = '<p class="empty">Enter an institute user_id first.</p>'; return; }
+  try {
+    const { profile } = await api(`/profiles/institute/${id}/bsl-verified`, {
+      method: 'PATCH',
+      body: JSON.stringify({ verified }),
+    });
+    resultEl.innerHTML = `<div class="card">
+      <p class="card-title">${verified ? 'BSL Verified granted' : 'BSL Verified revoked'}</p>
+      <p class="card-meta">is_bsl_official: ${profile.is_bsl_official} · bsl_official_since: ${profile.bsl_official_since || '—'}</p>
+    </div>`;
+  } catch (e) {
+    // Most likely rejection: institute isn't classified as bsl_direct yet.
+    resultEl.innerHTML = `<p class="empty">${escapeHtml(e.message)}</p>`;
+  }
+}
+
+async function loadAnalytics() {
+  const el = document.getElementById('analytics-content');
+  const days = document.getElementById('analytics-days').value;
+  el.innerHTML = '<p class="empty">Loading…</p>';
+  try {
+    const data = await api(`/analytics/summary?days=${days}`);
+
+    const totalsHtml = data.totalsByPageType.length
+      ? data.totalsByPageType.map(t => `<span class="badge" style="background:#e6f1fb;color:#0c447c">${escapeHtml(t.page_type)}: ${t.views}</span>`).join(' ')
+      : '<span class="card-meta">No page views yet in this window.</span>';
+
+    const topPagesHtml = data.topPages.length
+      ? data.topPages.map(p => `<div class="card"><p class="card-title">${escapeHtml(p.page_type)} — ${escapeHtml(p.target)}</p><p class="card-meta">${p.views} views</p></div>`).join('')
+      : '<p class="empty">No institute/teacher page views yet.</p>';
+
+    const topCitiesHtml = data.topCities.length
+      ? data.topCities.map(c => `<div class="card"><p class="card-title">${escapeHtml(c.city)}</p><p class="card-meta">${c.views} views</p></div>`).join('')
+      : '<p class="empty">No city page views yet.</p>';
+
+    const downloadsHtml = data.downloadsByPlatform.length
+      ? data.downloadsByPlatform.map(d => `<span class="badge" style="background:#eaf3de;color:#3b6d11">${escapeHtml(d.platform || 'unknown')}: ${d.clicks}</span>`).join(' ')
+      : '<span class="card-meta">No download clicks yet.</span>';
+
+    el.innerHTML = `
+      <p class="card-title" style="margin-bottom:6px">Views by page type</p>
+      <p style="margin:0 0 20px">${totalsHtml}</p>
+
+      <p class="card-title" style="margin-bottom:6px">Download clicks by platform</p>
+      <p style="margin:0 0 20px">${downloadsHtml}</p>
+
+      <p class="card-title" style="margin-bottom:8px">Top institute/teacher pages</p>
+      ${topPagesHtml}
+
+      <p class="card-title" style="margin:20px 0 8px">Top cities</p>
+      ${topCitiesHtml}
+    `;
+  } catch (e) {
+    el.innerHTML = `<p class="empty">${escapeHtml(e.message)}</p>`;
+  }
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+async function loadSupportTickets() {
+  const el = document.getElementById('support-list');
+  const status = document.getElementById('support-status').value;
+  el.innerHTML = '<p class="empty">Loading…</p>';
+  try {
+    const { tickets } = await api(`/support?status=${status}`);
+    if (!tickets.length) { el.innerHTML = `<p class="empty">No ${status.replace('_', ' ')} tickets.</p>`; return; }
+    el.innerHTML = tickets.map(t => `
+      <div class="card">
+        <div class="card-top">
+          <div>
+            <p class="card-title">${escapeHtml(t.subject)}</p>
+            <p class="card-meta">${escapeHtml(t.user_name)} · ${escapeHtml(t.user_email || t.user_phone || '')} · ${new Date(t.created_at).toLocaleDateString()}</p>
+            <p class="card-meta" style="margin-top:6px">${escapeHtml(t.message)}</p>
+          </div>
+        </div>
+        <div class="actions">
+          ${t.status !== 'in_progress' ? `<button onclick="setTicketStatus('${t.id}', 'in_progress')">Mark in progress</button>` : ''}
+          ${t.status !== 'resolved' ? `<button class="primary" onclick="setTicketStatus('${t.id}', 'resolved')">Mark resolved</button>` : ''}
+          ${t.status !== 'open' ? `<button class="dismiss" onclick="setTicketStatus('${t.id}', 'open')">Reopen</button>` : ''}
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    el.innerHTML = `<p class="empty">${escapeHtml(e.message)}</p>`;
+  }
+}
+
+async function setTicketStatus(id, status) {
+  try {
+    await api(`/support/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+    loadSupportTickets();
+  } catch (e) { alert(e.message); }
+}
+
+async function loadPendingPhotos() {
+  const el = document.getElementById('photos-list');
+  el.innerHTML = '<p class="empty">Loading…</p>';
+  try {
+    const { pending } = await api('/moderation/photos/pending');
+    if (!pending.length) { el.innerHTML = '<p class="empty">No photos waiting for review.</p>'; return; }
+    el.innerHTML = pending.map(u => `
+      <div class="card">
+        <div class="card-top">
+          <img src="${escapeHtml(u.avatar_url)}" alt="" style="width:64px;height:64px;border-radius:8px;object-fit:cover;margin-right:12px" />
+          <div>
+            <p class="card-title">${escapeHtml(u.full_name)}</p>
+            <p class="card-meta">${escapeHtml(u.account_type)} · submitted ${new Date(u.updated_at).toLocaleString()}</p>
+          </div>
+        </div>
+        <div class="actions">
+          <button onclick="reviewPhoto('${u.id}', 'rejected')" class="dismiss">Reject</button>
+          <button onclick="reviewPhoto('${u.id}', 'approved')" class="primary">Approve</button>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    el.innerHTML = `<p class="empty">${escapeHtml(e.message)}</p>`;
+  }
+}
+
+async function reviewPhoto(userId, status) {
+  try {
+    await api(`/moderation/photos/${userId}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+    loadPendingPhotos();
+  } catch (e) { alert(e.message); }
+}
+
+async function loadConversations() {
+  const el = document.getElementById('conversations-list');
+  el.innerHTML = '<p class="empty">Loading…</p>';
+  try {
+    const { conversations } = await api('/moderation/conversations');
+    if (!conversations.length) { el.innerHTML = '<p class="empty">No conversations yet.</p>'; return; }
+    el.innerHTML = conversations.map(c => `
+      <div class="card" style="cursor:pointer" onclick="viewConversation('${c.id}')">
+        <p class="card-title">${escapeHtml(c.learner_name)} &harr; ${escapeHtml(c.provider_name)}</p>
+        <p class="card-meta">${c.message_count} messages · last activity ${c.last_message_at ? new Date(c.last_message_at).toLocaleString() : 'never'}</p>
+      </div>
+    `).join('');
+  } catch (e) {
+    el.innerHTML = `<p class="empty">${escapeHtml(e.message)}</p>`;
+  }
+}
+
+async function viewConversation(conversationId) {
+  document.getElementById('conversations-list').style.display = 'none';
+  document.getElementById('conversation-detail').style.display = 'block';
+  const el = document.getElementById('conversation-messages');
+  el.innerHTML = '<p class="empty">Loading…</p>';
+  try {
+    // This call is logged server-side (admin_message_access_log) the
+    // moment it succeeds — every view through this screen is audited.
+    const { conversation, messages } = await api(`/moderation/conversations/${conversationId}/messages`);
+    el.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <p class="card-title" style="margin:0">${escapeHtml(conversation.learner_name)} &harr; ${escapeHtml(conversation.provider_name)}</p>
+        <div style="display:flex; gap:6px;">
+          <button onclick="promptSuspend('${conversation.learner_id}', '${escapeHtml(conversation.learner_name)}')" style="background:var(--danger, #c0392b); font-size:12px;">Suspend ${escapeHtml(conversation.learner_name)}</button>
+          <button onclick="promptSuspend('${conversation.provider_id}', '${escapeHtml(conversation.provider_name)}')" style="background:var(--danger, #c0392b); font-size:12px;">Suspend ${escapeHtml(conversation.provider_name)}</button>
+        </div>
+      </div>
+      ${messages.map(m => `
+        <div style="padding:8px 0; border-bottom:1px solid var(--border, #eee)">
+          <p style="margin:0; font-size:13px"><strong>${escapeHtml(m.sender_name)}</strong> <span class="card-meta">${new Date(m.created_at).toLocaleString()}</span></p>
+          <p style="margin:4px 0 0">${escapeHtml(m.body)}</p>
+        </div>
+      `).join('')}
+    `;
+  } catch (e) {
+    el.innerHTML = `<p class="empty">${escapeHtml(e.message)}</p>`;
+  }
+}
+
+function promptSuspend(userId, userName) {
+  const reason = prompt(`Reason for suspending ${userName}:`);
+  if (reason === null) return; // cancelled
+  suspendUserById(userId, reason);
+}
+
+async function suspendUserById(userId, reason) {
+  try {
+    await api(`/moderation/users/${userId}/suspend`, { method: 'POST', body: JSON.stringify({ reason }) });
+    alert('Account suspended.');
+    loadSuspendedUsers();
+  } catch (e) { alert(e.message); }
+}
+
+function closeConversationDetail() {
+  document.getElementById('conversation-detail').style.display = 'none';
+  document.getElementById('conversations-list').style.display = 'block';
+}
+
+async function loadBookings() {
+  const el = document.getElementById('bookings-list');
+  el.innerHTML = '<p class="empty">Loading…</p>';
+  try {
+    const { bookings } = await api('/moderation/bookings');
+    if (!bookings.length) { el.innerHTML = '<p class="empty">No booking requests yet.</p>'; return; }
+    el.innerHTML = bookings.map(b => `
+      <div class="card">
+        <p class="card-title">${escapeHtml(b.learner_name)} &rarr; ${escapeHtml(b.provider_name)}</p>
+        <p class="card-meta">${escapeHtml(b.subject_name || 'No subject')} · ${escapeHtml(b.mode)} · ${new Date(b.requested_time).toLocaleString()} · <strong>${escapeHtml(b.status)}</strong></p>
+      </div>
+    `).join('');
+  } catch (e) {
+    el.innerHTML = `<p class="empty">${escapeHtml(e.message)}</p>`;
+  }
+}
+
+function renderContactRanking(el, rows, labelSuffix) {
+  if (!rows.length) { el.innerHTML = '<p class="empty">No data yet.</p>'; return; }
+  el.innerHTML = rows.map((r, i) => `
+    <div class="card" style="display:flex; align-items:center; gap:10px;">
+      <span style="font-weight:600; color:var(--text-muted, #888); min-width:22px;">#${i + 1}</span>
+      <div style="flex:1;">
+        <p class="card-title">${escapeHtml(r.full_name)}</p>
+        <p class="card-meta">${r.contact_count} ${labelSuffix}</p>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function loadContactStats() {
+  const teacherEl = document.getElementById('teacher-contact-stats');
+  const studentEl = document.getElementById('student-contact-stats');
+  try {
+    const { mostContactedTeachers, mostActiveStudents } = await api('/moderation/contact-stats');
+    renderContactRanking(teacherEl, mostContactedTeachers, 'students contacted them');
+    renderContactRanking(studentEl, mostActiveStudents, 'teachers/institutes contacted');
+  } catch (e) {
+    teacherEl.innerHTML = studentEl.innerHTML = `<p class="empty">${escapeHtml(e.message)}</p>`;
+  }
+}
+
+async function suspendUser() {
+  const userId = document.getElementById('suspend-user-id').value.trim();
+  const reason = document.getElementById('suspend-reason').value.trim();
+  if (!userId) { alert('Enter a user ID first.'); return; }
+  await suspendUserById(userId, reason);
+  document.getElementById('suspend-user-id').value = '';
+  document.getElementById('suspend-reason').value = '';
+}
+
+async function loadSuspendedUsers() {
+  const el = document.getElementById('suspended-users-list');
+  el.innerHTML = '<p class="empty">Loading…</p>';
+  try {
+    const { suspended } = await api('/moderation/users/suspended');
+    if (!suspended.length) { el.innerHTML = '<p class="empty">No suspended accounts.</p>'; return; }
+    el.innerHTML = suspended.map(u => `
+      <div class="card">
+        <p class="card-title">${escapeHtml(u.full_name)} <span class="card-meta">(${escapeHtml(u.account_type)})</span></p>
+        <p class="card-meta">Suspended ${new Date(u.suspended_at).toLocaleString()} by ${escapeHtml(u.suspended_by_name || 'unknown')}</p>
+        ${u.suspended_reason ? `<p class="card-meta">Reason: ${escapeHtml(u.suspended_reason)}</p>` : ''}
+        <div class="actions">
+          <button onclick="unsuspendUser('${u.id}')" class="primary">Unsuspend</button>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    el.innerHTML = `<p class="empty">${escapeHtml(e.message)}</p>`;
+  }
+}
+
+async function unsuspendUser(userId) {
+  try {
+    await api(`/moderation/users/${userId}/unsuspend`, { method: 'POST' });
+    loadSuspendedUsers();
+  } catch (e) { alert(e.message); }
+}
+
+if (getToken()) { loadReports(); loadSuggestions(); loadAnalytics(); loadSupportTickets(); loadPendingPhotos(); loadConversations(); loadBookings(); loadContactStats(); loadSuspendedUsers(); }
+</script>
+
+</body>
+</html>

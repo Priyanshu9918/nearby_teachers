@@ -1,0 +1,151 @@
+{
+  "_meta": {
+    "code": "en",
+    "name": "English",
+    "nativeName": "English",
+    "rtl": false
+  },
+  "nav": {
+    "home": "Home",
+    "search": "Search",
+    "messages": "Messages",
+    "feed": "Feed",
+    "profile": "Profile"
+  },
+  "common": {
+    "appName": "Nearby Teacher",
+    "byBsl": "by British School of Language",
+    "search": "Search",
+    "message": "Message",
+    "requestBooking": "Request booking",
+    "call": "Call",
+    "whatsapp": "WhatsApp",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "edit": "Edit profile",
+    "logOut": "Log out",
+    "free": "Free",
+    "verified": "BSL Verified",
+    "loading": "Loading…",
+    "seeMore": "See more",
+    "back": "Back",
+    "download": "Download the app",
+    "openInApp": "Open in app"
+  },
+  "home": {
+    "nearby": "Nearby",
+    "otherCity": "Other city / online",
+    "radius3": "3km",
+    "radius7": "7km",
+    "radius14": "14km",
+    "freelancers": "Freelancers nearby",
+    "institutes": "Institutes nearby"
+  },
+  "search": {
+    "placeholder": "Search subject, teacher…",
+    "teachersFoundNearby": "{count} teachers found nearby",
+    "distance": "{km}km away",
+    "rating": "{rating} ({count} reviews)",
+    "lessonsCompleted": "{count} lessons completed"
+  },
+  "profile": {
+    "trialNone": "No trial",
+    "trial1Day": "1-day trial",
+    "trialWeek": "1-week trial",
+    "bio": "Bio",
+    "subjects": "Subjects",
+    "lessonModes": "Lesson modes",
+    "ratePerHour": "Rate per hour",
+    "website": "Visit website",
+    "linkedIn": "View LinkedIn",
+    "instructors": "Instructors"
+  },
+  "booking": {
+    "confirmed": "Lesson confirmed",
+    "addToCalendar": "Add to calendar",
+    "status_requested": "Requested",
+    "status_accepted": "Accepted",
+    "status_declined": "Declined",
+    "status_completed": "Completed"
+  },
+  "review": {
+    "prompt": "How was your lesson?",
+    "commentPlaceholder": "Add a comment (optional)",
+    "submitReview": "Submit review"
+  },
+  "settings": {
+    "title": "Settings",
+    "location": "Location",
+    "notifications": "Notifications",
+    "privacySafety": "Privacy and safety",
+    "reportProblem": "Report a problem",
+    "contactBsl": "Contact BSL",
+    "referFriend": "Refer a friend",
+    "language": "Language"
+  },
+  "safety": {
+    "disclaimerTitle": "Before you message or book",
+    "acknowledge": "I understand"
+  },
+  "feed": {
+    "title": "City feed",
+    "lookingFor": "Looking for",
+    "newPost": "New post",
+    "like": "Like",
+    "comment": "Comment",
+    "share": "Share"
+  },
+  "referral": {
+    "title": "Refer a friend",
+    "subtitle": "Help a friend find a nearby teacher",
+    "shareLink": "Share your link",
+    "friendsJoined": "{count} friends joined using your link"
+  },
+  "contactBsl": {
+    "title": "Contact BSL",
+    "subject": "Subject",
+    "messagePlaceholder": "How can we help?",
+    "pastTickets": "Your past tickets"
+  },
+  "website": {
+    "cityDirectory": "All cities",
+    "teachersIn": "Teachers in {city}",
+    "institutesIn": "Institutes in {city}",
+    "contactDetailsInApp": "Full contact details, reviews, and booking are available in the app.",
+    "notFound": "Page not found",
+    "downloadPrompt": "Get the app to message, book, and see full profiles",
+    "openingApp": "Opening the app…",
+    "findNearYou": "Find teachers and institutes near you",
+    "citiesOnPlatform": "{count} cities on Nearby Teacher",
+    "noCitiesYet": "No cities listed yet — check back soon.",
+    "listingsCount": "{count} listings",
+    "teachersAndInstitutesIn": "Teachers and institutes in {city}",
+    "subjectsCovered": "{count} subjects covered",
+    "subjectsTaughtIn": "Subjects taught in {city}",
+    "institutesHeading": "Institutes",
+    "teachersHeading": "Teachers",
+    "noInstitutesIn": "No institutes listed in {city} yet.",
+    "noTeachersIn": "No individual teachers listed in {city} yet.",
+    "noReviewsYet": "No reviews yet",
+    "seeWhatsHappening": "See what's happening in {city}",
+    "since": "since {date}",
+    "fromPriceHour": "From {price}/hour",
+    "priceHour": "{price}/hour",
+    "downloadToMessage": "Download the app to message or book",
+    "poweredBy": "Powered by",
+    "allTeachersInstitutesIn": "All teachers and institutes in {city}",
+    "cityFeedTitle": "{city} city feed",
+    "feedSubtitle": "What teachers, institutes, and learners in {city} are posting right now.",
+    "seeAllHere": "See all teachers and institutes here",
+    "noPostsYet": "No posts yet in {city}. Be the first — open the app to post.",
+    "replyLikePost": "Reply, like, or post your own — open the Nearby Teacher app.",
+    "getApp": "Get the app"
+  },
+  "errors": {
+    "notFound": "Not found",
+    "somethingWrong": "Something went wrong",
+    "tooManyRequests": "Too many requests. Please slow down and try again shortly.",
+    "invalidToken": "Invalid or expired token"
+  }
+}

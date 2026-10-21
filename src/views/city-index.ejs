@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>" dir="<%= t._meta.rtl ? 'rtl' : 'ltr' %>">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><%= t.website.teachersAndInstitutesIn.replace('{city}', city) %> — <%= t.common.appName %></title>
+<meta name="description" content="<%= t.website.teachersAndInstitutesIn.replace('{city}', city) %>, <%= t.website.subjectsCovered.replace('{count}', subjects.length) %>.">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Segoe UI, Roboto, "Noto Sans Arabic", "Noto Sans SC", sans-serif; background: #f7f6f2; color: #2c2c2a; margin: 0; }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 32px 20px 60px; }
+  h1 { font-size: 24px; font-weight: 600; margin: 0 0 4px; }
+  .sub { color: #73726c; font-size: 14px; margin: 0 0 24px; }
+  h2 { font-size: 16px; font-weight: 600; margin: 28px 0 12px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+  .tag { font-size: 13px; padding: 5px 12px; border-radius: 12px; background: #fff; border: 1px solid #e2e0d8; }
+  .list { display: flex; flex-direction: column; gap: 10px; }
+  .row { display: flex; align-items: center; justify-content: space-between; background: #fff; border: 1px solid #e2e0d8; border-radius: 10px; padding: 12px 16px; text-decoration: none; color: inherit; }
+  .row:hover { border-color: #b4b2a9; }
+  .row-name { font-size: 14px; font-weight: 600; margin: 0; }
+  .row-meta { font-size: 12px; color: #73726c; margin: 2px 0 0; }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 8px; background: #eaf3de; color: #3b6d11; }
+  .badge.bsl { background: #faece7; color: #993c1d; font-weight: 600; margin-right: 4px; }
+  .empty { color: #73726c; font-size: 14px; }
+  .feed-link { display: inline-block; margin-top: 28px; padding: 10px 20px; background: #185fa5; color: #fff; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 500; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><%= t.website.teachersAndInstitutesIn.replace('{city}', city) %></h1>
+  <p class="sub"><%= t.website.listingsCount.replace('{count}', teachers.length + institutes.length) %> · <%= t.website.subjectsCovered.replace('{count}', subjects.length) %></p>
+
+  <% if (subjects.length) { %>
+  <h2><%= t.website.subjectsTaughtIn.replace('{city}', city) %></h2>
+  <div class="tags">
+    <% subjects.forEach(function(s) { %><span class="tag"><%= s.name %></span><% }); %>
+  </div>
+  <% } %>
+
+  <h2><%= t.website.institutesHeading %></h2>
+  <% if (!institutes.length) { %>
+    <p class="empty"><%= t.website.noInstitutesIn.replace('{city}', city) %></p>
+  <% } else { %>
+    <div class="list">
+      <% institutes.forEach(function(inst) { %>
+        <a class="row" href="/site/institute/<%= inst.slug %>">
+          <div>
+            <p class="row-name"><%= inst.full_name %></p>
+            <p class="row-meta"><% if (inst.rating_count > 0) { %>★ <%= inst.rating_avg %> (<%= inst.rating_count %>)<% } else { %><%= t.website.noReviewsYet %><% } %></p>
+          </div>
+          <% if (inst.is_bsl_official) { %><span class="badge bsl"><%= t.common.verified %></span><% } %>
+        </a>
+      <% }); %>
+    </div>
+  <% } %>
+
+  <h2><%= t.website.teachersHeading %></h2>
+  <% if (!teachers.length) { %>
+    <p class="empty"><%= t.website.noTeachersIn.replace('{city}', city) %></p>
+  <% } else { %>
+    <div class="list">
+      <% teachers.forEach(function(teacher) { %>
+        <a class="row" href="/site/teacher/<%= teacher.slug %>">
+          <div>
+            <p class="row-name"><%= teacher.full_name %></p>
+            <p class="row-meta"><% if (teacher.rating_count > 0) { %>★ <%= teacher.rating_avg %> (<%= teacher.rating_count %>)<% } else { %><%= t.website.noReviewsYet %><% } %></p>
+          </div>
+        </a>
+      <% }); %>
+    </div>
+  <% } %>
+
+  <a class="feed-link" href="/site/feed/<%= encodeURIComponent(city) %>"><%= t.website.seeWhatsHappening.replace('{city}', city) %> →</a>
+</div>
+</body>
+</html>

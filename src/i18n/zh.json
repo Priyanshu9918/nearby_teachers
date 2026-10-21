@@ -1,0 +1,151 @@
+{
+  "_meta": {
+    "code": "zh",
+    "name": "Mandarin Chinese",
+    "nativeName": "中文",
+    "rtl": false
+  },
+  "nav": {
+    "home": "首页",
+    "search": "搜索",
+    "messages": "消息",
+    "feed": "动态",
+    "profile": "我的"
+  },
+  "common": {
+    "appName": "Nearby Teacher",
+    "byBsl": "由 British School of Language 提供",
+    "search": "搜索",
+    "message": "发消息",
+    "requestBooking": "预约课程",
+    "call": "拨打电话",
+    "whatsapp": "WhatsApp",
+    "submit": "提交",
+    "cancel": "取消",
+    "save": "保存",
+    "edit": "编辑资料",
+    "logOut": "退出登录",
+    "free": "免费",
+    "verified": "BSL 认证",
+    "loading": "加载中…",
+    "seeMore": "查看更多",
+    "back": "返回",
+    "download": "下载应用",
+    "openInApp": "在应用中打开"
+  },
+  "home": {
+    "nearby": "附近",
+    "otherCity": "其他城市 / 在线",
+    "radius3": "3公里",
+    "radius7": "7公里",
+    "radius14": "14公里",
+    "freelancers": "附近的自由教师",
+    "institutes": "附近的机构"
+  },
+  "search": {
+    "placeholder": "搜索科目、教师…",
+    "teachersFoundNearby": "在附近找到 {count} 位教师",
+    "distance": "{km}公里外",
+    "rating": "{rating} ({count} 条评价)",
+    "lessonsCompleted": "已完成 {count} 节课"
+  },
+  "profile": {
+    "trialNone": "无试听",
+    "trial1Day": "1天试听",
+    "trialWeek": "1周试听",
+    "bio": "简介",
+    "subjects": "科目",
+    "lessonModes": "授课方式",
+    "ratePerHour": "每小时费用",
+    "website": "访问网站",
+    "linkedIn": "查看领英",
+    "instructors": "讲师"
+  },
+  "booking": {
+    "confirmed": "课程已确认",
+    "addToCalendar": "添加到日历",
+    "status_requested": "已请求",
+    "status_accepted": "已接受",
+    "status_declined": "已拒绝",
+    "status_completed": "已完成"
+  },
+  "review": {
+    "prompt": "这节课感觉怎么样？",
+    "commentPlaceholder": "添加评论（可选）",
+    "submitReview": "提交评价"
+  },
+  "settings": {
+    "title": "设置",
+    "location": "位置",
+    "notifications": "通知",
+    "privacySafety": "隐私与安全",
+    "reportProblem": "举报问题",
+    "contactBsl": "联系 BSL",
+    "referFriend": "邀请好友",
+    "language": "语言"
+  },
+  "safety": {
+    "disclaimerTitle": "发消息或预约前请注意",
+    "acknowledge": "我已了解"
+  },
+  "feed": {
+    "title": "同城动态",
+    "lookingFor": "寻找",
+    "newPost": "发布新动态",
+    "like": "点赞",
+    "comment": "评论",
+    "share": "分享"
+  },
+  "referral": {
+    "title": "邀请好友",
+    "subtitle": "帮助朋友找到附近的教师",
+    "shareLink": "分享你的链接",
+    "friendsJoined": "已有 {count} 位朋友通过你的链接加入"
+  },
+  "contactBsl": {
+    "title": "联系 BSL",
+    "subject": "主题",
+    "messagePlaceholder": "我们能帮你什么？",
+    "pastTickets": "你以往的工单"
+  },
+  "website": {
+    "cityDirectory": "所有城市",
+    "teachersIn": "{city} 的教师",
+    "institutesIn": "{city} 的机构",
+    "contactDetailsInApp": "完整联系方式、评价及预约功能请在应用内查看。",
+    "notFound": "页面未找到",
+    "downloadPrompt": "下载应用以发消息、预约课程并查看完整资料",
+    "openingApp": "正在打开应用…",
+    "findNearYou": "查找您附近的教师和机构",
+    "citiesOnPlatform": "Nearby Teacher 上有 {count} 个城市",
+    "noCitiesYet": "暂无城市列表 — 请稍后再来查看。",
+    "listingsCount": "{count} 个信息",
+    "teachersAndInstitutesIn": "{city} 的教师和机构",
+    "subjectsCovered": "涵盖 {count} 个科目",
+    "subjectsTaughtIn": "{city} 教授的科目",
+    "institutesHeading": "机构",
+    "teachersHeading": "教师",
+    "noInstitutesIn": "{city} 暂无机构信息。",
+    "noTeachersIn": "{city} 暂无个人教师信息。",
+    "noReviewsYet": "暂无评价",
+    "seeWhatsHappening": "看看 {city} 正在发生什么",
+    "since": "自 {date} 起",
+    "fromPriceHour": "起价 {price}/小时",
+    "priceHour": "{price}/小时",
+    "downloadToMessage": "下载应用以发消息或预约",
+    "poweredBy": "技术支持",
+    "allTeachersInstitutesIn": "{city} 的所有教师和机构",
+    "cityFeedTitle": "{city} 同城动态",
+    "feedSubtitle": "{city} 的教师、机构和学员正在发布的内容。",
+    "seeAllHere": "在此查看所有教师和机构",
+    "noPostsYet": "{city} 暂无动态。抢先发布 — 打开应用发帖。",
+    "replyLikePost": "回复、点赞或发布你自己的动态 — 打开 Nearby Teacher 应用。",
+    "getApp": "获取应用"
+  },
+  "errors": {
+    "notFound": "未找到",
+    "somethingWrong": "出了点问题",
+    "tooManyRequests": "请求过于频繁，请稍后再试。",
+    "invalidToken": "令牌无效或已过期"
+  }
+}

@@ -1,0 +1,151 @@
+{
+  "_meta": {
+    "code": "ar",
+    "name": "Arabic",
+    "nativeName": "العربية",
+    "rtl": true
+  },
+  "nav": {
+    "home": "الرئيسية",
+    "search": "بحث",
+    "messages": "الرسائل",
+    "feed": "المستجدات",
+    "profile": "الملف الشخصي"
+  },
+  "common": {
+    "appName": "Nearby Teacher",
+    "byBsl": "من British School of Language",
+    "search": "بحث",
+    "message": "رسالة",
+    "requestBooking": "طلب حجز",
+    "call": "اتصال",
+    "whatsapp": "واتساب",
+    "submit": "إرسال",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "edit": "تعديل الملف الشخصي",
+    "logOut": "تسجيل الخروج",
+    "free": "مجاني",
+    "verified": "موثّق من BSL",
+    "loading": "جارٍ التحميل…",
+    "seeMore": "عرض المزيد",
+    "back": "رجوع",
+    "download": "تحميل التطبيق",
+    "openInApp": "فتح في التطبيق"
+  },
+  "home": {
+    "nearby": "القريب مني",
+    "otherCity": "مدينة أخرى / عبر الإنترنت",
+    "radius3": "3كم",
+    "radius7": "7كم",
+    "radius14": "14كم",
+    "freelancers": "معلمون مستقلون قريبون",
+    "institutes": "معاهد قريبة"
+  },
+  "search": {
+    "placeholder": "ابحث عن مادة أو معلم…",
+    "teachersFoundNearby": "تم العثور على {count} معلمًا بالقرب منك",
+    "distance": "على بعد {km}كم",
+    "rating": "{rating} ({count} تقييمًا)",
+    "lessonsCompleted": "{count} درسًا مكتملًا"
+  },
+  "profile": {
+    "trialNone": "بدون تجربة",
+    "trial1Day": "تجربة ليوم واحد",
+    "trialWeek": "تجربة لأسبوع واحد",
+    "bio": "نبذة",
+    "subjects": "المواد",
+    "lessonModes": "طرق التدريس",
+    "ratePerHour": "السعر بالساعة",
+    "website": "زيارة الموقع الإلكتروني",
+    "linkedIn": "عرض LinkedIn",
+    "instructors": "المدرّبون"
+  },
+  "booking": {
+    "confirmed": "تم تأكيد الدرس",
+    "addToCalendar": "إضافة إلى التقويم",
+    "status_requested": "مطلوب",
+    "status_accepted": "مقبول",
+    "status_declined": "مرفوض",
+    "status_completed": "مكتمل"
+  },
+  "review": {
+    "prompt": "كيف كان درسك؟",
+    "commentPlaceholder": "أضف تعليقًا (اختياري)",
+    "submitReview": "إرسال التقييم"
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "location": "الموقع",
+    "notifications": "الإشعارات",
+    "privacySafety": "الخصوصية والسلامة",
+    "reportProblem": "الإبلاغ عن مشكلة",
+    "contactBsl": "تواصل مع BSL",
+    "referFriend": "دعوة صديق",
+    "language": "اللغة"
+  },
+  "safety": {
+    "disclaimerTitle": "قبل إرسال رسالة أو الحجز",
+    "acknowledge": "أوافق وأفهم"
+  },
+  "feed": {
+    "title": "مستجدات المدينة",
+    "lookingFor": "يبحث عن",
+    "newPost": "منشور جديد",
+    "like": "إعجاب",
+    "comment": "تعليق",
+    "share": "مشاركة"
+  },
+  "referral": {
+    "title": "دعوة صديق",
+    "subtitle": "ساعد صديقًا على إيجاد معلم قريب",
+    "shareLink": "شارك رابطك",
+    "friendsJoined": "انضم {count} أصدقاء عبر رابطك"
+  },
+  "contactBsl": {
+    "title": "تواصل مع BSL",
+    "subject": "الموضوع",
+    "messagePlaceholder": "كيف يمكننا مساعدتك؟",
+    "pastTickets": "طلباتك السابقة"
+  },
+  "website": {
+    "cityDirectory": "جميع المدن",
+    "teachersIn": "المعلمون في {city}",
+    "institutesIn": "المعاهد في {city}",
+    "contactDetailsInApp": "تتوفر بيانات الاتصال الكاملة والتقييمات والحجز داخل التطبيق.",
+    "notFound": "الصفحة غير موجودة",
+    "downloadPrompt": "حمّل التطبيق لإرسال الرسائل والحجز وعرض الملفات الكاملة",
+    "openingApp": "جارٍ فتح التطبيق…",
+    "findNearYou": "ابحث عن معلمين ومعاهد بالقرب منك",
+    "citiesOnPlatform": "{count} مدينة على Nearby Teacher",
+    "noCitiesYet": "لا توجد مدن مدرجة بعد — تحقق مرة أخرى قريبًا.",
+    "listingsCount": "{count} إعلانًا",
+    "teachersAndInstitutesIn": "المعلمون والمعاهد في {city}",
+    "subjectsCovered": "{count} مادة مغطاة",
+    "subjectsTaughtIn": "المواد التي تُدرّس في {city}",
+    "institutesHeading": "المعاهد",
+    "teachersHeading": "المعلمون",
+    "noInstitutesIn": "لا توجد معاهد مدرجة في {city} بعد.",
+    "noTeachersIn": "لا يوجد معلمون أفراد مدرجون في {city} بعد.",
+    "noReviewsYet": "لا توجد تقييمات بعد",
+    "seeWhatsHappening": "شاهد ما يحدث في {city}",
+    "since": "منذ {date}",
+    "fromPriceHour": "ابتداءً من {price}/ساعة",
+    "priceHour": "{price}/ساعة",
+    "downloadToMessage": "حمّل التطبيق لإرسال رسالة أو الحجز",
+    "poweredBy": "بدعم من",
+    "allTeachersInstitutesIn": "جميع المعلمين والمعاهد في {city}",
+    "cityFeedTitle": "مستجدات مدينة {city}",
+    "feedSubtitle": "ما ينشره المعلمون والمعاهد والمتعلمون في {city} الآن.",
+    "seeAllHere": "شاهد جميع المعلمين والمعاهد هنا",
+    "noPostsYet": "لا توجد منشورات في {city} بعد. كن أول من ينشر — افتح التطبيق للنشر.",
+    "replyLikePost": "رد، أعجب، أو انشر الخاص بك — افتح تطبيق Nearby Teacher.",
+    "getApp": "احصل على التطبيق"
+  },
+  "errors": {
+    "notFound": "غير موجود",
+    "somethingWrong": "حدث خطأ ما",
+    "tooManyRequests": "طلبات كثيرة جدًا. يرجى الانتظار قليلًا ثم المحاولة مرة أخرى.",
+    "invalidToken": "رمز غير صالح أو منتهي الصلاحية"
+  }
+}
