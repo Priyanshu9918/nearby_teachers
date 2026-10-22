@@ -55,14 +55,15 @@ class OnboardingController extends Controller
             $saved = DB::table('users')->where('id', $user->id)->lockForUpdate()->first();
             abort_if($saved === null, 403, 'Invalid or expired token');
             $state = app(OnboardingState::class);
-            if ($state->registrationCompleted($saved)
-                || ($state->registrationSubmitted($saved) && $state->requiresDateOfBirth($saved))) {
+            if ($state->registrationCompleted($saved)) {
                 abort(response()->json([
-                    'error' => $state->registrationCompleted($saved)
-                        ? 'Registration is already complete. Use PATCH /auth/onboarding to update your profile.'
-                        : 'Registration details are saved. Submit your date of birth to complete registration.',
+                    'error' => 'Registration is already complete. Use PATCH /auth/onboarding to update your profile.',
                     ...$state->forUser($saved),
                 ], 409));
+            }
+            if ($state->registrationSubmitted($saved) && $state->requiresDateOfBirth($saved)) {
+                // The form is already saved. Retries resume the separate DOB step.
+                return;
             }
 
             $data = $this->validatedDraft($request, true, $saved);
@@ -303,16 +304,13 @@ class OnboardingController extends Controller
         $missing = $this->missingDraftFields($user, $accountType, $draft);
         $state = app(OnboardingState::class);
         $profileCompleted = $state->registrationCompleted($user);
-        if ($state->registrationSubmitted($user) && $state->requiresDateOfBirth($user)) {
-            $missing[] = 'dateOfBirth';
-        }
 
         return [
             'mobileVerified' => $mobileVerified,
             'profileCompleted' => $profileCompleted,
             'registrationCompleted' => $profileCompleted,
             'autosaveEnabled' => $mobileVerified && $profileCompleted,
-            'canSubmit' => $mobileVerified && $missing === [] && ! $profileCompleted,
+            'canSubmit' => $mobileVerified && $missing === [] && ! $state->registrationSubmitted($user),
             'blockers' => $mobileVerified ? [] : ['mobile_not_verified'],
             'missingFields' => $missing,
             'savedAt' => $user->updated_at ?? null,

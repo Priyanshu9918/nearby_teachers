@@ -70,7 +70,7 @@ class FirebaseGoogleAuthTest extends TestCase
         $this->postJson('/auth/register', $form, $bearer)->assertOk()
             ->assertJsonPath('nextScreen', 'age_verification')->assertJsonPath('registrationCompleted', false)
             ->assertJsonPath('draft.passwordSet', false)
-            ->assertJsonPath('draft.email', 'google@example.test')->assertJsonPath('missingFields', ['dateOfBirth']);
+            ->assertJsonPath('draft.email', 'google@example.test')->assertJsonPath('missingFields', []);
         $saved = DB::table('users')->where('id', $id)->first();
         $this->assertNull($saved->password_hash);
         $this->assertNotNull($saved->email_verified_at);

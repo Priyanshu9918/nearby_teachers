@@ -58,7 +58,8 @@ class StudentRegistrationCompletionTest extends TestCase
             ->assertJsonPath('registrationSubmitted', true)->assertJsonPath('registrationCompleted', false)
             ->assertJsonPath('profileCompleted', false)->assertJsonPath('onboardingRequired', true)
             ->assertJsonPath('nextScreen', 'age_verification')->assertJsonPath('nextStepEndpoint', '/auth/date-of-birth')
-            ->assertJsonPath('autosaveEnabled', false)->assertJsonPath('missingFields', ['dateOfBirth']);
+            ->assertJsonPath('autosaveEnabled', false)->assertJsonPath('missingFields', [])
+            ->assertJsonPath('canSubmit', false)->assertJsonMissingPath('errors.dateOfBirth');
         $saved = DB::table('users')->where('id', $this->userId)->first();
         $this->assertNotNull($saved->registration_submitted_at);
         $this->assertNull($saved->profile_completed_at);
@@ -69,10 +70,23 @@ class StudentRegistrationCompletionTest extends TestCase
         $this->postJson('/auth/login', ['email' => 'dob@example.test', 'password' => 'test-password'])
             ->assertStatus(409)->assertJsonMissingPath('token')->assertJsonPath('ageVerificationRequired', true);
         $this->getJson('/auth/onboarding')->assertOk()->assertJsonPath('draft.fullName', 'DOB Student')
-            ->assertJsonPath('registrationCompleted', false)->assertJsonPath('nextScreen', 'age_verification');
-        $this->postJson($endpoint, $this->form())->assertStatus(409)->assertJsonPath('registrationCompleted', false)
-            ->assertJsonPath('nextStepEndpoint', '/auth/date-of-birth');
+            ->assertJsonPath('registrationCompleted', false)->assertJsonPath('nextScreen', 'age_verification')
+            ->assertJsonPath('missingFields', []);
+        $this->postJson($endpoint, $this->form())->assertOk()->assertJsonPath('registrationCompleted', false)
+            ->assertJsonPath('nextStepEndpoint', '/auth/date-of-birth')->assertJsonMissingPath('error');
+        $this->assertSame(1, DB::table('business_activity')->where('event', 'registration.submitted')->count());
         $this->patchJson('/auth/onboarding', ['fullName' => 'Unsaved'])->assertStatus(409);
+    }
+
+    public function test_dob_is_saved_only_by_its_separate_api_not_the_registration_form(): void
+    {
+        $this->postJson('/auth/register', [...$this->form(), 'dateOfBirth' => '2000-01-01'])
+            ->assertOk()->assertJsonPath('registrationSubmitted', true)
+            ->assertJsonPath('registrationCompleted', false)->assertJsonPath('nextScreen', 'age_verification')
+            ->assertJsonPath('missingFields', []);
+        $this->assertNull(DB::table('users')->where('id', $this->userId)->value('date_of_birth'));
+        $this->postJson('/auth/date-of-birth', ['dateOfBirth' => '2000-01-01'])
+            ->assertOk()->assertJsonPath('registrationCompleted', true);
     }
 
     public function test_adult_dob_completes_student_registration_once_and_allows_login(): void
