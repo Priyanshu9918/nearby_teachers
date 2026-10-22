@@ -179,16 +179,19 @@ tokens are not exposed in the user API.
 
 For Google phone verification:
 
-1. `POST /auth/otp/request` with `{phone}`.
-2. `PATCH /auth/link-phone` with `{phone,code}` and the Google response's Laravel bearer.
-3. `POST /auth/register` with that same Laravel bearer and the common form.
+1. `POST /auth/otp/request` with `{authMethod:"google",phone}` and the sign-in bearer.
+2. `POST /auth/otp/verify` with `{authMethod:"google",phone,code}` and the sign-in bearer.
+3. Save the fresh verification `token`; use it for `/auth/register` and later APIs.
 
-`POST /auth/otp/verify` with the Google bearer is also supported: it links the
-phone to the existing Google user and returns the same incoming bearer in
-`token`, as does `PATCH /auth/link-phone`. No new token is generated. Keep using
-the Google token for registration and later calls. Without an Authorization
-header, OTP verification performs normal signup and issues a new bearer.
-A phone owned by another account returns `409`; accounts are not silently merged.
+The new token identifies the same Google user; email/password are optional.
+Missing Google bearer returns `401` (`GOOGLE_AUTH_REQUIRED`) before sending OTP.
+A Google OTP is bound to its user and cannot be verified as normal signup or
+by another Google account. `PATCH /auth/link-phone` remains an authenticated
+alternative and returns a fresh token as well. A phone owned by another account
+returns `409` without consuming the OTP; accounts are not silently merged.
+Normal signup uses `authMethod:"phone_otp"` (or omits it), sends no Authorization
+header to OTP endpoints, then saves the verification token. It requires
+email/password at registration. Deploy migration `000031` before this code.
 See [Registration](REGISTRATION.md) for the full required form and OTP limits.
 For this account’s SMS gateway, see [Muzztech OTP setup](MUZZTECH_OTP.md).
 

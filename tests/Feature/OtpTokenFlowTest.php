@@ -8,6 +8,7 @@ use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Mockery\MockInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class OtpTokenFlowTest extends TestCase
@@ -18,15 +19,19 @@ class OtpTokenFlowTest extends TestCase
         $this->withoutMiddleware(TrackAuthActivity::class);
     }
 
-    public function test_google_bearer_verifies_phone_on_existing_identity_without_issuing_token(): void
+    #[DataProvider('googlePhoneVerificationEndpoints')]
+    public function test_google_bearer_verifies_phone_on_existing_identity_and_returns_fresh_token(string $method, string $endpoint): void
     {
-        $user = (object) ['id' => 'google-user', 'google_id' => 'firebase-uid', 'suspended_at' => null];
+        $user = (object) [
+            'id' => 'google-user', 'google_id' => 'firebase-uid', 'suspended_at' => null,
+            'phone_verified_at' => null, 'phone' => null, 'is_admin' => false,
+        ];
         $authentication = $this->bindAuthentication();
         $authentication->shouldReceive('authenticate')->once()->with('google-session')->andReturn($user);
         $authentication->shouldNotReceive('issueOtpToken');
-        $authentication->shouldNotReceive('issueSessionToken');
+        $authentication->shouldReceive('issueSessionToken')->once()->with($user->id, 0)->andReturn('verified-google-session');
         $this->app['auth']->guard();
-        DB::shouldReceive('transaction')->once()->andReturnUsing(fn ($callback) => $callback());
+        DB::shouldReceive('transaction')->twice()->andReturnUsing(fn ($callback) => $callback());
         $otp = (object) [
             'id' => 'otp-id', 'consumed_at' => null, 'expires_at' => now()->addMinutes(5),
             'attempts' => 0, 'code_hash' => Hash::make('123456'),
@@ -40,10 +45,12 @@ class OtpTokenFlowTest extends TestCase
         $otpQuery->shouldReceive('where')->with('id', 'otp-id')->once()->andReturnSelf();
         $otpQuery->shouldReceive('update')->once()->with(\Mockery::on(fn ($data) => isset($data['consumed_at'])))->andReturn(1);
         $query = \Mockery::mock(Builder::class);
-        DB::shouldReceive('table')->with('users')->times(3)->andReturn($query);
+        DB::shouldReceive('table')->with('users')->times(4)->andReturn($query);
         $query->shouldReceive('select')->with('id')->once()->andReturnSelf();
         $query->shouldReceive('where')->with('phone', '+918112912880')->once()->andReturnSelf();
-        $query->shouldReceive('where')->with('id', $user->id)->twice()->andReturnSelf();
+        $query->shouldReceive('where')->with('id', $user->id)->times(3)->andReturnSelf();
+        $query->shouldReceive('lockForUpdate')->twice()->andReturnSelf();
+        $query->shouldReceive('first')->once()->andReturn($user);
         $query->shouldReceive('first')->once()->andReturnNull();
         $query->shouldReceive('update')->once()->with(\Mockery::on(
             fn ($data) => $data['phone'] === '+918112912880' && isset($data['phone_verified_at'])
@@ -51,9 +58,14 @@ class OtpTokenFlowTest extends TestCase
         $fresh = (object) [...(array) $user, 'phone_verified_at' => now()];
         $query->shouldReceive('first')->once()->andReturn($fresh);
         $authentication->shouldReceive('publicUser')->once()->with($fresh)->andReturn($fresh);
+        DB::shouldReceive('transactionLevel')->once()->andReturn(1);
+        $activity = \Mockery::mock(Builder::class);
+        DB::shouldReceive('table')->with('business_activity')->once()->andReturn($activity);
+        $activity->shouldReceive('insert')->once()->andReturn(true);
 
-        $this->postJson('/auth/otp/verify', ['phone' => '+918112912880', 'code' => '123456'], ['Authorization' => 'Bearer google-session'])
-            ->assertOk()->assertJsonPath('user.id', 'google-user')->assertJsonPath('token', 'google-session');
+        $this->json($method, $endpoint, ['authMethod' => 'google', 'phone' => '+918112912880', 'code' => '123456'], ['Authorization' => 'Bearer google-session'])
+            ->assertOk()->assertJsonPath('user.id', 'google-user')->assertJsonPath('token', 'verified-google-session')->assertJsonPath('authMethod', 'google')
+            ->assertJsonPath('mobileVerified', true)->assertJsonPath('phoneVerificationRequired', false);
     }
 
     public function test_invalid_bearer_cannot_fall_back_to_creating_phone_account(): void
@@ -94,6 +106,35 @@ class OtpTokenFlowTest extends TestCase
 
         $this->postJson('/auth/otp/verify', [], ['Authorization' => 'Bearer phone-session'])
             ->assertStatus(409)->assertJsonPath('code', 'OTP_BEARER_NOT_GOOGLE')->assertJsonMissingPath('token');
+    }
+
+    #[DataProvider('otpEndpoints')]
+    public function test_google_otp_requires_bearer_on_request_and_verification(string $endpoint): void
+    {
+        $authentication = $this->bindAuthentication();
+        $authentication->shouldNotReceive('authenticate');
+        $this->postJson($endpoint, ['authMethod' => 'google', 'phone' => '+918112912880'])
+            ->assertUnauthorized()->assertJsonPath('code', 'GOOGLE_AUTH_REQUIRED');
+    }
+
+    #[DataProvider('otpEndpoints')]
+    public function test_otp_flow_flag_is_allowlisted(string $endpoint): void
+    {
+        $this->postJson($endpoint, ['authMethod' => 'bypass'])
+            ->assertUnprocessable()->assertJsonValidationErrors('authMethod');
+    }
+
+    public static function otpEndpoints(): array
+    {
+        return [['/auth/otp/request'], ['/auth/otp/verify']];
+    }
+
+    public static function googlePhoneVerificationEndpoints(): array
+    {
+        return [
+            'Google OTP verification' => ['POST', '/auth/otp/verify'],
+            'Google phone linking' => ['PATCH', '/auth/link-phone'],
+        ];
     }
 
     private function bindAuthentication(): MockInterface

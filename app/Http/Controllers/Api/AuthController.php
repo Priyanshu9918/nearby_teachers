@@ -37,6 +37,10 @@ class AuthController extends Controller
 
     public function requestOtp(Request $request): JsonResponse
     {
+        if ($error = $this->authorizeOtpFlow($request)) {
+            return $error;
+        }
+
         [$phone, $country] = $this->validatedPhone($request->input('phone'));
 
         if (DB::table('otp_codes')
@@ -52,6 +56,7 @@ class AuthController extends Controller
         DB::table('otp_codes')->insert([
             'id' => $id,
             'phone' => $phone,
+            'google_user_id' => $request->attributes->get('authenticated_user')?->id,
             'code_hash' => Hash::make($code),
             'expires_at' => now()->addMinutes(self::OTP_TTL_MINUTES),
             'created_at' => now(),
@@ -96,26 +101,10 @@ class AuthController extends Controller
 
     public function verifyOtp(Request $request): JsonResponse
     {
-        // An authenticated Google signup verifies the phone on its existing identity.
-        // Never replace that session with a separate phone-signup token.
-        if ($request->hasHeader('Authorization')) {
-            $token = $request->bearerToken();
-            $user = $token ? $this->authentication->authenticate($token) : null;
-            if ($user === null) {
-                return response()->json(['error' => 'Invalid or expired token'], 403);
-            }
-            if (($user->suspended_at ?? null) !== null) {
-                return response()->json(['error' => 'This account has been suspended.', 'suspended' => true], 403);
-            }
-            if (! filled($user->google_id ?? null)) {
-                return response()->json([
-                    'error' => 'For normal signup, verify OTP without an Authorization header. To link a phone, use PATCH /auth/link-phone.',
-                    'code' => 'OTP_BEARER_NOT_GOOGLE',
-                ], 409);
-            }
-
-            $request->attributes->set('authenticated_user', $user);
-
+        if ($error = $this->authorizeOtpFlow($request)) {
+            return $error;
+        }
+        if ($request->attributes->has('authenticated_user')) {
             return $this->linkPhone($request);
         }
 
@@ -129,6 +118,7 @@ class AuthController extends Controller
             if ($otp === null) {
                 return ['error' => 'No OTP was requested for this number'];
             }
+            $this->assertOtpIdentity($otp, null);
             if ($otp->consumed_at !== null) {
                 return ['error' => 'This code has already been used'];
             }
@@ -327,29 +317,42 @@ class AuthController extends Controller
     {
         [$phone] = $this->validatedPhone($request->input('phone'));
         $data = $request->validate(['code' => ['required', 'digits:6']]);
-        $error = $this->consumeOtp($phone, $data['code']);
-        if ($error !== null) {
-            throw ValidationException::withMessages(['code' => $error]);
-        }
         $user = $request->attributes->get('authenticated_user');
-        $existing = DB::table('users')->select('id')->where('phone', $phone)->first();
+        $result = DB::transaction(function () use ($user, $phone, $data): array {
+            $saved = DB::table('users')->where('id', $user->id)->lockForUpdate()->first();
+            abort_if($saved === null, 403, 'Invalid or expired token');
+            $existing = DB::table('users')->select('id')->where('phone', $phone)->lockForUpdate()->first();
+            if ($existing !== null && $existing->id !== $saved->id) {
+                abort(response()->json([
+                    'error' => 'This phone number is already linked to a different account. Log in with that account to manage it, or contact BSL for help combining accounts.',
+                ], 409));
+            }
 
-        if ($existing !== null && $existing->id !== $user->id) {
-            return response()->json([
-                'error' => 'This phone number is already linked to a different account. Log in with that account to manage it, or contact BSL for help combining accounts.',
-            ], 409);
+            $error = $this->consumeOtp($phone, $data['code'], $saved->id);
+            if ($error !== null) {
+                return ['error' => $error];
+            }
+            DB::table('users')->where('id', $saved->id)->update([
+                'phone' => $phone, 'phone_verified_at' => now(), 'updated_at' => now(),
+            ]);
+            if ($saved->phone_verified_at === null || $saved->phone !== $phone) {
+                app(BusinessActivityRecorder::class)->record('identity.phone_verified', $saved->id, $saved->id,
+                    before: ['verified' => $saved->phone_verified_at !== null],
+                    after: ['verified' => true, 'phone_changed' => $saved->phone !== $phone]);
+            }
+
+            return ['user' => DB::table('users')->where('id', $saved->id)->first()];
+        });
+        if (isset($result['error'])) {
+            throw ValidationException::withMessages(['code' => $result['error']]);
         }
-
-        DB::table('users')->where('id', $user->id)->update([
-            'phone' => $phone,
-            'phone_verified_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        $fresh = $this->authentication->publicUser(DB::table('users')->where('id', $user->id)->first());
+        $fresh = $this->authentication->publicUser($result['user']);
 
         return response()->json([
-            ...(filled($fresh->google_id ?? null) ? ['token' => $request->bearerToken()] : []),
+            ...(filled($fresh->google_id ?? null) ? [
+                'token' => $this->authentication->issueSessionToken($fresh->id, (int) ($fresh->auth_version ?? 0)),
+                'authMethod' => 'google',
+            ] : []),
             'user' => $fresh,
             ...app(OnboardingState::class)->forUser($fresh),
         ]);
@@ -541,15 +544,58 @@ class AuthController extends Controller
         }
     }
 
-    private function consumeOtp(string $phone, string $code): ?string
+    private function authorizeOtpFlow(Request $request): ?JsonResponse
     {
-        return DB::transaction(function () use ($phone, $code): ?string {
+        $request->validate(['authMethod' => ['sometimes', 'in:google,phone_otp']]);
+        $google = $request->input('authMethod') === 'google';
+        if (! $request->hasHeader('Authorization')) {
+            return $google ? response()->json([
+                'error' => 'Google signup requires the bearer token returned by /auth/google.',
+                'code' => 'GOOGLE_AUTH_REQUIRED',
+            ], 401) : null;
+        }
+        $token = $request->bearerToken();
+        $user = $token ? $this->authentication->authenticate($token) : null;
+        if ($user === null) {
+            return response()->json(['error' => 'Invalid or expired token'], 403);
+        }
+        if (($user->suspended_at ?? null) !== null) {
+            return response()->json(['error' => 'This account has been suspended.', 'suspended' => true], 403);
+        }
+        if (! filled($user->google_id ?? null) || $request->input('authMethod') === 'phone_otp') {
+            return response()->json([
+                'error' => 'Normal signup OTP requests must omit Authorization. Google signup requires a Google-linked bearer.',
+                'code' => 'OTP_BEARER_NOT_GOOGLE',
+            ], 409);
+        }
+        $request->attributes->set('authenticated_user', $user);
+
+        return null;
+    }
+
+    private function assertOtpIdentity(object $otp, ?string $userId): void
+    {
+        if (($otp->google_user_id ?? null) === null) {
+            return;
+        }
+        if ($userId !== $otp->google_user_id) {
+            abort(response()->json([
+                'error' => 'Verify this OTP with the same Google bearer used to request it.',
+                'code' => $userId === null ? 'GOOGLE_AUTH_REQUIRED' : 'OTP_GOOGLE_ACCOUNT_MISMATCH',
+            ], $userId === null ? 401 : 403));
+        }
+    }
+
+    private function consumeOtp(string $phone, string $code, ?string $userId = null): ?string
+    {
+        return DB::transaction(function () use ($phone, $code, $userId): ?string {
             $otp = DB::table('otp_codes')->where('phone', $phone)
                 ->orderByDesc('created_at')->lockForUpdate()->first();
 
             if ($otp === null) {
                 return 'No OTP was requested for this number';
             }
+            $this->assertOtpIdentity($otp, $userId);
             if ($otp->consumed_at !== null) {
                 return 'This code has already been used';
             }

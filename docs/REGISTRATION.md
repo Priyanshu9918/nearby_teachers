@@ -130,11 +130,13 @@ For an already registered phone, OTP verification returns `409` with
 `loginRequired: true`. Use email/password login instead; no new OTP bearer
 is issued. If an existing saved session shows `registrationCompleted: true`,
 continue to the application rather than registering again.
-For Google sign-in, use its token and `PATCH /auth/link-phone` to verify OTP,
-as described in [API.md](API.md). Alternatively, `/auth/otp/verify` with that
-same Google bearer links the phone and returns that exact bearer in `token`,
-as does `PATCH /auth/link-phone`. No new token is generated. Normal signup
-uses `/auth/otp/verify` without Authorization and saves its returned token.
+For Google sign-in, send `authMethod:"google"` with the sign-in bearer to both
+`POST /auth/otp/request` and `POST /auth/otp/verify`. Save the new verification
+token for registration; it still identifies the same Google account and does
+not require email/password. Google OTP verification without its bearer is
+rejected. `PATCH /auth/link-phone` also returns a new Google token.
+Normal signup sends no bearer and uses `authMethod:"phone_otp"` (or omits it).
+See [API.md](API.md) for request examples. Deploy migration `000031` first.
 
 ## 3. Register: submit the full form
 

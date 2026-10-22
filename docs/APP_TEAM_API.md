@@ -89,10 +89,10 @@ listing coordinates; other-city search requires `online` in `lessonModes`.
 
 | Method and endpoint | Access | JSON body | Success response / behavior |
 |---|---|---|---|
-| `POST /auth/otp/request` | Public | `phone` | `{"ok":true,"expiresInMinutes":10}` |
-| `POST /auth/otp/verify` | Public | `phone`, `code` | `{token,user,mobileVerified:true}`; creates a minimal identity for a new phone. |
+| `POST /auth/otp/request` | Public for normal; Google bearer for Google | `phone`, `authMethod` (`google` or `phone_otp`) | `{"ok":true,"expiresInMinutes":10}` |
+| `POST /auth/otp/verify` | Public for normal; Google bearer for Google | `phone`, `code`, `authMethod` | `{token,user,authMethod,mobileVerified:true}`; fresh token for the same Google user or a normal phone identity. |
 | `POST /auth/google` | Public | `firebaseIdToken` | Laravel token, user and common routing fields (`nextScreen`, `nextStep`, completion/phone flags); requires a verified Google email. |
-| `PATCH /auth/link-phone` | Bearer | `phone`, `code` | `{user,mobileVerified:true}`; a phone linked to another account returns `409`. |
+| `PATCH /auth/link-phone` | Bearer | `phone`, `code` | `{token,user,authMethod,mobileVerified:true}` for Google; a phone linked to another account returns `409`. |
 | `POST /auth/login` | Public | `email`, `password` | Laravel token, user and common screen-routing fields; phone login body field is prohibited. |
 | `GET /auth/session` | Bearer | — | User and common screen-routing fields; use this to resume after app restart. |
 | `GET /auth/onboarding` | Bearer | — | Onboarding payload below. |
@@ -121,21 +121,29 @@ Example OTP verification response (user fields abbreviated):
 }
 ```
 
-Use the Laravel token returned by sign-in for app requests. Google phone-linking
-uses `/auth/link-phone`; using `/auth/otp/verify` instead can resolve a separate
-phone identity. If Google returns `phoneVerificationRequired:false`, skip linking.
+### OTP tokens by signup path
 
-### One active bearer per signup
+Normal signup sends no Authorization header to either OTP endpoint. Send
+`authMethod:"phone_otp"` (or omit it for existing clients). Save the token returned
+by `/auth/otp/verify` and use it for registration; email/password are required.
 
-Normal signup: send no Authorization header to `/auth/otp/request` and
-`/auth/otp/verify`. Save the verification response's `token` as the active bearer.
-Google signup: save `/auth/google` response's `token` once. Use it for
-`PATCH /auth/link-phone` or `POST /auth/otp/verify`, registration and later calls.
-Google phone verification returns the same incoming bearer in `token`; no new
-token is generated. This also applies to `PATCH /auth/link-phone`.
-Never overwrite the active token when a response omits `token`.
-OTP verification with an invalid bearer returns `403`; a non-Google bearer
-returns `409` with `OTP_BEARER_NOT_GOOGLE`. Neither falls back to normal signup.
+Google signup sends `authMethod:"google"` and the bearer returned by `/auth/google`
+to both `/auth/otp/request` and `/auth/otp/verify`. A missing bearer returns `401`
+with `GOOGLE_AUTH_REQUIRED`; invalid and suspended sessions return `403`.
+Verification returns a fresh `token` and `authMethod:"google"` for the same user.
+Replace the saved token with this verification token for registration and later
+calls. The saved `google_id` makes email/password optional at registration.
+`PATCH /auth/link-phone` remains supported and also returns a fresh Google token.
+If sign-in already returns `phoneVerificationRequired:false`, skip OTP and use
+the sign-in token directly.
+
+Google OTP requests are bound to the authenticated user. Omitting the bearer at
+verification cannot switch to normal signup, even if `authMethod` is omitted.
+A different Google user's bearer returns `403` with `OTP_GOOGLE_ACCOUNT_MISMATCH`.
+Phone conflicts return `409` without consuming the OTP or merging accounts.
+A supplied non-Google bearer returns `409` (`OTP_BEARER_NOT_GOOGLE`). The mode
+flag does not confer Google identity; only the authenticated saved user does.
+Older clients sending a Google bearer without the flag remain supported.
 
 ### Registration form
 
@@ -143,8 +151,8 @@ returns `409` with `OTP_BEARER_NOT_GOOGLE`. Neither falls back to normal signup.
 |---|---|
 | `accountType` | Required: `student`, `learner`, `teacher`, `institute`. `student` is stored as `learner`. |
 | `fullName` | Required, max 160 characters; institute name for an institute. |
-| `email` | Required valid email, max 255; must not belong to another account. |
-| `password` | Required string, 8–72 characters. No confirmation field required on registration. |
+| `email` | Required for normal signup; optional for Google. Valid email, max 255; must not belong to another account. |
+| `password` | Required for normal signup; optional for Google. String, 8–72 characters. No confirmation field required on registration. |
 | `termsAccepted` | Required accepted value; send `true`. |
 | `acknowledgeTeachersNotBackgroundChecked` | Required accepted value; send `true` after showing the disclaimer. |
 | `city` | Required for teacher and institute; max 120. |

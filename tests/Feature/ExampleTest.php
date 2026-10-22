@@ -484,6 +484,8 @@ class ExampleTest extends TestCase
             new Key('test-secret-with-sufficient-entropy', 'HS256')
         );
         $this->assertSame('nearby-teacher-auth', $sessionClaims->iss);
+        $this->assertNotSame($sessionToken, app(AuthenticationService::class)->issueSessionToken($userId));
+        $this->assertTrue(Str::isUuid($sessionClaims->jti));
         $this->assertGreaterThan(now()->timestamp, $sessionClaims->exp);
     }
 

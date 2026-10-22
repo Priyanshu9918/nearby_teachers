@@ -1,10 +1,18 @@
 # API mock response examples
 
-Fictional examples for all 69 requests in the [app-team Postman collection](postman/app-team.postman_collection.json). These illustrate the current controller response shapes; they are not live API results or an exhaustive list of failures. Mock tokens are deliberately unusable. IDs, counts, names and lookup metadata are illustrative. Database decimals/booleans and timestamps can vary by deployment as explained in the [integration guide](APP_TEAM_API.md).
+Fictional examples for requests in the [app-team Postman collection](postman/app-team.postman_collection.json). These illustrate the current controller response shapes; they are not live API results or an exhaustive list of failures. Mock tokens are deliberately unusable. IDs, counts, names and lookup metadata are illustrative. Database decimals/booleans and timestamps can vary by deployment as explained in the [integration guide](APP_TEAM_API.md).
 
 In Postman, expand a request and select a saved **Mock** example to preview its status, headers and JSON body without sending it. Importing examples does not start a mock server.
 
 The examples below include successful results, selected empty states, validation errors and business errors. Protected routes also enforce the authentication and phone-verification requirements in the integration guide.
+
+Google OTP request and verification send `authMethod:"google"` with the sign-in
+bearer. Missing bearer returns `401` with `code:"GOOGLE_AUTH_REQUIRED"`.
+Successful Google verification returns a **fresh** `token`, `authMethod:"google"`
+and the same Google-linked user; save it for registration and later calls.
+Normal signup uses `authMethod:"phone_otp"` without a bearer. The flag alone
+does not establish a Google identity. The Postman collection has separate
+normal and Google requests for both OTP endpoints.
 
 ## 01 Authentication
 

@@ -80,6 +80,7 @@ class AuthenticationService
         return JWT::encode([
             'sub' => $userId,
             'iss' => 'nearby-teacher-auth',
+            'jti' => (string) Str::uuid(),
             'iat' => $now,
             'exp' => now()->addDays(30)->timestamp,
             'ver' => $authVersion,

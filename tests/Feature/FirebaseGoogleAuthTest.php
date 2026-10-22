@@ -58,11 +58,13 @@ class FirebaseGoogleAuthTest extends TestCase
         $this->getJson('/auth/onboarding', $bearer)->assertOk()->assertJsonPath('draft.email', 'google@example.test')->assertJsonPath('nextScreen', 'onboarding');
         $this->postJson('/auth/register', $this->form(), $bearer)->assertForbidden()->assertJsonPath('code', 'OTP_VERIFICATION_REQUIRED');
         $phone = '+918112912880';
-        $this->postJson('/auth/otp/request', ['phone' => $phone])->assertOk()->assertJsonStructure(['otp']);
+        $this->postJson('/auth/otp/request', ['authMethod' => 'google', 'phone' => $phone], $bearer)->assertOk()->assertJsonStructure(['otp']);
         $otp = $this->lastOtp;
-        $this->patchJson('/auth/link-phone', ['phone' => $phone, 'code' => $otp], $bearer)->assertOk()
+        $linked = $this->patchJson('/auth/link-phone', ['phone' => $phone, 'code' => $otp], $bearer)->assertOk()
             ->assertJsonPath('nextScreen', 'onboarding')->assertJsonPath('phoneVerificationRequired', false)
-            ->assertJsonPath('token', $login->json('token'));
+            ->assertJsonPath('authMethod', 'google');
+        $this->assertNotSame($login->json('token'), $linked->json('token'));
+        $bearer = ['Authorization' => 'Bearer '.$linked->json('token')];
         $form = $this->form();
         unset($form['email'], $form['password']);
         $this->postJson('/auth/register', $form, $bearer)->assertOk()
@@ -79,22 +81,110 @@ class FirebaseGoogleAuthTest extends TestCase
         $this->assertSame(1, DB::table('business_activity')->where('event', 'registration.completed')->count());
     }
 
-    public function test_google_otp_verify_keeps_session_and_does_not_create_phone_account(): void
+    public function test_google_otp_verify_issues_fresh_token_for_same_account_and_completes_passwordless_registration(): void
     {
         $login = $this->google()->assertOk();
         $id = $login->json('user.id');
         $bearer = ['Authorization' => 'Bearer '.$login->json('token')];
         $phone = '+918112912880';
-        $this->postJson('/auth/otp/request', ['phone' => $phone])->assertOk()->assertJsonMissingPath('token');
-        $this->postJson('/auth/otp/verify', ['phone' => $phone, 'code' => $this->lastOtp], $bearer)
+        $this->postJson('/auth/otp/request', ['authMethod' => 'google', 'phone' => $phone], $bearer)->assertOk()->assertJsonMissingPath('token');
+        $verified = $this->postJson('/auth/otp/verify', ['authMethod' => 'google', 'phone' => $phone, 'code' => $this->lastOtp], $bearer)
             ->assertOk()->assertJsonPath('user.id', $id)->assertJsonPath('mobileVerified', true)
-            ->assertJsonPath('token', $login->json('token'));
+            ->assertJsonPath('authMethod', 'google');
+        $this->assertNotSame($login->json('token'), $verified->json('token'));
+        $bearer = ['Authorization' => 'Bearer '.$verified->json('token')];
         $this->getJson('/auth/session', $bearer)->assertOk()->assertJsonPath('user.id', $id)
             ->assertJsonPath('mobileVerified', true);
         $form = $this->form();
         unset($form['email'], $form['password']);
         $this->postJson('/auth/register', $form, $bearer)->assertOk()->assertJsonPath('registrationCompleted', true);
         $this->assertSame(1, DB::table('users')->count());
+    }
+
+    public function test_google_otp_cannot_be_verified_without_bearer_or_by_another_google_account(): void
+    {
+        $login = $this->google()->assertOk();
+        $bearer = ['Authorization' => 'Bearer '.$login->json('token')];
+        $phone = '+918112912880';
+        $this->postJson('/auth/otp/request', ['authMethod' => 'google', 'phone' => $phone], $bearer)->assertOk();
+        $code = $this->lastOtp;
+        $this->assertSame($login->json('user.id'), DB::table('otp_codes')->value('google_user_id'));
+        $this->postJson('/auth/otp/verify', ['phone' => $phone, 'code' => $code])
+            ->assertUnauthorized()->assertJsonPath('code', 'GOOGLE_AUTH_REQUIRED')->assertJsonMissingPath('token');
+        $other = $this->google(['sub' => 'different-google-user', 'email' => 'other@example.test'])->assertOk();
+        $otherBearer = ['Authorization' => 'Bearer '.$other->json('token')];
+        $this->postJson('/auth/otp/verify', ['authMethod' => 'google', 'phone' => $phone, 'code' => $code], $otherBearer)
+            ->assertForbidden()->assertJsonPath('code', 'OTP_GOOGLE_ACCOUNT_MISMATCH')->assertJsonMissingPath('token');
+        $this->assertNull(DB::table('otp_codes')->value('consumed_at'));
+        $this->assertFalse(DB::table('users')->where('phone', $phone)->exists());
+        $this->postJson('/auth/otp/verify', ['authMethod' => 'google', 'phone' => $phone, 'code' => $code], $bearer)
+            ->assertOk()->assertJsonPath('user.id', $login->json('user.id'));
+    }
+
+    public function test_google_phone_verification_is_atomic_with_otp_and_allowlisted_history(): void
+    {
+        $login = $this->google()->assertOk();
+        $id = $login->json('user.id');
+        $bearer = ['Authorization' => 'Bearer '.$login->json('token')];
+        $phone = '+918112912880';
+        $this->postJson('/auth/otp/request', ['authMethod' => 'google', 'phone' => $phone], $bearer)->assertOk();
+        $failHistory = true;
+        DB::listen(function ($query) use (&$failHistory): void {
+            if ($failHistory && str_starts_with($query->sql, 'insert into `business_activity`')) {
+                throw new \RuntimeException('Simulated phone history failure');
+            }
+        });
+        $this->postJson('/auth/otp/verify', ['authMethod' => 'google', 'phone' => $phone, 'code' => $this->lastOtp], $bearer)
+            ->assertStatus(500)->assertJsonMissingPath('token');
+        $this->assertNull(DB::table('users')->where('id', $id)->value('phone_verified_at'));
+        $this->assertNull(DB::table('otp_codes')->value('consumed_at'));
+        $this->assertSame(0, DB::table('business_activity')->where('event', 'identity.phone_verified')->count());
+        $failHistory = false;
+        $this->postJson('/auth/otp/verify', ['authMethod' => 'google', 'phone' => $phone, 'code' => $this->lastOtp], $bearer)->assertOk();
+        $history = DB::table('business_activity')->where('event', 'identity.phone_verified')->first();
+        $this->assertSame(['verified' => false], json_decode($history->before_data, true));
+        $this->assertSame(['verified' => true, 'phone_changed' => true], json_decode($history->after_data, true));
+        $this->assertStringNotContainsString($phone, $history->after_data);
+        $this->get('/admin/reports/activity?q=identity.phone_verified')->assertRedirect(route('admin.login'));
+        $this->withSession(['admin_authenticated' => true])->get('/admin/reports/activity?q=identity.phone_verified')
+            ->assertOk()->assertSee('identity.phone_verified');
+        $csv = $this->get('/admin/reports/activity?q=identity.phone_verified&export=1')->assertOk()->streamedContent();
+        $this->assertStringContainsString('identity.phone_verified', $csv);
+        $this->assertStringNotContainsString('identity.google_linked', $csv);
+        $this->assertStringNotContainsString($phone, $csv);
+        $this->assertSame(1, DB::table('admin_report_access_log')->where('action', 'export')->count());
+
+    }
+
+    public function test_google_verification_preserves_failed_attempts_and_locks_after_five_guesses(): void
+    {
+        $login = $this->google()->assertOk();
+        $bearer = ['Authorization' => 'Bearer '.$login->json('token')];
+        $phone = '+918112912880';
+        $this->postJson('/auth/otp/request', ['authMethod' => 'google', 'phone' => $phone], $bearer)->assertOk();
+        $wrong = $this->lastOtp === '000000' ? '000001' : '000000';
+        for ($attempt = 1; $attempt <= 5; $attempt++) {
+            $this->postJson('/auth/otp/verify', ['authMethod' => 'google', 'phone' => $phone, 'code' => $wrong], $bearer)
+                ->assertUnprocessable()->assertJsonValidationErrors('code');
+            $this->assertSame($attempt, DB::table('otp_codes')->value('attempts'));
+        }
+        $this->postJson('/auth/otp/verify', ['authMethod' => 'google', 'phone' => $phone, 'code' => $this->lastOtp], $bearer)
+            ->assertUnprocessable()->assertJsonMissingPath('token');
+        $this->assertNull(DB::table('otp_codes')->value('consumed_at'));
+    }
+
+    public function test_google_phone_conflict_does_not_consume_otp_or_merge_accounts(): void
+    {
+        $login = $this->google()->assertOk();
+        $phone = '+918112912880';
+        $this->user(['email' => 'phone-owner@example.test', 'phone' => $phone]);
+        $bearer = ['Authorization' => 'Bearer '.$login->json('token')];
+        $this->postJson('/auth/otp/request', ['authMethod' => 'google', 'phone' => $phone], $bearer)->assertOk();
+        $this->postJson('/auth/otp/verify', ['authMethod' => 'google', 'phone' => $phone, 'code' => $this->lastOtp], $bearer)
+            ->assertStatus(409)->assertJsonMissingPath('token');
+        $this->assertNull(DB::table('otp_codes')->value('consumed_at'));
+        $this->assertNull(DB::table('users')->where('id', $login->json('user.id'))->value('phone'));
+        $this->assertSame(2, DB::table('users')->count());
     }
 
     public function test_normal_registration_does_not_depend_on_firebase_and_returns_the_same_routing_contract(): void

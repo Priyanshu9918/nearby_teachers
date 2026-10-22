@@ -139,6 +139,7 @@ class OnboardingPersistenceTest extends TestCase
 
     public function test_otp_verification_does_not_save_form_and_registration_uses_returned_token(): void
     {
+        $this->withoutHeader('Authorization');
         config([
             'services.nearby_teacher.otp_test_mode' => false,
             'services.nearby_teacher.jwt_secret' => str_repeat('test-secret-', 6),
@@ -158,12 +159,14 @@ class OnboardingPersistenceTest extends TestCase
         $this->withHeader('Authorization', 'Bearer '.$response->json('token'));
         $this->patchJson('/auth/onboarding', ['fullName' => 'Do not save'])->assertStatus(409);
         $this->postJson('/auth/register', $this->sharedFields())->assertOk()->assertJsonPath('autosaveEnabled', true);
+        $this->withoutHeader('Authorization');
         $this->postJson('/auth/otp/verify', ['phone' => $phone, 'code' => $code])
             ->assertUnprocessable()->assertJsonValidationErrors('code');
     }
 
     public function test_test_mode_returns_verifiable_otp_without_sending_messages(): void
     {
+        $this->withoutHeader('Authorization');
         config([
             'services.nearby_teacher.otp_test_mode' => true,
             'services.nearby_teacher.jwt_secret' => str_repeat('test-secret-', 6),
@@ -189,6 +192,7 @@ class OnboardingPersistenceTest extends TestCase
 
     public function test_production_never_returns_otp_even_if_test_mode_is_enabled(): void
     {
+        $this->withoutHeader('Authorization');
         $this->app->instance('env', 'production');
         config([
             'services.nearby_teacher.otp_test_mode' => true,

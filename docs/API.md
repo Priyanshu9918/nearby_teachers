@@ -48,8 +48,8 @@ the code. See [dual-channel setup](OTP_DELIVERY.md).
 | Method | Path | Access | Request | Result / notes |
 |---|---|---|---|---|
 | `POST` | `/auth/google` | Public | `firebaseIdToken` | First step for Google login: verifies a Firebase Google sign-in and verified email; returns `token`, `user`, `phoneVerificationRequired`. |
-| `POST` | `/auth/otp/request` | Public | `phone` (string) | After Google sign-in, requests an OTP for phone verification. Returns `ok`, `expiresInMinutes`. Up to 3 codes per phone per 10 minutes; codes expire after 10 minutes. |
-| `PATCH` | `/auth/link-phone` | Google bearer token | `phone`, `code` (6 digits) | Verifies and links the OTP phone to the Google account. |
+| `POST` | `/auth/otp/request` | Google bearer | `phone`, `authMethod:"google"` | After Google sign-in, requests an OTP for phone verification. Returns `ok`, `expiresInMinutes`. Up to 3 codes per phone per 10 minutes; codes expire after 10 minutes. |
+| `PATCH` | `/auth/link-phone` | Google bearer token | `phone`, `code` (6 digits) | Verifies and links the OTP phone to the Google account; returns a fresh token for the same user. |
 | `POST` | `/auth/otp/request` | Public | `phone` (string) | Registration phone verification: generates/sends an OTP; returns `ok`, `expiresInMinutes`. |
 | `POST` | `/auth/otp/verify` | Public | `phone`, `code` (6 digits) | Registration phone verification: verifies the code and returns `token`, `user`, `mobileVerified`. Up to 5 code attempts. |
 | `POST` | `/auth/login` | Public | `email`, `password` (phone prohibited) | Email-only password login. Registered accounts use this instead of mobile OTP. Returns `token`, `user`, `mobileVerified`. |
@@ -101,23 +101,29 @@ client's Firebase Google sign-in SDK.
 }
 
 // 2. POST /auth/otp/request
+// Authorization: Bearer <token returned by /auth/google>
 {
+  "authMethod": "google",
   "phone": "+919876543210"
 }
 
-// 3. PATCH /auth/link-phone
+// 3. POST /auth/otp/verify
 // Authorization: Bearer <token returned by /auth/google>
 {
+  "authMethod": "google",
   "phone": "+919876543210",
   "code": "123456"
 }
 ```
 
-If step 1 returns `phoneVerificationRequired: false`, skip steps 2 and 3.
-Otherwise, use the Google response's `token` as the bearer token for step 3.
-`POST /auth/otp/verify` also links the phone when called with the existing
-Google bearer. It returns the same incoming bearer as `token`; no new token is generated.
-Without an Authorization header it performs normal signup and issues a new token.
+If step 1 returns `phoneVerificationRequired:false`, skip steps 2 and 3.
+Otherwise, save the fresh token returned by step 3 for registration and later
+calls. It belongs to the same Google-linked user, so registration email/password
+are optional. `PATCH /auth/link-phone` is an alternative that returns a fresh
+Google token as well. `authMethod:"google"` requires a bearer at both OTP APIs.
+Google OTPs are bound to that user; verification without its bearer returns
+`401` (`GOOGLE_AUTH_REQUIRED`), even without the flag. A different Google account
+returns `403` (`OTP_GOOGLE_ACCOUNT_MISMATCH`).
 
 ### Phone OTP verification for registration
 

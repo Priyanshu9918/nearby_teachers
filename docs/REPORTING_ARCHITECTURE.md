@@ -65,6 +65,7 @@ Current event coverage starts when migration `000029` is deployed:
 
 | Event | Recorded metadata |
 |---|---|
+| `identity.phone_verified` | From 22 October 2026: verified flag before/after and phone-changed flag; no phone, OTP or token snapshot |
 | `identity.google_linked` | Previous/new link flag, local user ID; Firebase UID/email/token are not duplicated |
 | `registration.completed` | Previous/new account type and completion timestamp |
 | `booking.created` | Initial status, lesson mode, requested time and price |
@@ -91,9 +92,13 @@ metadata. Its best-effort logging must not break authentication. Business
 state history has stronger transactional consistency. Neither stream is an
 online-session tracker, tamper-proof ledger or full history of every module.
 Google-bearer OTP verification reuses phone linking; its response is logged as
-`otp_verification`. Phone linking (through either endpoint) has no dedicated
-business-history event; historical phone ownership cannot be reconstructed
-from these logs. Tokens and OTP codes are never added to history.
+`otp_verification`. Phone linking now records version-1 `identity.phone_verified`
+in the same transaction as OTP consumption and the user update. Failed history
+writes roll all three back; conflicts do not consume OTPs. Earlier phone links
+and normal signup OTP verification have no dedicated phone event, so historical
+phone ownership cannot be fully reconstructed. The OTP row binds Google
+requests via `google_user_id` (migration `000031`); it stores no bearer. Tokens,
+OTP codes, full phones and Google IDs are never added to business history.
 Admin edits/deletes, moderation, support transitions and uninstrumented paths
 need explicit events if historical questions about those actions are required.
 

@@ -12,6 +12,7 @@ final class BusinessActivityRecorder
     // Each event explicitly owns its snapshot contract. No raw request/user arrays.
     private const EVENTS = [
         'registration.completed' => ['user', ['account_type', 'profile_completed_at']],
+        'identity.phone_verified' => ['user', ['verified', 'phone_changed']],
         'identity.google_linked' => ['user', ['linked']],
         'otp.delivery_result' => ['otp_delivery', ['channel', 'provider', 'status']],
         'booking.created' => ['booking', ['status', 'mode', 'requested_time', 'price']],
