@@ -61,7 +61,8 @@ class FirebaseGoogleAuthTest extends TestCase
         $this->postJson('/auth/otp/request', ['phone' => $phone])->assertOk()->assertJsonStructure(['otp']);
         $otp = $this->lastOtp;
         $this->patchJson('/auth/link-phone', ['phone' => $phone, 'code' => $otp], $bearer)->assertOk()
-            ->assertJsonPath('nextScreen', 'onboarding')->assertJsonPath('phoneVerificationRequired', false);
+            ->assertJsonPath('nextScreen', 'onboarding')->assertJsonPath('phoneVerificationRequired', false)
+            ->assertJsonPath('token', $login->json('token'));
         $form = $this->form();
         unset($form['email'], $form['password']);
         $this->postJson('/auth/register', $form, $bearer)->assertOk()
@@ -87,7 +88,7 @@ class FirebaseGoogleAuthTest extends TestCase
         $this->postJson('/auth/otp/request', ['phone' => $phone])->assertOk()->assertJsonMissingPath('token');
         $this->postJson('/auth/otp/verify', ['phone' => $phone, 'code' => $this->lastOtp], $bearer)
             ->assertOk()->assertJsonPath('user.id', $id)->assertJsonPath('mobileVerified', true)
-            ->assertJsonMissingPath('token');
+            ->assertJsonPath('token', $login->json('token'));
         $this->getJson('/auth/session', $bearer)->assertOk()->assertJsonPath('user.id', $id)
             ->assertJsonPath('mobileVerified', true);
         $form = $this->form();

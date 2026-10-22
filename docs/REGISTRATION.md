@@ -132,7 +132,8 @@ is issued. If an existing saved session shows `registrationCompleted: true`,
 continue to the application rather than registering again.
 For Google sign-in, use its token and `PATCH /auth/link-phone` to verify OTP,
 as described in [API.md](API.md). Alternatively, `/auth/otp/verify` with that
-same Google bearer links the phone without issuing another token. Normal signup
+same Google bearer links the phone and returns that exact bearer in `token`,
+as does `PATCH /auth/link-phone`. No new token is generated. Normal signup
 uses `/auth/otp/verify` without Authorization and saves its returned token.
 
 ## 3. Register: submit the full form

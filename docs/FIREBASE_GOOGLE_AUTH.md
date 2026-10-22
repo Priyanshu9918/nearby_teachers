@@ -184,7 +184,8 @@ For Google phone verification:
 3. `POST /auth/register` with that same Laravel bearer and the common form.
 
 `POST /auth/otp/verify` with the Google bearer is also supported: it links the
-phone to the existing Google user and returns no replacement token. Keep using
+phone to the existing Google user and returns the same incoming bearer in
+`token`, as does `PATCH /auth/link-phone`. No new token is generated. Keep using
 the Google token for registration and later calls. Without an Authorization
 header, OTP verification performs normal signup and issues a new bearer.
 A phone owned by another account returns `409`; accounts are not silently merged.

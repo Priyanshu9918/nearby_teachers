@@ -348,7 +348,11 @@ class AuthController extends Controller
 
         $fresh = $this->authentication->publicUser(DB::table('users')->where('id', $user->id)->first());
 
-        return response()->json(['user' => $fresh, ...app(OnboardingState::class)->forUser($fresh)]);
+        return response()->json([
+            ...(filled($fresh->google_id ?? null) ? ['token' => $request->bearerToken()] : []),
+            'user' => $fresh,
+            ...app(OnboardingState::class)->forUser($fresh),
+        ]);
     }
 
     public function linkGoogle(Request $request): JsonResponse

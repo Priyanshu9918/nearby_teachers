@@ -131,7 +131,8 @@ Normal signup: send no Authorization header to `/auth/otp/request` and
 `/auth/otp/verify`. Save the verification response's `token` as the active bearer.
 Google signup: save `/auth/google` response's `token` once. Use it for
 `PATCH /auth/link-phone` or `POST /auth/otp/verify`, registration and later calls.
-Google phone verification returns no new token; keep the existing one.
+Google phone verification returns the same incoming bearer in `token`; no new
+token is generated. This also applies to `PATCH /auth/link-phone`.
 Never overwrite the active token when a response omits `token`.
 OTP verification with an invalid bearer returns `403`; a non-Google bearer
 returns `409` with `OTP_BEARER_NOT_GOOGLE`. Neither falls back to normal signup.

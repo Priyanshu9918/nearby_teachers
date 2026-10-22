@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Nearby Teacher — App Team API",
-    "description": "App handoff, 21 October 2026. Read docs/APP_TEAM_API.md. No /api prefix. Set baseUrl, credentials and real IDs. Choose one registration role. Run individual requests; full collection runner will perform conflicting state-changing alternatives. Authentication stores collection token. Use different learner/provider tokens for full flows. Production SMS and email codes must be entered manually. Does not include admin or legacy Express routes. Saved responses named Mock are fictional examples checked against controller response shapes, not live server captures. In Postman expand a request and select its saved example to preview the status, headers and JSON body without sending it. Mock tokens and IDs are illustrative; use real credentials/IDs for live requests. Keep one active token: normal signup OTP request/verification use No Auth and verification saves the new token; Google signup saves its login token once and uses that same bearer for phone verification, registration and later calls. Google phone verification returns no replacement token.",
+    "description": "App handoff, 21 October 2026. Read docs/APP_TEAM_API.md. No /api prefix. Set baseUrl, credentials and real IDs. Choose one registration role. Run individual requests; full collection runner will perform conflicting state-changing alternatives. Authentication stores collection token. Use different learner/provider tokens for full flows. Production SMS and email codes must be entered manually. Does not include admin or legacy Express routes. Saved responses named Mock are fictional examples checked against controller response shapes, not live server captures. In Postman expand a request and select its saved example to preview the status, headers and JSON body without sending it. Mock tokens and IDs are illustrative; use real credentials/IDs for live requests. Keep one active token: normal signup OTP request/verification use No Auth and verification saves the new token; Google signup saves its login token once and uses that same bearer for phone verification, registration and later calls. Google phone verification returns the same incoming bearer in token; no new token is generated.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -654,7 +654,7 @@
                 "verify"
               ]
             },
-            "description": "Use the token returned by POST /auth/google as the collection bearer. Verifies the phone on that same Google identity. Returns user and routing state without a new token. Keep the existing token for registration and later calls. Equivalent to PATCH /auth/link-phone.",
+            "description": "Use the token returned by POST /auth/google as the collection bearer. Verifies the phone on that same Google identity. Returns the same incoming bearer as token, plus user and routing state. No new token is generated. Use it for registration and later calls. Equivalent to PATCH /auth/link-phone.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"phone\": \"{{phone}}\",\n  \"code\": \"{{otp}}\"\n}",
@@ -665,7 +665,21 @@
               }
             }
           },
-          "response": []
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.token) pm.collectionVariables.set(\"token\", data.token);",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "POST /auth/google",
@@ -896,7 +910,7 @@
                 "link-phone"
               ]
             },
-            "description": "Bearer allowed before phone verification. For Google linking use the Google response bearer. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits.",
+            "description": "Bearer allowed before phone verification. For Google linking use the Google response bearer. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. For Google-linked users, successful verification returns the exact incoming bearer in token; no new token is generated.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"phone\": \"{{phone}}\",\n  \"code\": \"{{otp}}\"\n}",
@@ -953,7 +967,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"user\": {\n    \"id\": \"10000000-0000-4000-8000-000000000001\",\n    \"account_type\": \"learner\",\n    \"full_name\": \"Asha Sharma\",\n    \"email\": \"asha@example.com\",\n    \"phone\": \"+919876543210\",\n    \"google_id\": null,\n    \"avatar_url\": null,\n    \"is_admin\": 0,\n    \"date_of_birth\": null,\n    \"is_minor\": 0,\n    \"guardian_name\": null,\n    \"guardian_contact\": null,\n    \"parental_consent_token\": null,\n    \"parental_consent_confirmed_at\": null,\n    \"safety_disclaimer_acknowledged_at\": \"2026-10-21 10:00:00\",\n    \"avatar_status\": \"approved\",\n    \"preferred_language\": \"en\",\n    \"suspended_at\": null,\n    \"suspended_reason\": null,\n    \"suspended_by\": null,\n    \"phone_verified_at\": \"2026-10-21 10:00:00\",\n    \"referral_code\": null,\n    \"created_at\": \"2026-10-21 10:00:00\",\n    \"updated_at\": \"2026-10-21 10:00:00\",\n    \"terms_accepted_at\": \"2026-10-21 10:00:00\",\n    \"profile_completed_at\": \"2026-10-21 10:00:00\",\n    \"email_verified_at\": null,\n    \"auth_version\": 0,\n    \"auth_tokens_invalid_before\": null,\n    \"password_set\": true\n  },\n  \"mobileVerified\": true\n}"
+              "body": "{\n  \"user\": {\n    \"id\": \"10000000-0000-4000-8000-000000000001\",\n    \"account_type\": \"learner\",\n    \"full_name\": \"Asha Sharma\",\n    \"email\": \"asha@example.com\",\n    \"phone\": \"+919876543210\",\n    \"google_id\": null,\n    \"avatar_url\": null,\n    \"is_admin\": 0,\n    \"date_of_birth\": null,\n    \"is_minor\": 0,\n    \"guardian_name\": null,\n    \"guardian_contact\": null,\n    \"parental_consent_token\": null,\n    \"parental_consent_confirmed_at\": null,\n    \"safety_disclaimer_acknowledged_at\": \"2026-10-21 10:00:00\",\n    \"avatar_status\": \"approved\",\n    \"preferred_language\": \"en\",\n    \"suspended_at\": null,\n    \"suspended_reason\": null,\n    \"suspended_by\": null,\n    \"phone_verified_at\": \"2026-10-21 10:00:00\",\n    \"referral_code\": null,\n    \"created_at\": \"2026-10-21 10:00:00\",\n    \"updated_at\": \"2026-10-21 10:00:00\",\n    \"terms_accepted_at\": \"2026-10-21 10:00:00\",\n    \"profile_completed_at\": \"2026-10-21 10:00:00\",\n    \"email_verified_at\": null,\n    \"auth_version\": 0,\n    \"auth_tokens_invalid_before\": null,\n    \"password_set\": true\n  },\n  \"mobileVerified\": true,\n  \"token\": \"MOCK_LARAVEL_BEARER_TOKEN_NOT_VALID_FOR_AUTHENTICATION\"\n}"
             },
             {
               "name": "Mock — 422 Validation error",
@@ -1048,6 +1062,20 @@
               ],
               "cookie": [],
               "body": "{\n  \"error\": \"This phone number is already linked to a different account. Log in with that account to manage it, or contact BSL for help combining accounts.\"\n}"
+            }
+          ],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.token) pm.collectionVariables.set(\"token\", data.token);",
+                  "}"
+                ]
+              }
             }
           ]
         },
