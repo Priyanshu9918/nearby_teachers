@@ -351,7 +351,7 @@ class AuthController extends Controller
             $existing = DB::table('users')->select('id')->where('phone', $phone)->lockForUpdate()->first();
             if ($existing !== null && $existing->id !== $saved->id) {
                 abort(response()->json([
-                    'error' => 'This phone number is already linked to a different account. Log in with that account to manage it, or contact BSL for help combining accounts.',
+                    'error' => 'This phone number is already linked to a different account. Log in with that account to manage it.',
                 ], 409));
             }
 
