@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Nearby Teacher — App Team API",
-    "description": "App handoff, 21 October 2026. Read docs/APP_TEAM_API.md. No /api prefix. Set baseUrl, credentials and real IDs. Choose one registration role. Run individual requests; full collection runner will perform conflicting state-changing alternatives. Authentication stores collection token. Use different learner/provider tokens for full flows. Production SMS and email codes must be entered manually. Does not include admin or legacy Express routes. Saved responses named Mock are fictional examples checked against controller response shapes, not live server captures. In Postman expand a request and select its saved example to preview the status, headers and JSON body without sending it. Mock tokens and IDs are illustrative; use real credentials/IDs for live requests.",
+    "description": "App handoff, 21 October 2026. Read docs/APP_TEAM_API.md. No /api prefix. Set baseUrl, credentials and real IDs. Choose one registration role. Run individual requests; full collection runner will perform conflicting state-changing alternatives. Authentication stores collection token. Use different learner/provider tokens for full flows. Production SMS and email codes must be entered manually. Does not include admin or legacy Express routes. Saved responses named Mock are fictional examples checked against controller response shapes, not live server captures. In Postman expand a request and select its saved example to preview the status, headers and JSON body without sending it. Mock tokens and IDs are illustrative; use real credentials/IDs for live requests. Keep one active token: normal signup OTP request/verification use No Auth and verification saves the new token; Google signup saves its login token once and uses that same bearer for phone verification, registration and later calls. Google phone verification returns no replacement token.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -421,7 +421,7 @@
           ]
         },
         {
-          "name": "POST /auth/otp/verify",
+          "name": "POST /auth/otp/verify — Normal signup (No Auth; saves new token)",
           "request": {
             "method": "POST",
             "header": [
@@ -445,7 +445,7 @@
                 "verify"
               ]
             },
-            "description": "Phone registration verification; stores Laravel bearer. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits.",
+            "description": "Normal signup only: send no Authorization header. A successful verification returns a new token; save it as the active bearer for registration and later calls. For Google signup use the Google OTP verification request or PATCH /auth/link-phone with the existing Google token.",
             "auth": {
               "type": "noauth"
             },
@@ -628,6 +628,44 @@
               }
             }
           ]
+        },
+        {
+          "name": "POST /auth/otp/verify — Google signup (keep existing bearer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/otp/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "otp",
+                "verify"
+              ]
+            },
+            "description": "Use the token returned by POST /auth/google as the collection bearer. Verifies the phone on that same Google identity. Returns user and routing state without a new token. Keep the existing token for registration and later calls. Equivalent to PATCH /auth/link-phone.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{phone}}\",\n  \"code\": \"{{otp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
         },
         {
           "name": "POST /auth/google",

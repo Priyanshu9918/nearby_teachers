@@ -131,7 +131,9 @@ For an already registered phone, OTP verification returns `409` with
 is issued. If an existing saved session shows `registrationCompleted: true`,
 continue to the application rather than registering again.
 For Google sign-in, use its token and `PATCH /auth/link-phone` to verify OTP,
-as described in [API.md](API.md); do not switch to `/auth/otp/verify`.
+as described in [API.md](API.md). Alternatively, `/auth/otp/verify` with that
+same Google bearer links the phone without issuing another token. Normal signup
+uses `/auth/otp/verify` without Authorization and saves its returned token.
 
 ## 3. Register: submit the full form
 

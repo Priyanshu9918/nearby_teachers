@@ -183,9 +183,11 @@ For Google phone verification:
 2. `PATCH /auth/link-phone` with `{phone,code}` and the Google response's Laravel bearer.
 3. `POST /auth/register` with that same Laravel bearer and the common form.
 
-Do not use `/auth/otp/verify` to attach a phone to a Google identity; it resolves
-the normal signup phone identity. A phone owned by another account returns
-`409`; accounts are not silently merged. Normal signup uses `/auth/otp/verify`.
+`POST /auth/otp/verify` with the Google bearer is also supported: it links the
+phone to the existing Google user and returns no replacement token. Keep using
+the Google token for registration and later calls. Without an Authorization
+header, OTP verification performs normal signup and issues a new bearer.
+A phone owned by another account returns `409`; accounts are not silently merged.
 See [Registration](REGISTRATION.md) for the full required form and OTP limits.
 For this account’s SMS gateway, see [Muzztech OTP setup](MUZZTECH_OTP.md).
 

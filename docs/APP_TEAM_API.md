@@ -125,6 +125,17 @@ Use the Laravel token returned by sign-in for app requests. Google phone-linking
 uses `/auth/link-phone`; using `/auth/otp/verify` instead can resolve a separate
 phone identity. If Google returns `phoneVerificationRequired:false`, skip linking.
 
+### One active bearer per signup
+
+Normal signup: send no Authorization header to `/auth/otp/request` and
+`/auth/otp/verify`. Save the verification response's `token` as the active bearer.
+Google signup: save `/auth/google` response's `token` once. Use it for
+`PATCH /auth/link-phone` or `POST /auth/otp/verify`, registration and later calls.
+Google phone verification returns no new token; keep the existing one.
+Never overwrite the active token when a response omits `token`.
+OTP verification with an invalid bearer returns `403`; a non-Google bearer
+returns `409` with `OTP_BEARER_NOT_GOOGLE`. Neither falls back to normal signup.
+
 ### Registration form
 
 | Field | Validation / roles |

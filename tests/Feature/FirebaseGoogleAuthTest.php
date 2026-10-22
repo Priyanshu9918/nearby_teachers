@@ -78,6 +78,24 @@ class FirebaseGoogleAuthTest extends TestCase
         $this->assertSame(1, DB::table('business_activity')->where('event', 'registration.completed')->count());
     }
 
+    public function test_google_otp_verify_keeps_session_and_does_not_create_phone_account(): void
+    {
+        $login = $this->google()->assertOk();
+        $id = $login->json('user.id');
+        $bearer = ['Authorization' => 'Bearer '.$login->json('token')];
+        $phone = '+918112912880';
+        $this->postJson('/auth/otp/request', ['phone' => $phone])->assertOk()->assertJsonMissingPath('token');
+        $this->postJson('/auth/otp/verify', ['phone' => $phone, 'code' => $this->lastOtp], $bearer)
+            ->assertOk()->assertJsonPath('user.id', $id)->assertJsonPath('mobileVerified', true)
+            ->assertJsonMissingPath('token');
+        $this->getJson('/auth/session', $bearer)->assertOk()->assertJsonPath('user.id', $id)
+            ->assertJsonPath('mobileVerified', true);
+        $form = $this->form();
+        unset($form['email'], $form['password']);
+        $this->postJson('/auth/register', $form, $bearer)->assertOk()->assertJsonPath('registrationCompleted', true);
+        $this->assertSame(1, DB::table('users')->count());
+    }
+
     public function test_normal_registration_does_not_depend_on_firebase_and_returns_the_same_routing_contract(): void
     {
         $phone = '+918112912880';

@@ -90,6 +90,10 @@ controller-rejected login/OTP/registration responses, with IP/user-agent
 metadata. Its best-effort logging must not break authentication. Business
 state history has stronger transactional consistency. Neither stream is an
 online-session tracker, tamper-proof ledger or full history of every module.
+Google-bearer OTP verification reuses phone linking; its response is logged as
+`otp_verification`. Phone linking (through either endpoint) has no dedicated
+business-history event; historical phone ownership cannot be reconstructed
+from these logs. Tokens and OTP codes are never added to history.
 Admin edits/deletes, moderation, support transitions and uninstrumented paths
 need explicit events if historical questions about those actions are required.
 

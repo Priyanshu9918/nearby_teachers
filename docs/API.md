@@ -115,10 +115,16 @@ client's Firebase Google sign-in SDK.
 
 If step 1 returns `phoneVerificationRequired: false`, skip steps 2 and 3.
 Otherwise, use the Google response's `token` as the bearer token for step 3.
-Do not call `/auth/otp/verify` for Google account phone-linking; that endpoint
-is for registration phone verification.
+`POST /auth/otp/verify` also links the phone when called with the existing
+Google bearer. It returns no replacement token; retain the Google bearer.
+Without an Authorization header it performs normal signup and issues a new token.
 
 ### Phone OTP verification for registration
+
+Normal signup sends no Authorization header to OTP request or verification.
+Save the token returned by verification as the single active bearer.
+An invalid supplied bearer returns `403`; a non-Google bearer at OTP verification
+returns `409` (`OTP_BEARER_NOT_GOOGLE`) without issuing a token.
 
 ```json
 // 1. POST /auth/otp/request

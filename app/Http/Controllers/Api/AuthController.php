@@ -96,6 +96,29 @@ class AuthController extends Controller
 
     public function verifyOtp(Request $request): JsonResponse
     {
+        // An authenticated Google signup verifies the phone on its existing identity.
+        // Never replace that session with a separate phone-signup token.
+        if ($request->hasHeader('Authorization')) {
+            $token = $request->bearerToken();
+            $user = $token ? $this->authentication->authenticate($token) : null;
+            if ($user === null) {
+                return response()->json(['error' => 'Invalid or expired token'], 403);
+            }
+            if (($user->suspended_at ?? null) !== null) {
+                return response()->json(['error' => 'This account has been suspended.', 'suspended' => true], 403);
+            }
+            if (! filled($user->google_id ?? null)) {
+                return response()->json([
+                    'error' => 'For normal signup, verify OTP without an Authorization header. To link a phone, use PATCH /auth/link-phone.',
+                    'code' => 'OTP_BEARER_NOT_GOOGLE',
+                ], 409);
+            }
+
+            $request->attributes->set('authenticated_user', $user);
+
+            return $this->linkPhone($request);
+        }
+
         [$phone] = $this->validatedPhone($request->input('phone'));
         $data = $request->validate(['code' => ['required', 'digits:6']]);
 
