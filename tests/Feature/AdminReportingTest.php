@@ -47,7 +47,8 @@ class AdminReportingTest extends TestCase
                 'id' => $id, 'account_type' => $type, 'full_name' => ucfirst($type).' Person',
                 'email' => $type.'@example.test', 'password_hash' => Hash::make('test-password'),
                 'parental_consent_token' => 'private-consent-secret', 'phone_verified_at' => now(),
-                'profile_completed_at' => now(), 'created_at' => '2026-10-20 12:00:00',
+                'profile_completed_at' => now(), 'date_of_birth' => $type === 'learner' ? '2000-01-01' : null,
+                'created_at' => '2026-10-20 12:00:00',
             ]);
         }
         DB::table('teacher_profiles')->insert(['id' => (string) Str::uuid(), 'user_id' => $this->teacher, 'lesson_modes' => '[]']);

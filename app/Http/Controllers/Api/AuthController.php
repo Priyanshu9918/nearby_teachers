@@ -138,7 +138,7 @@ class AuthController extends Controller
             DB::table('otp_codes')->where('id', $otp->id)->update(['consumed_at' => now()]);
             $user = DB::table('users')->where('phone', $phone)->first();
             if ($user !== null) {
-                if ($user->profile_completed_at !== null || filled($user->password_hash)) {
+                if (app(OnboardingState::class)->registrationCompleted($user)) {
                     return ['error' => 'This account is already registered. Log in with your email and password.', 'loginRequired' => true];
                 }
 
@@ -268,6 +268,14 @@ class AuthController extends Controller
         }
         if ($user->suspended_at !== null) {
             return response()->json(['error' => 'This account has been suspended.', 'suspended' => true], 403);
+        }
+        if (! app(OnboardingState::class)->registrationCompleted($user)) {
+            return response()->json([
+                'error' => 'Complete your registration before logging in.',
+                'code' => 'REGISTRATION_INCOMPLETE',
+                'registrationRequired' => true,
+                ...app(OnboardingState::class)->forUser($user),
+            ], 409);
         }
 
         $user = $this->authentication->publicUser($user);
@@ -470,37 +478,58 @@ class AuthController extends Controller
                 }
             }
 
-            $token = bin2hex(random_bytes(24));
-            DB::table('users')->where('id', $user->id)->update([
-                'date_of_birth' => $birthDate->toDateString(),
-                'is_minor' => true,
-                'guardian_name' => $data['guardianName'],
-                'guardian_contact' => $data['guardianContact'],
-                'parental_consent_token' => $token,
-                'parental_consent_confirmed_at' => null,
-                'updated_at' => now(),
-            ]);
+        }
 
+        $isMinor = $age < 18;
+        $token = $isMinor ? bin2hex(random_bytes(24)) : null;
+        $fresh = DB::transaction(function () use ($user, $birthDate, $isMinor, $data, $token): object {
+            $saved = DB::table('users')->where('id', $user->id)->lockForUpdate()->first();
+            abort_if($saved === null, 403, 'Invalid or expired token');
+            $state = app(OnboardingState::class);
+            $updates = [
+                'date_of_birth' => $birthDate->toDateString(),
+                'is_minor' => $isMinor,
+                'parental_consent_token' => $token,
+                'updated_at' => now(),
+            ];
+            if ($isMinor) {
+                $updates['guardian_name'] = $data['guardianName'];
+                $updates['guardian_contact'] = $data['guardianContact'];
+                $updates['parental_consent_confirmed_at'] = null;
+            }
+            if ($saved->account_type === 'learner' && $state->registrationSubmitted($saved)
+                && ! $state->registrationCompleted($saved)) {
+                $updates['profile_completed_at'] = now();
+            }
+            DB::table('users')->where('id', $saved->id)->update($updates);
+            $fresh = DB::table('users')->where('id', $saved->id)->first();
+            app(BusinessActivityRecorder::class)->record('onboarding.age_verified', $saved->id, $saved->id,
+                before: ['age_verified' => $saved->date_of_birth !== null, 'is_minor' => (bool) $saved->is_minor],
+                after: ['age_verified' => true, 'is_minor' => $isMinor]);
+            if (! $state->registrationCompleted($saved) && $state->registrationCompleted($fresh)) {
+                app(BusinessActivityRecorder::class)->record('registration.completed', $saved->id, $saved->id,
+                    before: ['account_type' => $saved->account_type, 'profile_completed_at' => $saved->profile_completed_at],
+                    after: ['account_type' => $fresh->account_type, 'profile_completed_at' => $fresh->profile_completed_at]);
+            }
+
+            return $fresh;
+        });
+
+        if ($isMinor) {
             if (str_contains($data['guardianContact'], '@')) {
-                $this->sendGuardianConsentEmail($user->full_name, $data['guardianContact'], $token);
+                $this->sendGuardianConsentEmail($fresh->full_name, $data['guardianContact'], $token);
             } else {
                 Log::warning('Guardian consent was recorded with a phone contact; SMS consent delivery is not configured.');
             }
-
-            return response()->json([
-                'isMinor' => true,
-                'parentalConsentPending' => true,
-                'message' => 'A consent request has been sent to your parent/guardian. Messaging and booking are unavailable until they confirm.',
-            ]);
         }
 
-        DB::table('users')->where('id', $user->id)->update([
-            'date_of_birth' => $birthDate->toDateString(),
-            'is_minor' => false,
-            'updated_at' => now(),
+        return response()->json([
+            'isMinor' => $isMinor,
+            ...app(OnboardingState::class)->forUser($fresh),
+            ...($isMinor ? [
+                'message' => 'A consent request has been sent to your parent/guardian. Messaging and booking are unavailable until they confirm.',
+            ] : []),
         ]);
-
-        return response()->json(['isMinor' => false]);
     }
 
     public function confirmParentalConsent(Request $request): JsonResponse

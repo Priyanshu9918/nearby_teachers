@@ -100,6 +100,11 @@ and normal signup OTP verification have no dedicated phone event, so historical
 phone ownership cannot be fully reconstructed. The OTP row binds Google
 requests via `google_user_id` (migration `000031`); it stores no bearer. Tokens,
 OTP codes, full phones and Google IDs are never added to business history.
+Password login rejected for incomplete registration produces an unsuccessful
+`email_login` entry in `auth_activity` with status `409`. It issues no token and
+changes no business state, so no new business-history event is added. Reading
+saved onboarding details for autofill does not create a registration event;
+registration completion retains its existing transactional event.
 Successful API logout records version-1 `auth.logged_out` in the same transaction
 as auth-version/cutoff updates. Rejected and rolled-back logout attempts do not
 produce this event. No bearer, Firebase UID, password or request snapshot is

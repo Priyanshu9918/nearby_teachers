@@ -70,7 +70,12 @@ These three endpoints do not need Authorization:
 Success includes `token`, `user`, `mobileVerified`, and
 `phoneVerificationRequired`. Store the bearer for protected API/socket use.
 Phone-number login bodies return `422`. Wrong credentials return `401`;
-suspended accounts return `403`. Email addresses are normalized to lowercase.
+suspended accounts return `403`. Correct credentials with incomplete registration
+return `409` (`REGISTRATION_INCOMPLETE`) without a token. Complete registration
+first; normal signup can resume via OTP even when a password is already saved.
+After verification, `GET /auth/onboarding` returns saved `draft` fields for
+client autofill. Passwords are never returned and no new autosave is enabled.
+Email addresses are normalized to lowercase.
 
 **POST `/auth/forgot-password`**
 

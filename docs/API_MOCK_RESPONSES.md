@@ -330,6 +330,32 @@ Mock — 401 Incorrect email or password. (`Content-Type: application/json`)
 }
 ```
 
+Mock — 409 Incomplete registration at password login (`Content-Type: application/json`)
+
+Correct credentials for an incomplete account return onboarding flags and no
+`token`. Resume signup verification and use `GET /auth/onboarding` to autofill
+saved fields; no new autosave is enabled.
+
+```json
+{
+  "error": "Complete your registration before logging in.",
+  "code": "REGISTRATION_INCOMPLETE",
+  "registrationRequired": true,
+  "mobileVerified": true,
+  "phoneVerificationRequired": false,
+  "profileCompleted": false,
+  "registrationCompleted": false,
+  "onboardingRequired": true,
+  "ageVerificationRequired": true,
+  "parentalConsentPending": false,
+  "nextScreen": "onboarding",
+  "nextStep": "complete_profile",
+  "nextStepEndpoint": "/auth/register",
+  "onboardingEndpoint": "/auth/onboarding",
+  "registerEndpoint": "/auth/register"
+}
+```
+
 ### POST /auth/logout
 
 Send the active bearer; no request body is required. Successful logout revokes

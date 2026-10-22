@@ -58,7 +58,7 @@
             @endif
             <div class="page-heading">
                 <div><p class="eyebrow">Project tools</p><h1>API workbench</h1><p>Browse registered endpoints, configure a request, and inspect the live response. Mutating requests affect real application data.</p></div>
-                <div class="base-origin"><strong>Request origin · same-origin only</strong><span id="current-origin">{{ $baseUrl }}</span></div>
+                <div class="base-origin"><strong>API base URL · same-origin only</strong><span id="current-origin">{{ $baseUrl }}</span></div>
             </div>
 
             <section class="tab active" id="overview" aria-label="Developer overview">
@@ -200,7 +200,8 @@
 </div>
 <script>
 (() => {
-    document.getElementById('current-origin').textContent = window.location.origin;
+    const apiBaseUrl = new URL(@js(rtrim($baseUrl, '/').'/'));
+    document.getElementById('current-origin').textContent = apiBaseUrl.href.replace(/\/$/, '');
     const apis = @js($catalog);
     const list = document.getElementById('endpoint-list');
     const categoryFilter = document.getElementById('category-filter');
@@ -360,7 +361,7 @@
 
         let url;
         try {
-            url = new URL(resolvedPath, window.location.origin);
+            url = new URL(resolvedPath.slice(1), apiBaseUrl);
             if (url.origin !== window.location.origin) throw new Error('Requests must stay on this application origin.');
             const queryString = query.value.trim().replace(/^\?/, '');
             if (queryString) new URLSearchParams(queryString).forEach((value, key) => url.searchParams.append(key, value));

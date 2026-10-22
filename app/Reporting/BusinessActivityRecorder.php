@@ -12,7 +12,11 @@ final class BusinessActivityRecorder
     // Each event explicitly owns its snapshot contract. No raw request/user arrays.
     private const EVENTS = [
         'auth.logged_out' => ['user', ['auth_version', 'scope']],
+        // Form submission and completion are distinct; students complete after valid DOB.
+        'registration.submitted' => ['user', ['account_type', 'registration_submitted_at']],
         'registration.completed' => ['user', ['account_type', 'profile_completed_at']],
+        // Age history stores flags, never birth dates, guardian contacts or consent tokens.
+        'onboarding.age_verified' => ['user', ['age_verified', 'is_minor']],
         'identity.phone_verified' => ['user', ['verified', 'phone_changed']],
         'identity.google_linked' => ['user', ['linked']],
         'otp.delivery_result' => ['otp_delivery', ['channel', 'provider', 'status']],

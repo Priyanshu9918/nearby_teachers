@@ -27,7 +27,7 @@ class OnboardingController extends Controller
         if ($user->phone_verified_at === null) {
             return $this->mobileNotVerifiedResponse();
         }
-        if (($user->profile_completed_at ?? null) === null) {
+        if (! app(OnboardingState::class)->registrationCompleted($user)) {
             return response()->json([
                 'error' => 'Complete registration before using autosave.',
                 'registrationRequired' => true,
@@ -54,10 +54,14 @@ class OnboardingController extends Controller
         DB::transaction(function () use ($request, $user): void {
             $saved = DB::table('users')->where('id', $user->id)->lockForUpdate()->first();
             abort_if($saved === null, 403, 'Invalid or expired token');
-            if ($saved->profile_completed_at !== null) {
+            $state = app(OnboardingState::class);
+            if ($state->registrationCompleted($saved)
+                || ($state->registrationSubmitted($saved) && $state->requiresDateOfBirth($saved))) {
                 abort(response()->json([
-                    'error' => 'Registration is already complete. Use PATCH /auth/onboarding to update your profile.',
-                    'registrationCompleted' => true,
+                    'error' => $state->registrationCompleted($saved)
+                        ? 'Registration is already complete. Use PATCH /auth/onboarding to update your profile.'
+                        : 'Registration details are saved. Submit your date of birth to complete registration.',
+                    ...$state->forUser($saved),
                 ], 409));
             }
 
@@ -69,9 +73,15 @@ class OnboardingController extends Controller
             }
 
             $this->persistDraft($saved, $data, true);
-            app(BusinessActivityRecorder::class)->record('registration.completed', $saved->id, $saved->id,
-                before: ['account_type' => $saved->account_type, 'profile_completed_at' => $saved->profile_completed_at],
-                after: ['account_type' => $accountType, 'profile_completed_at' => now()->toDateTimeString()]);
+            $fresh = DB::table('users')->where('id', $saved->id)->first();
+            app(BusinessActivityRecorder::class)->record('registration.submitted', $saved->id, $saved->id,
+                before: ['account_type' => $saved->account_type, 'registration_submitted_at' => $saved->registration_submitted_at ?? null],
+                after: ['account_type' => $accountType, 'registration_submitted_at' => $fresh->registration_submitted_at]);
+            if ($state->registrationCompleted($fresh)) {
+                app(BusinessActivityRecorder::class)->record('registration.completed', $saved->id, $saved->id,
+                    before: ['account_type' => $saved->account_type, 'profile_completed_at' => $saved->profile_completed_at],
+                    after: ['account_type' => $accountType, 'profile_completed_at' => $fresh->profile_completed_at]);
+            }
         });
         $fresh = DB::table('users')->where('id', $user->id)->first();
         $payload = $this->payload($fresh);
@@ -162,7 +172,10 @@ class OnboardingController extends Controller
             if ($completing) {
                 $userUpdates['terms_accepted_at'] = $user->terms_accepted_at ?? $now;
                 $userUpdates['safety_disclaimer_acknowledged_at'] = $user->safety_disclaimer_acknowledged_at ?? $now;
-                $userUpdates['profile_completed_at'] = $user->profile_completed_at ?? $now;
+                $userUpdates['registration_submitted_at'] = $user->registration_submitted_at ?? $now;
+                if ($accountType !== 'learner' || ($user->date_of_birth ?? null) !== null) {
+                    $userUpdates['profile_completed_at'] = $user->profile_completed_at ?? $now;
+                }
             }
 
             DB::table('users')->where('id', $user->id)->update($userUpdates);
@@ -288,7 +301,11 @@ class OnboardingController extends Controller
         ];
 
         $missing = $this->missingDraftFields($user, $accountType, $draft);
-        $profileCompleted = $user->profile_completed_at !== null;
+        $state = app(OnboardingState::class);
+        $profileCompleted = $state->registrationCompleted($user);
+        if ($state->registrationSubmitted($user) && $state->requiresDateOfBirth($user)) {
+            $missing[] = 'dateOfBirth';
+        }
 
         return [
             'mobileVerified' => $mobileVerified,

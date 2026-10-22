@@ -41,7 +41,7 @@ class LogoutTest extends TestCase
         DB::table('users')->insert([
             'id' => $this->userId, 'account_type' => 'learner', 'full_name' => 'Logout User',
             'email' => 'google@example.test', 'phone' => '+919876543210', 'phone_verified_at' => now(),
-            'profile_completed_at' => now(), 'password_hash' => Hash::make('test-password'),
+            'profile_completed_at' => now(), 'date_of_birth' => '2000-01-01', 'password_hash' => Hash::make('test-password'),
         ]);
         $this->fakeFirebase();
         Queue::fake();

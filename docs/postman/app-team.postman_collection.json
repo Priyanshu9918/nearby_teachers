@@ -1349,7 +1349,7 @@
                 "login"
               ]
             },
-            "description": " See docs/APP_TEAM_API.md for access gates, validation, response fields and limits.",
+            "description": "Completed registration required. Correct credentials for an incomplete account return 409 REGISTRATION_INCOMPLETE without token. Resume signup through normal OTP or Google authentication, then GET /auth/onboarding to autofill saved draft fields. No new autosave. Passwords are not returned. See docs/APP_TEAM_API.md.",
             "auth": {
               "type": "noauth"
             },
@@ -1463,6 +1463,56 @@
               ],
               "cookie": [],
               "body": "{\n  \"error\": \"Incorrect email or password.\"\n}"
+            },
+            {
+              "name": "Mock — 409 Complete registration before login",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "description": "Completed registration required. Correct credentials for an incomplete account return 409 REGISTRATION_INCOMPLETE without token. Resume signup through normal OTP or Google authentication, then GET /auth/onboarding to autofill saved draft fields. No new autosave. Passwords are not returned. See docs/APP_TEAM_API.md.",
+                "auth": {
+                  "type": "noauth"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Conflict",
+              "code": 409,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Complete your registration before logging in.\",\n  \"code\": \"REGISTRATION_INCOMPLETE\",\n  \"registrationRequired\": true,\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": false,\n  \"registrationCompleted\": false,\n  \"onboardingRequired\": true,\n  \"ageVerificationRequired\": true,\n  \"parentalConsentPending\": false,\n  \"nextScreen\": \"onboarding\",\n  \"nextStep\": \"complete_profile\",\n  \"nextStepEndpoint\": \"/auth/register\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\"\n}"
             }
           ],
           "event": [

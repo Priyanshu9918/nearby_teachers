@@ -68,8 +68,9 @@ class FirebaseGoogleAuthTest extends TestCase
         $form = $this->form();
         unset($form['email'], $form['password']);
         $this->postJson('/auth/register', $form, $bearer)->assertOk()
-            ->assertJsonPath('nextScreen', 'age_verification')->assertJsonPath('draft.passwordSet', false)
-            ->assertJsonPath('draft.email', 'google@example.test')->assertJsonPath('missingFields', []);
+            ->assertJsonPath('nextScreen', 'age_verification')->assertJsonPath('registrationCompleted', false)
+            ->assertJsonPath('draft.passwordSet', false)
+            ->assertJsonPath('draft.email', 'google@example.test')->assertJsonPath('missingFields', ['dateOfBirth']);
         $saved = DB::table('users')->where('id', $id)->first();
         $this->assertNull($saved->password_hash);
         $this->assertNotNull($saved->email_verified_at);
@@ -97,7 +98,9 @@ class FirebaseGoogleAuthTest extends TestCase
             ->assertJsonPath('mobileVerified', true);
         $form = $this->form();
         unset($form['email'], $form['password']);
-        $this->postJson('/auth/register', $form, $bearer)->assertOk()->assertJsonPath('registrationCompleted', true);
+        $this->postJson('/auth/register', $form, $bearer)->assertOk()->assertJsonPath('registrationCompleted', false);
+        $this->postJson('/auth/date-of-birth', ['dateOfBirth' => '2000-01-01'], $bearer)
+            ->assertOk()->assertJsonPath('registrationCompleted', true);
         $this->assertSame(1, DB::table('users')->count());
     }
 
@@ -194,9 +197,13 @@ class FirebaseGoogleAuthTest extends TestCase
         $otp = $this->lastOtp;
         $verified = $this->postJson('/auth/otp/verify', ['phone' => $phone, 'code' => $otp])->assertOk()->assertJsonPath('nextScreen', 'onboarding');
         $bearer = ['Authorization' => 'Bearer '.$verified->json('token')];
-        $this->postJson('/auth/register', $this->form(), $bearer)->assertOk()->assertJsonPath('registrationCompleted', true);
+        $this->postJson('/auth/register', $this->form(), $bearer)->assertOk()->assertJsonPath('registrationCompleted', false);
+        $this->postJson('/auth/login', ['email' => 'google@example.test', 'password' => 'test-password'])
+            ->assertStatus(409)->assertJsonPath('ageVerificationRequired', true)->assertJsonMissingPath('token');
+        $this->postJson('/auth/date-of-birth', ['dateOfBirth' => '2000-01-01'], $bearer)
+            ->assertOk()->assertJsonPath('registrationCompleted', true);
         $this->postJson('/auth/login', ['email' => 'google@example.test', 'password' => 'test-password'])->assertOk()
-            ->assertJsonPath('authMethod', 'password')->assertJsonPath('nextScreen', 'age_verification');
+            ->assertJsonPath('authMethod', 'password')->assertJsonPath('nextScreen', 'home');
         Http::assertNothingSent();
     }
 

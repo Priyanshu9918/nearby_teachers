@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\CountryCurrency;
+use App\Services\OnboardingState;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,7 +24,7 @@ class ProfilesController extends Controller
     public function updateMine(Request $request): JsonResponse
     {
         $user = $request->attributes->get('authenticated_user');
-        if (($user->profile_completed_at ?? null) === null) {
+        if (! app(OnboardingState::class)->registrationCompleted($user)) {
             return response()->json([
                 'error' => 'Complete registration before updating your listing profile.',
                 'registrationRequired' => true,

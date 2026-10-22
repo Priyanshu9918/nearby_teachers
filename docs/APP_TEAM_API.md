@@ -74,7 +74,7 @@ Store tokens using the app platform's secure credential storage.
 | App launch | Restore bearer, `GET /auth/session`, then `GET /auth/onboarding`. Use `nextScreen` for routing and `nextStep` for the required action. |
 | New phone registration | OTP request → OTP verify → retain token → submit one full registration form. |
 | Google sign-in | Firebase Google sign-in → `/auth/google` → follow `nextScreen`; incomplete users open the common form with inline phone linking if required. |
-| Returning user | `/auth/login` with email/password → restore onboarding state. |
+| Returning user | `/auth/login` with email/password requires completed registration; incomplete accounts resume through signup verification. |
 | Student after registration | Follow `nextStepEndpoint: /auth/date-of-birth`; ages 13–17 require guardian consent for contact actions. |
 | Teacher/institute after registration | Follow `nextStepEndpoint: /profiles/me`; save subjects, rates, modes and coordinates for the listing. |
 | Home / discovery | Load subjects, search counts and nearby results. Use the result's `profile_type` + `user_id` to open a profile. |
@@ -93,7 +93,7 @@ listing coordinates; other-city search requires `online` in `lessonModes`.
 | `POST /auth/otp/verify` | Public for normal; Google bearer for Google | `phone`, `code`, `authMethod` | `{token,user,authMethod,mobileVerified:true}`; fresh token for the same Google user or a normal phone identity. |
 | `POST /auth/google` | Public | `firebaseIdToken` | Laravel token, user and common routing fields (`nextScreen`, `nextStep`, completion/phone flags); requires a verified Google email. |
 | `PATCH /auth/link-phone` | Bearer | `phone`, `code` | `{token,user,authMethod,mobileVerified:true}` for Google; a phone linked to another account returns `409`. |
-| `POST /auth/login` | Public | `email`, `password` | Laravel token, user and common screen-routing fields; phone login body field is prohibited. |
+| `POST /auth/login` | Public | `email`, `password` | Completed registration required; otherwise `409 REGISTRATION_INCOMPLETE`, no token. Phone login body field is prohibited. |
 | `POST /auth/logout` | Bearer, including unverified/suspended | `{}` | `{ok:true,message,loggedOutAllDevices:true}`; invalidates all existing API sessions for this user. |
 | `GET /auth/session` | Bearer | — | User and common screen-routing fields; use this to resume after app restart. |
 | `GET /auth/onboarding` | Bearer | — | Onboarding payload below. |
@@ -121,6 +121,26 @@ Example OTP verification response (user fields abbreviated):
   }
 }
 ```
+
+### Incomplete registration and saved-field autofill
+
+Password login checks credentials first. If `profile_completed_at` is null it
+returns `409`, `code:"REGISTRATION_INCOMPLETE"`, `registrationRequired:true` and
+onboarding routing flags, without a login token or user profile. Wrong
+credentials remain `401`, so incomplete-account state is not exposed before
+password verification. Completion here means registration completion; age and
+guardian routing still apply afterward.
+
+To resume normal signup, verify the phone OTP without a bearer, even when the
+incomplete user already has a saved password. The returned token identifies
+the same account. Google signup continues through Google authentication and
+its OTP flow. Call `GET /auth/onboarding` with the registration bearer and
+prefill fields from `draft` (name, email, phone, role, city, subject/contact and
+saved acceptance flags). Passwords are never returned; `draft.passwordSet`
+indicates a saved password. Unsaved client input is not recoverable from this
+endpoint. No new autosave is added; `PATCH /auth/onboarding` still returns `409`
+until registration succeeds. Submit the full registration form, then password
+login may issue a token.
 
 ### Logout
 
@@ -619,7 +639,7 @@ has the same wrapper.
 | `401` | Missing bearer or bad login credentials; return to sign-in as appropriate. |
 | `403` | Invalid/expired bearer (`Invalid or expired token`: sign in again), phone verification, suspension, consent, safety or ownership requirement. Inspect action fields; missing-token registration specifically uses `403`. |
 | `404` | Missing record, invalid route ID/type, or inaccessible conversation/booking. |
-| `409` | Already registered, account-link conflict, autosave before registration, or referral conflict. |
+| `409` | Incomplete password-login registration, already registered, account-link conflict, autosave before registration, or referral conflict. |
 | `422` | Show field validation errors; no automatic retry with unchanged input. |
 | `429` | Respect `Retry-After` when provided; feed frequency uses `nextAllowedAt`. |
 | `5xx` | Temporary backend/integration failure; show retry state. Avoid blind retry of creation/send requests after ambiguous failures. |

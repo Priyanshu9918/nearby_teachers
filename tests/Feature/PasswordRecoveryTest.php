@@ -43,7 +43,7 @@ class PasswordRecoveryTest extends TestCase
         DB::table('users')->insert([
             'id' => $this->userId, 'account_type' => 'learner', 'full_name' => 'Anita',
             'email' => $this->email, 'phone' => '+919876543210', 'phone_verified_at' => now(),
-            'profile_completed_at' => now(), 'password_hash' => Hash::make('old-password'),
+            'profile_completed_at' => now(), 'date_of_birth' => '2000-01-01', 'password_hash' => Hash::make('old-password'),
         ]);
         Queue::fake();
     }
@@ -63,6 +63,48 @@ class PasswordRecoveryTest extends TestCase
         $this->postJson('/auth/login', ['email' => 'ANITA@example.com', 'password' => 'old-password'])
             ->assertOk()->assertJsonStructure(['token'])->assertJsonMissingPath('user.password_hash');
         $this->postJson('/auth/login', ['email' => $this->email, 'password' => 'wrong-password'])->assertUnauthorized();
+    }
+
+    public function test_incomplete_profile_cannot_password_login_or_receive_a_login_token(): void
+    {
+        DB::table('users')->where('id', $this->userId)->update(['profile_completed_at' => null]);
+        $this->postJson('/auth/login', ['email' => $this->email, 'password' => 'old-password'])
+            ->assertStatus(409)->assertJsonPath('code', 'REGISTRATION_INCOMPLETE')
+            ->assertJsonPath('registrationRequired', true)->assertJsonPath('registrationCompleted', false)
+            ->assertJsonPath('nextScreen', 'onboarding')->assertJsonPath('nextStepEndpoint', '/auth/register')
+            ->assertJsonMissingPath('token')->assertJsonMissingPath('user');
+        $this->assertSame(1, DB::table('auth_activity')->where('event', 'email_login')
+            ->where('successful', false)->where('status_code', 409)->count());
+        $this->postJson('/auth/login', ['email' => $this->email, 'password' => 'wrong-password'])
+            ->assertUnauthorized()->assertJsonMissingPath('code');
+        $this->assertNull(DB::table('users')->where('id', $this->userId)->value('profile_completed_at'));
+    }
+
+    public function test_incomplete_account_with_saved_password_can_resume_via_otp_and_restore_saved_details(): void
+    {
+        DB::table('users')->where('id', $this->userId)->update(['profile_completed_at' => null]);
+        DB::table('otp_codes')->insert([
+            'id' => (string) Str::uuid(), 'phone' => '+919876543210',
+            'code_hash' => Hash::make('123456'), 'expires_at' => now()->addMinutes(10),
+        ]);
+        $verified = $this->postJson('/auth/otp/verify', [
+            'authMethod' => 'phone_otp', 'phone' => '+919876543210', 'code' => '123456',
+        ])->assertOk()->assertJsonPath('user.id', $this->userId)->assertJsonPath('nextScreen', 'onboarding');
+        $bearer = ['Authorization' => 'Bearer '.$verified->json('token')];
+        $this->getJson('/auth/onboarding', $bearer)->assertOk()
+            ->assertJsonPath('draft.fullName', 'Anita')->assertJsonPath('draft.email', $this->email)
+            ->assertJsonPath('draft.phone', '+919876543210')->assertJsonPath('draft.passwordSet', true)
+            ->assertJsonPath('autosaveEnabled', false)->assertJsonMissingPath('draft.password')
+            ->assertJsonMissingPath('user.password_hash');
+        $this->patchJson('/auth/onboarding', ['fullName' => 'Unsaved change'], $bearer)->assertStatus(409);
+        $this->assertSame('Anita', DB::table('users')->where('id', $this->userId)->value('full_name'));
+        $this->postJson('/auth/register', [
+            'accountType' => 'student', 'fullName' => 'Anita', 'email' => $this->email,
+            'password' => 'old-password', 'termsAccepted' => true,
+            'acknowledgeTeachersNotBackgroundChecked' => true,
+        ], $bearer)->assertOk()->assertJsonPath('registrationCompleted', true);
+        $this->postJson('/auth/login', ['email' => $this->email, 'password' => 'old-password'])->assertOk();
+        $this->assertSame(1, DB::table('users')->count());
     }
 
     public function test_forgot_response_does_not_disclose_email_or_return_otp(): void

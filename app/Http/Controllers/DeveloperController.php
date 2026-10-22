@@ -66,7 +66,7 @@ class DeveloperController extends Controller
         return redirect()->route('developer.login');
     }
 
-    public function portal(): View
+    public function portal(Request $request): View
     {
         $groups = $this->settingsCatalog();
         $catalog = $this->apiCatalog();
@@ -76,7 +76,7 @@ class DeveloperController extends Controller
             'categories' => array_values(array_unique(array_column($catalog, 'category'))),
             'groups' => $groups,
             'settings' => $this->currentSettings($groups),
-            'baseUrl' => config('app.url'),
+            'baseUrl' => $request->root(),
         ]);
     }
 

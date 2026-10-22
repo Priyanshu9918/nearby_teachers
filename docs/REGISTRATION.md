@@ -233,6 +233,15 @@ tabs can send partial `PUT /profiles/me` updates, for example
 `{"city":"Jaipur","lessonModes":["online"],"trialDays":1}`. Listing fields,
 subject assignments, locations and rates are documented in [API.md](API.md).
 
+If registration is incomplete, password login returns `409` with
+`code:"REGISTRATION_INCOMPLETE"` and no token, even for a correct saved password.
+Resume through phone OTP verification (normal signup) or Google authentication,
+then call `GET /auth/onboarding` with that bearer. Use `draft` to autofill the
+already saved registration details. Passwords are never returned. A saved
+password alone does not block OTP resume for an incomplete account. No new
+server autosave is enabled: unsaved form changes remain on the client, and
+`PATCH /auth/onboarding` still requires completed registration.
+
 For a later password login, use public `POST /auth/login` with
 `{"email":"anita@example.com","password":"a-secure-password"}`. Mobile-number
 password login is rejected. Registered users cannot sign in with mobile OTP;
@@ -245,7 +254,7 @@ See [EMAIL_AUTH.md](EMAIL_AUTH.md) for password recovery and email verification.
 |---|---|
 | 401 | Missing bearer token |
 | 403 | Invalid/expired bearer token, phone not verified, or suspended account |
-| 409 | Autosave requested before registration, or registration already complete |
+| 409 | Incomplete-profile password login, autosave before registration, or registration already complete |
 | 422 | Invalid/missing fields, duplicate email, incorrect/expired/consumed OTP |
 | 429 | OTP or endpoint request limit exceeded |
 | 503 | SMS delivery unavailable; check configured provider credentials |

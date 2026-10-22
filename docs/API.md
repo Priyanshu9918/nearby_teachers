@@ -52,7 +52,7 @@ the code. See [dual-channel setup](OTP_DELIVERY.md).
 | `PATCH` | `/auth/link-phone` | Google bearer token | `phone`, `code` (6 digits) | Verifies and links the OTP phone to the Google account; returns a fresh token for the same user. |
 | `POST` | `/auth/otp/request` | Public | `phone` (string) | Registration phone verification: generates/sends an OTP; returns `ok`, `expiresInMinutes`. |
 | `POST` | `/auth/otp/verify` | Public | `phone`, `code` (6 digits) | Registration phone verification: verifies the code and returns `token`, `user`, `mobileVerified`. Up to 5 code attempts. |
-| `POST` | `/auth/login` | Public | `email`, `password` (phone prohibited) | Email-only password login. Registered accounts use this instead of mobile OTP. Returns `token`, `user`, `mobileVerified`. |
+| `POST` | `/auth/login` | Public | `email`, `password` (phone prohibited) | Email-only password login. Completed registration required; incomplete accounts receive `409 REGISTRATION_INCOMPLETE` without a token. Returns `token`, `user`, `mobileVerified` on success. |
 | `POST` | `/auth/logout` | Bearer token | `{}` | Revokes all existing API sessions for this user; returns `{ok:true,message,loggedOutAllDevices:true}`. Available before mobile verification and for suspended users. |
 | `GET` | `/auth/session` | Bearer token | — | Returns the authenticated `user` and `mobileVerified`. Allowed before phone verification so Google users can complete linking. |
 | `GET` | `/auth/onboarding` | Bearer token | — | Welcome / complete-profile draft. Returns `mobileVerified`; `canSubmit` stays false until that tag is true. Allowed before phone verification so the client can show the verified-phone gate. |
@@ -68,6 +68,17 @@ the code. See [dual-channel setup](OTP_DELIVERY.md).
 | `POST` | `/auth/parental-consent/confirm` | Public, one-time token | `token` | Confirms guardian consent; returns `ok`, `confirmedFor`. |
 | `GET` | `/auth/safety-disclaimer` | Public | — | Returns the disclaimer text. |
 | `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging or booking. |
+
+### Password login and incomplete registration
+
+`POST /auth/login` verifies credentials before checking registration. A user
+with null `profile_completed_at` receives `409 REGISTRATION_INCOMPLETE` and
+onboarding routing fields, without a token. Normal signup resumes via phone
+OTP (a saved password alone does not block OTP for incomplete registration).
+Google signup keeps its Google/OTP onboarding flow. With the registration
+bearer, `GET /auth/onboarding` returns saved `draft` fields for autofill.
+Passwords are never returned. No new autosave is added; unsaved changes must
+remain on the client until the full registration request succeeds.
 
 ### Logout
 

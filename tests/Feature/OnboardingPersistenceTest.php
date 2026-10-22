@@ -73,16 +73,39 @@ class OnboardingPersistenceTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $this->userId, 'full_name' => 'New user', 'email' => null]);
 
         $this->postJson('/auth/register', $this->sharedFields())
-            ->assertOk()->assertJsonPath('registrationCompleted', true)
-            ->assertJsonPath('autosaveEnabled', true)->assertJsonPath('nextStep', 'age_verification')
+            ->assertOk()->assertJsonPath('registrationCompleted', false)
+            ->assertJsonPath('autosaveEnabled', false)->assertJsonPath('nextStep', 'age_verification')
             ->assertJsonMissingPath('user.password_hash')->assertJsonMissingPath('draft.password');
         $user = DB::table('users')->where('id', $this->userId)->first();
         $this->assertTrue(Hash::check('a-secure-password', $user->password_hash));
-        $this->assertNotNull($user->profile_completed_at);
+        $this->assertNull($user->profile_completed_at);
+        $this->assertNotNull($user->registration_submitted_at);
+        $this->postJson('/auth/date-of-birth', ['dateOfBirth' => '2000-01-01'])
+            ->assertOk()->assertJsonPath('registrationCompleted', true);
         $this->patchJson('/auth/onboarding', ['fullName' => 'Updated name'])
             ->assertOk()->assertJsonPath('draft.fullName', 'Updated name');
         $this->getJson('/auth/onboarding')->assertOk()->assertJsonPath('draft.fullName', 'Updated name');
         $this->postJson('/auth/register', $this->sharedFields())->assertStatus(409);
+    }
+
+    public function test_existing_incomplete_teacher_details_are_restored_without_new_autosave(): void
+    {
+        $domain = DB::table('subject_domains')->insertGetId(['name' => 'Saved subjects']);
+        $subject = DB::table('subjects')->insertGetId(['domain_id' => $domain, 'name' => 'Saved Mathematics']);
+        DB::table('users')->where('id', $this->userId)->update([
+            'account_type' => 'teacher', 'full_name' => 'Saved Teacher', 'email' => 'saved@example.test',
+        ]);
+        DB::table('teacher_profiles')->insert([
+            'id' => (string) Str::uuid(), 'user_id' => $this->userId, 'lesson_modes' => '[]',
+            'city' => 'Jaipur', 'primary_subject_id' => $subject,
+        ]);
+        $this->getJson('/auth/onboarding')->assertOk()
+            ->assertJsonPath('registrationCompleted', false)->assertJsonPath('autosaveEnabled', false)
+            ->assertJsonPath('draft.role', 'teacher')->assertJsonPath('draft.fullName', 'Saved Teacher')
+            ->assertJsonPath('draft.email', 'saved@example.test')->assertJsonPath('draft.city', 'Jaipur')
+            ->assertJsonPath('draft.primarySubjectId', $subject)->assertJsonPath('draft.primarySubjectName', 'Saved Mathematics');
+        $this->patchJson('/auth/onboarding', ['city' => 'Delhi'])->assertStatus(409);
+        $this->assertSame('Jaipur', DB::table('teacher_profiles')->where('user_id', $this->userId)->value('city'));
     }
 
     public function test_teacher_registration_and_post_registration_tab_details(): void
@@ -158,7 +181,8 @@ class OnboardingPersistenceTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $id, 'full_name' => 'New user', 'email' => null, 'profile_completed_at' => null]);
         $this->withHeader('Authorization', 'Bearer '.$response->json('token'));
         $this->patchJson('/auth/onboarding', ['fullName' => 'Do not save'])->assertStatus(409);
-        $this->postJson('/auth/register', $this->sharedFields())->assertOk()->assertJsonPath('autosaveEnabled', true);
+        $this->postJson('/auth/register', $this->sharedFields())->assertOk()->assertJsonPath('autosaveEnabled', false);
+        $this->postJson('/auth/date-of-birth', ['dateOfBirth' => '2000-01-01'])->assertOk()->assertJsonPath('registrationCompleted', true);
         $this->withoutHeader('Authorization');
         $this->postJson('/auth/otp/verify', ['phone' => $phone, 'code' => $code])
             ->assertUnprocessable()->assertJsonValidationErrors('code');

@@ -268,6 +268,21 @@ class ExampleTest extends TestCase
         $this->assertLessThan($phoneLinkStep, $otpStep);
     }
 
+    public function test_developer_workbench_keeps_application_subdirectory_in_api_base_url(): void
+    {
+        $this->withSession(['developer_authenticated' => true])
+            ->withServerVariables([
+                'SCRIPT_NAME' => '/nearby_teachers/public/index.php',
+                'PHP_SELF' => '/nearby_teachers/public/index.php',
+                'SCRIPT_FILENAME' => public_path('index.php'),
+            ])
+            ->get('http://157.245.125.79/nearby_teachers/public/developer')
+            ->assertOk()
+            ->assertViewHas('baseUrl', 'http://157.245.125.79/nearby_teachers/public')
+            ->assertSee('API base URL · same-origin only')
+            ->assertSee('http://157.245.125.79/nearby_teachers/public');
+    }
+
     public function test_developer_configuration_update_is_allowlisted_and_preserves_blank_secrets(): void
     {
         $directory = sys_get_temp_dir().'/nearby-teacher-developer-config-'.Str::uuid();
