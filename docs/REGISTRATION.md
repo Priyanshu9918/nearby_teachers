@@ -1,5 +1,10 @@
 # Registration API: run and integration guide
 
+This detailed signup guide supplements the five-part
+[API reference](API.md) and [app integration guide](APP_TEAM_API.md): Auth,
+Learner, Teacher, Institute and Common. The deployed base URL is
+`http://157.245.125.79/nearby_teachers/public`, with no `/api` prefix.
+
 The Student, Teacher and Institute selectors belong to one registration page.
 Keep all form values in frontend state until Register is pressed. Send and
 verify OTP on that same page. Registration saves the full form once; autosave
@@ -197,10 +202,20 @@ Institute uses the same endpoint with this full body:
 }
 ```
 
-Successful registration returns HTTP 200 with `registrationCompleted: true`,
-`profileCompleted: true`, `autosaveEnabled: true`, `draft`, `user` and `nextStep`.
-Students receive `nextStep: "age_verification"`; teachers and institutes receive
-`nextStep: "home"`. Passwords/hashes are never returned; `draft.passwordSet`
+Successful form submission returns HTTP 200 with `registrationSubmitted:true`,
+`draft`, `user` and routing flags. DOB is not validated as a registration-form
+field: the student has a separate DOB page and API.
+
+Students without DOB receive `registrationCompleted:false`,
+`profileCompleted:false`, `autosaveEnabled:false`, `missingFields:[]` and
+`nextScreen:"age_verification"`. Retrying the already saved form while DOB is
+pending returns `200` and resumes DOB without resaving fields. After a valid
+DOB submission the student becomes registration complete. Teachers/institutes
+complete immediately on form submission and receive `nextStep:"home"`,
+`registrationCompleted:true`, `profileCompleted:true`, `autosaveEnabled:true`;
+they do not require DOB. Repeating completed registration returns `409`.
+
+Passwords/hashes are never returned; `draft.passwordSet`
 indicates a saved password. `POST /auth/onboarding/complete` remains an alias
 with the same full-form requirement. `{}` cannot register a new user.
 
@@ -214,11 +229,18 @@ curl -X POST "$REG_API_BASE/auth/date-of-birth" \
 ```
 
 For ages 13–17 also send `guardianName` and `guardianContact`; under 13 is
-rejected. The parental-consent flow is documented in [API.md](API.md).
+rejected. Use guardian email for deliverable consent: guardian phone is
+accepted, but SMS consent delivery is not implemented. DOB completes a submitted
+student registration and fills `profile_completed_at`; it does not fill
+`registration_submitted_at` or submit an unsubmitted form. Minor registration
+can be complete while guardian consent remains pending. Route by `nextScreen`.
+The parental-consent flow is documented under [Learner](API.md#learner).
 
 ## 5. Autosave after registration
 
-Send only changed fields. Debounce about 500ms, serialize requests, and wait
+Autosave requires completed registration, including student DOB. Form submission
+alone does not enable it while DOB is pending. No new autosave or draft-save API
+has been introduced. Send only changed fields. Debounce about 500ms, serialize requests, and wait
 for pending saves before navigation. Registration does not need autosave.
 
 ```bash
@@ -275,8 +297,9 @@ If Register is pressed before OTP verification, the response is HTTP 403:
 ```
 
 The response also includes `error` with the same text. Show `message` below
-the mobile input and enable Send OTP. Both OTP endpoints are public; neither
-needs a bearer token. After Verify OTP succeeds on this same page, retain
+the mobile input and enable Send OTP. For normal signup, both OTP endpoints
+use `authMethod:"phone_otp"` (or omit it) without a bearer. For Google signup,
+both endpoints require `authMethod:"google"` and its Google bearer. After Verify OTP succeeds on this same page, retain
 its response `token` and include it automatically on Register. An invalid
 token returns HTTP 403 with the same `OTP_VERIFICATION_REQUIRED` code. For
 an authenticated account whose phone is unverified (such as Google sign-in),

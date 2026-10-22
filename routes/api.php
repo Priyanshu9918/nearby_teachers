@@ -80,6 +80,8 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
     Route::post('/messages/{conversationId}', [MessagesController::class, 'send'])->whereUuid('conversationId')->middleware('throttle:chat-send');
     Route::post('/reviews', [CommunityController::class, 'createReview']);
 
+    // Feed / Posts: shared by learner, teacher and institute accounts.
+    // The developer catalog and Postman list these under each role's category.
     Route::get('/feed', [CommunityController::class, 'feed']);
     Route::post('/feed', [CommunityController::class, 'createPost']);
     Route::post('/feed/{postId}/like', [CommunityController::class, 'like'])->whereUuid('postId');

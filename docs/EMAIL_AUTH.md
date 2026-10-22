@@ -5,6 +5,12 @@ during registration; an already registered account receives `409` with
 `loginRequired: true` when attempting to sign in through mobile OTP.
 Google sign-in remains available.
 
+Student form submission alone is not completed registration: the separate DOB
+API must succeed after the form is saved. Teacher/institute registration does
+not require DOB. `profileCompleted` and `registrationCompleted` are equivalent;
+guardian consent is a separate gate, so a completed minor can log in and be
+routed to `guardian_consent`.
+
 ## Logout
 
 `POST /auth/logout` accepts the active bearer and no required body fields. It
@@ -16,6 +22,8 @@ issue a new valid token immediately. Existing chat sessions are revoked after
 commit through `RevokeChatSessions` on the `broadcasts` queue. Logout also works
 before mobile verification and for suspended users. Existing auth-version and
 Firebase-cutoff columns are reused; no new migration is needed.
+This is local API revocation; it does not globally revoke Firebase-provider
+refresh tokens on every device.
 
 ## SMTP and workers
 

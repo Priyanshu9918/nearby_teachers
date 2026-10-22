@@ -1,302 +1,503 @@
-# Nearby Teacher — App team API handoff
+# Nearby Teacher — App integration guide
 
-Updated: 21 October 2026. Contract checked against the current Laravel routes,
-controllers, middleware and serializers. Examples use fictional data; response
-examples show relevant fields and are not live server captures.
+Updated: 22 October 2026. Read this with the [full endpoint reference](API.md),
+[saved response examples](API_MOCK_RESPONSES.md) and existing
+[app-team Postman collection](postman/app-team.postman_collection.json).
+Examples are fictional and response fragments omit unrelated fields; they are
+not live captures. Tokens are placeholders.
 
-Share this guide together with the [Postman collection](postman/app-team.postman_collection.json).
-Every request includes saved mock success responses, with selected error and empty-state
-examples. Expand a request in Postman and select a **Mock** example to preview the
-status and JSON without sending a request. For a shareable written version, see
-[API mock response examples](API_MOCK_RESPONSES.md). These are fictional examples,
-not live captures; importing them does not start a mock server.
-The [full API reference](API.md) also covers admin endpoints and website routes.
+The guide, developer explorer and collection use five parts:
+[Auth](#auth), [Learner](#learner), [Teacher](#teacher),
+[Institute](#institute), [Common](#common). Categories organize workflows;
+they do not grant permissions or introduce role guards. Shared chat, feed,
+comments/replies, booking status and safety APIs appear in every app role and
+Common. Teacher/institute categories also include provider contact lookup for
+frontend WhatsApp and call actions.
 
-## Contents
-
-1. [Connection and data conventions](#connection-and-data-conventions)
-2. [App integration flow](#app-integration-flow)
-3. [Authentication and registration](#authentication-and-registration)
-4. [Account and safety settings](#account-and-safety-settings)
-5. [Subjects and languages](#subjects-and-languages)
-6. [Search and provider profiles](#search-and-provider-profiles)
-7. [Bookings](#bookings)
-8. [Messages and live chat](#messages-and-live-chat)
-9. [Feed and reviews](#feed-and-reviews)
-10. [Support, safety, referrals and analytics](#support-safety-referrals-and-analytics)
-11. [Pagination, errors and limits](#pagination-errors-and-limits)
-12. [Postman and handoff checklist](#postman-and-handoff-checklist)
-
-## Connection and data conventions
-
-| Setting | Value |
+| Connection setting | Value |
 |---|---|
-| Deployed REST base URL | Deployment team supplies the HTTPS application origin. No production host is assumed here. |
-| Local REST base URL | `http://127.0.0.1:8000` |
+| Deployed base URL | `http://157.245.125.79/nearby_teachers/public` |
+| Local | `http://127.0.0.1:8000` |
 | Android emulator | `http://10.0.2.2:8000` |
-| Physical device | `http://<computer-LAN-IP>:8000`, with device and server on the same network |
-| Route prefix | None. Use `/auth/login`, not `/api/auth/login`. |
-| Live chat URL | Deployment team supplies the public Socket.IO URL; local default `http://<server>:6001`. |
-| Headers | `Accept: application/json`, and `Content-Type: application/json` for JSON bodies |
-| Protected requests | `Authorization: Bearer <Laravel-issued token>` |
+| Route prefix | None; use `/auth/login`, never `/api/auth/login` |
+| JSON headers | `Accept: application/json`, `Content-Type: application/json` |
+| Protected calls | `Authorization: Bearer <Laravel-issued token>` |
+| Live chat | Separate deployment Socket.IO URL; local default port 6001 |
 
-Access labels below: **Public** requires no token; **Bearer** requires a valid,
-unsuspended identity; **Verified** additionally requires a verified phone for
-non-admin users. Phone-unverified users can access only `GET /auth/session`,
-`GET /auth/onboarding`, and `PATCH /auth/link-phone` among protected routes.
+Provider IDs mean user UUIDs from `user_id`, not the listing row UUID. Subject
+IDs are numeric. Request fields usually use camelCase; raw records usually
+snake_case. Decimals/booleans can arrive as strings or `0/1`, and raw listing
+`lesson_modes` can be JSON text. Normalize these on the client. Raw timestamps
+may have no offset; confirm the configured timezone. No global response wrapper
+exists; most successful actions return `200`, including creation.
 
-Request properties generally use camelCase; returned database records generally
-use snake_case. Keep the documented spelling; there is no global response
-wrapper. Successful app API controller responses use HTTP **200**, including
-creation requests. IDs are UUID strings except numeric subject IDs. A provider
-ID means the **user UUID** (`user_id` in search), not the listing's `profile.id`.
+**Public** omits bearer. **Bearer** means a valid, unsuspended user.
+**Verified** also requires phone verification for non-admins. Before verification,
+protected session, GET onboarding, link-phone and logout remain available.
+Logout also works while suspended. **Admin bearer** additionally requires
+`users.is_admin`; developer/admin browser sessions are separate.
 
-Send international phone numbers as strings with `+` and country code. Send
-six-digit codes as strings. Send JSON booleans as `true`/`false`; search
-`freeOnly` is the query string `true` or `false`. Prices and decimal fields may
-arrive as JSON strings or numbers. Database boolean fields may arrive as `0`/`1`,
-while explicitly mapped fields use booleans. `lesson_modes` in a raw profile
-record can be JSON-encoded text; normalize it at the client boundary. Optional
-values may be null or absent. Parse timestamps per field; raw database records
-can use `YYYY-MM-DD HH:mm:ss` without an offset. Confirm the deployment timezone
-before displaying these as local times. Use an unambiguous date/time with timezone
-for `requestedTime`; the database stores a date/time without a timezone field.
+## Auth
 
-Tokens issued by Laravel last 30 days. There is no dedicated refresh or logout
-API in the current routes. On logout, clear the stored bearer and disconnect
-Socket.IO; on `401`, sign in again. Password reset revokes earlier tokens.
-Store tokens using the app platform's secure credential storage.
+| Method | Path | Access | Request / query | Result / notes |
+|---|---|---|---|---|
+| `POST` | `/auth/google` | Public | `firebaseIdToken` | First step for Google login: verifies a Firebase Google sign-in and verified email; returns `token`, `user`, `phoneVerificationRequired`. |
+| `POST` | `/auth/otp/request` | Google bearer | `phone`, `authMethod:"google"` | After Google sign-in, requests an OTP for phone verification. Returns `ok`, `expiresInMinutes`. Up to 3 codes per phone per 10 minutes; codes expire after 10 minutes. |
+| `POST` | `/auth/otp/request` | Public | `authMethod:"phone_otp"` (or omitted), `phone` | Registration phone verification: generates/sends an OTP; returns `ok`, `expiresInMinutes`. |
+| `POST` | `/auth/otp/verify` | Public | `authMethod:"phone_otp"` (or omitted), `phone`, `code` (6 digits) | Registration phone verification: verifies the code and returns `token`, `user`, `authMethod:"phone_otp"`, routing fields. Up to 5 code attempts. |
+| `POST` | `/auth/login` | Public | `email`, `password` (phone prohibited) | Email-only password login. Completed registration required; incomplete accounts receive `409 REGISTRATION_INCOMPLETE` without a token. Returns `token`, `user`, `mobileVerified` on success. |
+| `POST` | `/auth/logout` | Bearer token | `{}` | Revokes all existing API sessions for this user; returns `{ok:true,message,loggedOutAllDevices:true}`. Available before mobile verification and for suspended users. |
+| `GET` | `/auth/session` | Bearer token | — | Returns the authenticated `user` and `mobileVerified`. Allowed before phone verification so Google users can complete linking. |
+| `GET` | `/auth/onboarding` | Bearer token | — | Saved DB fields under `draft`, completion flags and routing; no new autosave. Available before phone verification. |
+| `PATCH` | `/auth/onboarding` | Registered, verified bearer | Partial profile fields below | Autosave only after registration. Returns `409` before registration. |
+| `POST` | `/auth/register` | Verified bearer | Full registration form below | Saves the full form; student DOB is a separate step. Pending-DOB retries return `200`; completed registration returns `409`. |
+| `POST` | `/auth/onboarding/complete` | Verified bearer | Full registration form below | Alias of `/auth/register`; same validation and behavior. |
+| `POST` | `/auth/account-type` | Verified bearer | `accountType`: `learner`, `teacher`, or `institute` | Sets account type; creates an empty provider profile for teachers/institutes. |
+| `PATCH` | `/auth/link-phone` | Bearer token | `phone`, `code` (6 digits) | Verifies and links the phone for an account; this route is available before phone verification. |
+| `PATCH` | `/auth/link-google` | Verified bearer | `firebaseIdToken` | Links a verified Google identity to the signed-in account. |
+| `POST` | `/auth/forgot-password` | Public | `email` | Generic `{ok:true,message,expiresInMinutes:10}`, including unknown addresses. |
+| `POST` | `/auth/reset-password` | Public | `email`, `code`, `password`, `password_confirmation` | `{ok:true,message}`; revokes earlier API sessions; log in again. |
+| `POST` | `/auth/email/verification/request` | Verified bearer | `{}` | `{ok:true,message,expiresInMinutes:10}`; uses saved email. |
+| `POST` | `/auth/email/verification/verify` | Verified bearer | `code` | `{ok:true,emailVerified:true}`. |
+| `POST` | `/auth/otp/verify` | Google bearer | `authMethod:"google"`, `phone`, `code` | Fresh token for the same Google user, `authMethod:"google"` and routing fields. |
 
-## App integration flow
+### Normal signup
 
-| Screen / action | Requests and next step |
+1. Open the registration form and retain unsaved input on the device.
+2. OTP request: `{authMethod:"phone_otp",phone:"+919876543210"}`, **no bearer**.
+3. OTP verify: same mode/phone plus `code`, **no bearer**. Save response `token`.
+4. Submit `/auth/register` with that bearer and full role-specific form.
+5. Student continues to Learner DOB; teacher/institute continue home/listing setup.
+
+A completed normal account cannot use registration OTP to log in; verification
+returns `409 loginRequired:true`. Use password or linked Google login. An
+incomplete account can resume through OTP even if a password was already saved.
+
+### Google signup
+
+1. Firebase Google SDK returns the Firebase user's ID token.
+2. Exchange it at `/auth/google` as `{firebaseIdToken:"<Firebase ID token>"}`.
+   Save the returned Laravel token; `user.google_id` is linked.
+3. If phone is pending, send `authMethod:"google"` + phone with the Google bearer
+   to `/auth/otp/request`, then same mode/phone/code/bearer to `/auth/otp/verify`.
+4. Save the **fresh verification response token**. It identifies the same user.
+5. Submit `/auth/register` using the active token. Email/password are optional.
+6. Continue by returned `nextScreen`; subsequent APIs use the active saved token.
+
+`PATCH /auth/link-phone` is an alternative verification route. Google OTP must
+include its bearer at request and verification. Missing bearer is `401
+GOOGLE_AUTH_REQUIRED`; a Google OTP remains bound to its user even if the mode
+flag is omitted at verification. Another Google user's bearer is rejected.
+A non-Google bearer, or explicit `phone_otp` with bearer, is `409
+OTP_BEARER_NOT_GOOGLE`. Phone conflict with another account is `409`; no automatic
+merge occurs. If sign-in already says `phoneVerificationRequired:false`, skip
+OTP. Use the Laravel bearer on backend APIs, not the Firebase ID token.
+
+### Role-specific registration form
+
+Shared required fields are `accountType`, `fullName`, `termsAccepted:true` and
+`acknowledgeTeachersNotBackgroundChecked:true`. Normal signup requires email and
+password (8–72 characters); Google may omit them to preserve Google email and
+continue without a password. Supplied fields still validate.
+
+| Role | `accountType` | Additional required fields |
+|---|---|---|
+| Student | `student` or `learner` | — |
+| Teacher | `teacher` | `city`, `primarySubjectId` from Common subjects |
+| Institute | `institute` | `city`, `contactPerson`; fullName is institute name |
+
+Do not put phone, mobileVerified or DOB in the registration form. The bearer
+supplies verified phone; DOB belongs to a separate student page/API.
+
+Student form success, abbreviated:
+
+```json
+{
+  "mobileVerified":true,
+  "registrationSubmitted":true,
+  "registrationCompleted":false,
+  "profileCompleted":false,
+  "ageVerificationRequired":true,
+  "autosaveEnabled":false,
+  "canSubmit":false,
+  "missingFields":[],
+  "nextScreen":"age_verification",
+  "nextStep":"age_verification",
+  "nextStepEndpoint":"/auth/date-of-birth"
+}
+```
+
+This is `200`: the form saved successfully. A pending-DOB registration retry is
+also `200` and resumes DOB without resaving the form. Completed registration
+retry is `409`. Teacher/institute form success immediately sets both completion
+flags true and routes home. Their DOB is not required.
+
+### Saved-data autofill, completion and returning login
+
+Call `GET /auth/onboarding` using an OTP/Google signup bearer. Prefill `draft`
+from saved DB details only: accountType/role, fullName/email/phone, city,
+primarySubjectId/name, contactPerson, passwordSet and saved acceptance flags.
+Passwords are never returned. No new autosave is added; unsaved input remains
+on the device. PATCH onboarding requires completed registration, so it is `409`
+while a student is waiting for DOB. After completion, partial field updates
+remain available. Provider listing edits use provider PUT instead.
+
+| Flags / action | Meaning |
 |---|---|
-| App launch | Restore bearer, `GET /auth/session`, then `GET /auth/onboarding`. Use `nextScreen` for routing and `nextStep` for the required action. |
-| New phone registration | OTP request → OTP verify → retain token → submit one full registration form. |
-| Google sign-in | Firebase Google sign-in → `/auth/google` → follow `nextScreen`; incomplete users open the common form with inline phone linking if required. |
-| Returning user | `/auth/login` with email/password requires completed registration; incomplete accounts resume through signup verification. |
-| Student after registration | Follow `nextStepEndpoint: /auth/date-of-birth`; ages 13–17 require guardian consent for contact actions. |
-| Teacher/institute after registration | Follow `nextStepEndpoint: /profiles/me`; save subjects, rates, modes and coordinates for the listing. |
-| Home / discovery | Load subjects, search counts and nearby results. Use the result's `profile_type` + `user_id` to open a profile. |
-| Contact provider | Review/acknowledge the safety disclaimer; start conversation or create booking. Handle guardian-consent errors. |
-| Chat | Load REST history, connect Socket.IO, merge by message ID, recover REST history on reconnect. |
+| `registrationSubmitted` | Registration form saved; timestamp is not the DOB timestamp |
+| `registrationCompleted` | Complete registration; student also has saved DOB |
+| `profileCompleted` | Alias of registrationCompleted; not listing completeness |
+| `nextScreen` | App routing decision: onboarding, age_verification, guardian_consent, home |
+| `nextStep` / `nextStepEndpoint` | Immediate action and its endpoint |
 
-Registration creates the role-specific account fields. It does not automatically
-populate listing coordinates, rate or lesson modes. Nearby search requires
-listing coordinates; other-city search requires `online` in `lessonModes`.
+At app launch use saved bearer + `GET /auth/session`. A complete returning
+Google user receives a token and home routing if no other gate remains.
+Incomplete Google sign-in still returns a usable onboarding token; route to
+the pending step. Correct password with incomplete registration returns:
 
-## Authentication and registration
+```json
+{
+  "error":"Complete your registration before logging in.",
+  "code":"REGISTRATION_INCOMPLETE",
+  "registrationRequired":true,
+  "registrationSubmitted":true,
+  "registrationCompleted":false,
+  "profileCompleted":false,
+  "nextScreen":"age_verification",
+  "nextStep":"age_verification",
+  "nextStepEndpoint":"/auth/date-of-birth"
+}
+```
 
-| Method and endpoint | Access | JSON body | Success response / behavior |
+That is `409` and has **no token**; resume via signup verification. Incorrect
+password is `401`. Successful password login provides a new token plus the same
+routing flags. Minor guardian consent remains a separate contact gate even when
+registration is complete; follow nextScreen rather than a token alone.
+
+### Logout, recovery and token storage
+
+`POST /auth/logout` invalidates all existing API sessions for this user. Clear
+saved bearer and disconnect chat. Google clients also sign out of Firebase
+locally and reauthenticate next time. Backend cutoff blocks old Firebase sessions
+from API access; global Firebase-provider refresh-token revocation is not
+implemented. Account/profile/phone/Google identity are not deleted by logout.
+Tokens last 30 days; no refresh endpoint exists. Store them in platform secure
+storage. Password reset also revokes old sessions and requires login again.
+See [email recovery](EMAIL_AUTH.md) for code requirements.
+
+## Learner
+
+| Method | Path | Access | Request / query | Result / notes |
+|---|---|---|---|---|
+| `POST` | `/auth/date-of-birth` | Verified bearer | `dateOfBirth` (`YYYY-MM-DD`); for ages 13–17 also `guardianName`, `guardianContact` | Rejects users under 13. Minors need guardian consent before messaging/booking. Guardian email delivery must be configured; phone-contact SMS consent delivery is not implemented. |
+| `POST` | `/auth/parental-consent/confirm` | Public, one-time token | `token` | Confirms guardian consent; returns `ok`, `confirmedFor`. |
+| `GET` | `/search` | Public | Required `lat`, `lng`; optional `radiusKm` (default 7, max 500), `subjectId`, `q`, `freeOnly` (`true`/`false`) | Up to 50 nearby teacher/institute results with `distance_km`; uses MySQL `ST_Distance_Sphere`. |
+| `GET` | `/search/counts` | Public | Required `lat`, `lng`; optional `radiusKm` (default 7) | Teacher and institute counts in the radius. |
+| `GET` | `/search/other-city` | Public | Required `city`; optional `subjectId`, `q` | Up to 50 online providers matching city/country text. |
+| `GET` | `/search/by-subject/{subjectId}` | Public | Required `tier`: `nearby`, `city`, `state`, `country`, or `other-countries`; tier-specific location parameters | Subject results with tier/count. Nearby requires `lat` and `lng`; `city` tier requires `city`; `state` tier requires `state`; `country` tier requires `country`. `other-countries` returns matching countries unless a `country` is supplied. |
+| `GET` | `/profiles/{type}/{id}` | Public, optional bearer | `type`: `teacher` or `institute`; optional auth affects phone quota | Public listing profile. Suspended or not-yet-phone-verified optional tokens are treated as anonymous. |
+| `POST` | `/bookings` | Verified bearer | `providerId`, `mode`, `requestedTime`; optional `subjectId`, `price` | Creates a booking request. `mode`: `in_person`, `home_tuition`, `online`. Safety acknowledgement and minor-consent gates apply. |
+| `GET` | `/bookings/mine` | Verified bearer | `perPage`, `cursor` | Learner's bookings. |
+| `POST` | `/messages/start` | Verified bearer, learner | `providerId`; optional `body` | Starts/reuses a provider conversation and optionally sends the first message. Safety and guardian-consent gates apply. |
+| `POST` | `/reviews` | Verified bearer | `bookingId`, `rating` (1–5); optional `comment` | Adds a review for a booking belonging to the caller. |
+| `GET` | `/reviews/for/{providerId}` | Public | `perPage`, `cursor` | Provider reviews. |
+| `GET` | `/search/dashboard` | Public | Required `lat`, `lng`; optional `radiusKm` (default 7, maximum 500) | `{center,radiusKm,teacherCount,instituteCount,totalCount,results}`; all eligible nearby providers. |
+| `GET` | `/auth/safety-disclaimer` | Public | — | Returns the disclaimer text. |
+| `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging or booking. |
+| `PATCH` | `/bookings/{id}/status` | Verified bearer, participant | `status`: `accepted`, `declined`, `cancelled`, or `completed` | Updates a booking in which the caller participates. |
+| `GET` | `/messages` | Verified bearer | `perPage`, `cursor` | Conversations for the signed-in participant. |
+| `GET` | `/messages/{conversationId}` | Verified bearer, participant | `perPage`, `cursor` | Conversation messages. |
+| `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
+| `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
+| `GET` | `/feed` | Verified bearer | Required query `city`; optional `perPage`, `cursor` | Paginated city posts, with like/comment counts and the caller's like state. |
+| `POST` | `/feed` | Verified bearer | `city`, `body`; optional `subjectId`, `imageUrl` | Creates a city post; one post per account every 7 days. |
+| `POST` | `/feed/{postId}/like` | Verified bearer | — | Likes a post. |
+| `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
+| `GET` | `/feed/{postId}/comments` | Public | `perPage`, `cursor` | Lists comments. |
+| `POST` | `/feed/{postId}/comments` | Verified bearer | `body`; optional `parentCommentId` | Adds a comment or reply. |
+| `GET` | `/broadcasting/auth` | Verified participant bearer | `channel_name` query; `socket_id` for broadcaster auth when applicable | Legacy broadcaster authorization; Socket.IO clients use `/chat/socket/authorize`. |
+| `POST` | `/broadcasting/auth` | Verified bearer, conversation participant | `channel_name` | Legacy channel authorization; Socket.IO clients use the events below. |
+
+### Student DOB page and guardian consent
+
+After form success call `/auth/date-of-birth` using the active bearer:
+
+```json
+{"dateOfBirth":"2000-01-01"}
+```
+
+For ages 13–17 send guardian details on the same DOB API:
+
+```json
+{"dateOfBirth":"2010-01-01","guardianName":"Guardian Example","guardianContact":"guardian@example.com"}
+```
+
+| Student state | Submitted | Completed | Next screen |
 |---|---|---|---|
-| `POST /auth/otp/request` | Public for normal; Google bearer for Google | `phone`, `authMethod` (`google` or `phone_otp`) | `{"ok":true,"expiresInMinutes":10}` |
-| `POST /auth/otp/verify` | Public for normal; Google bearer for Google | `phone`, `code`, `authMethod` | `{token,user,authMethod,mobileVerified:true}`; fresh token for the same Google user or a normal phone identity. |
-| `POST /auth/google` | Public | `firebaseIdToken` | Laravel token, user and common routing fields (`nextScreen`, `nextStep`, completion/phone flags); requires a verified Google email. |
-| `PATCH /auth/link-phone` | Bearer | `phone`, `code` | `{token,user,authMethod,mobileVerified:true}` for Google; a phone linked to another account returns `409`. |
-| `POST /auth/login` | Public | `email`, `password` | Completed registration required; otherwise `409 REGISTRATION_INCOMPLETE`, no token. Phone login body field is prohibited. |
-| `POST /auth/logout` | Bearer, including unverified/suspended | `{}` | `{ok:true,message,loggedOutAllDevices:true}`; invalidates all existing API sessions for this user. |
-| `GET /auth/session` | Bearer | — | User and common screen-routing fields; use this to resume after app restart. |
-| `GET /auth/onboarding` | Bearer | — | Onboarding payload below. |
-| `POST /auth/register` | Verified | Full registration form below | Onboarding payload plus `nextStepEndpoint`; saves once. |
-| `POST /auth/onboarding/complete` | Verified | Same registration form | Alias of `/auth/register`. |
-| `PATCH /auth/onboarding` | Verified, registered | Partial registration fields | Onboarding payload. Before registration: `409` with `autosaveEnabled:false`. |
-| `POST /auth/forgot-password` | Public | `email` | `{ok:true,message,expiresInMinutes:10}`; same generic response for unknown addresses. |
-| `POST /auth/reset-password` | Public | `email`, `code`, `password`, `password_confirmation` | `{ok:true,message}`; log in again. |
-| `POST /auth/email/verification/request` | Verified | `{}` | `{ok:true,message,expiresInMinutes:10}` |
-| `POST /auth/email/verification/verify` | Verified | `code` | `{"ok":true,"emailVerified":true}` |
+| Mobile/form pending | false | false | `onboarding` |
+| Form saved, DOB pending | true | false | `age_verification` |
+| Adult DOB saved after form | true | true | `home` |
+| Minor DOB saved, guardian pending | true | true | `guardian_consent` |
+| Minor consent confirmed | true | true | `home` |
 
-Example OTP verification response (user fields abbreviated):
+Under 13 is rejected. Guardian email delivers a consent link; phone is accepted
+but SMS consent delivery is unimplemented. Use link token in public
+`POST /auth/parental-consent/confirm` as `{token:"<consent token>"}`. This is a
+separate single-use token from email, never the bearer. Refresh session after
+confirmation. DOB alone does not submit an unsubmitted registration form.
 
-```json
-{
-  "token": "<Laravel bearer token>",
-  "mobileVerified": true,
-  "user": {
-    "id": "10000000-0000-4000-8000-000000000001",
-    "full_name": "New user",
-    "account_type": "learner",
-    "phone": "+919876543210",
-    "phone_verified_at": "2026-10-21 10:00:00",
-    "profile_completed_at": null
-  }
-}
-```
+### Discovery, booking and review integration
 
-### Incomplete registration and saved-field autofill
+Load Common subjects/languages, then search/dashboard for map markers. Use
+provider `profile_type` and `user_id` for the public profile. Dashboard returns
+all eligible nearby providers with no 50-result cap; other searches cap results
+at 50. See [dashboard fields](API.md#home-and-map-dashboard) and
+[discovery/phone quota](API.md#discovery-and-provider-phone-visibility).
 
-Password login checks credentials first. If `profile_completed_at` is null it
-returns `409`, `code:"REGISTRATION_INCOMPLETE"`, `registrationRequired:true` and
-onboarding routing flags, without a login token or user profile. Wrong
-credentials remain `401`, so incomplete-account state is not exposed before
-password verification. Completion here means registration completion; age and
-guardian routing still apply afterward.
+Anonymous provider reads omit phone. Verified signed-in viewers can reveal up
+to five distinct providers per server day; a profile read can consume quota.
+Quota exhaustion still returns `200` with phone omitted and quota metadata.
+Invalid/unverified optional bearer can be treated as anonymous.
 
-To resume normal signup, verify the phone OTP without a bearer, even when the
-incomplete user already has a saved password. The returned token identifies
-the same account. Google signup continues through Google authentication and
-its OTP flow. Call `GET /auth/onboarding` with the registration bearer and
-prefill fields from `draft` (name, email, phone, role, city, subject/contact and
-saved acceptance flags). Passwords are never returned; `draft.passwordSet`
-indicates a saved password. Unsaved client input is not recoverable from this
-endpoint. No new autosave is added; `PATCH /auth/onboarding` still returns `409`
-until registration succeeds. Submit the full registration form, then password
-login may issue a token.
+A booking has mode in_person/home_tuition/online, requestedTime with timezone,
+provider user UUID and optional subject/price. Safety and guardian gates apply;
+price is not a payment. Mine filters caller's learner_id without a separate
+role gate. Message start explicitly requires learner role; shared reply APIs
+are listed in each role and Common.
+Review creation requires booking ownership as learner and rating 1–5; no
+completed-status gate exists. No review update/delete API exists.
 
-### Logout
+Learners can use shared feed APIs for request posts, comments, replies and likes.
+A reply adds parentCommentId to the comment body and must reference a comment
+on the same post. Call/WhatsApp actions use returned provider profile.phone;
+see [contact action integration](#whatsapp-and-call-integration).
 
-Call `POST /auth/logout` with the active bearer. Success returns
-`{"ok":true,"message":"Logged out successfully.","loggedOutAllDevices":true}`.
-Clear the stored token and show login. This logs out all API sessions for the
-user; old Google sign-in and OTP-verification tokens are both rejected. It is
-available before phone verification and for suspended users. Reusing the bearer
-returns `403`; no bearer returns `401`. For Google, also sign out of Firebase
-on the device and perform fresh Google authentication on the next login;
-refreshing a token from a pre-logout Firebase session does not restore access.
-Chat sessions are revoked through the existing job after the database commit.
-After deploying the new route, run `php artisan route:clear` or rebuild routes.
+### Home and map dashboard
 
-### OTP tokens by signup path
+`GET /search/dashboard` requires `lat` and `lng`, with optional `radiusKm`
+(default 7, maximum 500). It returns numeric coordinates/prices, subjects arrays,
+teacher/institute/total counts and all eligible nearest-first providers. Phones
+and private account fields are omitted; this lookup does not consume phone quota.
+See the [complete map field reference](API.md#home-and-map-dashboard) and saved
+Learner dashboard examples in the collection.
 
-Normal signup sends no Authorization header to either OTP endpoint. Send
-`authMethod:"phone_otp"` (or omit it for existing clients). Save the token returned
-by `/auth/otp/verify` and use it for registration; email/password are required.
+## Teacher
 
-Google signup sends `authMethod:"google"` and the bearer returned by `/auth/google`
-to both `/auth/otp/request` and `/auth/otp/verify`. A missing bearer returns `401`
-with `GOOGLE_AUTH_REQUIRED`; invalid and suspended sessions return `403`.
-Verification returns a fresh `token` and `authMethod:"google"` for the same user.
-Replace the saved token with this verification token for registration and later
-calls. The saved `google_id` makes email/password optional at registration.
-`PATCH /auth/link-phone` remains supported and also returns a fresh Google token.
-If sign-in already returns `phoneVerificationRequired:false`, skip OTP and use
-the sign-in token directly.
+Teacher registration is under Auth; select teacher and provide city/subject.
+No DOB is required. This category includes listing, chat, posts/comments/replies,
+booking status and provider contact lookup. Use the teacher's bearer.
 
-Google OTP requests are bound to the authenticated user. Omitting the bearer at
-verification cannot switch to normal signup, even if `authMethod` is omitted.
-A different Google user's bearer returns `403` with `OTP_GOOGLE_ACCOUNT_MISMATCH`.
-Phone conflicts return `409` without consuming the OTP or merging accounts.
-A supplied non-Google bearer returns `409` (`OTP_BEARER_NOT_GOOGLE`). The mode
-flag does not confer Google identity; only the authenticated saved user does.
-Older clients sending a Google bearer without the flag remain supported.
+Add-post shortcut: **Teacher → Feed / Posts → POST /feed — Add post** in the
+developer explorer and Postman. Feed, likes, comments and replies are grouped
+in that same subsection.
 
-### Registration form
+| Method | Path | Access | Request / query | Result / notes |
+|---|---|---|---|---|
+| `PUT` | `/profiles/me` | Verified provider bearer, completed registration | Provider fields described below | Updates the signed-in teacher/institute listing and its subject assignments. |
+| `GET` | `/profiles/me/stats` | Verified bearer | Optional `days` (default 30, maximum 365) | Provider listing views and new booking-request counts. |
+| `GET` | `/bookings/incoming` | Verified bearer | `perPage`, `cursor` | Provider's incoming bookings. |
+| `GET` | `/profiles/{type}/{id}` | Public, optional bearer | `type`: `teacher` or `institute`; optional auth affects phone quota | Public listing profile. Suspended or not-yet-phone-verified optional tokens are treated as anonymous. |
+| `GET` | `/auth/safety-disclaimer` | Public | — | Returns the disclaimer text. |
+| `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging or booking. |
+| `PATCH` | `/bookings/{id}/status` | Verified bearer, participant | `status`: `accepted`, `declined`, `cancelled`, or `completed` | Updates a booking in which the caller participates. |
+| `GET` | `/messages` | Verified bearer | `perPage`, `cursor` | Conversations for the signed-in participant. |
+| `GET` | `/messages/{conversationId}` | Verified bearer, participant | `perPage`, `cursor` | Conversation messages. |
+| `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
+| `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
+| `GET` | `/feed` | Verified bearer | Required query `city`; optional `perPage`, `cursor` | Paginated city posts, with like/comment counts and the caller's like state. |
+| `POST` | `/feed` | Verified bearer | `city`, `body`; optional `subjectId`, `imageUrl` | Creates a city post; one post per account every 7 days. |
+| `POST` | `/feed/{postId}/like` | Verified bearer | — | Likes a post. |
+| `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
+| `GET` | `/feed/{postId}/comments` | Public | `perPage`, `cursor` | Lists comments. |
+| `POST` | `/feed/{postId}/comments` | Verified bearer | `body`; optional `parentCommentId` | Adds a comment or reply. |
+| `GET` | `/broadcasting/auth` | Verified participant bearer | `channel_name` query; `socket_id` for broadcaster auth when applicable | Legacy broadcaster authorization; Socket.IO clients use `/chat/socket/authorize`. |
+| `POST` | `/broadcasting/auth` | Verified bearer, conversation participant | `channel_name` | Legacy channel authorization; Socket.IO clients use the events below. |
 
-| Field | Validation / roles |
-|---|---|
-| `accountType` | Required: `student`, `learner`, `teacher`, `institute`. `student` is stored as `learner`. |
-| `fullName` | Required, max 160 characters; institute name for an institute. |
-| `email` | Required for normal signup; optional for Google. Valid email, max 255; must not belong to another account. |
-| `password` | Required for normal signup; optional for Google. String, 8–72 characters. No confirmation field required on registration. |
-| `termsAccepted` | Required accepted value; send `true`. |
-| `acknowledgeTeachersNotBackgroundChecked` | Required accepted value; send `true` after showing the disclaimer. |
-| `city` | Required for teacher and institute; max 120. |
-| `primarySubjectId` | Required for teacher; existing numeric subject ID from `/subjects`. |
-| `contactPerson` | Required for institute; max 160. |
-
-For accounts linked to Google, `email` and `password` are optional when creating
-the account (`POST /auth/register` or `/auth/onboarding/complete`). Omit them to
-keep the verified Google email and continue without setting a password. Supplied
-values still undergo validation. Mobile verification and the other required
-registration fields still apply. Regular signup requires email and password.
-
-Do not send `phone`, `phoneVerifiedAt` or `mobileVerified` in this form.
-The bearer identity supplies the verified phone. Keep form state on the device
-until Register is pressed; autosave starts only after successful registration.
-For a registered phone, restore onboarding and continue instead of registering
-again (`409`). Missing verification returns `403` with
-`code:"OTP_VERIFICATION_REQUIRED"`; an invalid registration bearer returns `403`.
-
-Teacher example; use `accountType:"student"` and omit `city`/`primarySubjectId`
-for a student. For an institute use `accountType:"institute"`, institute name,
-`city` and `contactPerson`, and omit `primarySubjectId`.
+PUT is partial. Example:
 
 ```json
 {
-  "accountType": "teacher",
-  "fullName": "Asha Sharma",
-  "email": "asha@example.com",
-  "password": "ExamplePass123!",
-  "city": "Delhi",
-  "primarySubjectId": 1,
-  "termsAccepted": true,
-  "acknowledgeTeachersNotBackgroundChecked": true
+  "bio":"Maths lessons for school students",
+  "ratePerHour":500,
+  "currency":"INR",
+  "lessonModes":["in_person","online"],
+  "latitude":28.6139,
+  "longitude":77.2090,
+  "city":"Delhi",
+  "country":"India",
+  "countryCode":"IN",
+  "trialDays":1,
+  "subjectIds":[1]
 }
 ```
 
-Onboarding response example after successful teacher registration (abbreviated):
+Teacher-only fields are bio (max 14 words), ratePerHour and linkedinUrl.
+Coordinates are a pair, both set or both null. Subject IDs replace the set
+when supplied (up to five). See [all listing validation](API.md#teacher-listing-example-and-field-rules).
+PUT requires completed provider registration. Stats requires provider role;
+newRequests counts all currently requested bookings, independently of days.
+Incoming lists filter provider_id; they have no additional role guard.
+Booking status changes and chat replies are participant APIs listed here and
+in Common.
+
+### Teacher chat, posts, comments and replies
+
+1. `GET /messages` loads the teacher's existing inbox.
+2. `GET /messages/{conversationId}` loads a conversation where it participates.
+3. `POST /messages/{conversationId}` with `{body:"Yes, this slot is available."}`
+   replies. Sending requires safety acknowledgement. Socket.IO uses the same
+   participant checks through the listed authorization endpoint.
+
+`POST /messages/start` remains learner-only. Teacher access here lets the
+provider read/reply to an existing conversation; it does not open new chats.
+
+For city posts use `GET /feed?city=Delhi`, then `POST /feed` to create an offer:
+
+```json
+{"city":"Delhi","subjectId":1,"body":"Maths lesson slots are available this week."}
+```
+
+Provider post_type is offer, with one post per seven days. Use like/unlike
+endpoints for reactions. Both comments and replies use
+`POST /feed/{postId}/comments`; send body for a comment and add parentCommentId
+for a reply. The parent must belong to the same post:
+
+```json
+{"body":"Evening slots are available.","parentCommentId":"40000000-0000-4000-8000-000000000001"}
+```
+
+### Teacher WhatsApp and call
+
+`GET /profiles/{type}/{id}` with the teacher's bearer can return another
+provider's profile.phone under the daily phone quota. The frontend builds
+WhatsApp/call links only when phone is present. See [contact action integration](#whatsapp-and-call-integration).
+Conversation responses do not expose the learner's phone, so this does not add
+teacher-to-student phone lookup from chat.
+
+## Institute
+
+Institute registration is under Auth; provide institute name, city and contact.
+No DOB is required. This category includes the institute's listing,
+participant chat, posts/comments/replies, booking status and provider contacts.
+Shared URLs keep the same access rules as Teacher/Common.
+
+Add-post shortcut: **Institute → Feed / Posts → POST /feed — Add post** in the
+developer explorer and Postman. Feed, likes, comments and replies are grouped
+in that same subsection.
+
+| Method | Path | Access | Request / query | Result / notes |
+|---|---|---|---|---|
+| `PUT` | `/profiles/me` | Verified provider bearer, completed registration | Provider fields described below | Updates the signed-in teacher/institute listing and its subject assignments. |
+| `GET` | `/profiles/me/stats` | Verified bearer | Optional `days` (default 30, maximum 365) | Provider listing views and new booking-request counts. |
+| `GET` | `/bookings/incoming` | Verified bearer | `perPage`, `cursor` | Provider's incoming bookings. |
+| `GET` | `/profiles/{type}/{id}` | Public, optional bearer | `type`: `teacher` or `institute`; optional auth affects phone quota | Public listing profile. Suspended or not-yet-phone-verified optional tokens are treated as anonymous. |
+| `GET` | `/auth/safety-disclaimer` | Public | — | Returns the disclaimer text. |
+| `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging or booking. |
+| `PATCH` | `/bookings/{id}/status` | Verified bearer, participant | `status`: `accepted`, `declined`, `cancelled`, or `completed` | Updates a booking in which the caller participates. |
+| `GET` | `/messages` | Verified bearer | `perPage`, `cursor` | Conversations for the signed-in participant. |
+| `GET` | `/messages/{conversationId}` | Verified bearer, participant | `perPage`, `cursor` | Conversation messages. |
+| `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
+| `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
+| `GET` | `/feed` | Verified bearer | Required query `city`; optional `perPage`, `cursor` | Paginated city posts, with like/comment counts and the caller's like state. |
+| `POST` | `/feed` | Verified bearer | `city`, `body`; optional `subjectId`, `imageUrl` | Creates a city post; one post per account every 7 days. |
+| `POST` | `/feed/{postId}/like` | Verified bearer | — | Likes a post. |
+| `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
+| `GET` | `/feed/{postId}/comments` | Public | `perPage`, `cursor` | Lists comments. |
+| `POST` | `/feed/{postId}/comments` | Verified bearer | `body`; optional `parentCommentId` | Adds a comment or reply. |
+| `GET` | `/broadcasting/auth` | Verified participant bearer | `channel_name` query; `socket_id` for broadcaster auth when applicable | Legacy broadcaster authorization; Socket.IO clients use `/chat/socket/authorize`. |
+| `POST` | `/broadcasting/auth` | Verified bearer, conversation participant | `channel_name` | Legacy channel authorization; Socket.IO clients use the events below. |
+
+PUT is partial. Example:
 
 ```json
 {
-  "mobileVerified": true,
-  "profileCompleted": true,
-  "registrationCompleted": true,
-  "autosaveEnabled": true,
-  "canSubmit": false,
-  "blockers": [],
-  "missingFields": [],
-  "savedAt": "2026-10-21 10:05:00",
-  "nextStep": "home",
-  "nextStepEndpoint": "/profiles/me",
-  "draft": {
-    "accountType": "teacher",
-    "role": "teacher",
-    "fullName": "Asha Sharma",
-    "email": "asha@example.com",
-    "phone": "+919876543210",
-    "city": "Delhi",
-    "primarySubjectId": 1,
-    "primarySubjectName": "Mathematics",
-    "contactPerson": null,
-    "passwordSet": true,
-    "termsAccepted": true,
-    "teachersNotBackgroundCheckedAcknowledged": true,
-    "acknowledgeTeachersNotBackgroundChecked": true
-  },
-  "user": {
-    "id": "10000000-0000-4000-8000-000000000001",
-    "account_type": "teacher"
-  }
+  "description":"Science and language classes for all levels",
+  "startingRate":750,
+  "currency":"INR",
+  "lessonModes":["in_person","online"],
+  "latitude":28.6139,
+  "longitude":77.2090,
+  "city":"Delhi",
+  "country":"India",
+  "countryCode":"IN",
+  "subjectIds":[1],
+  "instructorsText":"Experienced subject instructors",
+  "websiteUrl":"https://example.com/academy"
 }
 ```
 
-Google/email login, OTP verification, phone linking, session and onboarding
-responses share `nextScreen`, `nextStep` and `nextStepEndpoint`. Incomplete
-users open `nextScreen:"onboarding"`; `nextStep:"mobile_verification"` can be
-completed inline on that screen. Completed users resume their pending
-phone/age/guardian step or home. See [Firebase backend and app handoff](FIREBASE_GOOGLE_AUTH.md).
-`canSubmit`
-reflects saved server state; before registration the unsaved device form can be
-valid even when this is false. Use `mobileVerified` for the verification badge,
-local field validation for the submit button, and field errors from `422`.
+Institute-only fields are description (max 14 words), startingRate,
+instructorsText and websiteUrl. Shared listing validation, pagination and stats
+semantics match Teacher. See [all institute fields](API.md#institute-listing-example-and-field-rules).
+Verification/classification is admin-only under Common. Institute users cannot
+set their own verification badge through profile PUT.
 
-Phone codes expire in 10 minutes, allow five attempts, and use the newest code.
-Local/testing `OTP_TEST_MODE=true` returns `testMode:true`, `otp` and simulated
-channel statuses without sending messages. Production never returns the OTP. Live dual-channel behavior is documented in [OTP delivery](OTP_DELIVERY.md). Email codes are
-single-use, expire after 10 minutes, allow five attempts, and are invalidated
-on resend. Email verification is not a separate login gate. More details:
-[registration](REGISTRATION.md), [email recovery](EMAIL_AUTH.md).
+### Institute chat, posts, comments and replies
 
-## Account and safety settings
+The institute loads `GET /messages`, opens `GET /messages/{conversationId}` and
+replies with `POST /messages/{conversationId}` using its own bearer. It must be
+a conversation participant. `POST /messages/start` remains learner-only. Listed
+Socket.IO authorization and safety APIs support the same existing chat flow.
 
-| Method and endpoint | Access | Body | Success |
-|---|---|---|---|
-| `POST /auth/account-type` | Verified | `accountType`: `learner`, `teacher`, `institute` | `{ok:true}`; creates an empty provider profile if applicable. This endpoint does not accept `student`. |
-| `PATCH /auth/preferred-language` | Verified | `language`: `en`, `hi`, `es`, `fr`, `ar`, `zh`, `pt`, `ru` | `{ok:true,preferredLanguage}` |
-| `PATCH /auth/avatar` | Verified | `avatarUrl`: valid URL, max 2048 | `{user:{id,avatar_url,avatar_status:"pending"},message}` |
-| `PATCH /auth/link-google` | Verified | `firebaseIdToken` | `{user}`; conflicts return `409`. |
-| `POST /auth/date-of-birth` | Verified | `dateOfBirth`: `YYYY-MM-DD`; minors also `guardianName`, `guardianContact` | Adult: `{isMinor:false}`. Minor: `{isMinor:true,parentalConsentPending:true,message}`. |
-| `POST /auth/parental-consent/confirm` | Public | `token`: one-time consent token | `{ok:true,confirmedFor}`; invalid/used token returns `404`. |
-| `GET /auth/safety-disclaimer` | Public | — | `{text}`; display the server text. |
-| `POST /auth/acknowledge-safety-disclaimer` | Verified | `{}` | `{ok:true}` |
+The institute can read city feed, publish an offer, like/unlike, comment and
+reply using the feed routes above. Posts have post_type offer and remain
+limited to once per seven days. Example POST /feed body:
 
-Under 13 is rejected (`400`); ages 13–17 need guardian consent before messaging
-or booking. Guardian email delivery is supported; guardian phone SMS consent
-delivery is currently unimplemented. Prefer guardian email in the app flow.
-Refresh `/auth/session` to observe `parental_consent_confirmed_at`.
-Avatar updates accept an already-hosted URL; there is no image upload API here.
-Public listing images appear only after moderation approval.
+```json
+{"city":"Delhi","subjectId":1,"body":"New science classes start this month."}
+```
 
-## Subjects and languages
+Use `POST /feed/{postId}/comments` with body for a comment or body plus
+parentCommentId for a reply; the parent comment must belong to that post.
+
+### Institute WhatsApp and call
+
+Read another provider's `GET /profiles/{type}/{id}` with the institute bearer,
+then use eligible profile.phone for external call/WhatsApp actions. Daily quota
+and missing-phone rules apply. See [contact action integration](#whatsapp-and-call-integration).
+Inbox/history responses do not provide learner phone numbers.
+
+## Common
+
+Settings, catalog/localization, shared chat/feed/operations, admin-only and
+compatibility/system endpoints are here. Classification does not widen access.
+
+| Method | Path | Access | Request / query | Result / notes |
+|---|---|---|---|---|
+| `PATCH` | `/auth/preferred-language` | Verified bearer | `language`: `en`, `hi`, `es`, `fr`, `ar`, `zh`, `pt`, or `ru` | Updates the account language. |
+| `PATCH` | `/auth/avatar` | Verified bearer | `avatarUrl` (URL) | Updates the photo URL and marks it pending moderation. |
+| `GET` | `/auth/safety-disclaimer` | Public | — | Returns the disclaimer text. |
+| `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging or booking. |
+| `GET` | `/subjects` | Public | — | Subject domains with their subjects and BSL catalog data. |
+| `GET` | `/i18n/languages` | Public | — | Supported language metadata. |
+| `GET` | `/i18n/{lang}` | Public | Language code in path | Returns translations; unsupported language codes serve English and identify the requested/served language. |
+| `PATCH` | `/bookings/{id}/status` | Verified bearer, participant | `status`: `accepted`, `declined`, `cancelled`, or `completed` | Updates a booking in which the caller participates. |
+| `GET` | `/messages` | Verified bearer | `perPage`, `cursor` | Conversations for the signed-in participant. |
+| `GET` | `/messages/{conversationId}` | Verified bearer, participant | `perPage`, `cursor` | Conversation messages. |
+| `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
+| `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
+| `POST` | `/broadcasting/auth` | Verified bearer, conversation participant | `channel_name` | Legacy channel authorization; Socket.IO clients use the events below. |
+| `GET` | `/feed` | Verified bearer | Required query `city`; optional `perPage`, `cursor` | Paginated city posts, with like/comment counts and the caller's like state. |
+| `POST` | `/feed` | Verified bearer | `city`, `body`; optional `subjectId`, `imageUrl` | Creates a city post; one post per account every 7 days. |
+| `POST` | `/feed/{postId}/like` | Verified bearer | — | Likes a post. |
+| `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
+| `GET` | `/feed/{postId}/comments` | Public | `perPage`, `cursor` | Lists comments. |
+| `POST` | `/feed/{postId}/comments` | Verified bearer | `body`; optional `parentCommentId` | Adds a comment or reply. |
+| `POST` | `/safety/reports` | Verified bearer | `targetType` (`user`, `post`, `comment`, `message`), `targetId`, `reasonCategory` (`fraud`, `fake_profile`, `inappropriate`, `spam`, `other`); optional `reason` | Creates a report. |
+| `POST` | `/safety/blocks/{userId}` | Verified bearer | — | Blocks a user. |
+| `DELETE` | `/safety/blocks/{userId}` | Verified bearer | — | Unblocks a user. |
+| `POST` | `/suggestions` | Verified bearer | `suggestionType` (`course`, `city`, `state`, `country`), `name`; optional `notes` | Submits a suggestion. |
+| `POST` | `/support` | Verified bearer | `subject`, `message` | Creates a support ticket. |
+| `GET` | `/support/mine` | Verified bearer | — | Lists the caller's support tickets. |
+| `GET` | `/referrals/mine` | Verified bearer | — | Returns or creates the caller's referral code and referred users. |
+| `POST` | `/referrals/redeem` | Verified bearer | `code` | Redeems a referral code. Self-referrals are rejected; an already-credited account receives `409`. |
+| `POST` | `/analytics/page-view` | Public | `pageType`; optional `target`, `platform`, `referrer` | Records a view. `pageType`: `institute`, `teacher`, `city_index`, `city_feed`, `city_directory`, `download`, `app_profile`. Limited to 120 requests/minute per IP. |
+| `GET` | `/health` | Public | — | `{ok:true}`. |
+| `GET` | `/up` | Public | — | Laravel health HTML; use `/health` for JSON. |
+| `POST` | `/location-lookup/reverse` | Public | `latitude`, `longitude` | `{location}` with reverse-geocoded Nominatim metadata; OSM coverage varies. |
+| `GET` | `/broadcasting/auth` | Verified participant bearer | `channel_name` query; `socket_id` for broadcaster auth when applicable | Legacy broadcaster authorization; Socket.IO clients use `/chat/socket/authorize`. |
+
+### Common app behavior
 
 | Endpoint | Access | Response |
 |---|---|---|
@@ -309,220 +510,44 @@ The first domain is virtual: `id:"instant-teacher-available"`,
 `isVirtual:true`, with BSL featured subjects. Domain IDs therefore have mixed
 string/integer types. Use subject IDs, not the virtual domain ID, in API requests.
 
-## Search and provider profiles
+Booking status is participant-scoped; either participant can submit any allowed
+status. Conversation inbox/history/send are shared participant routes. Start/send
+contact actions enforce safety/guardian gates. Cursor lists use perPage 1–100,
+default 50, plus opaque nextCursor; preserve filters, deduplicate IDs and stop
+at null. Message pages arrive newest-page first, each page chronological.
+See [cursor semantics](API.md#cursor-pagination).
 
-All search and public profile routes allow 60 requests/minute per IP.
-The original search result endpoints are capped at 50 and do not use cursor
-pagination. `/search/dashboard` returns all matching providers without that cap.
+Feed supports posts/likes/comments, with one post per account every seven days;
+no post/comment edit/delete APIs exist. Avatar accepts a hosted URL, not upload.
+Blocking stores a relationship; discovery and messages currently do not enforce
+it. Referral/support/suggestion bodies and error shapes are in the endpoint
+reference and saved examples.
 
-| Endpoint | Required query / path | Optional query | Response |
-|---|---|---|---|
-| `GET /search/dashboard` | `lat`, `lng` | `radiusKm` >0..500, default 7 | Home/map: `{center,radiusKm,teacherCount,instituteCount,totalCount,results}`; all eligible nearby providers. |
-| `GET /search` | `lat` −90..90, `lng` −180..180 | `radiusKm` >0..500 (default 7), existing `subjectId`, `q` max 200, `freeOnly=true/false` | `{results:[...]}`, nearest first. |
-| `GET /search/counts` | `lat`, `lng` | `radiusKm` same bounds/default | `{teacher_count,institute_count}`; does not apply subject/name/free filters. |
-| `GET /search/other-city` | `city` max 160 | `subjectId`, `q` | `{results:[...]}`; online providers whose city **or country** contains the text. |
-| `GET /search/by-subject/{subjectId}` | Numeric subject ID, `tier` | See tiers below | `{tier,totalCount,results}` or country groups. |
-| `GET /profiles/{type}/{id}` | `type=teacher/institute`, provider user UUID | Optional bearer header | `{profile,subjects,...phoneQuotaFields}` |
-| `PUT /profiles/me` | Verified bearer, completed registration | Partial JSON listing fields below | `{ok:true}` |
-| `GET /profiles/me/stats` | Verified teacher/institute bearer | `days`, default 30, cap 365 | `{sinceDays,newRequests,profileViews}`; `newRequests` counts all currently requested bookings, independent of `days`. |
+### WhatsApp and call integration
 
-Subject tiers: `nearby` needs `lat`/`lng` (optional `radiusKm`); `city` needs
-`city`; `state` needs `state`; `country` needs `country`. Geographic names match
-case-insensitively and exactly for these tiers. `other-countries` without a
-country returns `{tier,countries:[{country,trainer_count}]}`; with `country`,
-returns `{tier,country,totalCount,results}` for that exact country. It does not
-automatically exclude the viewer's home country. `totalCount` can exceed 50.
-City/state/country results rank by weighted rating, then referral count.
+There is no dedicated call or WhatsApp-contact API. For a teacher/institute
+contact, use signed-in `GET /profiles/{type}/{id}` and its returned profile.phone.
+Only eligible verified viewers can reveal provider phones, with a quota of five
+distinct providers per server day. Repeated reads of the same provider that day
+do not use another distinct reveal. Quota exhaustion still returns `200` with
+phone omitted, phoneLimitReached:true and phoneRevealsRemainingToday:0.
+Anonymous/unverified/suspended viewers and profiles without a number may also
+have no phone; hide/disable call and WhatsApp buttons when absent/empty.
 
-```bash
-curl 'http://127.0.0.1:8000/search?lat=28.6139&lng=77.2090&radiusKm=7&freeOnly=false' \
-  -H 'Accept: application/json'
-```
+For fictional returned phone `+919876543210`, the frontend launches:
 
-Nearby response example:
-
-```json
-{
-  "results": [{
-    "profile_type": "teacher",
-    "user_id": "10000000-0000-4000-8000-000000000001",
-    "full_name": "Asha Sharma",
-    "avatar_url": null,
-    "price": "500.00",
-    "rating_avg": "4.50",
-    "rating_count": 10,
-    "is_verified": 0,
-    "trial_days": 1,
-    "distance_km": 1.25
-  }]
-}
-```
-
-`/search/other-city` adds `city` and `country` instead of distance. Geographic
-subject tiers include `city`, `state`, `country` where selected; nearby includes
-`distance_km`. Search cards do not include currency; obtain it from the profile
-before showing a currency-specific price. A zero price matches `freeOnly=true`;
-a null price does not. Empty searches return `results:[]` with `200`.
-
-Profile response contains raw listing columns, such as `id`, `user_id`,
-`bio`/`description`, `rate_per_hour`/`starting_rate`, `currency`, `lesson_modes`,
-`latitude`, `longitude`, `city`, `rating_avg`, `is_verified`, plus `full_name`,
-`avatar_url`, `lessons_completed`. `subjects` contains `{id,name,is_bsl}`.
-
-Anonymous requests omit `profile.phone`. A verified signed-in viewer can reveal
-up to five distinct providers per server day. Exhaustion still returns `200`,
-omits phone and includes `phoneLimitReached:true,phoneRevealsRemainingToday:0`.
-Profile reads can consume this quota; do not assume they are a separate reveal
-button API. Repeated reads of the same provider on the same day do not consume
-another distinct reveal. Invalid/unverified/suspended optional identities may
-be treated as anonymous. Treat quota metadata as optional and do not assume it
-exists on anonymous reads.
-
-### Home and map dashboard
-
-`GET /search/dashboard?lat=28.6139&lng=77.2090&radiusKm=7`
-
-Public; no bearer required. `lat` and `lng` are required numeric coordinates
-(latitude −90..90, longitude −180..180). `radiusKm` is optional, default 7,
-greater than zero and at most 500. Unknown/missing coordinates and invalid
-radius return `422` field errors. Rate limit: 60 requests/minute per IP.
-
-The response contains **all** eligible teachers and institutes within the exact
-circular radius, sorted nearest first (ties by type and user UUID). There is
-no 50-result cap and no pagination. Only accounts with completed registration,
-a verified phone, a current matching provider role, valid listing coordinates
-and no suspension are included. Provider verification badges are not required.
-Counts describe these returned listings and can differ from `/search/counts`,
-which does not apply these publication checks.
-
-| Response field | Meaning |
+| Button | External URI |
 |---|---|
-| `center` | `{latitude,longitude}` from the input, as numbers. |
-| `radiusKm` | Applied radius in kilometres. |
-| `teacherCount`, `instituteCount`, `totalCount` | Counts of returned listings. |
-| `results` | Combined provider array; empty array when no matches exist. |
-| `results[].profile_type` | `teacher` or `institute`; choose marker style using this field. |
-| `results[].id`, `user_id` | Listing UUID and provider user UUID; use `user_id` for profile navigation and bookings. |
-| `results[].latitude`, `longitude`, `distance_km` | Numbers ready for map markers and distance labels. |
-| `results[].full_name`, `avatar_url` | Display name and approved image URL (otherwise null). |
-| `results[].price`, `currency` | Numeric rate (or null) and currency. |
-| `results[].lesson_modes`, `subjects` | Arrays. Subject entries have numeric `id`, `name`, boolean `is_bsl`. |
-| `results[].address_text`, `city`, `state`, `country`, `country_code`, `slug` | Public location and listing link fields. |
-| `results[].rating_avg`, `rating_count`, `trial_days`, `is_verified`, `verified_at` | Numeric ratings/counts/trial days, boolean verification flag and nullable verification date. |
-| Teacher fields | `bio`, numeric/null `rate_per_hour`, `linkedin_url`, numeric/null `primary_subject_id`. |
-| Institute fields | `description`, numeric/null `starting_rate`, `contact_person`, `instructors_text`, `website_url`, `institute_type`, boolean `is_bsl_official`, `bsl_official_since`. |
-| `results[].created_at`, `updated_at` | Listing timestamps. |
+| Call | `tel:+919876543210` |
+| WhatsApp | `https://wa.me/919876543210` |
 
-This endpoint normalizes coordinates, prices and flags; it does not require the
-raw-profile JSON normalization described earlier. Phone, email and private
-account fields are omitted, and this lookup does not consume phone-reveal quota.
-Use the existing profile endpoint for contact access. Restrict `radiusKm` to the
-visible area where possible: all matches are returned, so broad dense searches
-can produce a large response. No subject/name/free filters are applied here.
+The WhatsApp number contains country-code digits without plus/spaces/punctuation.
+These are frontend link launches, not API calls; the server does not place a
+call/send a WhatsApp chat message or confirm external delivery. WhatsApp OTP
+delivery is a separate integration. Conversation APIs do not expose learner
+phones, so no student-phone lookup is provided by the inbox/reply endpoints.
 
-```js
-const response = await fetch(
-  `${baseUrl}/search/dashboard?${new URLSearchParams({lat, lng, radiusKm})}`,
-  {headers: {Accept: 'application/json'}}
-);
-const data = await response.json();
-if (!response.ok) throw data;
-const markers = data.results.map(provider => ({
-  id: `${provider.profile_type}:${provider.user_id}`,
-  latitude: provider.latitude,
-  longitude: provider.longitude,
-  title: provider.full_name,
-  provider,
-}));
-```
-
-Full teacher/institute success, empty and validation JSON examples are saved
-under **06 Search and profiles → GET /search/dashboard — home and map** in the
-Postman collection, and in the [mock response guide](API_MOCK_RESPONSES.md).
-
-### Listing update fields
-
-| Fields | Rules |
-|---|---|
-| Shared `lessonModes` | Array of distinct `in_person`, `home_tuition`, `online`. |
-| Shared `latitude`, `longitude` | Supply together; both null or both set; valid coordinate ranges. |
-| Shared `addressText`, `city`, `state`, `country` | Nullable strings; max 1000, 120, 120, 120 respectively. |
-| Shared `countryCode`, `currency` | Country code 2 characters; currency 3 characters and non-null when supplied. Stored uppercase. Country can derive currency if currency is omitted. |
-| Shared `trialDays`, `subjectIds` | Trial 0–7; up to five distinct existing numeric subject IDs. Sending an array replaces subject assignments; `[]` clears them. |
-| Teacher `bio`, `ratePerHour`, `linkedinUrl` | Bio max 14 words and 2000 characters; nullable rate 0..99999999.99; nullable URL max 2048. |
-| Institute `description`, `startingRate`, `instructorsText`, `websiteUrl` | Description max 14 words and 2000 characters; same rate limits; instructors max 2000; nullable URL max 2048. |
-
-```json
-{
-  "bio": "Maths lessons for school students",
-  "ratePerHour": 500,
-  "currency": "INR",
-  "lessonModes": ["in_person", "online"],
-  "latitude": 28.6139,
-  "longitude": 77.209,
-  "city": "Delhi",
-  "state": "Delhi",
-  "country": "India",
-  "countryCode": "IN",
-  "trialDays": 1,
-  "subjectIds": [1]
-}
-```
-
-## Bookings
-
-All routes require Verified access. Creating a booking also checks safety
-acknowledgement and, for a minor, confirmed guardian consent.
-
-| Method and endpoint | Body / query | Success |
-|---|---|---|
-| `POST /bookings` | Required `providerId`, `mode`, `requestedTime`; optional nullable `subjectId`, `price` | `{booking}`; initial status `requested`. |
-| `GET /bookings/mine` | `perPage`, `cursor` | `{bookings,pagination}`; caller is learner. Rows add `provider_name`, `subject_name`. |
-| `GET /bookings/incoming` | `perPage`, `cursor` | `{bookings,pagination}`; caller is provider. Rows add `learner_name`, `subject_name`. |
-| `PATCH /bookings/{id}/status` | `status`: `accepted`, `declined`, `cancelled`, `completed` | `{booking}`; caller must be a participant, otherwise `404`. |
-
-```json
-{
-  "providerId": "10000000-0000-4000-8000-000000000001",
-  "subjectId": 1,
-  "mode": "online",
-  "requestedTime": "2026-11-01T10:00:00+05:30",
-  "price": 500
-}
-```
-
-Booking record fields include `id`, `learner_id`, `provider_id`, `subject_id`,
-`mode`, `requested_time`, `price`, `status`, `created_at`, `updated_at`.
-Mode is `in_person`, `home_tuition` or `online`. Self-booking returns `400`.
-The current status endpoint permits either participant to submit any listed
-status; it does not enforce a provider-only accept/decline transition matrix.
-
-## Messages and live chat
-
-| Method and endpoint | Access / input | Success |
-|---|---|---|
-| `GET /messages` | Verified; `perPage`, `cursor` | `{conversations,pagination}` |
-| `POST /messages/start` | Verified learner; `providerId`, optional `body` max 5000 | `{conversationId}`; reuses an existing learner/provider conversation. |
-| `GET /messages/{conversationId}` | Verified participant; `perPage`, `cursor` | `{messages,pagination}` |
-| `POST /messages/{conversationId}` | Verified participant; `body` required, max 5000 | `{message}` |
-| `POST /chat/socket/authorize` | Verified; optional `conversationId` | `{userId,room,expiresInSeconds:900,authVersion}`; used by Socket.IO server. |
-
-Start/send also enforce safety acknowledgement and guardian consent. Inbox rows
-include `id`, `learner_id`, `provider_id`, `other_name`, `other_avatar`,
-`last_message`, `last_message_at`, `activity_at`. History starts with the newest
-page, returned in chronological order; prepend subsequent older pages.
-
-```json
-{
-  "message": {
-    "id": "20000000-0000-4000-8000-000000000001",
-    "conversation_id": "30000000-0000-4000-8000-000000000001",
-    "sender_id": "10000000-0000-4000-8000-000000000001",
-    "body": "Hello, is this lesson slot available?",
-    "created_at": "2026-10-21 10:15:00"
-  }
-}
-```
+### Live chat
 
 Connect with a Socket.IO 4 compatible client using `auth:{token:bearer}`.
 Use the public Socket.IO URL; a raw WebSocket client is not compatible.
@@ -550,72 +575,61 @@ For manual testing, sign in to the developer portal and open
 real message sends, ACK/event logs and copying a connection example without
 credentials. Use separate participant tokens in two tabs to check delivery.
 
-## Feed and reviews
+### Admin only
 
-| Method and endpoint | Access | Input | Success |
-|---|---|---|---|
-| `GET /feed` | Verified | Required query `city` max 160; `perPage`, `cursor` | `{posts,pagination}` |
-| `POST /feed` | Verified | `city` max 160, `body` max 5000; optional nullable `subjectId`, `imageUrl` (URL max 2048) | `{post}`; one post per 7 days, else `429` with `nextAllowedAt`. |
-| `POST /feed/{postId}/like` | Verified | `{}` | `{ok:true}` |
-| `DELETE /feed/{postId}/like` | Verified | — | `{ok:true}` |
-| `GET /feed/{postId}/comments` | Public | `perPage`, `cursor` | `{comments,pagination}`, oldest first. |
-| `POST /feed/{postId}/comments` | Verified | `body` max 5000; optional `parentCommentId` | `{comment}`; parent must belong to this post. |
-| `POST /reviews` | Verified | `bookingId`, integer `rating` 1–5; optional `comment` max 5000 | `{review}`; caller must be booking's learner. |
-| `GET /reviews/for/{providerId}` | Public | `perPage`, `cursor` | `{reviews,pagination}` |
+These requests require a valid API bearer for an identity with
+`users.is_admin=true`; developer portal login and browser admin login do not
+provide this API permission. Keep admin tests in a separate admin environment.
 
-Feed rows include `id`, `author_id`, `post_type` (`request` for learners, `offer`
-for providers), `city`, `subject_id`, `body`, `image_url`, `created_at`, plus
-`author_name`, `author_avatar`, `like_count`, `comment_count`, `liked_by_me`.
-Comment rows include `id`, `post_id`, `user_id`, `parent_comment_id`, `body`,
-`created_at`; list rows add `author_name`. Reviews include `id`, `booking_id`,
-`learner_id`, `provider_id`, `rating`, `comment`, `created_at`; lists add
-`learner_name`. The review controller checks booking ownership, without a
-completed-status gate. No update/delete post, comment or review routes exist.
+| Method | Path | Access | Request / query | Result / notes |
+|---|---|---|---|---|
+| `PATCH` | `/profiles/{type}/{id}/verify` | Admin bearer | `verified` boolean; type `teacher` or `institute` | Sets provider verification. |
+| `PATCH` | `/profiles/institute/{id}/type` | Admin bearer | `institute_type`: `independent`, `franchise`, `mcp_partner`, `bsl_direct` | Classifies an institute. |
+| `PATCH` | `/profiles/institute/{id}/bsl-verified` | Admin bearer | `verified` boolean | Sets BSL official status; enabling requires `bsl_direct`. |
+| `GET` | `/safety/reports` | Admin bearer | Optional `status`: `open`, `reviewed`, `dismissed` | Lists reports (defaults to open). |
+| `PATCH` | `/safety/reports/{id}/status` | Admin bearer | `status`: `open`, `reviewed`, `dismissed` | Updates report status. |
+| `GET` | `/suggestions` | Admin bearer | Optional `status`: `open`, `added`, `declined` | Lists suggestions (defaults to open). |
+| `PATCH` | `/suggestions/{id}/status` | Admin bearer | `status`: `open`, `added`, `declined` | Updates suggestion status. |
+| `GET` | `/support` | Admin bearer | Optional `status`: `open`, `in_progress`, `resolved` | Lists support tickets (defaults to open). |
+| `PATCH` | `/support/{id}/status` | Admin bearer | `status`: `open`, `in_progress`, `resolved` | Updates ticket status. |
+| `GET` | `/referrals/top` | Admin bearer | — | Up to 50 top referrers. |
+| `GET` | `/analytics/summary` | Admin bearer | Optional `days` | Page-view summary for the requested period (default 30 days). |
+| `GET` | `/moderation/photos/pending` | Admin bearer | — | Lists photos awaiting review. |
+| `PATCH` | `/moderation/photos/{userId}` | Admin bearer | `status`: `approved` or `rejected` | Reviews a pending photo. |
+| `GET` | `/moderation/conversations` | Admin bearer | — | Lists conversations and message counts. |
+| `GET` | `/moderation/conversations/{id}/messages` | Admin bearer | — | Reads and audit-logs admin access to a conversation. |
+| `GET` | `/moderation/bookings` | Admin bearer | — | Lists bookings and audit-logs the admin access. |
+| `GET` | `/moderation/contact-stats` | Admin bearer | — | Contact activity by provider and learner. |
+| `POST` | `/moderation/users/{userId}/suspend` | Admin bearer | Optional `reason` | Suspends a user. |
+| `POST` | `/moderation/users/{userId}/unsuspend` | Admin bearer | — | Restores a suspended user. |
+| `GET` | `/moderation/users/suspended` | Admin bearer | — | Lists suspended users. |
 
-## Support, safety, referrals and analytics
 
-| Method and endpoint | Access | Input | Success |
-|---|---|---|---|
-| `POST /safety/reports` | Verified | `targetType`: `user/post/comment/message`; UUID `targetId`; `reasonCategory`: `fraud/fake_profile/inappropriate/spam/other`; optional `reason` max 5000 | `{report}` |
-| `POST /safety/blocks/{userId}` | Verified | `{}` | `{ok:true}`; self-block returns `400`. |
-| `DELETE /safety/blocks/{userId}` | Verified | — | `{ok:true}` |
-| `POST /suggestions` | Verified | `suggestionType`: `course/city/state/country`; `name` max 255; optional `notes` max 5000 | `{suggestion}` |
-| `POST /support` | Verified | `subject` max 255, `message` max 10000 | `{ticket}` |
-| `GET /support/mine` | Verified | — | `{tickets}`; newest first, no cursor. |
-| `GET /referrals/mine` | Verified | — | `{code,link,referredCount,referred:[{id,full_name,created_at}]}` |
-| `POST /referrals/redeem` | Verified | `code` max 32 | `{referral}`; unknown code `404`, own code `400`, already credited `409`. |
-| `POST /analytics/page-view` | Public | `pageType`; optional nullable `target` max 255, `platform` max 32, `referrer` max 2048 | `{ok:true}` |
-| `GET /health` | Public | — | `{ok:true}` |
-| `POST /location-lookup/reverse` | Public | `latitude` −90..90, `longitude` −180..180 | `{location}` containing Nominatim location data; OSM coverage varies. |
+Browser admin reports use a separate admin session and access-logged report
+registry; see [reporting architecture](REPORTING_ARCHITECTURE.md).
 
-Page types: `institute`, `teacher`, `city_index`, `city_feed`, `city_directory`,
-`download`, `app_profile`. Profile reads already record an `app_profile` view;
-avoid recording that same view twice. Reverse lookup sends coordinates to
-OpenStreetMap Nominatim. See [full lookup behavior](API.md#public-coordinate-and-locality-lookup).
-Block/unblock currently store the relationship; the message/search controllers
-do not apply block filtering, so do not promise that blocking stops delivery.
+### Developer workbench and Postman
 
-## Pagination, errors and limits
+Open `/developer/login`, then choose Auth, Learner, Teacher, Institute or Common.
+The explorer uses the complete deployment base path and same-origin request
+restriction. Common admin-only calls retain admin checks. Request examples
+use fictional UUIDs/codes; supply real records for manual testing.
+Normal OTP examples omit Authorization even if the explorer token field is
+populated. Google OTP examples require the saved Google bearer. Use the role
+selector for student, Google student, teacher or institute registration examples
+and the matching teacher/institute listing example on shared provider URLs.
 
-Cursor pagination applies to inbox, messages, incoming/mine bookings, provider
-reviews, feed, and comments. `perPage` is 1–100, default 50. Preserve filters
-and URL-encode the opaque `nextCursor` as query `cursor`. Stop at null;
-deduplicate by record ID. There is no total/page-number field.
+Import the existing [app-team collection](postman/app-team.postman_collection.json).
+Set baseUrl, phone, email/password, firebaseIdToken and existing subjectId.
+Keep separate tokens/environments for learner, teacher, institute and admin.
+Authentication scripts save returned token; public normal OTP requests send no
+Authorization header. Google OTP variants require the saved Google bearer.
+Real mobile OTP uses received code; email codes use a separate emailCode.
+Choose one signup role/flow rather than running the complete collection in
+sequence. Saved response examples can be previewed without sending; importing
+a collection does not start a mock server. See [mock response guide](API_MOCK_RESPONSES.md).
 
-```json
-{
-  "messages": [],
-  "pagination": {
-    "perPage": 50,
-    "hasMore": false,
-    "nextCursor": null,
-    "previousCursor": null
-  }
-}
-```
-
-Bookings/reviews/feed are newest first; comments oldest first; inbox latest
-activity first. Messages return newest page first in chronological order.
+### Errors, rate limits and deployment
 
 Validation (`422`):
 
@@ -659,35 +673,11 @@ has the same wrapper.
 | Page-view analytics | 120/min/IP |
 | Reverse lookup | 30/min/IP, with at least one second between lookups per IP |
 
-## Postman and handoff checklist
-
-Import [app-team.postman_collection.json](postman/app-team.postman_collection.json).
-Set collection `baseUrl` without a trailing slash, then set `phone`, `email`,
-`password` and a real `subjectId` from `/subjects`. Public requests explicitly
-use no auth; protected requests inherit the collection bearer `{{token}}`.
-Successful authentication automatically saves `token`, and local test OTP
-requests save `otp`. With real SMS, set `otp` yourself; email codes use the
-separate `emailCode` variable. Set `firebaseIdToken` from the client SDK for
-Google requests. A successful conversation/booking/post creation stores its ID
-for later requests. Set `providerId` to a different teacher/institute user's
-UUID; set other IDs from real records.
-
-Run individual requests in the intended flow; the collection contains alternative
-registration roles and state-changing actions and is not a single sequential
-runner scenario. Keep separate environments/tokens for learner and provider
-when testing a full conversation or incoming booking. Password-reset examples
-use `newPassword` and clear the cached token after a successful reset; update
-`password` before logging in again.
-
-Before app integration, the deployment team should provide the REST HTTPS URL,
-public Socket.IO URL, Firebase client configuration, and test learner/provider
-accounts. Verify SMS/email delivery, a listing with coordinates and subjects,
-and the notifications/broadcasts workers. The app team should verify OTP →
-registration for each role, returning login, nearby/profile navigation, paginated
-history, booking updates, chat reconnect/deduplication and error display.
-
-Current contract gaps to account for: no server logout/refresh endpoint, no
-media upload endpoint, no implemented OS push registration/delivery here, no
-read receipts or message idempotency key, and no block enforcement in discovery
-or messaging. Backend deployment setup remains in [API.md](API.md),
-[PERFORMANCE.md](PERFORMANCE.md) and [CHAT_SOCKET_IO.md](CHAT_SOCKET_IO.md).
+Ensure migrations, Firebase project configuration, SMS/email delivery and queue
+workers are deployed. Notifications use notifications queue; chat broadcast and
+logout disconnects use broadcasts queue. See [operations](PERFORMANCE.md).
+Reverse lookup sends coordinates to Nominatim and is throttled; health HTML
+`/up` is a different contract from JSON `/health`. Legacy broadcasting is
+compatibility-only; Socket.IO integration uses chat socket authorization.
+There is no refresh/media-upload/read-receipt/message-idempotency endpoint here,
+and OS push delivery requires separate integration.

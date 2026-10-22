@@ -161,6 +161,14 @@ The initial learner role is provisional; the form selects student, teacher or
 institute. The age flag describes a later learner requirement; do not bypass
 the earlier phone/profile steps because it is true.
 
+Student form submission and completion are separate: `/auth/register` saves
+without requiring DOB and returns `registrationSubmitted:true`,
+`registrationCompleted:false`, `missingFields:[]`,
+`nextScreen:"age_verification"`. The separate DOB API completes the student.
+Teacher/institute form submission completes registration immediately; DOB is
+not required. `profileCompleted` aliases `registrationCompleted`. A minor's
+guardian consent is a separate gate after completion.
+
 | State | nextScreen | nextStep |
 |---|---|---|
 | Incomplete profile, phone unverified | `onboarding` | `mobile_verification` |
@@ -208,13 +216,15 @@ exchange through `/auth/google`.
   Invalid, forged, expired, wrong-project, non-Google or unverified-email tokens
   fail with `400`; invalid request fields return `422`.
 - Verification configuration/certificate outages return `503` with
-  `code:FIREBASE_AUTH_UNAVAILABLE`. Laravel session expiry returns `401`;
+  `code:FIREBASE_AUTH_UNAVAILABLE`. Missing Laravel bearer returns `401`;
+  an expired/invalid Laravel bearer returns `403`;
   reauthenticate and exchange a fresh Firebase ID token.
 - Password resets reject Firebase sessions authenticated before the reset.
   Use a fresh Firebase sign-in, not just an ID-token refresh of the old session.
 - Linking emits `identity.google_linked` transactionally, once per new link.
-  Authentication outcomes use existing login activity; completing registration
-  emits its existing event. Snapshots exclude tokens, passwords and private
+  Authentication outcomes use existing login activity; form submission emits
+  `registration.submitted`, DOB emits `onboarding.age_verified`, and actual
+  completion emits `registration.completed`. Snapshots exclude tokens, passwords and private
   keys. User responses omit guardian-consent tokens and password hashes.
 - This custom verifier checks signatures/claims, not Firebase Admin user-disabled,
   token-revocation or MFA state. Local suspension/auth-version rules still

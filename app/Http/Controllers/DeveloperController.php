@@ -73,7 +73,8 @@ class DeveloperController extends Controller
 
         return view('developer.portal', [
             'catalog' => $catalog,
-            'categories' => array_values(array_unique(array_column($catalog, 'category'))),
+            'categories' => config('api_catalog.groups'),
+            'routeCount' => count(array_unique(array_column($catalog, 'routeKey'))),
             'groups' => $groups,
             'settings' => $this->currentSettings($groups),
             'baseUrl' => $request->root(),
@@ -207,57 +208,44 @@ class DeveloperController extends Controller
             }
 
             $middleware = implode(' ', $routeMiddleware);
+            $adminOnly = str_contains($middleware, 'RequireAdminApi');
+            $signedIn = str_contains($middleware, 'RequireApiAuthentication');
+            $optionalSignIn = str_contains($middleware, 'AttachOptionalApiUser');
             $access = match (true) {
-                str_contains($middleware, 'RequireAdminApi') => 'Admin bearer',
-                str_contains($middleware, 'RequireApiAuthentication') => 'Bearer token',
-                str_contains($middleware, 'AttachOptionalApiUser') => 'Optional bearer',
+                $adminOnly => 'Admin access required',
+                $signedIn => 'Sign-in required',
+                $optionalSignIn => 'Optional sign-in',
                 default => 'Public',
             };
-            if (str_contains($middleware, 'RequireApiAuthentication')) {
-                $access = 'Bearer token';
-            }
-            if (str_contains($middleware, 'RequireAdminApi')) {
-                $access = 'Admin access required';
-            } elseif (str_contains($middleware, 'RequireApiAuthentication')) {
-                $access = 'Sign-in required';
-            } elseif (str_contains($middleware, 'AttachOptionalApiUser')) {
-                $access = 'Optional sign-in';
-            }
             if (in_array($path, ['/auth/register', '/auth/onboarding/complete'], true)) {
                 $access = 'OTP verification required';
             }
-            $category = $this->categoryFor($path);
-
             foreach ($methods as $method) {
-                $catalog[] = [
-                    'id' => $method.' '.$path,
-                    'method' => $method,
-                    'path' => $path,
-                    'category' => $category,
-                    'access' => $access,
-                    'action' => Str::afterLast(str_replace('\\', '/', $action), '/'),
-                    'parameters' => $this->routeParameters($path),
-                    ...$this->requestExample($method, $path),
-                ];
+                $routeKey = $method.' '.$path;
+                $categories = config('api_catalog.route_groups')[$routeKey] ?? ['Common'];
+                foreach ($categories as $category) {
+                    foreach ($this->requestVariants($method, $path, $category) as $variant) {
+                        $catalog[] = [
+                            'id' => $routeKey.($variant['suffix'] ?? ''),
+                            'routeKey' => $routeKey,
+                            'method' => $method,
+                            'path' => $path,
+                            'category' => $category,
+                            'section' => $adminOnly ? 'Admin only' : 'Application APIs',
+                            'access' => $access,
+                            'authMode' => $signedIn ? 'bearer' : ($optionalSignIn ? 'optional' : 'none'),
+                            'label' => '',
+                            'action' => Str::afterLast(str_replace('\\', '/', $action), '/'),
+                            'parameters' => $this->routeParameters($path),
+                            ...$this->requestExample($method, $path),
+                            ...array_diff_key($variant, ['suffix' => true]),
+                        ];
+                    }
+                }
             }
         }
 
-        $categoryOrder = [
-            'Authentication' => 0,
-            'Catalog' => 1,
-            'Localization' => 2,
-            'Search' => 3,
-            'Profiles' => 4,
-            'Bookings' => 5,
-            'Chat and realtime' => 6,
-            'Community' => 7,
-            'Safety and support' => 8,
-            'Analytics' => 9,
-            'Moderation' => 10,
-            'Location' => 11,
-            'System' => 12,
-            'Other' => 13,
-        ];
+        $categoryOrder = array_flip(config('api_catalog.groups'));
         $authOrder = [
             'POST /auth/google' => 0,
             'POST /auth/otp/request' => 1,
@@ -279,17 +267,138 @@ class DeveloperController extends Controller
                 return $categoryComparison;
             }
 
-            if ($left['category'] === 'Authentication') {
-                $workflowComparison = ($authOrder[$left['id']] ?? 99) <=> ($authOrder[$right['id']] ?? 99);
+            if ($left['category'] === 'Auth') {
+                $workflowComparison = ($authOrder[$left['routeKey']] ?? 99) <=> ($authOrder[$right['routeKey']] ?? 99);
                 if ($workflowComparison !== 0) {
                     return $workflowComparison;
                 }
             }
 
-            return [$left['path'], $left['method']] <=> [$right['path'], $right['method']];
+            if (in_array($left['category'], ['Teacher', 'Institute'], true)) {
+                $sectionComparison = ($left['section'] === 'Feed / Posts') <=> ($right['section'] === 'Feed / Posts');
+                if ($sectionComparison !== 0) {
+                    return $sectionComparison;
+                }
+            }
+
+            return [$left['section'] === 'Admin only', $left['path'], $left['method'], $left['id']]
+                <=> [$right['section'] === 'Admin only', $right['path'], $right['method'], $right['id']];
         });
 
         return $catalog;
+    }
+
+    private function requestVariants(string $method, string $path, string $category): array
+    {
+        $key = $method.' '.$path;
+        if (in_array($key, ['POST /auth/otp/request', 'POST /auth/otp/verify'], true)) {
+            $body = $this->requestExample($method, $path)['bodyExample'];
+
+            return [
+                ['label' => 'Normal signup · phone OTP', 'bodyExample' => [...$body, 'authMethod' => 'phone_otp']],
+                [
+                    'suffix' => '::google',
+                    'label' => 'Google signup · phone OTP',
+                    'bodyExample' => [...$body, 'authMethod' => 'google'],
+                    'authMode' => 'bearer',
+                    'access' => 'Google-linked bearer required',
+                    'guide' => $path === '/auth/otp/request'
+                        ? 'Send the Google sign-in bearer with authMethod=google. The OTP is bound to that Google account.'
+                        : 'Send the same Google bearer and authMethod=google. Save the NEW response token for register and all following calls; the user remains the same Google account.',
+                ],
+            ];
+        }
+
+        if (in_array($key, ['POST /auth/register', 'POST /auth/onboarding/complete'], true)) {
+            $variants = [];
+            $base = $this->requestExample($method, $path)['bodyExample'];
+            foreach (['student', 'teacher', 'institute'] as $role) {
+                $body = [...$base, 'accountType' => $role];
+                if ($role !== 'student') {
+                    $body['city'] = 'New Delhi';
+                    if ($role === 'teacher') {
+                        $body['primarySubjectId'] = 1;
+                    } else {
+                        $body['contactPerson'] = 'Anita Sharma';
+                    }
+                }
+                $guide = $role === 'student'
+                    ? 'Submit the form after OTP verification, then call Learner → POST /auth/date-of-birth. Registration stays pending until DOB is saved. Minor accounts also follow guardian consent.'
+                    : 'Submit the form after OTP verification. Teacher and institute registration does not require the DOB step.';
+                foreach ([false, true] as $google) {
+                    $variantBody = $body;
+                    if ($google) {
+                        unset($variantBody['email'], $variantBody['password']);
+                    }
+                    $variants[] = [
+                        'suffix' => ($role === 'student' ? '' : '::'.$role).($google ? '::google' : ''),
+                        'label' => ucfirst($role).' · '.($google ? 'Google signup' : 'normal signup'),
+                        'bodyExample' => $variantBody,
+                        'guide' => $guide.($google
+                            ? ' Use the Google-flow OTP response bearer; Google supplies email, so email/password are optional.'
+                            : ' Use the normal OTP response bearer; email and password are required.'),
+                    ];
+                }
+            }
+
+            return $variants;
+        }
+
+        $isProvider = in_array($category, ['Teacher', 'Institute'], true);
+        $routeGroups = config('api_catalog.route_groups')[$key] ?? [];
+        $roleCopy = $isProvider || ($category === 'Learner' && in_array('Common', $routeGroups, true));
+        $variant = $roleCopy
+            ? ['suffix' => '::'.strtolower($category), 'label' => $category.' account']
+            : [];
+        if ($isProvider && ($path === '/feed' || str_starts_with($path, '/feed/'))) {
+            $variant['section'] = 'Feed / Posts';
+        }
+        $example = $this->requestExample($method, $path);
+
+        if ($key === 'PUT /profiles/me' && $isProvider) {
+            $body = $example['bodyExample'];
+            if ($category === 'Institute') {
+                unset($body['bio'], $body['ratePerHour']);
+                $body['description'] = 'Sign language institute offering beginner classes';
+                $body['startingRate'] = 500;
+            }
+            $variant['bodyExample'] = $body;
+            $variant['guide'] = 'Update the signed-in '.strtolower($category).' listing after registration is complete. The API URL is shared by both provider types.';
+        } elseif ($key === 'GET /profiles/{type}/{id}') {
+            $variant['label'] = $category.' · phone / WhatsApp / call contact';
+            $variant['guide'] = 'Use a verified bearer to retrieve profile.phone for a teacher or institute (type path parameter). The app can open tel:<phone> or https://wa.me/<international-digits>. These links launch external apps; this API does not place calls or send WhatsApp messages. Anonymous responses omit phone. Reveal limit: 5 distinct provider profiles per day; hide contact actions when phone is absent. This lookup does not return learner phone numbers.';
+        } elseif (in_array($key, ['GET /messages', 'GET /messages/{conversationId}', 'POST /messages/{conversationId}'], true)) {
+            $variant['guide'] = trim(($example['guide'] ?? '').' Chat is available to Learner, Teacher and Institute participants. Providers reply in an existing conversation; POST /messages/start is learner-only. Sending requires safety acknowledgement and guardian consent when applicable.');
+            if ($method === 'POST' && $isProvider) {
+                $variant['bodyExample'] = ['body' => $category === 'Institute'
+                    ? 'Thanks for contacting our institute. How can we help with your classes?'
+                    : 'Thanks for your message. I can help with your lessons.'];
+            }
+        } elseif ($key === 'POST /feed') {
+            $variant['label'] = ($category === 'Common' ? 'All roles' : $category).' · add post';
+            $variant['guide'] = 'Learner, Teacher and Institute accounts can publish city posts, limited to one post per account every 7 days. The server assigns post_type=offer for teacher/institute accounts and request for learners.';
+            if ($isProvider) {
+                $variant['bodyExample'] = [...$example['bodyExample'], 'body' => $category === 'Institute'
+                    ? 'Our institute offers beginner sign language classes in New Delhi.'
+                    : 'I offer beginner sign language lessons online and in New Delhi.'];
+            }
+        } elseif ($key === 'POST /feed/{postId}/comments') {
+            $variant['label'] = ($category === 'Common' ? 'All roles' : $category).' · comment on post';
+            $variant['guide'] = 'Learner, Teacher and Institute accounts can comment on the same city-feed posts. To reply to a comment, select the reply example and provide a parentCommentId belonging to this post.';
+
+            return [
+                $variant,
+                [
+                    ...$variant,
+                    'suffix' => ($variant['suffix'] ?? '').'::reply',
+                    'label' => ($category === 'Common' ? 'All roles' : $category).' · reply to comment',
+                    'bodyExample' => ['body' => 'Thanks for your comment. Here are the class details.', 'parentCommentId' => '00000000-0000-4000-8000-000000000005'],
+                    'guide' => 'Reply / re-comment using the SAME POST comments API. Replace parentCommentId with a real comment UUID on this post. Teacher, Institute and Learner accounts are supported.',
+                ],
+            ];
+        }
+
+        return [$variant];
     }
 
     private function requestExample(string $method, string $path): array
@@ -301,19 +410,19 @@ class DeveloperController extends Controller
             ],
             'POST /auth/otp/request' => [
                 'body' => ['phone' => '+919876543210'],
-                'guide' => 'Step 2 · Request registration phone OTP, or link a phone after Google sign-in. In local test mode, read otp from the response; otherwise use the SMS code.',
+                'guide' => 'Normal signup: send authMethod=phone_otp without Authorization. In local test mode read otp from the response; otherwise use the delivered SMS code.',
             ],
             'PATCH /auth/link-phone' => [
                 'body' => ['phone' => '+919876543210', 'code' => '123456'],
-                'guide' => 'Step 3 · Link the verified phone. Set the bearer token from Google sign-in first.',
+                'guide' => 'Alternative Google phone verification: send the Google bearer and the Google-flow phone/code pair. Save the NEW response token for subsequent requests.',
             ],
             'POST /auth/otp/verify' => [
                 'body' => ['phone' => '+919876543210', 'code' => '123456'],
-                'guide' => 'Verify registration OTP and copy the response token for Register. Existing registered accounts receive 409 and must use email/password login.',
+                'guide' => 'Normal signup: send authMethod=phone_otp without Authorization. Save the response token for Register. Incomplete registration can resume; completed accounts receive 409 loginRequired.',
             ],
             'POST /auth/login' => [
                 'body' => ['email' => 'anita@example.com', 'password' => 'a-secure-password'],
-                'guide' => 'Email + password only. Mobile-number password login is not supported.',
+                'guide' => 'Email/password login returns a token only for completed registration. An incomplete account receives 409 REGISTRATION_INCOMPLETE with next-step flags. Google users sign in through /auth/google.',
             ],
             'POST /auth/forgot-password' => [
                 'body' => ['email' => 'anita@example.com'],
@@ -349,7 +458,7 @@ class DeveloperController extends Controller
                     'termsAccepted' => true,
                     'acknowledgeTeachersNotBackgroundChecked' => true,
                 ],
-                'guide' => 'Registration: verify OTP on the same page first, then submit the full form once. Autosave becomes available after success.',
+                'guide' => 'Submit the full form after phone OTP verification. Students then save DOB through its separate API before registration is complete.',
             ],
             'POST /auth/onboarding/complete' => [
                 'body' => [
@@ -362,12 +471,18 @@ class DeveloperController extends Controller
                 ],
                 'guide' => 'Final submit. Rejected until mobileVerified is true. Students then call POST /auth/date-of-birth.',
             ],
-            'POST /auth/parental-consent/confirm' => ['body' => ['token' => 'PASTE_ONE_TIME_GUARDIAN_TOKEN']],
+            'POST /auth/parental-consent/confirm' => [
+                'body' => ['token' => 'PASTE_ONE_TIME_GUARDIAN_TOKEN'],
+                'guide' => 'Public one-time confirmation. The guardian receives this token in the consent email link; it is never returned in the user/session JSON. Refresh /auth/session after confirmation.',
+            ],
             'POST /auth/account-type' => ['body' => ['accountType' => 'learner']],
             'PATCH /auth/preferred-language' => ['body' => ['language' => 'en']],
             'PATCH /auth/avatar' => ['body' => ['avatarUrl' => 'https://example.com/avatar.jpg']],
             'PATCH /auth/link-google' => ['body' => ['firebaseIdToken' => 'PASTE_FIREBASE_GOOGLE_ID_TOKEN']],
-            'POST /auth/date-of-birth' => ['body' => ['dateOfBirth' => '1998-06-15']],
+            'POST /auth/date-of-birth' => [
+                'body' => ['dateOfBirth' => '1998-06-15'],
+                'guide' => 'Separate student step after form submission. Ages 13–17 also require guardianName and guardianContact (use an email for consent delivery). Under 13 is rejected. Teacher/institute registration does not require DOB. Follow nextScreen and parentalConsentPending.',
+            ],
             'POST /auth/acknowledge-safety-disclaimer' => ['body' => []],
             'POST /location-lookup/reverse' => [
                 'body' => ['latitude' => 28.6139, 'longitude' => 77.2090],
@@ -393,7 +508,8 @@ class DeveloperController extends Controller
             ],
             'POST /messages/{conversationId}' => ['body' => ['body' => 'Hello, thanks for getting back to me.'], 'pathDefaults' => ['conversationId' => '00000000-0000-4000-8000-000000000003']],
             'GET /messages/{conversationId}' => ['pathDefaults' => ['conversationId' => '00000000-0000-4000-8000-000000000003']],
-            'POST /broadcasting/auth' => ['body' => ['socket_id' => '123456.789012', 'channel_name' => 'private-conversation.00000000-0000-4000-8000-000000000003']],
+            'GET /broadcasting/auth' => ['query' => 'socket_id=123456.789012&channel_name=private-conversation.00000000-0000-4000-8000-000000000003', 'guide' => 'Laravel broadcasting compatibility endpoint; bearer and conversation membership required. Socket.IO uses POST /chat/socket/authorize.'],
+            'POST /broadcasting/auth' => ['body' => ['socket_id' => '123456.789012', 'channel_name' => 'private-conversation.00000000-0000-4000-8000-000000000003'], 'guide' => 'Laravel broadcasting compatibility endpoint; bearer and conversation membership required. Socket.IO uses POST /chat/socket/authorize.'],
             'POST /reviews' => ['body' => ['bookingId' => '00000000-0000-4000-8000-000000000002', 'rating' => 5, 'comment' => 'Great lesson.']],
             'GET /feed' => ['query' => 'city=New%20Delhi'],
             'POST /feed' => ['body' => ['city' => 'New Delhi', 'body' => 'Looking for a BSL teacher for beginner classes.', 'subjectId' => 1]],
@@ -463,27 +579,6 @@ class DeveloperController extends Controller
             'pathDefaults' => $pathDefaults,
             'guide' => $example['guide'] ?? null,
         ];
-    }
-
-    private function categoryFor(string $path): string
-    {
-        return match (true) {
-            str_starts_with($path, '/auth/') => 'Authentication',
-            str_starts_with($path, '/i18n/') => 'Localization',
-            str_starts_with($path, '/subjects') => 'Catalog',
-            str_starts_with($path, '/search') => 'Search',
-            str_starts_with($path, '/profiles') => 'Profiles',
-            str_starts_with($path, '/bookings') => 'Bookings',
-            str_starts_with($path, '/messages'), str_starts_with($path, '/chat/'), $path === '/broadcasting/auth' => 'Chat and realtime',
-            str_starts_with($path, '/reviews'), str_starts_with($path, '/feed') => 'Community',
-            str_starts_with($path, '/safety'), str_starts_with($path, '/support'),
-            str_starts_with($path, '/suggestions'), str_starts_with($path, '/referrals') => 'Safety and support',
-            str_starts_with($path, '/analytics') => 'Analytics',
-            str_starts_with($path, '/moderation') => 'Moderation',
-            str_starts_with($path, '/location-lookup') => 'Location',
-            in_array($path, ['/health', '/up'], true) => 'System',
-            default => 'Other',
-        };
     }
 
     private function routeParameters(string $path): array

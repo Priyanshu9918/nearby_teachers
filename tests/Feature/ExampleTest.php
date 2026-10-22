@@ -217,7 +217,7 @@ class ExampleTest extends TestCase
                 ->assertSee('latitude')
                 ->assertSee('longitude')
                 ->assertSee('health')
-                ->assertSee('System')
+                ->assertSee('Common')
                 ->assertSee('BroadcastController@authenticate')
                 ->assertSee('moderation')
                 ->assertSee('Admin access required')
@@ -242,12 +242,12 @@ class ExampleTest extends TestCase
             ->get('/developer')
             ->assertOk()
             ->assertSee('Google → OTP flow')
-            ->assertSee('Google sign-in → phone OTP → link phone')
+            ->assertSee('Google sign-in → phone OTP → verify OTP')
             ->assertSee('Step 1')
             ->assertSee('PASTE_FIREBASE_GOOGLE_ID_TOKEN')
             ->assertSee('+919876543210')
             ->assertSee('00000000-0000-4000-8000-000000000001')
-            ->assertSee('data-category="Authentication"', false)
+            ->assertSee('data-category="Auth"', false)
             ->assertSee('Use response token as bearer')
             ->assertSee('private-conversation.{conversationId}')
             ->assertSee('Configure Socket.IO')
@@ -260,7 +260,7 @@ class ExampleTest extends TestCase
         $html = $response->getContent();
         $googleStep = strpos($html, 'POST /auth/google');
         $otpStep = strpos($html, 'POST /auth/otp/request');
-        $phoneLinkStep = strpos($html, 'PATCH /auth/link-phone');
+        $phoneLinkStep = strpos($html, 'POST /auth/otp/verify');
         $this->assertNotFalse($googleStep);
         $this->assertNotFalse($otpStep);
         $this->assertNotFalse($phoneLinkStep);

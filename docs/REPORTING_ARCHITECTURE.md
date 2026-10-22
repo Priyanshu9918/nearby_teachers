@@ -68,7 +68,9 @@ Current event coverage starts when migration `000029` is deployed:
 | `identity.phone_verified` | From 22 October 2026: verified flag before/after and phone-changed flag; no phone, OTP or token snapshot |
 | `identity.google_linked` | Previous/new link flag, local user ID; Firebase UID/email/token are not duplicated |
 | `auth.logged_out` | Previous/new auth version and `scope:all_sessions`; token revocation and history commit together |
+| `registration.submitted` | Previous/new account type and `registration_submitted_at`; the full form saved before learner DOB completion |
 | `registration.completed` | Previous/new account type and completion timestamp |
+| `onboarding.age_verified` | Previous/new age-verified and minor flags; no raw DOB, guardian contact or consent token snapshot |
 | `booking.created` | Initial status, lesson mode, requested time and price |
 | `booking.status_changed` | Previous/new status; repeated same-status requests add no change event |
 | `message.created` | Message ID, conversation ID and participant IDs; message text is not duplicated |
@@ -103,8 +105,14 @@ OTP codes, full phones and Google IDs are never added to business history.
 Password login rejected for incomplete registration produces an unsuccessful
 `email_login` entry in `auth_activity` with status `409`. It issues no token and
 changes no business state, so no new business-history event is added. Reading
-saved onboarding details for autofill does not create a registration event;
-registration completion retains its existing transactional event.
+saved onboarding details for autofill does not create a registration event.
+Form submission records `registration.submitted` transactionally; a learner
+without DOB remains incomplete, while teacher/institute form submission also
+records `registration.completed`. DOB records `onboarding.age_verified` and,
+when it completes a submitted learner registration, `registration.completed`
+in the same transaction. A pending-DOB registration retry does not duplicate
+submission/completion events. Migration `000032` adds the submission timestamp;
+legacy completed records count as submitted without invented historical events.
 Successful API logout records version-1 `auth.logged_out` in the same transaction
 as auth-version/cutoff updates. Rejected and rolled-back logout attempts do not
 produce this event. No bearer, Firebase UID, password or request snapshot is

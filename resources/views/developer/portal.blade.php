@@ -63,17 +63,17 @@
 
             <section class="tab active" id="overview" aria-label="Developer overview">
                 <div class="stats-grid">
-                    <div class="stat-card"><strong>{{ count($catalog) }}</strong><span>registered API operations</span></div>
+                    <div class="stat-card"><strong>{{ $routeCount }}</strong><span>registered API operations</span></div>
                     <div class="stat-card"><strong>{{ count($categories) }}</strong><span>API categories</span></div>
-                    <div class="stat-card"><strong>3 steps</strong><span>Google sign-in → phone OTP → link phone</span></div>
+                    <div class="stat-card"><strong>3 steps</strong><span>Google sign-in → phone OTP → verify OTP</span></div>
                 </div>
                 <div class="overview-grid">
                     <section class="panel">
                         <div class="panel-head"><div><h2>Authentication workflow</h2><p>Run the requests in order; OTP delivery and verification remain interactive.</p></div><button class="btn btn-primary" type="button" data-tab="authentication-flow">Open workflow</button></div>
                         <div class="panel-body workflow-list">
                             <div class="workflow-card"><span class="step-number">1</span><div><strong>Verify Google sign-in</strong><p>Exchange a Firebase Google ID token for the app's bearer token.</p></div><button class="btn" type="button" data-pick-api="POST /auth/google">Try step</button></div>
-                            <div class="workflow-card"><span class="step-number">2</span><div><strong>Request phone OTP</strong><p>Send a code to the user's international phone number.</p></div><button class="btn" type="button" data-pick-api="POST /auth/otp/request">Try step</button></div>
-                            <div class="workflow-card"><span class="step-number">3</span><div><strong>Link verified phone</strong><p>Use the Google response token and the delivered six-digit code.</p></div><button class="btn" type="button" data-pick-api="PATCH /auth/link-phone">Try step</button></div>
+                            <div class="workflow-card"><span class="step-number">2</span><div><strong>Request phone OTP</strong><p>Send authMethod=google and the Google sign-in bearer.</p></div><button class="btn" type="button" data-pick-api="POST /auth/otp/request::google">Try step</button></div>
+                            <div class="workflow-card"><span class="step-number">3</span><div><strong>Verify phone OTP</strong><p>Send the same Google bearer and save the new response token for registration.</p></div><button class="btn" type="button" data-pick-api="POST /auth/otp/verify::google">Try step</button></div>
                         </div>
                     </section>
                     <section class="panel">
@@ -90,14 +90,14 @@
 
             <section class="tab" id="authentication-flow" aria-label="Authentication workflow">
                 <div class="panel">
-                    <div class="panel-head"><div><h2>Google sign-in → phone verification</h2><p>Complete each step in order; use the response-token shortcut after step 1.</p></div><span class="category-badge">Authentication</span></div>
+                    <div class="panel-head"><div><h2>Google sign-in → phone verification</h2><p>Use the response-token shortcut after Google sign-in and again after OTP verification.</p></div><span class="category-badge">Auth</span></div>
                     <div class="panel-body workflow-list">
                         <div class="workflow-card"><span class="step-number">1</span><div><strong>POST /auth/google</strong><p>Send a verified Firebase Google ID token. The response provides the Nearby Teacher API token.</p></div><button class="btn btn-primary" type="button" data-pick-api="POST /auth/google">Configure request</button></div>
-                        <div class="workflow-card"><span class="step-number">2</span><div><strong>POST /auth/otp/request</strong><p>Send the user's phone in international format. Use the response otp in local test mode, or the delivered SMS code.</p></div><button class="btn" type="button" data-pick-api="POST /auth/otp/request">Configure request</button></div>
-                        <div class="workflow-card"><span class="step-number">3</span><div><strong>PATCH /auth/link-phone</strong><p>Requires the Google bearer token and the phone/code pair. This links the phone to the signed-in account.</p></div><button class="btn" type="button" data-pick-api="PATCH /auth/link-phone">Configure request</button></div>
-                        <div class="flow-note"><strong>Registration → email login</strong><p>On the registration page: request OTP → verify OTP → copy the response token → submit the full form with Register. Autosave is disabled until registration succeeds. Returning users use email/password only.</p><div class="guide-actions"><button class="btn" type="button" data-pick-api="POST /auth/register">Register</button><button class="btn" type="button" data-pick-api="POST /auth/login">Email login</button><button class="btn" type="button" data-pick-api="PATCH /auth/onboarding">Profile autosave</button></div></div>
+                        <div class="workflow-card"><span class="step-number">2</span><div><strong>POST /auth/otp/request</strong><p>Send phone and authMethod=google with the Google bearer. The OTP belongs to this Google account.</p></div><button class="btn" type="button" data-pick-api="POST /auth/otp/request::google">Configure request</button></div>
+                        <div class="workflow-card"><span class="step-number">3</span><div><strong>POST /auth/otp/verify</strong><p>Send phone, code and authMethod=google with the same Google bearer. Save the NEW response token. PATCH /auth/link-phone also supports this Google phone-link flow.</p></div><button class="btn" type="button" data-pick-api="POST /auth/otp/verify::google">Configure request</button></div>
+                        <div class="flow-note"><strong>Registration → student DOB → login</strong><p>Submit the full form with the OTP response token. Google signup can omit email/password; normal signup requires both. Students then save DOB through the separate Learner API; teachers and institutes complete without DOB. Follow nextScreen and parentalConsentPending. Saved DB details are available through onboarding. Autosave is enabled only after registration completes.</p><div class="guide-actions"><button class="btn" type="button" data-pick-api="POST /auth/register::google">Google register</button><button class="btn" type="button" data-pick-api="POST /auth/register">Normal register</button><button class="btn" type="button" data-pick-api="POST /auth/date-of-birth">Student DOB</button><button class="btn" type="button" data-pick-api="POST /auth/login">Email login</button><button class="btn" type="button" data-pick-api="GET /auth/onboarding">Saved details</button></div></div>
                         <div class="flow-note"><strong>Forgot password and email verification</strong><p>Request a reset code by email, then submit it with matching new passwords. Codes expire after 10 minutes and are never included in the API response. Keep the notifications worker running. After reset, log in again.</p><div class="guide-actions"><button class="btn" type="button" data-pick-api="POST /auth/forgot-password">Forgot password</button><button class="btn" type="button" data-pick-api="POST /auth/reset-password">Reset password</button><button class="btn" type="button" data-pick-api="POST /auth/email/verification/request">Request email verification</button><button class="btn" type="button" data-pick-api="POST /auth/email/verification/verify">Verify email</button></div></div>
-                        <div class="flow-note"><strong>Alternative:</strong> phone OTP is for registration verification. Returning users log in with email/password. Request and verify the code, then submit the full registration form with the response token. Do not use OTP verify to link a phone to a Google account.<div class="guide-actions"><button class="btn" type="button" data-pick-api="POST /auth/otp/request">1 · Request OTP</button><button class="btn" type="button" data-pick-api="POST /auth/otp/verify">2 · Verify OTP</button></div></div>
+                        <div class="flow-note"><strong>Normal signup:</strong> send authMethod=phone_otp for OTP request and verify. These examples omit Authorization even when a bearer is present in the workbench. Save the OTP verification response token for Register. Incomplete registration can resume; completed accounts use email/password login, or Google sign-in for Google accounts.<div class="guide-actions"><button class="btn" type="button" data-pick-api="POST /auth/otp/request">1 · Request OTP</button><button class="btn" type="button" data-pick-api="POST /auth/otp/verify">2 · Verify OTP</button></div></div>
                     </div>
                 </div>
             </section>
@@ -105,7 +105,7 @@
             <section class="tab" id="realtime" aria-label="WebSocket setup">
                 @include('developer.chat-tester')
                 <div class="panel">
-                    <div class="panel-head"><div><h2>Chat and WebSockets</h2><p>Use Socket.IO 4 for live chat; Laravel validates and saves messages.</p></div><span class="category-badge">Chat and realtime</span></div>
+                    <div class="panel-head"><div><h2>Chat and WebSockets</h2><p>Use Socket.IO 4 for live chat; Laravel validates and saves messages.</p></div><span class="category-badge">Common</span></div>
                     <div class="panel-body guide-grid">
                         <article class="guide-card"><h3>1 · Configure Socket.IO</h3><p>Set the Socket.IO server URLs, shared secret and allowed origins in project configuration. Keep the secret server-side.</p><ul><li>Run <code>npm run chat:start</code>.</li><li>Run <code>php artisan queue:work --queue=broadcasts --sleep=1 --tries=3 --timeout=30</code>.</li><li>Restart Node and queue workers after changing settings.</li></ul><button class="btn" type="button" data-tab="configuration">Open configuration</button></article>
                         <article class="guide-card"><h3>2 · Authenticate private channels</h3><p>Connect using auth.token with the Laravel bearer. Use conversation.join with conversationId; the Socket.IO server checks membership through Laravel.</p><p><code>private-conversation.{conversationId}</code></p><button class="btn" type="button" data-pick-api="POST /chat/socket/authorize">Test room auth</button></article>
@@ -117,7 +117,7 @@
             <section class="tab" id="api-explorer" aria-label="API explorer">
                 <div class="explorer">
                     <section class="panel endpoint-panel" aria-label="Registered API endpoints">
-                        <div class="panel-head"><div><h2>API catalog</h2><p>{{ count($catalog) }} registered routes</p></div></div>
+                        <div class="panel-head"><div><h2>API catalog</h2><p>{{ $routeCount }} registered routes · {{ count($catalog) }} request examples</p></div></div>
                         <div class="endpoint-tools">
                             <input class="control" id="endpoint-search" type="search" placeholder="Search paths, methods…" aria-label="Search API endpoints">
                             <select class="control" id="category-filter" aria-label="Filter by category"><option value="">All categories</option></select>
@@ -234,7 +234,7 @@
     let currentId = null;
 
     const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-    const categories = [...new Set(apis.map((api) => api.category))];
+    const categories = @js($categories);
     categories.forEach((category) => {
         const option = document.createElement('option');
         option.value = category;
@@ -246,22 +246,31 @@
         const term = search.value.trim().toLowerCase();
         const category = categoryFilter.value;
         const visible = apis.filter((api) => (!category || api.category === category)
-            && (!term || `${api.method} ${api.path} ${api.category} ${api.access}`.toLowerCase().includes(term)));
+            && (!term || `${api.method} ${api.path} ${api.category} ${api.section} ${api.label} ${api.access}`.toLowerCase().includes(term)));
         let currentCategory = null;
+        let currentSection = null;
         list.replaceChildren();
         visible.forEach((api) => {
             if (api.category !== currentCategory) {
                 currentCategory = api.category;
+                currentSection = null;
                 const heading = document.createElement('div');
                 heading.className = 'endpoint-category';
                 heading.textContent = currentCategory;
                 list.append(heading);
             }
+            if (['Teacher', 'Institute', 'Common'].includes(api.category) && api.section !== currentSection) {
+                currentSection = api.section;
+                const section = document.createElement('div');
+                section.className = 'endpoint-meta';
+                section.textContent = currentSection;
+                list.append(section);
+            }
             const button = document.createElement('button');
             button.type = 'button';
             button.className = `endpoint-item${api.id === currentId ? ' selected' : ''}`;
             button.dataset.endpoint = api.id;
-            button.innerHTML = `<span class="endpoint-line"><span class="method ${api.method.toLowerCase()}">${escapeHtml(api.method)}</span><span class="endpoint-path">${escapeHtml(api.path)}</span></span><span class="endpoint-meta">${escapeHtml(api.access)}</span>`;
+            button.innerHTML = `<span class="endpoint-line"><span class="method ${api.method.toLowerCase()}">${escapeHtml(api.method)}</span><span class="endpoint-path">${escapeHtml(api.path)}</span></span><span class="endpoint-meta">${escapeHtml([api.label, api.access].filter(Boolean).join(' · '))}</span>`;
             list.append(button);
         });
         if (visible.length === 0) {
@@ -307,7 +316,7 @@
         body.value = JSON.stringify(api.bodyExample ?? {}, null, 2);
         selectedCategory.textContent = api.category;
         selectedAccess.textContent = api.access;
-        description.textContent = `${api.action} · registered API route`;
+        description.textContent = `${api.label ? `${api.label} · ` : ''}${api.action} · registered API route`;
         endpointGuide.textContent = api.guide || '';
         endpointGuide.hidden = !api.guide;
         bodyField.hidden = ['GET', 'DELETE'].includes(api.method);
@@ -396,15 +405,31 @@
         if (!['GET', 'DELETE'].includes(method.value) && !requestHeaders.has('Content-Type')) {
             requestHeaders.set('Content-Type', 'application/json');
         }
-        if (token.value.trim()) requestHeaders.set('Authorization', `Bearer ${token.value.trim()}`);
-
         let requestBody;
+        let parsedBody;
         if (!['GET', 'DELETE'].includes(method.value) && body.value.trim()) {
             try {
-                JSON.parse(body.value);
+                parsedBody = JSON.parse(body.value);
                 requestBody = body.value;
             } catch {
                 showResponse('The request body must be valid JSON.', 'Invalid JSON body', null, '');
+                return;
+            }
+        }
+
+        const selectedApi = currentApi?.path === requestPath && currentApi?.method === method.value
+            ? currentApi
+            : apis.find((api) => api.path === requestPath && api.method === method.value);
+        let authMode = selectedApi?.authMode ?? 'optional';
+        if (method.value === 'POST' && ['/auth/otp/request', '/auth/otp/verify'].includes(requestPath)) {
+            authMode = parsedBody?.authMethod === 'google' ? 'bearer' : 'none';
+        }
+        if (authMode === 'none') {
+            requestHeaders.delete('Authorization');
+        } else {
+            if (token.value.trim()) requestHeaders.set('Authorization', `Bearer ${token.value.trim()}`);
+            if (authMode === 'bearer' && !requestHeaders.has('Authorization')) {
+                showResponse('This request requires an API bearer token. Google OTP requires the Google sign-in response token.', 'Token required', null, '');
                 return;
             }
         }
