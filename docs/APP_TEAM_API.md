@@ -139,12 +139,18 @@ phone identity. If Google returns `phoneVerificationRequired:false`, skip linkin
 | `primarySubjectId` | Required for teacher; existing numeric subject ID from `/subjects`. |
 | `contactPerson` | Required for institute; max 160. |
 
+For accounts linked to Google, `email` and `password` are optional when creating
+the account (`POST /auth/register` or `/auth/onboarding/complete`). Omit them to
+keep the verified Google email and continue without setting a password. Supplied
+values still undergo validation. Mobile verification and the other required
+registration fields still apply. Regular signup requires email and password.
+
 Do not send `phone`, `phoneVerifiedAt` or `mobileVerified` in this form.
 The bearer identity supplies the verified phone. Keep form state on the device
 until Register is pressed; autosave starts only after successful registration.
 For a registered phone, restore onboarding and continue instead of registering
 again (`409`). Missing verification returns `403` with
-`code:"OTP_VERIFICATION_REQUIRED"`; an invalid registration bearer returns `401`.
+`code:"OTP_VERIFICATION_REQUIRED"`; an invalid registration bearer returns `403`.
 
 Teacher example; use `accountType:"student"` and omit `city`/`primarySubjectId`
 for a student. For an institute use `accountType:"institute"`, institute name,
@@ -576,8 +582,8 @@ has the same wrapper.
 | Status | Client handling |
 |---|---|
 | `400` | Invalid business action, such as self-booking or disallowed age. |
-| `401` | Missing/invalid/expired bearer or bad login credentials; return to sign-in as appropriate. |
-| `403` | Phone verification, suspension, consent, safety or ownership requirement. Inspect action fields; missing-token registration specifically uses `403`. |
+| `401` | Missing bearer or bad login credentials; return to sign-in as appropriate. |
+| `403` | Invalid/expired bearer (`Invalid or expired token`: sign in again), phone verification, suspension, consent, safety or ownership requirement. Inspect action fields; missing-token registration specifically uses `403`. |
 | `404` | Missing record, invalid route ID/type, or inaccessible conversation/booking. |
 | `409` | Already registered, account-link conflict, autosave before registration, or referral conflict. |
 | `422` | Show field validation errors; no automatic retry with unchanged input. |

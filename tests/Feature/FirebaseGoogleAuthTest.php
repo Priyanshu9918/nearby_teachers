@@ -62,7 +62,14 @@ class FirebaseGoogleAuthTest extends TestCase
         $otp = $this->lastOtp;
         $this->patchJson('/auth/link-phone', ['phone' => $phone, 'code' => $otp], $bearer)->assertOk()
             ->assertJsonPath('nextScreen', 'onboarding')->assertJsonPath('phoneVerificationRequired', false);
-        $this->postJson('/auth/register', $this->form(), $bearer)->assertOk()->assertJsonPath('nextScreen', 'age_verification');
+        $form = $this->form();
+        unset($form['email'], $form['password']);
+        $this->postJson('/auth/register', $form, $bearer)->assertOk()
+            ->assertJsonPath('nextScreen', 'age_verification')->assertJsonPath('draft.passwordSet', false)
+            ->assertJsonPath('draft.email', 'google@example.test')->assertJsonPath('missingFields', []);
+        $saved = DB::table('users')->where('id', $id)->first();
+        $this->assertNull($saved->password_hash);
+        $this->assertNotNull($saved->email_verified_at);
         $this->postJson('/auth/date-of-birth', ['dateOfBirth' => '2000-01-01'], $bearer)->assertOk();
         $this->getJson('/auth/session', $bearer)->assertOk()->assertJsonPath('nextScreen', 'home');
         $this->google()->assertOk()->assertJsonPath('user.id', $id)->assertJsonPath('nextScreen', 'home')->assertJsonPath('onboardingRequired', false);

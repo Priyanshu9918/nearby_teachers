@@ -405,6 +405,26 @@ class ExampleTest extends TestCase
             ->assertExactJson(['error' => 'Missing Authorization header']);
     }
 
+    public function test_expired_session_tokens_return_403_on_protected_routes(): void
+    {
+        $secret = 'test-secret-with-sufficient-entropy';
+        config(['services.nearby_teacher.jwt_secret' => $secret]);
+        $expired = JWT::encode([
+            'sub' => (string) Str::uuid(), 'iss' => 'nearby-teacher-auth',
+            'iat' => now()->subDays(31)->timestamp, 'exp' => now()->subDay()->timestamp, 'ver' => 0,
+        ], $secret, 'HS256');
+        Http::preventStrayRequests();
+        foreach (['/auth/session', '/auth/onboarding', '/messages'] as $endpoint) {
+            $this->withToken($expired)->getJson($endpoint)->assertForbidden()
+                ->assertExactJson(['error' => 'Invalid or expired token']);
+        }
+        $this->withToken($expired)->postJson('/chat/socket/authorize')->assertForbidden()
+            ->assertExactJson(['error' => 'Invalid or expired token']);
+        $this->withToken($expired)->postJson('/auth/register', [])->assertForbidden()
+            ->assertJsonPath('code', 'OTP_VERIFICATION_REQUIRED');
+        Http::assertNothingSent();
+    }
+
     public function test_supported_languages_keep_the_existing_mobile_response_shape(): void
     {
         $this->getJson('/i18n/languages')

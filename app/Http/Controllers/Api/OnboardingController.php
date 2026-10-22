@@ -53,7 +53,7 @@ class OnboardingController extends Controller
 
         DB::transaction(function () use ($request, $user): void {
             $saved = DB::table('users')->where('id', $user->id)->lockForUpdate()->first();
-            abort_if($saved === null, 401, 'Invalid or expired token');
+            abort_if($saved === null, 403, 'Invalid or expired token');
             if ($saved->profile_completed_at !== null) {
                 abort(response()->json([
                     'error' => 'Registration is already complete. Use PATCH /auth/onboarding to update your profile.',
@@ -61,7 +61,7 @@ class OnboardingController extends Controller
                 ], 409));
             }
 
-            $data = $this->validatedDraft($request, true);
+            $data = $this->validatedDraft($request, true, $saved);
             $accountType = $this->normalizeAccountType($data['accountType']);
             $errors = $this->completionErrors($saved, $data, $accountType);
             if ($errors !== []) {
@@ -79,12 +79,13 @@ class OnboardingController extends Controller
         return response()->json($payload);
     }
 
-    private function validatedDraft(Request $request, bool $completing): array
+    private function validatedDraft(Request $request, bool $completing, ?object $user = null): array
     {
+        $requiresCredentials = $completing && ! $this->hasGoogleIdentity($user);
         $rules = [
             'accountType' => [$completing ? 'required' : 'sometimes', 'in:student,learner,teacher,institute'],
             'fullName' => [$completing ? 'required' : 'sometimes', 'nullable', 'string', 'max:160'],
-            'email' => [$completing ? 'required' : 'sometimes', 'nullable', 'email', 'max:255'],
+            'email' => [$requiresCredentials ? 'required' : 'sometimes', 'nullable', 'email', 'max:255'],
             'password' => ['sometimes', 'nullable', 'string', 'min:8', 'max:72'],
             'phone' => ['prohibited'],
             'phoneVerifiedAt' => ['prohibited'],
@@ -97,7 +98,9 @@ class OnboardingController extends Controller
         ];
 
         if ($completing) {
-            $rules['password'] = ['required', 'string', 'min:8', 'max:72'];
+            if ($requiresCredentials) {
+                $rules['password'] = ['required', 'string', 'min:8', 'max:72'];
+            }
             $rules['city'] = ['required_if:accountType,teacher,institute', 'nullable', 'string', 'max:120'];
             $rules['primarySubjectId'] = ['required_if:accountType,teacher', 'nullable', 'integer', 'exists:subjects,id'];
             $rules['contactPerson'] = ['required_if:accountType,institute', 'nullable', 'string', 'max:160'];
@@ -113,7 +116,7 @@ class OnboardingController extends Controller
         $now = now();
         DB::transaction(function () use ($user, $data, $completing, $now): void {
             $user = DB::table('users')->where('id', $user->id)->lockForUpdate()->first();
-            abort_if($user === null, 401, 'Invalid or expired token');
+            abort_if($user === null, 403, 'Invalid or expired token');
             $accountType = $this->normalizeAccountType($data['accountType'] ?? $user->account_type);
             $userUpdates = [
                 'account_type' => $accountType,
@@ -206,12 +209,12 @@ class OnboardingController extends Controller
         }
 
         $email = $data['email'] ?? $user->email;
-        if (! is_string($email) || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+        if (! $this->hasGoogleIdentity($user) && (! is_string($email) || filter_var($email, FILTER_VALIDATE_EMAIL) === false)) {
             $errors['email'] = 'Enter a valid email address.';
         }
 
         $passwordSet = ! empty($data['password']) || (bool) ($user->password_set ?? filled($user->password_hash ?? null));
-        if (! $passwordSet) {
+        if (! $this->hasGoogleIdentity($user) && ! $passwordSet) {
             $errors['password'] = 'Set a password for next time.';
         }
 
@@ -245,7 +248,7 @@ class OnboardingController extends Controller
     private function payload(?object $user): array
     {
         if ($user === null) {
-            abort(401, 'Invalid or expired token');
+            abort(403, 'Invalid or expired token');
         }
 
         $user = clone $user;
@@ -309,10 +312,10 @@ class OnboardingController extends Controller
         if ($name === '' || strcasecmp($name, 'New user') === 0) {
             $missing[] = 'fullName';
         }
-        if (! is_string($draft['email']) || $draft['email'] === '') {
+        if (! $this->hasGoogleIdentity($user) && (! is_string($draft['email']) || $draft['email'] === '')) {
             $missing[] = 'email';
         }
-        if ($draft['passwordSet'] !== true) {
+        if (! $this->hasGoogleIdentity($user) && $draft['passwordSet'] !== true) {
             $missing[] = 'password';
         }
         if ($draft['termsAccepted'] !== true) {
@@ -342,6 +345,11 @@ class OnboardingController extends Controller
         }
 
         return $missing;
+    }
+
+    private function hasGoogleIdentity(?object $user): bool
+    {
+        return filled($user->google_id ?? null);
     }
 
     private function mobileNotVerifiedResponse(): JsonResponse

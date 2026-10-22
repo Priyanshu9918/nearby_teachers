@@ -139,6 +139,12 @@ Use the verified bearer token. Do not send a `phone` or `mobileVerified` field;
 the server uses the phone verified for that token. Selecting Student, Teacher
 or Institute before this request only changes frontend state.
 
+For accounts linked to Google, `email` and `password` are optional when creating
+the account (`POST /auth/register` or `/auth/onboarding/complete`). Omit them to
+keep the verified Google email and continue without setting a password. Supplied
+values still undergo validation. Mobile verification and the other required
+registration fields still apply. Regular signup requires email and password.
+
 Student:
 
 ```bash
@@ -232,8 +238,8 @@ See [EMAIL_AUTH.md](EMAIL_AUTH.md) for password recovery and email verification.
 
 | Status | Meaning |
 |---|---|
-| 401 | Missing or invalid bearer token |
-| 403 | Phone not verified, or suspended account |
+| 401 | Missing bearer token |
+| 403 | Invalid/expired bearer token, phone not verified, or suspended account |
 | 409 | Autosave requested before registration, or registration already complete |
 | 422 | Invalid/missing fields, duplicate email, incorrect/expired/consumed OTP |
 | 429 | OTP or endpoint request limit exceeded |
@@ -258,7 +264,7 @@ The response also includes `error` with the same text. Show `message` below
 the mobile input and enable Send OTP. Both OTP endpoints are public; neither
 needs a bearer token. After Verify OTP succeeds on this same page, retain
 its response `token` and include it automatically on Register. An invalid
-token returns HTTP 401 with the same `OTP_VERIFICATION_REQUIRED` code. For
+token returns HTTP 403 with the same `OTP_VERIFICATION_REQUIRED` code. For
 an authenticated account whose phone is unverified (such as Google sign-in),
 `verifyPhoneEndpoint` is `/auth/link-phone` to preserve that account.
 

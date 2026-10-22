@@ -46,7 +46,7 @@ class OnboardingProfileTest extends TestCase
         $this->app->instance(AuthenticationService::class, $authentication);
 
         $this->postJson('/auth/register', ['accountType' => 'student'], ['Authorization' => 'Bearer invalid-token'])
-            ->assertUnauthorized()->assertJsonPath('code', 'OTP_VERIFICATION_REQUIRED')
+            ->assertForbidden()->assertJsonPath('code', 'OTP_VERIFICATION_REQUIRED')
             ->assertJsonPath('verifyPhoneEndpoint', '/auth/otp/verify');
     }
 
@@ -139,6 +139,49 @@ class OnboardingProfileTest extends TestCase
         $this->postJson('/auth/onboarding/complete', [], ['Authorization' => 'Bearer onboarding-token'])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['accountType', 'fullName', 'email', 'password', 'termsAccepted', 'acknowledgeTeachersNotBackgroundChecked']);
+    }
+
+    public function test_google_onboarding_does_not_report_email_or_password_as_missing(): void
+    {
+        $this->bindUser((object) [
+            'id' => (string) Str::uuid(), 'account_type' => 'learner',
+            'google_id' => 'verified-google-user', 'full_name' => 'Google User',
+            'email' => 'google@example.test', 'phone' => '+918112912880',
+            'phone_verified_at' => now(), 'password_set' => false,
+            'terms_accepted_at' => now(), 'safety_disclaimer_acknowledged_at' => now(),
+            'profile_completed_at' => null, 'suspended_at' => null, 'is_admin' => false,
+        ]);
+
+        $this->getJson('/auth/onboarding', ['Authorization' => 'Bearer onboarding-token'])
+            ->assertOk()->assertJsonPath('canSubmit', true)
+            ->assertJsonPath('missingFields', [])->assertJsonPath('draft.passwordSet', false);
+    }
+
+    public function test_google_registration_validates_profile_without_requiring_credentials(): void
+    {
+        $user = (object) [
+            'id' => (string) Str::uuid(), 'google_id' => 'verified-google-user',
+            'phone_verified_at' => now(), 'profile_completed_at' => null,
+            'suspended_at' => null, 'is_admin' => false,
+        ];
+        $this->bindUser($user);
+        $this->app['auth']->guard();
+        DB::shouldReceive('transaction')->twice()->andReturnUsing(fn ($callback) => $callback());
+        $query = \Mockery::mock(Builder::class);
+        DB::shouldReceive('table')->with('users')->twice()->andReturn($query);
+        $query->shouldReceive('where')->with('id', $user->id)->twice()->andReturnSelf();
+        $query->shouldReceive('lockForUpdate')->twice()->andReturnSelf();
+        $query->shouldReceive('first')->twice()->andReturn($user);
+        $activity = \Mockery::mock(Builder::class);
+        DB::shouldReceive('table')->with('auth_activity')->twice()->andReturn($activity);
+        $activity->shouldReceive('insert')->twice()->andReturn(true);
+
+        $this->postJson('/auth/register', [], ['Authorization' => 'Bearer onboarding-token'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['accountType', 'fullName', 'termsAccepted', 'acknowledgeTeachersNotBackgroundChecked'])
+            ->assertJsonMissingValidationErrors(['email', 'password']);
+        $this->postJson('/auth/onboarding/complete', ['email' => 'invalid', 'password' => 'short'], ['Authorization' => 'Bearer onboarding-token'])
+            ->assertUnprocessable()->assertJsonValidationErrors(['email', 'password']);
     }
 
     public function test_password_login_validates_identifier_and_password(): void

@@ -30,10 +30,10 @@ class RequireApiAuthentication
 
         if ($user === null) {
             if ($registering) {
-                return $this->registrationOtpRequired(status: 401);
+                return $this->registrationOtpRequired(status: 403);
             }
 
-            return new JsonResponse(['error' => 'Invalid or expired token'], 401);
+            return new JsonResponse(['error' => 'Invalid or expired token'], 403);
         }
 
         if ($user->suspended_at !== null) {

@@ -22,8 +22,9 @@ Returning registered users resume from saved phone/profile/age/consent state.
 
 Normal signup remains Laravel email/password plus SMS OTP. It does not require
 a Firebase password account or Firebase's Email/Password provider. The common
-form currently requires an app password for both paths. Making Google profile
-completion passwordless would be a separate product change.
+form allows Google-linked users to omit email and password during account
+creation. The verified Google email is preserved when omitted; no app password
+is required. All other registration and phone verification requirements apply.
 
 ## Firebase and app-team responsibilities
 

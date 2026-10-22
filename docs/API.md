@@ -184,6 +184,12 @@ Passwords are hashed and never returned. Successful registration returns
 `autosaveEnabled: true`. Students continue to `POST /auth/date-of-birth`;
 teachers/institutes receive `nextStep: "home"`.
 
+For accounts linked to Google, `email` and `password` are optional when creating
+the account (`POST /auth/register` or `/auth/onboarding/complete`). Omit them to
+keep the verified Google email and continue without setting a password. Supplied
+values still undergo validation. Mobile verification and the other required
+registration fields still apply. Regular signup requires email and password.
+
 After registration, `PATCH /auth/onboarding` accepts partial profile changes.
 Omitted fields are preserved; null clears text fields; an empty password
 leaves the existing password unchanged. Teacher/institute city, contact and
@@ -411,7 +417,8 @@ admin portal's `ADMIN_EMAIL`/`ADMIN_PASSWORD_HASH` login.
 
 ## Errors and operational requirements
 
-- `401`: missing or invalid/expired bearer token.
+- `401`: missing bearer token or incorrect login credentials.
+- `403`: invalid/expired session token (`Invalid or expired token`); sign in again.
 - `403`: phone verification, admin permission, safety acknowledgement, or
   guardian-consent requirement not satisfied; suspended account.
 - `404`: record not found or not accessible to the caller.
