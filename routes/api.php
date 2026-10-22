@@ -52,6 +52,7 @@ Route::middleware(AttachOptionalApiUser::class)
 
 Route::middleware(RequireApiAuthentication::class)->group(function () {
     Route::get('/auth/session', [AuthController::class, 'session']);
+    Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/auth/email/verification/request', [PasswordRecoveryController::class, 'requestVerification'])->middleware('throttle:email-code');
     Route::post('/auth/email/verification/verify', [PasswordRecoveryController::class, 'verifyEmail'])->middleware('throttle:20,1');
     Route::post('/auth/register', [OnboardingController::class, 'complete'])->middleware('throttle:10,1');

@@ -53,6 +53,7 @@ the code. See [dual-channel setup](OTP_DELIVERY.md).
 | `POST` | `/auth/otp/request` | Public | `phone` (string) | Registration phone verification: generates/sends an OTP; returns `ok`, `expiresInMinutes`. |
 | `POST` | `/auth/otp/verify` | Public | `phone`, `code` (6 digits) | Registration phone verification: verifies the code and returns `token`, `user`, `mobileVerified`. Up to 5 code attempts. |
 | `POST` | `/auth/login` | Public | `email`, `password` (phone prohibited) | Email-only password login. Registered accounts use this instead of mobile OTP. Returns `token`, `user`, `mobileVerified`. |
+| `POST` | `/auth/logout` | Bearer token | `{}` | Revokes all existing API sessions for this user; returns `{ok:true,message,loggedOutAllDevices:true}`. Available before mobile verification and for suspended users. |
 | `GET` | `/auth/session` | Bearer token | — | Returns the authenticated `user` and `mobileVerified`. Allowed before phone verification so Google users can complete linking. |
 | `GET` | `/auth/onboarding` | Bearer token | — | Welcome / complete-profile draft. Returns `mobileVerified`; `canSubmit` stays false until that tag is true. Allowed before phone verification so the client can show the verified-phone gate. |
 | `PATCH` | `/auth/onboarding` | Registered, verified bearer | Partial profile fields below | Autosave only after registration. Returns `409` before registration. |
@@ -67,6 +68,27 @@ the code. See [dual-channel setup](OTP_DELIVERY.md).
 | `POST` | `/auth/parental-consent/confirm` | Public, one-time token | `token` | Confirms guardian consent; returns `ok`, `confirmedFor`. |
 | `GET` | `/auth/safety-disclaimer` | Public | — | Returns the disclaimer text. |
 | `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging or booking. |
+
+### Logout
+
+`POST /auth/logout` requires the active bearer and no body fields. Returns
+`{"ok":true,"message":"Logged out successfully.","loggedOutAllDevices":true}`.
+This revokes all existing Laravel session/OTP tokens for this user by advancing
+`auth_version`, and rejects older Firebase authentication sessions. Another
+user's sessions are unaffected. Missing bearer returns `401`; invalid/revoked
+bearer returns `403`. Logout is available before mobile verification and even
+when suspended. Clear the app's saved bearer after success; Google clients
+should also sign out of Firebase locally and perform a fresh sign-in next time
+(the Firebase `auth_time` must be after the logout cutoff). Chat revocation is
+queued after commit; run the `broadcasts` queue worker for active Socket.IO
+connections. No new database migration is needed for logout. After deploying
+the route change, run `php artisan route:clear` (or rebuild the route cache).
+
+```bash
+curl -X POST "$API_BASE_URL/auth/logout" \
+  -H 'Accept: application/json' \
+  -H "Authorization: Bearer $TOKEN"
+```
 
 ### Email password recovery
 

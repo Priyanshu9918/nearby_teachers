@@ -67,6 +67,7 @@ Current event coverage starts when migration `000029` is deployed:
 |---|---|
 | `identity.phone_verified` | From 22 October 2026: verified flag before/after and phone-changed flag; no phone, OTP or token snapshot |
 | `identity.google_linked` | Previous/new link flag, local user ID; Firebase UID/email/token are not duplicated |
+| `auth.logged_out` | Previous/new auth version and `scope:all_sessions`; token revocation and history commit together |
 | `registration.completed` | Previous/new account type and completion timestamp |
 | `booking.created` | Initial status, lesson mode, requested time and price |
 | `booking.status_changed` | Previous/new status; repeated same-status requests add no change event |
@@ -99,6 +100,12 @@ and normal signup OTP verification have no dedicated phone event, so historical
 phone ownership cannot be fully reconstructed. The OTP row binds Google
 requests via `google_user_id` (migration `000031`); it stores no bearer. Tokens,
 OTP codes, full phones and Google IDs are never added to business history.
+Successful API logout records version-1 `auth.logged_out` in the same transaction
+as auth-version/cutoff updates. Rejected and rolled-back logout attempts do not
+produce this event. No bearer, Firebase UID, password or request snapshot is
+recorded. Active chat revocation is queued after commit. This event describes
+API session revocation, not a Google-provider logout or a historical online
+presence signal. Rejected logout attempts are not included in `auth_activity`.
 Admin edits/deletes, moderation, support transitions and uninstrumented paths
 need explicit events if historical questions about those actions are required.
 

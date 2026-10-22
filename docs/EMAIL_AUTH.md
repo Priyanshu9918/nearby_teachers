@@ -5,6 +5,18 @@ during registration; an already registered account receives `409` with
 `loginRequired: true` when attempting to sign in through mobile OTP.
 Google sign-in remains available.
 
+## Logout
+
+`POST /auth/logout` accepts the active bearer and no required body fields. It
+returns `{ok:true,message:"Logged out successfully.",loggedOutAllDevices:true}`.
+All existing Laravel tokens for the user are revoked, and older Firebase
+sessions require fresh Google authentication. Clear the token in the client;
+Google clients should also sign out of Firebase locally. Password login can
+issue a new valid token immediately. Existing chat sessions are revoked after
+commit through `RevokeChatSessions` on the `broadcasts` queue. Logout also works
+before mobile verification and for suspended users. Existing auth-version and
+Firebase-cutoff columns are reused; no new migration is needed.
+
 ## SMTP and workers
 
 This workspace's `.env` has the supplied Gmail SMTP settings, with STARTTLS

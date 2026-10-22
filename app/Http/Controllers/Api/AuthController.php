@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\RevokeChatSessions;
 use App\Jobs\SendNotificationEmail;
 use App\Reporting\BusinessActivityRecorder;
 use App\Services\AuthenticationService;
@@ -214,6 +215,32 @@ class AuthController extends Controller
             'user' => $user,
             'authMethod' => 'google',
             ...app(OnboardingState::class)->forUser($user),
+        ]);
+    }
+
+    public function logout(Request $request): JsonResponse
+    {
+        $user = $request->attributes->get('authenticated_user');
+        DB::transaction(function () use ($user): void {
+            $saved = DB::table('users')->where('id', $user->id)->lockForUpdate()->first();
+            abort_if($saved === null || (int) $saved->auth_version !== (int) $user->auth_version,
+                403, 'Invalid or expired token');
+            $version = (int) $saved->auth_version + 1;
+            DB::table('users')->where('id', $saved->id)->update([
+                'auth_version' => $version,
+                'auth_tokens_invalid_before' => now(),
+                'updated_at' => now(),
+            ]);
+            app(BusinessActivityRecorder::class)->record('auth.logged_out', $saved->id, $saved->id,
+                before: ['auth_version' => (int) $saved->auth_version],
+                after: ['auth_version' => $version, 'scope' => 'all_sessions']);
+            RevokeChatSessions::dispatch($saved->id, $version);
+        });
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Logged out successfully.',
+            'loggedOutAllDevices' => true,
         ]);
     }
 

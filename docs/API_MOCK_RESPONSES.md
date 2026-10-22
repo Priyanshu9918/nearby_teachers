@@ -330,6 +330,25 @@ Mock — 401 Incorrect email or password. (`Content-Type: application/json`)
 }
 ```
 
+### POST /auth/logout
+
+Send the active bearer; no request body is required. Successful logout revokes
+all existing API tokens for this user, including Google and OTP sessions.
+
+Mock — 200 Logout (`Content-Type: application/json`)
+
+```json
+{
+  "ok": true,
+  "message": "Logged out successfully.",
+  "loggedOutAllDevices": true
+}
+```
+
+Missing bearer returns `401` with `{"error":"Missing Authorization header"}`.
+An invalid/revoked bearer returns `403` with
+`{"error":"Invalid or expired token"}`.
+
 ### GET /auth/session
 
 Mock — 200 Current session (`Content-Type: application/json`)

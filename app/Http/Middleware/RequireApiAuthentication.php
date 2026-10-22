@@ -36,7 +36,7 @@ class RequireApiAuthentication
             return new JsonResponse(['error' => 'Invalid or expired token'], 403);
         }
 
-        if ($user->suspended_at !== null) {
+        if ($user->suspended_at !== null && ! $request->is('auth/logout')) {
             return new JsonResponse(array_filter([
                 'error' => 'This account has been suspended.',
                 'suspended' => true,
@@ -52,7 +52,7 @@ class RequireApiAuthentication
 
         if (! $user->is_admin
             && $user->phone_verified_at === null
-            && ! $request->is('auth/session', 'auth/link-phone')
+            && ! $request->is('auth/session', 'auth/link-phone', 'auth/logout')
             && ! $onboardingDraft) {
             return new JsonResponse([
                 'error' => 'Verify your phone number before using the app.',

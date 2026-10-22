@@ -11,6 +11,7 @@ final class BusinessActivityRecorder
 {
     // Each event explicitly owns its snapshot contract. No raw request/user arrays.
     private const EVENTS = [
+        'auth.logged_out' => ['user', ['auth_version', 'scope']],
         'registration.completed' => ['user', ['account_type', 'profile_completed_at']],
         'identity.phone_verified' => ['user', ['verified', 'phone_changed']],
         'identity.google_linked' => ['user', ['linked']],

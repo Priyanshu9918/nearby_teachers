@@ -94,6 +94,7 @@ listing coordinates; other-city search requires `online` in `lessonModes`.
 | `POST /auth/google` | Public | `firebaseIdToken` | Laravel token, user and common routing fields (`nextScreen`, `nextStep`, completion/phone flags); requires a verified Google email. |
 | `PATCH /auth/link-phone` | Bearer | `phone`, `code` | `{token,user,authMethod,mobileVerified:true}` for Google; a phone linked to another account returns `409`. |
 | `POST /auth/login` | Public | `email`, `password` | Laravel token, user and common screen-routing fields; phone login body field is prohibited. |
+| `POST /auth/logout` | Bearer, including unverified/suspended | `{}` | `{ok:true,message,loggedOutAllDevices:true}`; invalidates all existing API sessions for this user. |
 | `GET /auth/session` | Bearer | — | User and common screen-routing fields; use this to resume after app restart. |
 | `GET /auth/onboarding` | Bearer | — | Onboarding payload below. |
 | `POST /auth/register` | Verified | Full registration form below | Onboarding payload plus `nextStepEndpoint`; saves once. |
@@ -120,6 +121,19 @@ Example OTP verification response (user fields abbreviated):
   }
 }
 ```
+
+### Logout
+
+Call `POST /auth/logout` with the active bearer. Success returns
+`{"ok":true,"message":"Logged out successfully.","loggedOutAllDevices":true}`.
+Clear the stored token and show login. This logs out all API sessions for the
+user; old Google sign-in and OTP-verification tokens are both rejected. It is
+available before phone verification and for suspended users. Reusing the bearer
+returns `403`; no bearer returns `401`. For Google, also sign out of Firebase
+on the device and perform fresh Google authentication on the next login;
+refreshing a token from a pre-logout Firebase session does not restore access.
+Chat sessions are revoked through the existing job after the database commit.
+After deploying the new route, run `php artisan route:clear` or rebuild routes.
 
 ### OTP tokens by signup path
 
