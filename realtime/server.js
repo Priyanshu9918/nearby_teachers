@@ -15,6 +15,8 @@ function createChatServer(config) {
   if (!['http:', 'https:'].includes(apiUrl.protocol) || apiUrl.username || apiUrl.password) {
     throw new Error('Invalid SOCKET_IO_LARAVEL_URL.');
   }
+  // Keep the application prefix when Laravel is hosted in a subdirectory.
+  apiUrl.pathname = apiUrl.pathname.replace(/\/$/, '') + '/';
   const origins = new Set(config.origins || []);
   const secretHash = createHash('sha256').update(config.secret).digest();
   let io;
@@ -113,7 +115,7 @@ function createChatServer(config) {
   });
 
   async function laravel(token, path, body) {
-    const response = await fetch(new URL(path, apiUrl), {
+    const response = await fetch(new URL(path.replace(/^\//, ''), apiUrl), {
       method: 'POST',
       headers: { Authorization: 'Bearer ' + token, Accept: 'application/json', 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

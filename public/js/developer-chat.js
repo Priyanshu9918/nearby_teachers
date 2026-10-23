@@ -222,8 +222,11 @@
         return value;
     }
     function options() {
-        const endpoint = new URL(field('url').value.trim());
-        if (!['http:', 'https:'].includes(endpoint.protocol) || endpoint.username || endpoint.password || endpoint.pathname !== '/' || endpoint.search || endpoint.hash) throw new Error('Enter only an http(s) origin; set the Socket.IO path separately.');
+        let endpoint;
+        try { endpoint = new URL(field('url').value.trim()); }
+        catch { throw new Error('Enter a full Socket.IO origin, for example ' + window.location.origin + '.'); }
+        if (!['http:', 'https:'].includes(endpoint.protocol) || endpoint.username || endpoint.password || endpoint.search || endpoint.hash) throw new Error('Enter only an http(s) origin; set the Socket.IO path separately.');
+        if (endpoint.pathname !== '/') throw new Error('Remove the application path from Socket server URL. Use ' + endpoint.origin + ' and put the WebSocket proxy path in Socket path (usually /socket.io/).');
         if (window.location.protocol === 'https:' && endpoint.protocol !== 'https:') throw new Error('Use an HTTPS Socket.IO endpoint from this HTTPS page.');
         const path = field('path').value.trim();
         if (!path.startsWith('/') || path.startsWith('//') || /[\\?#\s]/.test(path)) throw new Error('Enter a Socket.IO path such as /socket.io/.');
@@ -251,7 +254,12 @@
             aborted(signal);
             result(`${operations[key][0]} · HTTP ${response.status}`, data, false, key);
             log('← HTTP ' + response.status + ' ' + key, data);
-            if (!response.ok || (key === 'health' && data.ok !== true)) throw new Error(`HTTP ${response.status}: ${data.error || data.message || data.note || 'Request rejected'}`);
+            if (!response.ok || (key === 'health' && data.ok !== true)) {
+                const error = new Error(`HTTP ${response.status}: ${data.error || data.message || data.note || 'Request rejected'}`);
+                error.responseData = data;
+                error.httpStatus = response.status;
+                throw error;
+            }
             return data;
         } finally { clearTimeout(timer); signal?.removeEventListener('abort', cancel); }
     }
@@ -391,7 +399,10 @@
             default: return emit(key, {conversationId: conversationId(), ...(key === 'send' ? {body: messageBody()} : {})}, signal);
         }
     }
-    function fail(error, key = selectedOperation) { log('error', {error: error.message}); result('Error', {error: error.message}, false, key); }
+    function fail(error, key = selectedOperation) {
+        log('error', {error: error.message});
+        result(error.httpStatus ? `HTTP ${error.httpStatus}` : 'Error', error.responseData ?? {error: error.message}, false, key);
+    }
     async function manual(key) {
         if (running || manualBusy) return;
         manualBusy = true; selectOperation(key); refresh();

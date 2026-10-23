@@ -101,13 +101,22 @@ class DeveloperController extends Controller
             $response = Http::acceptJson()->connectTimeout(2)->timeout(4)
                 ->withoutRedirecting()->get($url.'/health');
             $ready = $response->successful() && $response->json('ok') === true;
+            $status = $ready ? 'ready' : 'not_ready';
         } catch (ConnectionException) {
             $ready = false;
+            $status = 'unreachable';
         }
 
         return response()->json(['ok' => $ready, 'service' => 'Socket.IO',
+            'status' => $status,
             'note' => $ready ? 'Configured chat server is ready. Test the public connection separately.'
-                : 'Configured chat server is unavailable or not ready. Check the Node service and Redis if configured.',
+                : ($status === 'unreachable' ? 'Laravel cannot reach the chat service. Changing the browser Socket URL will not fix this server health check.'
+                    : 'The chat service responded but is not ready.'),
+            'next_steps' => $ready ? ['Connect using the public Socket.IO origin and path.'] : [
+                'Check that Node.js is installed and the chat service is running.',
+                'Check the internal service URL and Redis connectivity if Redis is configured.',
+                'Once this check passes, verify the public WebSocket proxy and browser connection.',
+            ],
         ], $ready ? 200 : 503)->header('Cache-Control', 'no-store');
     }
 
