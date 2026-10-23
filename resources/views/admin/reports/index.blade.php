@@ -7,7 +7,7 @@
 @if ($report === 'logins')<div class="flash">Tracking begins when this feature is deployed. OTP verification is separate from login. Validation/throttle rejections before the controller are not logged. These are authentication events, not a list of currently online users.</div>@endif
 @if ($report === 'activity')<div class="flash">History begins when tracking is enabled. Includes completed registration, booking creation/status changes and message creation metadata. Message text remains in conversation history. Other actions appear when their tracking is added.</div>@endif
 @include('admin.reports.filters')
-<section class="panel"><div class="table-wrap"><table class="data-table"><thead><tr><th>Details</th>@foreach ($columns as $column)<th>{{ str_replace('_', ' ', $column) }}</th>@endforeach</tr></thead><tbody>
+<section class="panel"><p class="table-hint">Scroll horizontally to view all columns. IDs are shown in full.</p><div class="table-wrap" tabindex="0" role="region" aria-label="{{ $title }} records"><table class="data-table"><thead><tr><th>Details</th>@foreach ($columns as $column)<th>{{ str_replace('_', ' ', $column) }}</th>@endforeach</tr></thead><tbody>
 @forelse ($records as $record)
     <tr><td>
         @if ($report === 'users')<a class="btn btn-small" href="{{ route('admin.reports.user', $record->id) }}">User report</a>
@@ -17,11 +17,7 @@
     </td>
     @foreach ($columns as $column)
         @php($value = $record->$column ?? null)
-        <td style="max-width:360px;white-space:normal;overflow-wrap:anywhere">
-        @if ($value !== null && in_array($column, $userColumns, true))<a href="{{ route('admin.reports.user', $value) }}">{{ $value }}</a>
-        @elseif (is_string($value) && mb_strlen($value) > 160)<details><summary>{{ \Illuminate\Support\Str::limit($value, 120) }}</summary><div style="white-space:pre-wrap">{{ $value }}</div></details>
-        @else {{ $value === null ? '—' : $value }} @endif
-        </td>
+        <x-admin-table-cell :column="$column" :value="$value" :user-link="in_array($column, $userColumns, true)" />
     @endforeach</tr>
 @empty <tr><td colspan="{{ count($columns) + 1 }}" class="empty-state">No matching records.</td></tr> @endforelse
 </tbody></table></div>@include('admin.reports.pagination', ['page' => $records])</section>

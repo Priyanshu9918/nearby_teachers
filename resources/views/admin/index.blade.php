@@ -20,7 +20,7 @@
         default => [],
     };
     $routeSection = $section;
-    $count = is_countable($records ?? null) ? count($records) : null;
+    $count = $records->total();
     $isEditing = $editing !== null;
     $formAction = $isEditing
         ? route('admin.update', ['section' => $routeSection, 'id' => $editing->id])
@@ -109,7 +109,7 @@
             <div><h2 id="records-heading">All {{ strtolower($label) }}</h2><p>Review and update existing records.</p></div>
         </div>
         @if (count($records))
-            <div class="table-wrap">
+            <div class="table-wrap" tabindex="0" role="region" aria-label="{{ $label }} records">
                 <table class="data-table">
                     <thead><tr>
                         @foreach ($columns as $column)<th scope="col">{{ str_replace('_', ' ', ucfirst($column)) }}</th>@endforeach
@@ -119,17 +119,11 @@
                     @foreach ($records as $record)
                         <tr>
                             @foreach ($columns as $column)
-                                <td>
-                                    @if ($column === 'is_bsl')
-                                        @if ($record->$column)<span class="badge">BSL</span>@else<span>—</span>@endif
-                                    @elseif ($column === 'name' || $column === 'full_name')
-                                        <span class="record-name">{{ $record->$column ?: '—' }}</span>
-                                    @elseif ($column === 'created_at')
-                                        {{ $record->$column ? \Illuminate\Support\Carbon::parse($record->$column)->format('M j, Y') : '—' }}
-                                    @else
-                                        {{ \Illuminate\Support\Str::limit((string) ($record->$column ?? '—'), 70) }}
-                                    @endif
-                                </td>
+                                @if ($column === 'is_bsl')
+                                    <td>@if ($record->$column)<span class="badge">BSL</span>@else<span>—</span>@endif</td>
+                                @else
+                                    <x-admin-table-cell :column="$column" :value="$column === 'created_at' && $record->$column ? \Illuminate\Support\Carbon::parse($record->$column)->format('M j, Y') : ($record->$column ?? null)" />
+                                @endif
                             @endforeach
                             <td>
                                 <div class="table-actions">
@@ -147,7 +141,12 @@
                 </table>
             </div>
         @else
+            @if ($records->total() > 0)
+                <div class="empty-state"><strong>No records on this page.</strong><p><a href="{{ $records->url(1) }}">Return to the first page</a></p></div>
+            @else
             <div class="empty-state"><div class="empty-icon" aria-hidden="true">◇</div><strong>No {{ strtolower($label) }} yet</strong><p>Use the form above to add your first record.</p></div>
+            @endif
         @endif
+        @include('admin.partials.pagination', ['page' => $records])
     </section>
 @endsection

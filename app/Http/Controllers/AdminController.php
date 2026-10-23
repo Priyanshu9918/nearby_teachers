@@ -208,6 +208,7 @@ class AdminController extends Controller
 
     private function renderSection(string $section, ?object $editing = null): View
     {
+        $pagination = request()->validate(['page' => ['sometimes', 'integer', 'min:1'], 'per_page' => ['sometimes', 'integer', Rule::in([15, 25, 30, 50, 100])]]);
         $domains = $section === 'subjects'
             ? DB::table('subject_domains')->select('id', 'name')->orderBy('sort_order')->orderBy('name')->get()
             : collect();
@@ -215,7 +216,7 @@ class AdminController extends Controller
         return view('admin.index', [
             'section' => $section,
             'title' => self::SECTIONS[$section],
-            'records' => $this->records($section)->orderBy($section === 'subjects' ? 'subjects.name' : 'users.full_name')->get(),
+            'records' => $this->records($section)->orderBy($section === 'subjects' ? 'subjects.name' : 'users.full_name')->orderBy($this->idColumn($section))->paginate((int) ($pagination['per_page'] ?? 25))->withQueryString(),
             'domains' => $domains,
             'editing' => $editing,
         ]);

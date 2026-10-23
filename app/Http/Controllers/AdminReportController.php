@@ -46,7 +46,7 @@ class AdminReportController extends Controller
         if ($request->boolean('export')) {
             return $this->exports->download($query, $columns, $report);
         }
-        $records = $query->paginate(30)->withQueryString();
+        $records = $query->paginate((int) ($filters['per_page'] ?? 30))->withQueryString();
         $title = $definition->title;
         $timestamp = $definition->timestamp;
         $userColumns = $definition->participants;
@@ -94,7 +94,7 @@ class AdminReportController extends Controller
         if ($request->boolean('export')) {
             return $this->exports->download($query, ['id', 'conversation_id', 'sender_id', 'sender_name', 'sender_type', 'body', 'created_at', 'read_at'], 'messages-'.$id);
         }
-        $messages = $query->paginate(50)->withQueryString();
+        $messages = $query->paginate((int) ($filters['per_page'] ?? 50))->withQueryString();
 
         return view('admin.reports.conversation', compact('conversation', 'messages', 'filters'));
     }

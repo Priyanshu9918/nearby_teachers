@@ -15,6 +15,7 @@ final class ReportFilters
             'type' => ['nullable', 'in:learner,teacher,institute'],
             'from' => ['nullable', 'date_format:Y-m-d'],
             'to' => array_filter(['nullable', 'date_format:Y-m-d', $request->filled('from') ? 'after_or_equal:from' : null]),
+            'per_page' => ['sometimes', 'integer', 'in:15,25,30,50,100'],
             'export' => ['sometimes', 'boolean'], 'page' => ['sometimes', 'integer', 'min:1'],
         ]);
     }

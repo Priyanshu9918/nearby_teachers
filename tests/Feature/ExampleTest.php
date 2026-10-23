@@ -7,6 +7,7 @@ use App\Services\AuthenticationService;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -149,7 +150,7 @@ class ExampleTest extends TestCase
         ])->view('admin.index', [
             'section' => 'subjects',
             'title' => 'Subjects',
-            'records' => collect(),
+            'records' => new LengthAwarePaginator([], 0, 25),
             'domains' => collect(),
             'editing' => null,
         ])->assertSee('aria-label="Admin sidebar"', false)

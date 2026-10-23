@@ -215,4 +215,59 @@ class AdminReportingTest extends TestCase
         $this->expectException(\LogicException::class);
         app(BusinessActivityRecorder::class)->record('booking.created', (string) Str::uuid(), null);
     }
+
+    public function test_management_sections_have_bounded_stable_pagination(): void
+    {
+        $this->withSession(['admin_authenticated' => true]);
+        $domain = DB::table('subject_domains')->value('id') ?? DB::table('subject_domains')->insertGetId(['name' => 'Paging domain', 'sort_order' => 999]);
+        for ($i = 0; $i < 31; $i++) {
+            DB::table('subjects')->insert(['domain_id' => $domain, 'name' => 'Paging subject '.str_pad((string) $i, 2, '0', STR_PAD_LEFT)]);
+            foreach (['learner', 'teacher', 'institute'] as $type) {
+                $id = (string) Str::uuid();
+                DB::table('users')->insert(['id' => $id, 'account_type' => $type, 'full_name' => 'Same paging name']);
+                if ($type === 'teacher') {
+                    DB::table('teacher_profiles')->insert(['id' => (string) Str::uuid(), 'user_id' => $id, 'lesson_modes' => '[]']);
+                }
+                if ($type === 'institute') {
+                    DB::table('institute_profiles')->insert(['id' => (string) Str::uuid(), 'user_id' => $id, 'lesson_modes' => '[]']);
+                }
+            }
+        }
+        foreach (['students', 'teachers', 'institutes', 'subjects'] as $section) {
+            $response = $this->get('/admin/'.$section.'?per_page=15')->assertOk()->assertSee('Records pagination')->assertSee('Rows per page');
+            $first = $response->viewData('records');
+            $this->assertSame(15, $first->perPage());
+            $this->assertCount(15, $first->items());
+            $this->assertGreaterThanOrEqual(31, $first->total());
+            $next = $this->get($first->nextPageUrl())->assertOk()->viewData('records');
+            $this->assertSame([], array_values(array_intersect(array_column($first->items(), 'id'), array_column($next->items(), 'id'))));
+            $this->assertSame(2, $next->currentPage());
+            $this->assertSame(15, $next->perPage());
+        }
+        $this->get('/admin/students?per_page=10000')->assertSessionHasErrors('per_page');
+        $this->get('/admin/students?page=0')->assertSessionHasErrors('page');
+    }
+
+    public function test_report_pagination_preserves_filters_and_csv_contains_all_matching_pages(): void
+    {
+        $this->withSession(['admin_authenticated' => true]);
+        for ($i = 0; $i < 36; $i++) {
+            DB::table('users')->insert(['id' => (string) Str::uuid(), 'account_type' => 'learner', 'full_name' => 'Paging person '.$i, 'created_at' => '2026-10-20 12:00:00']);
+        }
+        $url = '/admin/reports/users?q=Paging&type=learner&from=2026-10-01&to=2026-10-31&per_page=15';
+        $first = $this->get($url)->assertOk()->assertSee('Showing 1–15 of 36 records')->viewData('records');
+        parse_str(parse_url($first->nextPageUrl(), PHP_URL_QUERY), $query);
+        $this->assertSame('Paging', $query['q']);
+        $this->assertSame('learner', $query['type']);
+        $this->assertSame('2026-10-01', $query['from']);
+        $this->assertSame('2026-10-31', $query['to']);
+        $this->assertSame('15', $query['per_page']);
+        $this->get($first->nextPageUrl())->assertOk()->assertSee('Showing 16–30 of 36 records');
+        $csv = $this->get($url.'&page=2&export=1')->assertOk()->streamedContent();
+        $rows = array_map('str_getcsv', explode("\n", trim($csv)));
+        $this->assertCount(37, $rows);
+        $this->assertStringContainsString($first->items()[0]->id, $csv);
+        $this->assertSame(1, DB::table('admin_report_access_log')->where('report', 'users')->where('action', 'export')->count());
+        $this->get('/admin/reports/users?per_page=100000')->assertSessionHasErrors('per_page');
+    }
 }
