@@ -25,6 +25,12 @@ async function setup(t, options = {}) {
     for await (const chunk of req) chunks.push(chunk);
     const body = JSON.parse(Buffer.concat(chunks).toString() || '{}');
     requests.push({ path: req.url, body });
+    if (options.apiPrefix) {
+      if (!req.url.startsWith(options.apiPrefix + '/')) {
+        res.writeHead(404); res.end('{}'); return;
+      }
+      req.url = req.url.slice(options.apiPrefix.length);
+    }
     const id = tokens[req.headers.authorization?.replace('Bearer ', '')];
     const reply = (status, data) => {
       res.writeHead(status, { 'Content-Type': 'application/json' });
@@ -57,7 +63,7 @@ async function setup(t, options = {}) {
   laravel.listen(0, '127.0.0.1');
   await once(laravel, 'listening');
   const chat = createChatServer({
-    secret, apiUrl: 'http://127.0.0.1:' + laravel.address().port,
+    secret, apiUrl: 'http://127.0.0.1:' + laravel.address().port + (options.apiPrefix || ''),
     origins: ['https://app.example.com'], isReady: options.isReady,
   });
   chat.server.listen(0, '127.0.0.1');
@@ -89,6 +95,16 @@ async function setup(t, options = {}) {
   });
   return { client, connected, publish, requests, baseUrl };
 }
+
+test('Laravel subdirectory is preserved for authorization, joins and message APIs', {timeout: 10000}, async (t) => {
+  const {connected, requests} = await setup(t, {apiPrefix: '/nearby_teachers/public'});
+  const socket = await connected('learner-token');
+  assert.equal((await socket.timeout(2000).emitWithAck('conversation.join', {conversationId: conversation})).ok, true);
+  assert.equal((await socket.timeout(2000).emitWithAck('message.send', {conversationId: conversation, body: 'Subdirectory test'})).ok, true);
+  assert.equal((await socket.timeout(2000).emitWithAck('chat:history', {conversationId: conversation})).ok, true);
+  assert.ok(requests.some((request) => request.path === '/nearby_teachers/public/messages/' + conversation));
+  assert.ok(requests.every((request) => request.path.startsWith('/nearby_teachers/public/')));
+});
 
 test('missing and invalid credentials cannot connect', { timeout: 10000 }, async (t) => {
   const { client } = await setup(t);

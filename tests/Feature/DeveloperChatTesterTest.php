@@ -59,9 +59,11 @@ class DeveloperChatTesterTest extends TestCase
         config(['broadcasting.connections.socketio.url' => 'http://127.0.0.1:6001']);
         Http::fake(['*' => Http::response(['ok' => false], 503)]);
         $this->withSession(['developer_authenticated' => true])->getJson('/developer/socket/health')
-            ->assertStatus(503)->assertJsonPath('ok', false);
+            ->assertStatus(503)->assertJsonPath('ok', false)->assertJsonPath('status', 'not_ready')
+            ->assertJsonPath('next_steps.0', 'Check that Node.js is installed and the chat service is running.');
         Http::fake(['*' => Http::failedConnection()]);
-        $this->getJson('/developer/socket/health')->assertStatus(503)->assertJsonPath('ok', false);
+        $this->getJson('/developer/socket/health')->assertStatus(503)->assertJsonPath('ok', false)
+            ->assertJsonPath('status', 'unreachable')->assertDontSee('127.0.0.1');
         Http::fake();
         config(['broadcasting.connections.socketio.url' => 'http://user:secret@internal.test']);
         $this->getJson('/developer/socket/health')->assertStatus(503)->assertDontSee('secret');

@@ -98,6 +98,7 @@ function tester(config = {}) {
             if (config.slowHealth && url.endsWith('/developer/socket/health')) {
                 await new Promise((resolve, reject) => { slowResolve = resolve; options.signal.addEventListener('abort', () => reject(Error('aborted')), {once: true}); });
             }
+            if (config.healthDown && url.endsWith('/developer/socket/health')) return {ok: false, status: 503, text: async () => JSON.stringify({ok: false, status: 'unreachable', next_steps: ['Start the chat service.']})};
             let body = {ok: true};
             if (url.includes('/chat/events/')) body = chatContracts['chat:' + url.split('/').pop()].mock;
 
@@ -129,6 +130,26 @@ test('all operations have readable mock responses and no network request runs on
         assert.doesNotThrow(() => JSON.parse(t.field('result').textContent));
         assert.ok(t.field('operation-help').textContent.length > 20);
     }
+});
+
+test('unavailable chat service keeps the actual diagnostic response and stops full check', async () => {
+    const t = tester({healthDown: true});
+    await t.click('health');
+    assert.match(t.field('result-label').textContent, /HTTP 503/);
+    const response = JSON.parse(t.field('result').textContent);
+    assert.equal(response.status, 'unreachable');
+    assert.deepEqual(response.next_steps, ['Start the chat service.']);
+    await t.click('run');
+    assert.equal(t.sockets.length, 0);
+    assert.ok(t.requests.every((request) => request.url.endsWith('/developer/socket/health')));
+});
+
+test('application URL is rejected with the correct origin before opening a socket', async () => {
+    const t = tester();
+    t.field('url').value = 'https://example.test/nearby_teachers/public';
+    await t.click('connect');
+    assert.equal(t.sockets.length, 0);
+    assert.match(t.field('result').textContent, /Use https:\/\/example.test and put the WebSocket proxy path/);
 });
 
 test('safe full check verifies all steps without sending or creating records, then disconnects', async () => {

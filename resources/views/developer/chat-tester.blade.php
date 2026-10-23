@@ -21,7 +21,7 @@
     <details class="panel chat-settings" id="chat-connection-settings" data-chat-views="connection ping conversations send receive history session end events full">
         <summary>Connection settings <small>Your server and user token · shared across all steps</small></summary>
         <div class="panel-body chat-settings-grid">
-            <div class="field"><label for="chat-url">Socket server URL</label><input class="control" id="chat-url" type="url" placeholder="https://chat.example.com" data-chat-config><p class="hint">Host and port only. Use this website's origin when a reverse proxy is configured.</p></div>
+            <div class="field"><label for="chat-url">Socket server URL</label><input class="control" id="chat-url" type="url" placeholder="https://chat.example.com" data-chat-config><p class="hint">Host and port only — leave out /nearby_teachers/public. Use this website's origin only when a WebSocket reverse proxy is configured. HTTPS requires a working TLS endpoint.</p></div>
             <div class="field"><label for="chat-path">Socket path</label><input class="control" id="chat-path" value="/socket.io/" autocomplete="off" data-chat-config><p class="hint">Usually /socket.io/ — change only if your proxy uses a different path.</p></div>
             <div class="field"><label for="chat-token">User login token</label><input class="control" id="chat-token" type="password" autocomplete="off" placeholder="Paste a learner, teacher or institute token" data-chat-config><div class="chat-actions"><button class="btn" id="chat-use-token" type="button" data-chat-config>Use API explorer token</button></div><p class="hint">Kept in this page only. To change accounts while connected, disconnect from Leave &amp; end test.</p></div>
         </div>
