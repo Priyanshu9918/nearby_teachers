@@ -47,7 +47,7 @@ return [
         'GET /profiles/{type}/{id}' => ['Learner', 'Teacher', 'Institute'],
         'POST /bookings' => ['Learner'],
         'GET /bookings/mine' => ['Learner'],
-        'POST /messages/start' => ['Learner'],
+        'POST /messages/start' => ['Learner', 'Teacher', 'Institute', 'Common'],
         'POST /reviews' => ['Learner'],
         'GET /reviews/for/{providerId}' => ['Learner'],
 
