@@ -148,7 +148,7 @@ class ProfilesController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    public function show(Request $request, string $type, string $id): JsonResponse
+    public function show(Request $request, string $type, int $id): JsonResponse
     {
         $profileTable = $type === 'teacher' ? 'teacher_profiles' : 'institute_profiles';
         $profile = DB::table($profileTable.' as p')
@@ -239,7 +239,7 @@ class ProfilesController extends Controller
         ]);
     }
 
-    public function verify(Request $request, string $type, string $id): JsonResponse
+    public function verify(Request $request, string $type, int $id): JsonResponse
     {
         $data = $request->validate(['verified' => ['required', 'boolean']]);
         $table = $type === 'teacher' ? 'teacher_profiles' : 'institute_profiles';
@@ -256,7 +256,7 @@ class ProfilesController extends Controller
         return response()->json(['profile' => DB::table($table)->where('user_id', $id)->first()]);
     }
 
-    public function classifyInstitute(Request $request, string $id): JsonResponse
+    public function classifyInstitute(Request $request, int $id): JsonResponse
     {
         $data = $request->validate(['institute_type' => ['required', 'in:'.implode(',', self::INSTITUTE_TYPES)]]);
         $updated = DB::table('institute_profiles')->where('user_id', $id)->update([
@@ -270,7 +270,7 @@ class ProfilesController extends Controller
         return response()->json(['profile' => DB::table('institute_profiles')->where('user_id', $id)->first()]);
     }
 
-    public function setBslVerified(Request $request, string $id): JsonResponse
+    public function setBslVerified(Request $request, int $id): JsonResponse
     {
         $data = $request->validate(['verified' => ['required', 'boolean']]);
         $profile = DB::table('institute_profiles')->where('user_id', $id)->first();
@@ -303,7 +303,7 @@ class ProfilesController extends Controller
         $bindings[] = $uppercase && is_string($value) ? strtoupper($value) : $value;
     }
 
-    private function ensureSlug(string $table, string $userId, string $fullName): void
+    private function ensureSlug(string $table, int $userId, string $fullName): void
     {
         $profile = DB::table($table)->select('slug', 'city')->where('user_id', $userId)->first();
         if ($profile === null || $profile->slug !== null) {
@@ -325,7 +325,7 @@ class ProfilesController extends Controller
         throw new \RuntimeException('Unable to create a unique profile URL. Please try again.');
     }
 
-    private function recordPhoneReveal(string $viewerId, string $profileUserId): array
+    private function recordPhoneReveal(int $viewerId, int $profileUserId): array
     {
         return DB::transaction(function () use ($viewerId, $profileUserId): array {
             DB::table('users')->where('id', $viewerId)->lockForUpdate()->first();
@@ -350,7 +350,6 @@ class ProfilesController extends Controller
             }
 
             DB::table('phone_reveals')->insert([
-                'id' => (string) Str::uuid(),
                 'viewer_id' => $viewerId,
                 'profile_user_id' => $profileUserId,
                 'revealed_at' => now(),
@@ -360,11 +359,10 @@ class ProfilesController extends Controller
         });
     }
 
-    private function logProfileView(string $id, Request $request): void
+    private function logProfileView(int $id, Request $request): void
     {
         try {
             DB::table('page_views')->insert([
-                'id' => (string) Str::uuid(),
                 'page_type' => 'app_profile',
                 'target' => $id,
                 'referrer' => $request->header('referer'),

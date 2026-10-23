@@ -15,7 +15,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use libphonenumber\NumberParseException;
 use libphonenumber\PhoneNumberFormat;
@@ -52,10 +51,7 @@ class AuthController extends Controller
         }
 
         $code = (string) random_int(100000, 999999);
-        $id = (string) Str::uuid();
-
-        DB::table('otp_codes')->insert([
-            'id' => $id,
+        $id = DB::table('otp_codes')->insertGetId([
             'phone' => $phone,
             'google_user_id' => $request->attributes->get('authenticated_user')?->id,
             'code_hash' => Hash::make($code),
@@ -75,9 +71,7 @@ class AuthController extends Controller
         $accepted = count(array_filter($statuses, fn (string $status) => in_array($status, ['accepted', 'simulated'], true)));
         DB::transaction(function () use ($id, $phone, $delivery, $accepted): void {
             foreach ($delivery['channels'] as $channel => $result) {
-                $attemptId = (string) Str::uuid();
-                DB::table('otp_delivery_attempts')->insert([
-                    'id' => $attemptId, 'otp_code_id' => $id, 'channel' => $channel,
+                $attemptId = DB::table('otp_delivery_attempts')->insertGetId(['otp_code_id' => $id, 'channel' => $channel,
                     'provider' => $result['provider'], 'status' => $result['status'],
                     'phone_last_four' => substr($phone, -4), 'created_at' => now(),
                 ]);
@@ -145,9 +139,7 @@ class AuthController extends Controller
                 return ['user' => $user];
             }
 
-            $userId = (string) Str::uuid();
-            DB::table('users')->insert([
-                'id' => $userId,
+            $userId = DB::table('users')->insertGetId([
                 'account_type' => 'learner',
                 'full_name' => 'New user',
                 'phone' => $phone,
@@ -304,12 +296,10 @@ class AuthController extends Controller
 
             if ($data['accountType'] === 'teacher') {
                 DB::table('teacher_profiles')->insertOrIgnore([
-                    'id' => (string) Str::uuid(),
                     'user_id' => $user->id,
                 ] + $this->emptyLessonModes());
             } elseif ($data['accountType'] === 'institute') {
                 DB::table('institute_profiles')->insertOrIgnore([
-                    'id' => (string) Str::uuid(),
                     'user_id' => $user->id,
                 ] + $this->emptyLessonModes());
             }
@@ -629,7 +619,7 @@ class AuthController extends Controller
         return null;
     }
 
-    private function assertOtpIdentity(object $otp, ?string $userId): void
+    private function assertOtpIdentity(object $otp, ?int $userId): void
     {
         if (($otp->google_user_id ?? null) === null) {
             return;
@@ -642,7 +632,7 @@ class AuthController extends Controller
         }
     }
 
-    private function consumeOtp(string $phone, string $code, ?string $userId = null): ?string
+    private function consumeOtp(string $phone, string $code, ?int $userId = null): ?string
     {
         return DB::transaction(function () use ($phone, $code, $userId): ?string {
             $otp = DB::table('otp_codes')->where('phone', $phone)

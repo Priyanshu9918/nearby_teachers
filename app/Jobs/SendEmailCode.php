@@ -17,7 +17,7 @@ class SendEmailCode implements ShouldBeEncrypted, ShouldQueue
 
     public int $timeout = 30;
 
-    public function __construct(public string $challengeId, public string $code)
+    public function __construct(public int $challengeId, public string $code)
     {
         $this->onQueue('notifications');
         $this->afterCommit();

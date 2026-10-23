@@ -90,7 +90,7 @@ class AdminController extends Controller
         return $this->renderSection($section);
     }
 
-    public function edit(string $section, string $id): View
+    public function edit(string $section, int $id): View
     {
         $this->assertSection($section);
         $record = $this->records($section)->where($this->idColumn($section), $id)->first();
@@ -113,11 +113,9 @@ class AdminController extends Controller
             }
 
             $data = $this->validateUser($request, $section);
-            $userId = (string) Str::uuid();
             $now = now();
 
-            DB::table('users')->insert([
-                'id' => $userId,
+            $userId = DB::table('users')->insertGetId([
                 'account_type' => $this->accountType($section),
                 'full_name' => $data['full_name'],
                 'email' => $data['email'],
@@ -130,7 +128,7 @@ class AdminController extends Controller
                 $profileData = $this->profileData($data, $section);
                 $profileData['lesson_modes'] = '[]';
                 DB::table($this->profileTable($section))->insert(
-                    ['id' => (string) Str::uuid(), 'user_id' => $userId] + $profileData + [
+                    ['user_id' => $userId] + $profileData + [
                         'created_at' => $now,
                         'updated_at' => $now,
                     ]
@@ -141,7 +139,7 @@ class AdminController extends Controller
         return redirect()->route('admin.index', ['section' => $section])->with('status', 'Record created.');
     }
 
-    public function update(Request $request, string $section, string $id): RedirectResponse
+    public function update(Request $request, string $section, int $id): RedirectResponse
     {
         $this->assertSection($section);
 
@@ -180,7 +178,7 @@ class AdminController extends Controller
         return redirect()->route('admin.index', ['section' => $section])->with('status', 'Record updated.');
     }
 
-    public function destroy(string $section, string $id): RedirectResponse
+    public function destroy(string $section, int $id): RedirectResponse
     {
         $this->assertSection($section);
 
@@ -263,7 +261,7 @@ class AdminController extends Controller
         ];
     }
 
-    private function validateUser(Request $request, string $section, ?string $userId = null): array
+    private function validateUser(Request $request, string $section, ?int $userId = null): array
     {
         $emailRule = Rule::unique('users', 'email');
         $phoneRule = Rule::unique('users', 'phone');

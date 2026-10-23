@@ -9,7 +9,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class OnboardingController extends Controller
@@ -391,10 +390,9 @@ class OnboardingController extends Controller
         };
     }
 
-    private function ensureProviderProfile(string $table, string $userId): void
+    private function ensureProviderProfile(string $table, int $userId): void
     {
         DB::table($table)->insertOrIgnore([
-            'id' => (string) Str::uuid(),
             'user_id' => $userId,
             'lesson_modes' => '[]',
         ]);

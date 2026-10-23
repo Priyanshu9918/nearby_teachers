@@ -15,12 +15,12 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
-use Illuminate\Support\Str;
+use Tests\Support\NumericTestIds;
 use Tests\TestCase;
 
 class ApiPerformanceTest extends TestCase
 {
-    private string $viewerId;
+    private int $viewerId;
 
     private bool $transactionStarted = false;
 
@@ -64,7 +64,7 @@ class ApiPerformanceTest extends TestCase
         $rows = [];
         for ($i = 0; $i < 1000; $i++) {
             $rows[] = [
-                'id' => (string) Str::uuid(), 'conversation_id' => $conversation,
+                'id' => NumericTestIds::next(), 'conversation_id' => $conversation,
                 'sender_id' => $this->viewerId, 'body' => 'Old message '.$i,
                 'created_at' => now()->subDay(),
             ];
@@ -87,7 +87,7 @@ class ApiPerformanceTest extends TestCase
         $conversation = $this->conversation($this->viewerId, $this->user('teacher'));
         $ids = [];
         foreach (range(1, 5) as $i) {
-            $id = (string) Str::uuid();
+            $id = NumericTestIds::next();
             $ids[] = $id;
             DB::table('messages')->insert([
                 'id' => $id, 'conversation_id' => $conversation, 'sender_id' => $this->viewerId,
@@ -129,7 +129,7 @@ class ApiPerformanceTest extends TestCase
             if ($i < 3) {
                 foreach (range(1, 2) as $j) {
                     DB::table('messages')->insert([
-                        'id' => (string) Str::uuid(), 'conversation_id' => $conversation,
+                        'id' => NumericTestIds::next(), 'conversation_id' => $conversation,
                         'sender_id' => $this->viewerId, 'body' => 'Latest '.$j,
                         'created_at' => '2026-01-0'.$j.' 00:00:00',
                     ]);
@@ -160,7 +160,7 @@ class ApiPerformanceTest extends TestCase
     public function test_bookings_comments_reviews_and_feed_have_cursor_pages(): void
     {
         $provider = $this->user('teacher');
-        $post = (string) Str::uuid();
+        $post = NumericTestIds::next();
         DB::table('posts')->insert([
             'id' => $post, 'author_id' => $this->viewerId, 'post_type' => 'request',
             'city' => 'Delhi', 'body' => 'Post',
@@ -168,11 +168,11 @@ class ApiPerformanceTest extends TestCase
         foreach (range(1, 3) as $i) {
             $booking = $this->booking($this->viewerId, $provider);
             DB::table('reviews')->insert([
-                'id' => (string) Str::uuid(), 'booking_id' => $booking,
+                'id' => NumericTestIds::next(), 'booking_id' => $booking,
                 'learner_id' => $this->viewerId, 'provider_id' => $provider, 'rating' => 5,
             ]);
             DB::table('post_comments')->insert([
-                'id' => (string) Str::uuid(), 'post_id' => $post, 'user_id' => $this->viewerId, 'body' => 'Comment',
+                'id' => NumericTestIds::next(), 'post_id' => $post, 'user_id' => $this->viewerId, 'body' => 'Comment',
             ]);
         }
         foreach ([
@@ -300,7 +300,7 @@ class ApiPerformanceTest extends TestCase
         $provider = $this->user('teacher');
         $conversation = $this->conversation($this->viewerId, $provider);
         $message = [
-            'id' => (string) Str::uuid(), 'conversation_id' => $conversation,
+            'id' => NumericTestIds::next(), 'conversation_id' => $conversation,
             'sender_id' => $this->viewerId, 'body' => 'Saved message', 'created_at' => now()->toDateTimeString(),
         ];
         DB::table('messages')->insert($message);
@@ -323,9 +323,9 @@ class ApiPerformanceTest extends TestCase
         $bridge->broadcast(['private-conversation.'.$conversation], 'message.sent', ['message' => $message]);
     }
 
-    private function user(string $type = 'learner', ?string $email = null): string
+    private function user(string $type = 'learner', ?string $email = null): int
     {
-        $id = (string) Str::uuid();
+        $id = NumericTestIds::next();
         DB::table('users')->insert([
             'id' => $id, 'account_type' => $type, 'full_name' => 'Test user', 'email' => $email,
             'phone_verified_at' => now(), 'profile_completed_at' => now(),
@@ -335,17 +335,17 @@ class ApiPerformanceTest extends TestCase
         return $id;
     }
 
-    private function conversation(string $learner, string $provider): string
+    private function conversation(int $learner, int $provider): int
     {
-        $id = (string) Str::uuid();
+        $id = NumericTestIds::next();
         DB::table('conversations')->insert(['id' => $id, 'learner_id' => $learner, 'provider_id' => $provider]);
 
         return $id;
     }
 
-    private function booking(string $learner, string $provider): string
+    private function booking(int $learner, int $provider): int
     {
-        $id = (string) Str::uuid();
+        $id = NumericTestIds::next();
         DB::table('bookings')->insert([
             'id' => $id, 'learner_id' => $learner, 'provider_id' => $provider,
             'mode' => 'online', 'requested_time' => now(),
@@ -354,11 +354,11 @@ class ApiPerformanceTest extends TestCase
         return $id;
     }
 
-    private function provider(float $lat, float $lng, int $subject, string $type = 'teacher'): string
+    private function provider(float $lat, float $lng, int $subject, string $type = 'teacher'): int
     {
         $id = $this->user($type);
         DB::table($type === 'teacher' ? 'teacher_profiles' : 'institute_profiles')->insert([
-            'id' => (string) Str::uuid(), 'user_id' => $id, 'lesson_modes' => '[]',
+            'id' => NumericTestIds::next(), 'user_id' => $id, 'lesson_modes' => '[]',
             'latitude' => $lat, 'longitude' => $lng,
         ]);
         DB::table('profile_subjects')->insert(['profile_type' => $type, 'profile_id' => $id, 'subject_id' => $subject]);

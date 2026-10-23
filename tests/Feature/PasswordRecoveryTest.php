@@ -12,12 +12,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
-use Illuminate\Support\Str;
+use Tests\Support\NumericTestIds;
 use Tests\TestCase;
 
 class PasswordRecoveryTest extends TestCase
 {
-    private string $userId;
+    private int $userId;
 
     private string $email = 'anita@example.com';
 
@@ -39,7 +39,7 @@ class PasswordRecoveryTest extends TestCase
         Artisan::call('migrate', ['--force' => true]);
         DB::beginTransaction();
         $this->transactionStarted = true;
-        $this->userId = (string) Str::uuid();
+        $this->userId = NumericTestIds::next();
         DB::table('users')->insert([
             'id' => $this->userId, 'account_type' => 'learner', 'full_name' => 'Anita',
             'email' => $this->email, 'phone' => '+919876543210', 'phone_verified_at' => now(),
@@ -84,7 +84,7 @@ class PasswordRecoveryTest extends TestCase
     {
         DB::table('users')->where('id', $this->userId)->update(['profile_completed_at' => null]);
         DB::table('otp_codes')->insert([
-            'id' => (string) Str::uuid(), 'phone' => '+919876543210',
+            'id' => NumericTestIds::next(), 'phone' => '+919876543210',
             'code_hash' => Hash::make('123456'), 'expires_at' => now()->addMinutes(10),
         ]);
         $verified = $this->postJson('/auth/otp/verify', [
@@ -126,7 +126,7 @@ class PasswordRecoveryTest extends TestCase
     public function test_registered_account_cannot_use_mobile_otp_as_login(): void
     {
         DB::table('otp_codes')->insert([
-            'id' => (string) Str::uuid(), 'phone' => '+919876543210',
+            'id' => NumericTestIds::next(), 'phone' => '+919876543210',
             'code_hash' => Hash::make('123456'), 'expires_at' => now()->addMinutes(10), 'created_at' => now(),
         ]);
         $this->postJson('/auth/otp/verify', ['phone' => '+919876543210', 'code' => '123456'])
@@ -138,7 +138,7 @@ class PasswordRecoveryTest extends TestCase
         $auth = app(AuthenticationService::class);
         $oldSession = $auth->issueSessionToken($this->userId);
         $oldOtp = $auth->issueOtpToken($this->userId);
-        $legacy = JWT::encode(['sub' => $this->userId, 'iss' => 'nearby-teacher-otp'], config('services.nearby_teacher.jwt_secret'), 'HS256');
+        $legacy = JWT::encode(['sub' => (string) $this->userId, 'iss' => 'nearby-teacher-otp'], config('services.nearby_teacher.jwt_secret'), 'HS256');
         $this->assertNotNull($auth->authenticate($legacy));
         $code = $this->requestCode();
         $this->postJson('/auth/reset-password', $this->resetBody($code))->assertOk()->assertJsonPath('ok', true);

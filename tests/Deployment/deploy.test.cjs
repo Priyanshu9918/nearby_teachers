@@ -34,6 +34,7 @@ case "$name" in
         exit 0 ;;
     php)
         if [[ "$*" == *broadcasting.connections.socketio.url* ]]; then printf 'http://127.0.0.1:6001/health';
+        elif [[ "$*" == *Schema::getColumns* && \${TEST_LEGACY_IDS:-0} == 1 ]]; then exit 1;
         elif [[ \${1:-} == artisan && \${2:-} == migrate && \${TEST_FAIL:-} == migrate ]]; then exit 1;
         elif [[ \${1:-} == -r && "$*" == *stream_get_contents* ]]; then :;
         fi ;;
@@ -84,6 +85,13 @@ test('local tracked changes refuse deployment before maintenance', () => {
     assert.notEqual(r.status, 0);
     assert.match(r.stderr, /Tracked files contain local changes/);
     assert.doesNotMatch(r.log, /artisan down|checkout --detach/);
+});
+
+test('legacy record IDs refuse numeric-code deployment before changing the running application', () => {
+    const r = deploy({TEST_LEGACY_IDS: '1'});
+    assert.notEqual(r.status, 0);
+    assert.match(r.stderr, /approved offline backup and migration/);
+    assert.doesNotMatch(r.log, /artisan down|checkout --detach|artisan migrate|systemctl stop/);
 });
 
 for (const failure of ['migrate', 'health']) {

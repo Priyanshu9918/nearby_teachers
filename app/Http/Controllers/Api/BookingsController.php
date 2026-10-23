@@ -9,7 +9,6 @@ use App\Support\CursorPage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class BookingsController extends Controller
 {
@@ -21,13 +20,13 @@ class BookingsController extends Controller
         }
 
         $data = $request->validate([
-            'providerId' => ['required', 'uuid', 'exists:users,id'],
+            'providerId' => ['required', 'integer', 'min:1', 'max:9007199254740991', 'exists:users,id'],
             'subjectId' => ['nullable', 'integer', 'exists:subjects,id'],
             'mode' => ['required', 'in:in_person,home_tuition,online'],
             'requestedTime' => ['required', 'date'],
             'price' => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
         ]);
-        if ($data['providerId'] === $user->id) {
+        if ((int) $data['providerId'] === $user->id) {
             return response()->json(['error' => 'You cannot book yourself'], 400);
         }
 
@@ -42,11 +41,9 @@ class BookingsController extends Controller
             return response()->json(['error' => 'Provider not found'], 404);
         }
 
-        $bookingId = (string) Str::uuid();
         $now = now();
-        DB::transaction(function () use ($bookingId, $user, $data, $now): void {
-            DB::table('bookings')->insert([
-                'id' => $bookingId,
+        $bookingId = DB::transaction(function () use ($user, $data, $now): int {
+            $bookingId = DB::table('bookings')->insertGetId([
                 'learner_id' => $user->id,
                 'provider_id' => $data['providerId'],
                 'subject_id' => $data['subjectId'] ?? null,
@@ -58,6 +55,8 @@ class BookingsController extends Controller
             ]);
             app(BusinessActivityRecorder::class)->record('booking.created', $bookingId, $user->id, $data['providerId'],
                 after: ['status' => 'requested', 'mode' => $data['mode'], 'requested_time' => $data['requestedTime'], 'price' => $data['price'] ?? null]);
+
+            return $bookingId;
         });
 
         if ($provider->email !== null) {
@@ -97,7 +96,7 @@ class BookingsController extends Controller
         return CursorPage::respond($request, $bookings, 'bookings');
     }
 
-    public function updateStatus(Request $request, string $id): JsonResponse
+    public function updateStatus(Request $request, int $id): JsonResponse
     {
         $data = $request->validate(['status' => ['required', 'in:accepted,declined,cancelled,completed']]);
         $user = $request->attributes->get('authenticated_user');

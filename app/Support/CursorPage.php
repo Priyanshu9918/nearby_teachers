@@ -25,7 +25,7 @@ class CursorPage
                     throw new \InvalidArgumentException;
                 }
                 foreach ($query->orders as $order) {
-                    if (! is_string($cursor->parameter($order['column']))) {
+                    if (! is_string($cursor->parameter($order['column'])) && ! is_int($cursor->parameter($order['column']))) {
                         throw new \InvalidArgumentException;
                     }
                 }

@@ -10,9 +10,9 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Tests\Support\FirebaseTokens;
+use Tests\Support\NumericTestIds;
 use Tests\TestCase;
 
 class FirebaseGoogleAuthTest extends TestCase
@@ -276,9 +276,9 @@ class FirebaseGoogleAuthTest extends TestCase
         return $this->postJson('/auth/google', ['firebaseIdToken' => $this->firebaseToken($claims)]);
     }
 
-    private function user(array $overrides = []): string
+    private function user(array $overrides = []): int
     {
-        $id = (string) Str::uuid();
+        $id = NumericTestIds::next();
         DB::table('users')->insert(array_replace([
             'id' => $id, 'account_type' => 'learner', 'full_name' => 'Existing Person', 'email' => 'google@example.test',
             'password_hash' => Hash::make('test-password'), 'phone_verified_at' => now(),

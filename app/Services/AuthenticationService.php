@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Reporting\BusinessActivityRecorder;
+use App\Support\RecordId;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -51,7 +52,7 @@ class AuthenticationService
         return $user;
     }
 
-    public function issueOtpToken(string $userId, int $authVersion = 0): string
+    public function issueOtpToken(int $userId, int $authVersion = 0): string
     {
         $secret = (string) config('services.nearby_teacher.jwt_secret');
 
@@ -60,7 +61,7 @@ class AuthenticationService
         }
 
         return JWT::encode([
-            'sub' => $userId,
+            'sub' => (string) $userId,
             'iss' => 'nearby-teacher-otp',
             'iat' => now()->timestamp,
             'exp' => now()->addDays(30)->timestamp,
@@ -68,7 +69,7 @@ class AuthenticationService
         ], $secret, 'HS256');
     }
 
-    public function issueSessionToken(string $userId, int $authVersion = 0): string
+    public function issueSessionToken(int $userId, int $authVersion = 0): string
     {
         $secret = (string) config('services.nearby_teacher.jwt_secret');
         if ($secret === '') {
@@ -78,16 +79,16 @@ class AuthenticationService
         $now = now()->timestamp;
 
         return JWT::encode([
-            'sub' => $userId,
+            'sub' => (string) $userId,
             'iss' => 'nearby-teacher-auth',
-            'jti' => (string) Str::uuid(),
+            'jti' => bin2hex(random_bytes(16)),
             'iat' => $now,
             'exp' => now()->addDays(30)->timestamp,
             'ver' => $authVersion,
         ], $secret, 'HS256');
     }
 
-    public function verifyFirebaseToken(string $token): ?string
+    public function verifyFirebaseToken(string $token): ?int
     {
         $claims = $this->verifyFirebaseClaims($token);
         if ($claims === null) {
@@ -193,7 +194,7 @@ class AuthenticationService
 
         if (! in_array($claims->iss ?? null, ['nearby-teacher-otp', 'nearby-teacher-auth'], true)
             || ! is_string($claims->sub ?? null)
-            || ! Str::isUuid($claims->sub)) {
+            || ! RecordId::valid($claims->sub)) {
             return null;
         }
 
@@ -264,10 +265,8 @@ class AuthenticationService
 
             return DB::table('users')->where('id', $user->id)->first();
         }
-        $id = (string) Str::uuid();
         $name = $claims->name ?? null;
-        DB::table('users')->insert([
-            'id' => $id, 'account_type' => 'learner',
+        $id = DB::table('users')->insertGetId(['account_type' => 'learner',
             'full_name' => is_string($name) && trim($name) !== '' ? Str::limit(trim($name), 160, '') : 'New user',
             'email' => $email, 'google_id' => $googleId, 'email_verified_at' => now(),
             'created_at' => now(), 'updated_at' => now(),

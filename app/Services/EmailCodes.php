@@ -6,7 +6,6 @@ use App\Jobs\SendEmailCode;
 use Closure;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class EmailCodes
 {
@@ -22,9 +21,7 @@ class EmailCodes
             }
             DB::table('email_otp_codes')->where('user_id', $user->id)->where('purpose', $purpose)
                 ->whereNull('consumed_at')->update(['consumed_at' => now()]);
-            $id = (string) Str::uuid();
-            DB::table('email_otp_codes')->insert([
-                'id' => $id, 'user_id' => $user->id, 'email' => $email, 'purpose' => $purpose,
+            $id = DB::table('email_otp_codes')->insertGetId(['user_id' => $user->id, 'email' => $email, 'purpose' => $purpose,
                 'code_hash' => $hash, 'created_at' => now(), 'expires_at' => now()->addMinutes(10),
             ]);
             SendEmailCode::dispatch($id, $code);

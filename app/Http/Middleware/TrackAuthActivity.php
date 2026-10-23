@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\RecordId;
 use Closure;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -35,8 +36,7 @@ class TrackAuthActivity
         $email = $request->input('email');
         try {
             DB::table('auth_activity')->insert([
-                'id' => (string) Str::uuid(),
-                'user_id' => is_string($userId) && Str::isUuid($userId) ? $userId : null,
+                'user_id' => RecordId::valid($userId) ? (int) $userId : null,
                 'identifier' => is_string($email) ? Str::limit(strtolower(trim($email)), 255, '') : null,
                 'event' => $event,
                 'successful' => $successful,

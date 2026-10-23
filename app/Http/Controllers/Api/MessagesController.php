@@ -10,7 +10,6 @@ use App\Support\CursorPage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class MessagesController extends Controller
 {
@@ -46,10 +45,10 @@ class MessagesController extends Controller
             return $response;
         }
         $data = $request->validate([
-            'providerId' => ['required', 'uuid', 'exists:users,id'],
+            'providerId' => ['required', 'integer', 'min:1', 'max:9007199254740991', 'exists:users,id'],
             'body' => ['nullable', 'string', 'max:5000'],
         ]);
-        if (strcasecmp($data['providerId'], $user->id) === 0) {
+        if ((int) $data['providerId'] === $user->id) {
             return response()->json(['error' => 'Choose a different user to start a conversation'], 400);
         }
 
@@ -70,9 +69,7 @@ class MessagesController extends Controller
                 $first = $participants->where('account_type', 'learner')->count() === 1
                     ? $participants->firstWhere('account_type', 'learner') : $participants->first();
                 $second = $participants->first(fn ($participant) => $participant->id !== $first->id);
-                $conversationId = (string) Str::uuid();
-                DB::table('conversations')->insert([
-                    'id' => $conversationId,
+                $conversationId = DB::table('conversations')->insertGetId([
                     'learner_id' => $first->id,
                     'provider_id' => $second->id,
                     'created_at' => now(),
@@ -81,9 +78,7 @@ class MessagesController extends Controller
 
             $messageId = null;
             if (filled($data['body'] ?? null)) {
-                $messageId = (string) Str::uuid();
-                DB::table('messages')->insert([
-                    'id' => $messageId,
+                $messageId = DB::table('messages')->insertGetId([
                     'conversation_id' => $conversationId,
                     'sender_id' => $user->id,
                     'body' => $data['body'],
@@ -103,7 +98,7 @@ class MessagesController extends Controller
         return response()->json(['conversationId' => $conversationId]);
     }
 
-    public function show(Request $request, string $conversationId): JsonResponse
+    public function show(Request $request, int $conversationId): JsonResponse
     {
         $user = $request->attributes->get('authenticated_user');
         if (! $this->isParticipant($user->id, $conversationId)) {
@@ -125,26 +120,24 @@ class MessagesController extends Controller
         return $response->setData($result);
     }
 
-    public function send(Request $request, string $conversationId): JsonResponse
+    public function send(Request $request, int $conversationId): JsonResponse
     {
         $user = $request->attributes->get('authenticated_user');
         if ($response = $this->checkContactGates($user)) {
             return $response;
         }
-        $data = $request->validate(['body' => ['required', 'string', 'max:5000', 'not_regex:/^\\s*$/u'], 'replyToId' => ['sometimes', 'nullable', 'uuid']]);
+        $data = $request->validate(['body' => ['required', 'string', 'max:5000', 'not_regex:/^\\s*$/u'], 'replyToId' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:9007199254740991']]);
         if (! $this->isParticipant($user->id, $conversationId)) {
             return response()->json(['error' => 'Conversation not found'], 404);
         }
 
-        $id = (string) Str::uuid();
-        DB::transaction(function () use ($id, $conversationId, $user, $data): void {
+        $id = DB::transaction(function () use ($conversationId, $user, $data): int {
             if (! empty($data['replyToId'])) {
                 $parent = DB::table('messages')->where('id', $data['replyToId'])->where('conversation_id', $conversationId)->lockForUpdate()->first();
                 abort_if($parent === null, 404, 'Reply target not found in this conversation');
                 abort_if($parent->deleted_at !== null, 409, 'Cannot reply to a deleted message');
             }
-            DB::table('messages')->insert([
-                'id' => $id,
+            $id = DB::table('messages')->insertGetId([
                 'conversation_id' => $conversationId,
                 'sender_id' => $user->id,
                 'body' => $data['body'],
@@ -160,6 +153,8 @@ class MessagesController extends Controller
                     $conversation->learner_id === $user->id ? $conversation->provider_id : $conversation->learner_id,
                     after: ['conversation_id' => $conversationId, 'reply_to_id' => $data['replyToId']]);
             }
+
+            return $id;
         });
         $message = $this->savedMessage($id);
         event(new ChatMessageSent($message));
@@ -170,7 +165,7 @@ class MessagesController extends Controller
         return response()->json(['message' => $message]);
     }
 
-    private function savedMessage(string $id): array
+    private function savedMessage(int $id): array
     {
         $message = DB::table('messages')->where('id', $id)->first();
         if ($message === null) {
@@ -180,7 +175,7 @@ class MessagesController extends Controller
         return (array) $message;
     }
 
-    private function isParticipant(string $userId, string $conversationId): bool
+    private function isParticipant(int $userId, int $conversationId): bool
     {
         return DB::table('conversations')->where('id', $conversationId)
             ->where(fn ($query) => $query->where('learner_id', $userId)->orWhere('provider_id', $userId))

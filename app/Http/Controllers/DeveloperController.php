@@ -413,7 +413,7 @@ class DeveloperController extends Controller
             $variant['label'] = $category.' · phone / WhatsApp / call contact';
             $variant['guide'] = 'Use a verified bearer to retrieve profile.phone for a teacher or institute (type path parameter). The app can open tel:<phone> or https://wa.me/<international-digits>. These links launch external apps; this API does not place calls or send WhatsApp messages. Anonymous responses omit phone. Reveal limit: 5 distinct provider profiles per day; hide contact actions when phone is absent. This lookup does not return learner phone numbers.';
         } elseif (in_array($key, ['GET /messages', 'GET /messages/{conversationId}', 'POST /messages/{conversationId}'], true)) {
-            $variant['guide'] = trim(($example['guide'] ?? '').' Learner, Teacher and Institute accounts can start or reply to conversations. POST /messages/start accepts the other user UUID as providerId and reuses an existing conversation in either direction. Sending requires safety acknowledgement and guardian consent when applicable.');
+            $variant['guide'] = trim(($example['guide'] ?? '').' Learner, Teacher and Institute accounts can start or reply to conversations. POST /messages/start accepts the other user ID as providerId and reuses an existing conversation in either direction. Sending requires safety acknowledgement and guardian consent when applicable.');
             if ($method === 'POST' && $isProvider) {
                 $variant['bodyExample'] = ['body' => $category === 'Institute'
                     ? 'Thanks for contacting our institute. How can we help with your classes?'
@@ -437,8 +437,8 @@ class DeveloperController extends Controller
                     ...$variant,
                     'suffix' => ($variant['suffix'] ?? '').'::reply',
                     'label' => ($category === 'Common' ? 'All roles' : $category).' · reply to comment',
-                    'bodyExample' => ['body' => 'Thanks for your comment. Here are the class details.', 'parentCommentId' => '00000000-0000-4000-8000-000000000005'],
-                    'guide' => 'Reply / re-comment using the SAME POST comments API. Replace parentCommentId with a real comment UUID on this post. Teacher, Institute and Learner accounts are supported.',
+                    'bodyExample' => ['body' => 'Thanks for your comment. Here are the class details.', 'parentCommentId' => 5],
+                    'guide' => 'Reply / re-comment using the SAME POST comments API. Replace parentCommentId with a real comment ID on this post. Teacher, Institute and Learner accounts are supported.',
                 ],
             ];
         }
@@ -490,7 +490,7 @@ class DeveloperController extends Controller
                 'body' => ['code' => '123456'], 'guide' => 'Verify the saved email using the code received by email.',
             ],
             'POST /chat/socket/authorize' => [
-                'body' => ['conversationId' => '00000000-0000-4000-8000-000000000003'],
+                'body' => ['conversationId' => 3],
                 'guide' => 'Socket.IO uses this API for bearer and room authorization. Omit conversationId to check connection identity only.',
             ],
             'GET /auth/onboarding' => [
@@ -543,49 +543,49 @@ class DeveloperController extends Controller
                 'body' => ['bio' => 'Experienced teacher offering online lessons', 'ratePerHour' => 500, 'currency' => 'INR', 'lessonModes' => ['online'], 'city' => 'New Delhi', 'country' => 'India', 'countryCode' => 'IN', 'subjectIds' => [1]],
                 'guide' => 'Teacher example. For an institute account, replace bio/ratePerHour with description/startingRate.',
             ],
-            'PATCH /profiles/{type}/{id}/verify' => ['body' => ['verified' => true], 'pathDefaults' => ['type' => 'teacher', 'id' => '00000000-0000-4000-8000-000000000001']],
-            'PATCH /profiles/institute/{id}/type' => ['body' => ['institute_type' => 'independent'], 'pathDefaults' => ['id' => '00000000-0000-4000-8000-000000000001']],
-            'PATCH /profiles/institute/{id}/bsl-verified' => ['body' => ['verified' => false], 'pathDefaults' => ['id' => '00000000-0000-4000-8000-000000000001']],
-            'GET /profiles/{type}/{id}' => ['pathDefaults' => ['type' => 'teacher', 'id' => '00000000-0000-4000-8000-000000000001']],
+            'PATCH /profiles/{type}/{id}/verify' => ['body' => ['verified' => true], 'pathDefaults' => ['type' => 'teacher', 'id' => 1]],
+            'PATCH /profiles/institute/{id}/type' => ['body' => ['institute_type' => 'independent'], 'pathDefaults' => ['id' => 1]],
+            'PATCH /profiles/institute/{id}/bsl-verified' => ['body' => ['verified' => false], 'pathDefaults' => ['id' => 1]],
+            'GET /profiles/{type}/{id}' => ['pathDefaults' => ['type' => 'teacher', 'id' => 1]],
             'GET /profiles/me/stats' => ['query' => 'days=30'],
             'POST /bookings' => [
-                'body' => ['providerId' => '00000000-0000-4000-8000-000000000001', 'mode' => 'online', 'requestedTime' => '2030-01-15T10:00:00Z', 'subjectId' => 1, 'price' => 500],
-                'guide' => 'Requires an existing teacher/institute UUID, a valid subject ID, safety acknowledgement, and guardian consent for minors.',
+                'body' => ['providerId' => 1, 'mode' => 'online', 'requestedTime' => '2030-01-15T10:00:00Z', 'subjectId' => 1, 'price' => 500],
+                'guide' => 'Requires an existing teacher/institute ID, a valid subject ID, safety acknowledgement, and guardian consent for minors.',
             ],
-            'PATCH /bookings/{id}/status' => ['body' => ['status' => 'accepted'], 'pathDefaults' => ['id' => '00000000-0000-4000-8000-000000000002']],
+            'PATCH /bookings/{id}/status' => ['body' => ['status' => 'accepted'], 'pathDefaults' => ['id' => 2]],
             'POST /messages/start' => [
-                'body' => ['providerId' => '00000000-0000-4000-8000-000000000001', 'body' => 'Hello, I would like to ask about your lessons.'],
-                'guide' => 'Any account can start a conversation. Set providerId to the other user UUID (learner, teacher or institute). Starting from either side reuses the same conversation.',
+                'body' => ['providerId' => 1, 'body' => 'Hello, I would like to ask about your lessons.'],
+                'guide' => 'Any account can start a conversation. Set providerId to the other user ID (learner, teacher or institute). Starting from either side reuses the same conversation.',
             ],
-            'POST /messages/{conversationId}' => ['body' => ['body' => 'Hello, thanks for getting back to me.'], 'pathDefaults' => ['conversationId' => '00000000-0000-4000-8000-000000000003']],
-            'GET /messages/{conversationId}' => ['pathDefaults' => ['conversationId' => '00000000-0000-4000-8000-000000000003']],
-            'GET /broadcasting/auth' => ['query' => 'socket_id=123456.789012&channel_name=private-conversation.00000000-0000-4000-8000-000000000003', 'guide' => 'Laravel broadcasting compatibility endpoint; bearer and conversation membership required. Socket.IO uses POST /chat/socket/authorize.'],
-            'POST /broadcasting/auth' => ['body' => ['socket_id' => '123456.789012', 'channel_name' => 'private-conversation.00000000-0000-4000-8000-000000000003'], 'guide' => 'Laravel broadcasting compatibility endpoint; bearer and conversation membership required. Socket.IO uses POST /chat/socket/authorize.'],
-            'POST /reviews' => ['body' => ['bookingId' => '00000000-0000-4000-8000-000000000002', 'rating' => 5, 'comment' => 'Great lesson.']],
+            'POST /messages/{conversationId}' => ['body' => ['body' => 'Hello, thanks for getting back to me.'], 'pathDefaults' => ['conversationId' => 3]],
+            'GET /messages/{conversationId}' => ['pathDefaults' => ['conversationId' => 3]],
+            'GET /broadcasting/auth' => ['query' => 'socket_id=123456.789012&channel_name=private-conversation.3', 'guide' => 'Laravel broadcasting compatibility endpoint; bearer and conversation membership required. Socket.IO uses POST /chat/socket/authorize.'],
+            'POST /broadcasting/auth' => ['body' => ['socket_id' => '123456.789012', 'channel_name' => 'private-conversation.3'], 'guide' => 'Laravel broadcasting compatibility endpoint; bearer and conversation membership required. Socket.IO uses POST /chat/socket/authorize.'],
+            'POST /reviews' => ['body' => ['bookingId' => 2, 'rating' => 5, 'comment' => 'Great lesson.']],
             'GET /feed' => ['query' => 'city=New%20Delhi'],
             'POST /feed' => ['body' => ['city' => 'New Delhi', 'body' => 'Looking for a BSL teacher for beginner classes.', 'subjectId' => 1]],
-            'POST /feed/{postId}/comments' => ['body' => ['body' => 'Thanks for sharing.'], 'pathDefaults' => ['postId' => '00000000-0000-4000-8000-000000000004']],
-            'POST /safety/reports' => ['body' => ['targetType' => 'user', 'targetId' => '00000000-0000-4000-8000-000000000001', 'reasonCategory' => 'fake_profile', 'reason' => 'Example report reason.']],
+            'POST /feed/{postId}/comments' => ['body' => ['body' => 'Thanks for sharing.'], 'pathDefaults' => ['postId' => 4]],
+            'POST /safety/reports' => ['body' => ['targetType' => 'user', 'targetId' => 1, 'reasonCategory' => 'fake_profile', 'reason' => 'Example report reason.']],
             'POST /suggestions' => ['body' => ['suggestionType' => 'course', 'name' => 'Beginner Sign Language', 'notes' => 'Example suggestion.']],
             'POST /support' => ['body' => ['subject' => 'Example support request', 'message' => 'Please describe your support question here.']],
             'POST /referrals/redeem' => ['body' => ['code' => 'PASTE_REFERRAL_CODE']],
             'POST /analytics/page-view' => ['body' => ['pageType' => 'teacher', 'target' => 'teacher-profile', 'platform' => 'web', 'referrer' => 'developer-portal']],
-            'PATCH /safety/reports/{id}/status' => ['body' => ['status' => 'reviewed'], 'pathDefaults' => ['id' => '00000000-0000-4000-8000-000000000005']],
-            'PATCH /suggestions/{id}/status' => ['body' => ['status' => 'added'], 'pathDefaults' => ['id' => '00000000-0000-4000-8000-000000000006']],
-            'PATCH /support/{id}/status' => ['body' => ['status' => 'in_progress'], 'pathDefaults' => ['id' => '00000000-0000-4000-8000-000000000007']],
-            'PATCH /moderation/photos/{userId}' => ['body' => ['status' => 'approved'], 'pathDefaults' => ['userId' => '00000000-0000-4000-8000-000000000001']],
-            'POST /moderation/users/{userId}/suspend' => ['body' => ['reason' => 'Example moderation reason.'], 'pathDefaults' => ['userId' => '00000000-0000-4000-8000-000000000001']],
-            'POST /moderation/users/{userId}/unsuspend' => ['body' => [], 'pathDefaults' => ['userId' => '00000000-0000-4000-8000-000000000001']],
-            'POST /safety/blocks/{userId}' => ['body' => [], 'pathDefaults' => ['userId' => '00000000-0000-4000-8000-000000000001']],
-            'DELETE /safety/blocks/{userId}' => ['pathDefaults' => ['userId' => '00000000-0000-4000-8000-000000000001']],
+            'PATCH /safety/reports/{id}/status' => ['body' => ['status' => 'reviewed'], 'pathDefaults' => ['id' => 5]],
+            'PATCH /suggestions/{id}/status' => ['body' => ['status' => 'added'], 'pathDefaults' => ['id' => 6]],
+            'PATCH /support/{id}/status' => ['body' => ['status' => 'in_progress'], 'pathDefaults' => ['id' => 7]],
+            'PATCH /moderation/photos/{userId}' => ['body' => ['status' => 'approved'], 'pathDefaults' => ['userId' => 1]],
+            'POST /moderation/users/{userId}/suspend' => ['body' => ['reason' => 'Example moderation reason.'], 'pathDefaults' => ['userId' => 1]],
+            'POST /moderation/users/{userId}/unsuspend' => ['body' => [], 'pathDefaults' => ['userId' => 1]],
+            'POST /safety/blocks/{userId}' => ['body' => [], 'pathDefaults' => ['userId' => 1]],
+            'DELETE /safety/blocks/{userId}' => ['pathDefaults' => ['userId' => 1]],
             'GET /safety/reports' => ['query' => 'status=open'],
             'GET /suggestions' => ['query' => 'status=open'],
             'GET /support' => ['query' => 'status=open'],
             'GET /analytics/summary' => ['query' => 'days=30'],
             'GET /i18n/{lang}' => ['pathDefaults' => ['lang' => 'en']],
-            'GET /reviews/for/{providerId}' => ['pathDefaults' => ['providerId' => '00000000-0000-4000-8000-000000000001']],
-            'GET /feed/{postId}/comments' => ['pathDefaults' => ['postId' => '00000000-0000-4000-8000-000000000004']],
-            'GET /moderation/conversations/{id}/messages' => ['pathDefaults' => ['id' => '00000000-0000-4000-8000-000000000003']],
+            'GET /reviews/for/{providerId}' => ['pathDefaults' => ['providerId' => 1]],
+            'GET /feed/{postId}/comments' => ['pathDefaults' => ['postId' => 4]],
+            'GET /moderation/conversations/{id}/messages' => ['pathDefaults' => ['id' => 3]],
             'GET /moderation/users/suspended' => ['query' => ''],
         ];
         $examplePath = preg_replace('#^/api(?=/|$)#', '', $path) ?? $path;
@@ -604,7 +604,7 @@ class DeveloperController extends Controller
             $example['query'] = 'city=New%20Delhi&q=sign%20language';
         } elseif ($key === 'GET /search/by-subject/{subjectId}') {
             $example['query'] = 'tier=nearby&lat=28.6139&lng=77.2090';
-            $example['pathDefaults'] = ['subjectId' => '1'];
+            $example['pathDefaults'] = ['subjectId' => 1];
         }
 
         if ($method === 'GET' && in_array($examplePath, [
@@ -619,8 +619,8 @@ class DeveloperController extends Controller
             $pathDefaults[$parameter] ??= match ($parameter) {
                 'type' => 'teacher',
                 'lang' => 'en',
-                'subjectId' => '1',
-                default => '00000000-0000-4000-8000-000000000001',
+                'subjectId' => 1,
+                default => '1',
             };
         }
 

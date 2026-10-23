@@ -5,12 +5,14 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const {spawnSync} = require('node:child_process');
 const chatContracts = JSON.parse(spawnSync('php', ['-r', 'echo json_encode(require "config/chat_events.php");'], {encoding: 'utf8'}).stdout);
-const conversationId = '44444444-4444-4444-8444-444444444444';
-const message = {id: '55555555-5555-4555-8555-555555555555', conversation_id: conversationId, body: 'Real test message'};
+const conversationId = 4;
+const message = {id: 5, conversation_id: conversationId, body: 'Real test message'};
 
 function tester(config = {}) {
     class Element {
-        value = ''; textContent = ''; checked = false; disabled = false; hidden = false; dataset = {}; children = []; listeners = {}; attributes = {};
+        _value = ''; textContent = ''; checked = false; disabled = false; hidden = false; dataset = {}; children = []; listeners = {}; attributes = {};
+        get value() { return this._value; }
+        set value(value) { this._value = String(value); }
         classes = new Set();
         classList = {toggle: (name, on) => on ? this.classes.add(name) : this.classes.delete(name), add: (name) => this.classes.add(name)};
         append(child) { this.children.push(child); }
@@ -231,10 +233,10 @@ test('auto ping, transport heartbeat and reconnect events are logged, then stop 
 
 test('conversation start, inbox selection and REST send use real API base and explicit actions', async () => {
     const t = tester();
-    t.field('provider').value = '22222222-2222-4222-8222-222222222222';
+    t.field('provider').value = 2;
     await t.click('start');
-    assert.equal(t.field('conversation').value, conversationId);
-    assert.deepEqual(JSON.parse(t.requests[0].options.body), {providerId: t.field('provider').value});
+    assert.equal(t.field('conversation').value, String(conversationId));
+    assert.deepEqual(JSON.parse(t.requests[0].options.body), {providerId: Number(t.field('provider').value)});
     await t.click('inbox');
     t.field('inbox-select').value = conversationId; t.change('inbox-select');
     await t.click('rest-send');
@@ -263,7 +265,7 @@ test('invalid input and authentication failure never emit messages', async () =>
     assert.match(t.field('result').textContent, /Token denied/);
     t.field('conversation').value = 'invalid'; await t.click('run');
     assert.equal(t.emits.length, 0);
-    assert.match(t.field('result').textContent, /valid conversation UUID/);
+    assert.match(t.field('result').textContent, /valid conversation ID/);
 });
 
 test('double clicks cannot start a second send while ACK is pending', async () => {
@@ -309,7 +311,7 @@ test('sidebar switches focused steps without network traffic or losing shared co
         assert.equal(t.field('navigation').open, true);
         assert.equal(connected.connected, true);
         assert.equal(t.field('token').value, 'private-user-bearer');
-        assert.equal(t.field('conversation').value, conversationId);
+        assert.equal(t.field('conversation').value, String(conversationId));
         for (const panel of t.panels) assert.equal(panel.hidden, !panel.dataset.chatViews.split(' ').includes(view));
         assert.equal(t.sidebarLinks.filter((link) => link.attributes['aria-current'] === 'page').length, 1);
     }

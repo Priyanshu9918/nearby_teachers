@@ -72,6 +72,12 @@ if [[ $target_sha != "$current_main" ]]; then
 fi
 git_app cat-file -e "$target_sha^{commit}"
 [[ -z $(git_app ls-tree --name-only "$target_sha" -- .env) ]] || fail 'The target commit must not track the production .env.'
+# This breaking data conversion is performed explicitly offline, before deploying
+# code that expects numeric IDs. Refuse before maintenance or service changes.
+if git_app cat-file -e "$target_sha:database/migrations/2026_10_23_000034_convert_record_ids_to_numbers.php" 2>/dev/null; then
+    app_php -r 'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); $id = collect(Illuminate\Support\Facades\Schema::getColumns("users"))->firstWhere("name", "id"); exit(($id["type_name"] ?? null) === "bigint" ? 0 : 1);' \
+        || fail 'Numeric ID conversion needs an approved offline backup and migration first; the running application was not changed.'
+fi
 composer check-platform-reqs --no-dev --lock
 
 changed=0

@@ -15,7 +15,7 @@ class RevokeChatSessions implements ShouldQueue
 
     public int $timeout = 10;
 
-    public function __construct(public string $userId, public int $authVersion)
+    public function __construct(public int $userId, public int $authVersion)
     {
         $this->onQueue('broadcasts');
         $this->afterCommit();

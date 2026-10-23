@@ -2,10 +2,10 @@
 
 namespace App\Broadcasting;
 
+use App\Support\RecordId;
 use Illuminate\Broadcasting\Broadcasters\Broadcaster;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
 use RuntimeException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
@@ -38,7 +38,7 @@ class SocketIoBroadcaster extends Broadcaster
         $supported = ['chat:delivered', 'chat:read', 'chat:typing', 'chat:stop_typing', 'chat:delete', 'chat:edit', 'chat:reply', 'chat:reaction'];
         $legacy = $event === 'message.sent';
         $conversationId = $legacy ? ($message['conversation_id'] ?? null) : ($data['conversationId'] ?? null);
-        if ((! $legacy && ! in_array($event, $supported, true)) || ! is_string($conversationId) || ! Str::isUuid($conversationId)
+        if ((! $legacy && ! in_array($event, $supported, true)) || ! RecordId::valid($conversationId)
             || $this->formatChannels($channels) !== ['private-conversation.'.$conversationId]) {
             throw new RuntimeException('Unsupported Socket.IO chat broadcast.');
         }

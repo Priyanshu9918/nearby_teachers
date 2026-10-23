@@ -9,7 +9,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class CommunityController extends Controller
 {
@@ -52,9 +51,7 @@ class CommunityController extends Controller
                 ], 429);
             }
 
-            $id = (string) Str::uuid();
-            DB::table('posts')->insert([
-                'id' => $id,
+            $id = DB::table('posts')->insertGetId([
                 'author_id' => $user->id,
                 'post_type' => $user->account_type === 'learner' ? 'request' : 'offer',
                 'city' => $data['city'],
@@ -70,10 +67,9 @@ class CommunityController extends Controller
         return $post instanceof JsonResponse ? $post : response()->json($post);
     }
 
-    public function like(Request $request, string $postId): JsonResponse
+    public function like(Request $request, int $postId): JsonResponse
     {
         DB::table('post_likes')->insertOrIgnore([
-            'id' => (string) Str::uuid(),
             'post_id' => $postId,
             'user_id' => $request->attributes->get('authenticated_user')->id,
             'created_at' => now(),
@@ -82,7 +78,7 @@ class CommunityController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    public function unlike(Request $request, string $postId): JsonResponse
+    public function unlike(Request $request, int $postId): JsonResponse
     {
         DB::table('post_likes')->where('post_id', $postId)
             ->where('user_id', $request->attributes->get('authenticated_user')->id)
@@ -91,7 +87,7 @@ class CommunityController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    public function comments(Request $request, string $postId): JsonResponse
+    public function comments(Request $request, int $postId): JsonResponse
     {
         $comments = DB::table('post_comments as c')
             ->join('users as u', 'u.id', '=', 'c.user_id')
@@ -102,11 +98,11 @@ class CommunityController extends Controller
         return CursorPage::respond($request, $comments, 'comments');
     }
 
-    public function createComment(Request $request, string $postId): JsonResponse
+    public function createComment(Request $request, int $postId): JsonResponse
     {
         $data = $request->validate([
             'body' => ['required', 'string', 'max:5000'],
-            'parentCommentId' => ['nullable', 'uuid', 'exists:post_comments,id'],
+            'parentCommentId' => ['nullable', 'integer', 'min:1', 'max:9007199254740991', 'exists:post_comments,id'],
         ]);
         if (! DB::table('posts')->where('id', $postId)->exists()) {
             return response()->json(['error' => 'Post not found'], 404);
@@ -116,9 +112,7 @@ class CommunityController extends Controller
             return response()->json(['error' => 'Parent comment not found for this post'], 404);
         }
         $user = $request->attributes->get('authenticated_user');
-        $id = (string) Str::uuid();
-        DB::table('post_comments')->insert([
-            'id' => $id,
+        $id = DB::table('post_comments')->insertGetId([
             'post_id' => $postId,
             'user_id' => $user->id,
             'parent_comment_id' => $data['parentCommentId'] ?? null,
@@ -144,7 +138,7 @@ class CommunityController extends Controller
     public function createReview(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'bookingId' => ['required', 'uuid', 'exists:bookings,id'],
+            'bookingId' => ['required', 'integer', 'min:1', 'max:9007199254740991', 'exists:bookings,id'],
             'rating' => ['required', 'integer', 'between:1,5'],
             'comment' => ['nullable', 'string', 'max:5000'],
         ]);
@@ -157,9 +151,7 @@ class CommunityController extends Controller
             if ($booking === null) {
                 return null;
             }
-            $id = (string) Str::uuid();
-            DB::table('reviews')->insert([
-                'id' => $id,
+            $id = DB::table('reviews')->insertGetId([
                 'booking_id' => $booking->id,
                 'learner_id' => $user->id,
                 'provider_id' => $booking->provider_id,
@@ -183,7 +175,7 @@ class CommunityController extends Controller
         return response()->json(['review' => $review]);
     }
 
-    public function providerReviews(Request $request, string $providerId): JsonResponse
+    public function providerReviews(Request $request, int $providerId): JsonResponse
     {
         $reviews = DB::table('reviews as r')
             ->join('users as u', 'u.id', '=', 'r.learner_id')

@@ -5,8 +5,9 @@
     const tester = field('tester');
     if (!tester) return;
     const token = field('token');
-    const uuid = '44444444-4444-4444-8444-444444444444';
-    const message = {id: '55555555-5555-4555-8555-555555555555', conversation_id: uuid, sender_id: '11111111-1111-4111-8111-111111111111', body: 'Example message', created_at: '2026-10-23 10:00:00'};
+    const validId = (value) => /^[1-9][0-9]*$/.test(String(value)) && Number.isSafeInteger(Number(value));
+    const exampleConversationId = 4;
+    const message = {id: 5, conversation_id: exampleConversationId, sender_id: 1, body: 'Example message', created_at: '2026-10-23 10:00:00'};
     const operations = {
         health: ['Check chat server', 'GET /developer/socket/health', {}, {ok: true, service: 'Socket.IO'}, 'Checks the configured internal Node/Redis readiness. Does not test the public proxy or database.'],
         authorize: ['Verify user token', 'POST /chat/socket/authorize', {}, {userId: message.sender_id, room: null, expiresInSeconds: 900, authVersion: 0}, 'Uses the real user bearer. Requires the same verified account access as the app.'],
@@ -14,15 +15,15 @@
         ping: ['Ping / round trip', 'chat.ping', {}, {ok: true, serverTime: '2026-10-23T10:00:00.000Z'}, 'An authenticated round trip to Node. Auto ping runs every 5 seconds and stops on disconnect.'],
         reconnect: ['Reconnect lifecycle (automatic)', 'reconnect_attempt / reconnect / reconnect_error / reconnect_failed', {}, {event: 'reconnect', attempt: 1, action: 'Reload history and rejoin the active conversation.'}, 'Up to 3 automatic retries after transport failure. Server disconnect/expiry needs an explicit reconnect with a valid token.'],
         heartbeat: ['Transport heartbeat (automatic)', 'Engine.IO ping → pong', {}, {packet: 'pong', note: 'Transport heartbeat reply; not a message acknowledgement.'}, 'The server sends heartbeats automatically. These are separate from chat.ping and are logged while connected.'],
-        start: ['Start / find conversation', 'POST /messages/start', {providerId: '22222222-2222-4222-8222-222222222222'}, {conversationId: uuid}, 'Any account can start or reuse a conversation with another user. providerId is the other user UUID; this tester sends no initial body.'],
-        inbox: ['Load my inbox', 'GET /messages?perPage=20', {}, {conversations: [{id: uuid, other_name: 'Example Teacher', last_message: 'Hello'}], nextCursor: null}, 'Shows a bounded inbox page. Pick a conversation to fill its UUID.'],
+        start: ['Start / find conversation', 'POST /messages/start', {providerId: 2}, {conversationId: exampleConversationId}, 'Any account can start or reuse a conversation with another user. providerId is the other user ID; this tester sends no initial body.'],
+        inbox: ['Load my inbox', 'GET /messages?perPage=20', {}, {conversations: [{id: exampleConversationId, other_name: 'Example Teacher', last_message: 'Hello'}], nextCursor: null}, 'Shows a bounded inbox page. Pick a conversation to fill its ID.'],
         history: ['Load message history', 'GET /messages/{conversationId}?perPage=20', {}, {messages: [message], nextCursor: null}, 'Loads the latest saved messages for this participant. No read-receipt event exists.'],
-        'room-auth': ['Check conversation access', 'POST /chat/socket/authorize', {conversationId: uuid}, {userId: message.sender_id, room: 'private-conversation.' + uuid, expiresInSeconds: 900, authVersion: 0}, 'Confirms that the bearer is a participant before joining.'],
-        join: ['Join conversation', 'conversation.join', {conversationId: uuid}, {ok: true, room: 'private-conversation.' + uuid}, 'Joins an authorized conversation room. User-room delivery is automatic after connecting.'],
-        send: ['Send via socket', 'message.send', {conversationId: uuid, body: 'Example message'}, {ok: true, message}, 'Saves a real message through Laravel. ACK confirms persistence; the queue delivers message.sent separately.'],
+        'room-auth': ['Check conversation access', 'POST /chat/socket/authorize', {conversationId: exampleConversationId}, {userId: message.sender_id, room: 'private-conversation.' + exampleConversationId, expiresInSeconds: 900, authVersion: 0}, 'Confirms that the bearer is a participant before joining.'],
+        join: ['Join conversation', 'conversation.join', {conversationId: exampleConversationId}, {ok: true, room: 'private-conversation.' + exampleConversationId}, 'Joins an authorized conversation room. User-room delivery is automatic after connecting.'],
+        send: ['Send via socket', 'message.send', {conversationId: exampleConversationId, body: 'Example message'}, {ok: true, message}, 'Saves a real message through Laravel. ACK confirms persistence; the queue delivers message.sent separately.'],
         'rest-send': ['Send via REST', 'POST /messages/{conversationId}', {body: 'Example message'}, {message}, 'Alternative send path; also saves and broadcasts a real message. Do not use both sends for the same test.'],
         receive: ['Receive a live message (listen only)', 'message.sent', {}, {message}, 'Delivered to both participants. Deduplicate by message.id. A second tab tests the other device.'],
-        leave: ['Leave conversation', 'conversation.leave', {conversationId: uuid}, {ok: true}, 'Leaves the selected conversation room. The socket remains connected to its private user room.'],
+        leave: ['Leave conversation', 'conversation.leave', {conversationId: exampleConversationId}, {ok: true}, 'Leaves the selected conversation room. The socket remains connected to its private user room.'],
         expired: ['Session expired (listen only)', 'session.expired', {}, {action: 'Reconnect with a valid login token.'}, 'Server sessions last at most 15 minutes. Observe expiry; the tester cannot emit or force it.'],
         error: ['Connection / access errors', 'connect_error or failed ACK', {}, {ok: false, status: 404, error: 'Conversation not found'}, '401/403: check login/access. 404: check membership. 422: check input. 429: slow down. 503: check API/Node. ACK timeout: check history before retrying.'],
         disconnect: ['Disconnect / end test', 'socket.disconnect()', {}, {reason: 'io client disconnect'}, 'Closes this connection and stops auto ping. It does not delete the conversation or revoke the login token.'],
@@ -172,8 +173,8 @@
         for (const [name, id] of [['messageId', 'event-message'], ['replyToId', 'event-reply']]) {
             if (!Object.hasOwn(contract.body, name)) continue;
             const value = field(id).value.trim();
-            if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) throw new Error('Enter a valid ' + name + ' from saved history.');
-            payload[name] = value;
+            if (!validId(value)) throw new Error('Enter a valid ' + name + ' from saved history.');
+            payload[name] = Number(value);
         }
         if (Object.hasOwn(contract.body, 'body')) payload.body = messageBody();
         if (Object.hasOwn(contract.body, 'reaction')) payload.reaction = field('event-reaction').value || null;
@@ -213,8 +214,8 @@
     }
     function conversationId() {
         const value = field('conversation').value.trim();
-        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) throw new Error('Enter a valid conversation UUID, or load your inbox and choose one.');
-        return value;
+        if (!validId(value)) throw new Error('Enter a valid conversation ID, or load your inbox and choose one.');
+        return Number(value);
     }
     function messageBody() {
         const value = field('body').value;
@@ -389,8 +390,8 @@
             case 'inbox': { const data = await rest(key, '/messages?perPage=20', 'GET', undefined, signal); populateInbox(data); return data; }
             case 'start': {
                 const providerId = field('provider').value.trim();
-                if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(providerId)) throw new Error('Enter the other user UUID first.');
-                const data = await rest(key, '/messages/start', 'POST', {providerId}, signal);
+                if (!validId(providerId)) throw new Error('Enter the other user ID first.');
+                const data = await rest(key, '/messages/start', 'POST', {providerId: Number(providerId)}, signal);
                 field('conversation').value = data.conversationId; return data;
             }
             case 'room-auth': return rest(key, '/chat/socket/authorize', 'POST', {conversationId: conversationId()}, signal);
