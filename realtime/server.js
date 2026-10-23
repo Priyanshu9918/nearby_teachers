@@ -4,8 +4,14 @@ const http = require('node:http');
 const { createHash, timingSafeEqual } = require('node:crypto');
 const { Server } = require('socket.io');
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const isUuid = (value) => typeof value === 'string' && UUID.test(value);
+const isId = (value) => (typeof value === 'number' || typeof value === 'string') && /^[1-9][0-9]*$/.test(String(value)) && Number.isSafeInteger(Number(value));
+function normalizeIds(value) {
+  if (!value || typeof value !== 'object') return value;
+  if (Array.isArray(value)) return value.map(normalizeIds);
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key,
+    key === 'recipientIds' && Array.isArray(item) ? item.map((id) => isId(id) ? Number(id) : id)
+      : /(?:^id$|_id$|Id$)/.test(key) && isId(item) ? Number(item) : normalizeIds(item)]));
+}
 
 function createChatServer(config) {
   if (typeof config.secret !== 'string' || config.secret.length < 32) {
@@ -48,10 +54,10 @@ function createChatServer(config) {
         if (size > 65536) throw new Error('Payload too large');
         chunks.push(chunk);
       }
-      const packet = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+      const packet = normalizeIds(JSON.parse(Buffer.concat(chunks).toString('utf8')));
       if (config.isReady && !config.isReady()) return respond(503, { error: 'Event delivery unavailable' });
       if (req.url === '/internal/sessions/revoke') {
-        if (!isUuid(packet.userId) || !Number.isSafeInteger(packet.authVersion) || packet.authVersion < 1) {
+        if (!isId(packet.userId) || !Number.isSafeInteger(packet.authVersion) || packet.authVersion < 1) {
           return respond(422, { error: 'Invalid session revocation' });
         }
         const sockets = await io.in('user.' + packet.userId).fetchSockets();
@@ -63,18 +69,18 @@ function createChatServer(config) {
       if (packet.event) {
         const supported = new Set(['chat:delivered', 'chat:read', 'chat:typing', 'chat:stop_typing', 'chat:delete', 'chat:edit', 'chat:reply', 'chat:reaction']);
         const { event, data, recipientIds } = packet;
-        if (!supported.has(event) || !data || !isUuid(data.conversationId) ||
-            !Array.isArray(recipientIds) || recipientIds.length !== 2 || !recipientIds.every(isUuid) ||
+        if (!supported.has(event) || !data || !isId(data.conversationId) ||
+            !Array.isArray(recipientIds) || recipientIds.length !== 2 || !recipientIds.every(isId) ||
             (data.userId !== undefined && !recipientIds.includes(data.userId)) ||
-            (data.messageId !== undefined && !isUuid(data.messageId)) ||
-            (data.message && (!isUuid(data.message.id) || data.message.conversation_id !== data.conversationId || !recipientIds.includes(data.message.sender_id)))) {
+            (data.messageId !== undefined && !isId(data.messageId)) ||
+            (data.message && (!isId(data.message.id) || data.message.conversation_id !== data.conversationId || !recipientIds.includes(data.message.sender_id)))) {
           return respond(422, {error: 'Invalid chat event'});
         }
         const needsMessage = ['chat:edit', 'chat:delete', 'chat:reply'].includes(event);
         const needsActor = ['chat:delivered', 'chat:read', 'chat:typing', 'chat:stop_typing', 'chat:reaction'].includes(event);
         if ((needsMessage && (!data.message || typeof data.message.body !== 'string' || Array.from(data.message.body).length > 5000)) ||
-            (needsActor && !isUuid(data.userId)) ||
-            (['chat:delivered', 'chat:read', 'chat:reaction'].includes(event) && !isUuid(data.messageId)) ||
+            (needsActor && !isId(data.userId)) ||
+            (['chat:delivered', 'chat:read', 'chat:reaction'].includes(event) && !isId(data.messageId)) ||
             (event === 'chat:reaction' && data.reaction !== null && !['👍', '👎', '❤️', '😂', '😮', '😢', '🙏', '🎉'].includes(data.reaction)) ||
             (['chat:typing', 'chat:stop_typing'].includes(event) && data.typing !== (event === 'chat:typing'))) {
           return respond(422, {error: 'Invalid chat event'});
@@ -87,9 +93,9 @@ function createChatServer(config) {
         return respond(200, {ok: true});
       }
       const { message, recipientIds } = packet;
-      if (!message || !isUuid(message.id) || !isUuid(message.conversation_id) || !isUuid(message.sender_id) ||
+      if (!message || !isId(message.id) || !isId(message.conversation_id) || !isId(message.sender_id) ||
           typeof message.body !== 'string' || Array.from(message.body).length > 5000 ||
-          !Array.isArray(recipientIds) || recipientIds.length !== 2 || !recipientIds.every(isUuid) ||
+          !Array.isArray(recipientIds) || recipientIds.length !== 2 || !recipientIds.every(isId) ||
           !recipientIds.includes(message.sender_id)) {
         return respond(422, { error: 'Invalid chat event' });
       }
@@ -140,8 +146,8 @@ function createChatServer(config) {
       return next(error);
     }
     try {
-      const auth = await laravel(token, '/chat/socket/authorize', {});
-      if (!isUuid(auth.userId)) throw new Error('Invalid authorization response');
+      const auth = normalizeIds(await laravel(token, '/chat/socket/authorize', {}));
+      if (!isId(auth.userId)) throw new Error('Invalid authorization response');
       socket.data.token = token;
       socket.data.userId = auth.userId;
       socket.data.authVersion = Number.isSafeInteger(auth.authVersion) ? auth.authVersion : 0;
@@ -171,11 +177,12 @@ function createChatServer(config) {
       return ++eventCount > 30 || inFlight >= 4;
     };
     const operation = (handler, requiresConversation = true) => async (payload, callback) => {
+      payload = normalizeIds(payload);
       const ack = typeof callback === 'function' ? callback : () => {};
       if (limited()) return ack({ ok: false, status: 429, error: 'Too many requests' });
       inFlight++;
       try {
-        if (!payload || typeof payload !== 'object' || Array.isArray(payload) || (requiresConversation && !isUuid(payload.conversationId))) return ack({ ok: false, status: 422, error: 'Invalid conversationId' });
+        if (!payload || typeof payload !== 'object' || Array.isArray(payload) || (requiresConversation && !isId(payload.conversationId))) return ack({ ok: false, status: 422, error: 'Invalid conversationId' });
         const result = await handler(payload);
         if (socket.connected) ack({ ok: true, ...result });
       } catch (error) {

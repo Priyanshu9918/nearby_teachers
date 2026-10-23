@@ -7,7 +7,7 @@ use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use Tests\Support\NumericTestIds;
 
 require dirname(__DIR__, 2).'/vendor/autoload.php';
 $app = require dirname(__DIR__, 2).'/bootstrap/app.php';
@@ -29,13 +29,13 @@ DB::purge('mysql');
 Artisan::call('migrate', ['--force' => true]);
 DB::beginTransaction();
 try {
-    $learner = (string) Str::uuid();
-    $provider = (string) Str::uuid();
+    $learner = NumericTestIds::next();
+    $provider = NumericTestIds::next();
     DB::table('users')->insert([
         ['id' => $learner, 'account_type' => 'learner', 'full_name' => 'Benchmark learner'],
         ['id' => $provider, 'account_type' => 'teacher', 'full_name' => 'Benchmark teacher'],
     ]);
-    $conversation = (string) Str::uuid();
+    $conversation = NumericTestIds::next();
     DB::table('conversations')->insert([
         'id' => $conversation, 'learner_id' => $learner, 'provider_id' => $provider,
     ]);
@@ -43,15 +43,15 @@ try {
     for ($offset = 0; $offset < $rows; $offset += 500) {
         $users = $profiles = $messages = [];
         for ($i = $offset; $i < min($offset + 500, $rows); $i++) {
-            $id = (string) Str::uuid();
+            $id = NumericTestIds::next();
             $users[] = ['id' => $id, 'account_type' => 'teacher', 'full_name' => 'Benchmark '.$i];
             $profiles[] = [
-                'id' => (string) Str::uuid(), 'user_id' => $id, 'lesson_modes' => '[]',
+                'id' => NumericTestIds::next(), 'user_id' => $id, 'lesson_modes' => '[]',
                 'latitude' => ($dense || $i % 100 === 0) ? 28.61 : -70 + (($i * 7919) % 140000) / 1000,
                 'longitude' => ($dense || $i % 100 === 0) ? 77.21 : -170 + (($i * 3571) % 340000) / 1000,
             ];
             $messages[] = [
-                'id' => (string) Str::uuid(), 'conversation_id' => $conversation,
+                'id' => NumericTestIds::next(), 'conversation_id' => $conversation,
                 'sender_id' => $learner, 'body' => str_repeat('Benchmark message ', 8), 'created_at' => $createdAt,
             ];
         }

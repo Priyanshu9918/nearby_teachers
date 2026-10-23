@@ -11,7 +11,7 @@ final class ReportFilters
     public function validate(Request $request): array
     {
         return $request->validate([
-            'q' => ['nullable', 'string', 'max:200'], 'user' => ['nullable', 'uuid'],
+            'q' => ['nullable', 'string', 'max:200'], 'user' => ['nullable', 'integer', 'min:1', 'max:9007199254740991'],
             'type' => ['nullable', 'in:learner,teacher,institute'],
             'from' => ['nullable', 'date_format:Y-m-d'],
             'to' => array_filter(['nullable', 'date_format:Y-m-d', $request->filled('from') ? 'after_or_equal:from' : null]),

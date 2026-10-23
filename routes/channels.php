@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\DB;
 
-Broadcast::channel('conversation.{conversationId}', function (object $user, string $conversationId): bool {
+Broadcast::channel('conversation.{conversationId}', function (object $user, int $conversationId): bool {
     return DB::table('conversations')
         ->where('id', $conversationId)
         ->where(fn ($query) => $query

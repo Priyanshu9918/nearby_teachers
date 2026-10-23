@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Services\AuthenticationService;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use Tests\Support\NumericTestIds;
 use Tests\TestCase;
 
 class OnboardingProfileTest extends TestCase
@@ -53,7 +53,7 @@ class OnboardingProfileTest extends TestCase
     public function test_unverified_phone_can_read_onboarding_with_mobile_verified_false(): void
     {
         $this->bindUser((object) [
-            'id' => (string) Str::uuid(),
+            'id' => NumericTestIds::next(),
             'account_type' => 'learner',
             'full_name' => 'New user',
             'email' => null,
@@ -79,7 +79,7 @@ class OnboardingProfileTest extends TestCase
     public function test_autosave_and_complete_are_blocked_until_mobile_verified(): void
     {
         $this->bindUser((object) [
-            'id' => (string) Str::uuid(),
+            'id' => NumericTestIds::next(),
             'suspended_at' => null,
             'is_admin' => false,
             'phone_verified_at' => null,
@@ -111,7 +111,7 @@ class OnboardingProfileTest extends TestCase
     public function test_complete_still_requires_profile_fields_after_mobile_verification(): void
     {
         $user = (object) [
-            'id' => (string) Str::uuid(),
+            'id' => NumericTestIds::next(),
             'account_type' => 'learner',
             'full_name' => 'New user',
             'email' => null,
@@ -144,7 +144,7 @@ class OnboardingProfileTest extends TestCase
     public function test_google_onboarding_does_not_report_email_or_password_as_missing(): void
     {
         $this->bindUser((object) [
-            'id' => (string) Str::uuid(), 'account_type' => 'learner',
+            'id' => NumericTestIds::next(), 'account_type' => 'learner',
             'google_id' => 'verified-google-user', 'full_name' => 'Google User',
             'email' => 'google@example.test', 'phone' => '+918112912880',
             'phone_verified_at' => now(), 'password_set' => false,
@@ -160,7 +160,7 @@ class OnboardingProfileTest extends TestCase
     public function test_google_registration_validates_profile_without_requiring_credentials(): void
     {
         $user = (object) [
-            'id' => (string) Str::uuid(), 'google_id' => 'verified-google-user',
+            'id' => NumericTestIds::next(), 'google_id' => 'verified-google-user',
             'phone_verified_at' => now(), 'profile_completed_at' => null,
             'suspended_at' => null, 'is_admin' => false,
         ];

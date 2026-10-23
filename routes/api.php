@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\SubjectsController;
 use App\Http\Middleware\AttachOptionalApiUser;
 use App\Http\Middleware\RequireAdminApi;
 use App\Http\Middleware\RequireApiAuthentication;
+use App\Support\RecordId;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/auth/otp/request', [AuthController::class, 'requestOtp'])
@@ -35,20 +36,20 @@ Route::get('/i18n/languages', [I18nController::class, 'languages']);
 Route::get('/i18n/{lang}', [I18nController::class, 'translations']);
 Route::get('/subjects', SubjectsController::class);
 Route::post('/analytics/page-view', [OperationsController::class, 'recordPageView'])->middleware('throttle:120,1');
-Route::get('/reviews/for/{providerId}', [CommunityController::class, 'providerReviews'])->whereUuid('providerId');
-Route::get('/feed/{postId}/comments', [CommunityController::class, 'comments'])->whereUuid('postId');
+Route::get('/reviews/for/{providerId}', [CommunityController::class, 'providerReviews'])->where('providerId', RecordId::ROUTE_PATTERN);
+Route::get('/feed/{postId}/comments', [CommunityController::class, 'comments'])->where('postId', RecordId::ROUTE_PATTERN);
 Route::middleware('throttle:60,1')->group(function (): void {
     Route::get('/search/dashboard', [SearchController::class, 'dashboard']);
     Route::get('/search/counts', [SearchController::class, 'counts']);
     Route::get('/search/other-city', [SearchController::class, 'otherCity']);
-    Route::get('/search/by-subject/{subjectId}', [SearchController::class, 'bySubject'])->whereNumber('subjectId');
+    Route::get('/search/by-subject/{subjectId}', [SearchController::class, 'bySubject'])->where('subjectId', RecordId::ROUTE_PATTERN);
     Route::get('/search', [SearchController::class, 'nearby']);
 });
 
 Route::middleware(AttachOptionalApiUser::class)
     ->get('/profiles/{type}/{id}', [ProfilesController::class, 'show'])
     ->whereIn('type', ['teacher', 'institute'])
-    ->whereUuid('id')
+    ->where('id', RecordId::ROUTE_PATTERN)
     ->middleware('throttle:60,1');
 
 Route::middleware(RequireApiAuthentication::class)->group(function () {
@@ -73,7 +74,7 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
     Route::post('/bookings', [BookingsController::class, 'create']);
     Route::get('/bookings/incoming', [BookingsController::class, 'incoming']);
     Route::get('/bookings/mine', [BookingsController::class, 'mine']);
-    Route::patch('/bookings/{id}/status', [BookingsController::class, 'updateStatus'])->whereUuid('id');
+    Route::patch('/bookings/{id}/status', [BookingsController::class, 'updateStatus'])->where('id', RecordId::ROUTE_PATTERN);
     Route::get('/messages', [MessagesController::class, 'index']);
     foreach (['send', 'delivered', 'read', 'typing', 'stop_typing', 'delete', 'edit', 'reply', 'reaction', 'history', 'unread_count'] as $chatAction) {
         Route::post('/chat/events/'.$chatAction, [ChatEventsController::class, 'dispatch'])
@@ -81,21 +82,21 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
     }
     Route::post('/chat/socket/authorize', [SocketIoController::class, 'authorizeSocket'])->middleware('throttle:socket-auth');
     Route::post('/messages/start', [MessagesController::class, 'start']);
-    Route::get('/messages/{conversationId}', [MessagesController::class, 'show'])->whereUuid('conversationId');
-    Route::post('/messages/{conversationId}', [MessagesController::class, 'send'])->whereUuid('conversationId')->middleware('throttle:chat-send');
+    Route::get('/messages/{conversationId}', [MessagesController::class, 'show'])->where('conversationId', RecordId::ROUTE_PATTERN);
+    Route::post('/messages/{conversationId}', [MessagesController::class, 'send'])->where('conversationId', RecordId::ROUTE_PATTERN)->middleware('throttle:chat-send');
     Route::post('/reviews', [CommunityController::class, 'createReview']);
 
     // Feed / Posts: shared by learner, teacher and institute accounts.
     // The developer catalog and Postman list these under each role's category.
     Route::get('/feed', [CommunityController::class, 'feed']);
     Route::post('/feed', [CommunityController::class, 'createPost']);
-    Route::post('/feed/{postId}/like', [CommunityController::class, 'like'])->whereUuid('postId');
-    Route::delete('/feed/{postId}/like', [CommunityController::class, 'unlike'])->whereUuid('postId');
-    Route::post('/feed/{postId}/comments', [CommunityController::class, 'createComment'])->whereUuid('postId');
+    Route::post('/feed/{postId}/like', [CommunityController::class, 'like'])->where('postId', RecordId::ROUTE_PATTERN);
+    Route::delete('/feed/{postId}/like', [CommunityController::class, 'unlike'])->where('postId', RecordId::ROUTE_PATTERN);
+    Route::post('/feed/{postId}/comments', [CommunityController::class, 'createComment'])->where('postId', RecordId::ROUTE_PATTERN);
 
     Route::post('/safety/reports', [OperationsController::class, 'report']);
-    Route::post('/safety/blocks/{userId}', [OperationsController::class, 'block'])->whereUuid('userId');
-    Route::delete('/safety/blocks/{userId}', [OperationsController::class, 'unblock'])->whereUuid('userId');
+    Route::post('/safety/blocks/{userId}', [OperationsController::class, 'block'])->where('userId', RecordId::ROUTE_PATTERN);
+    Route::delete('/safety/blocks/{userId}', [OperationsController::class, 'unblock'])->where('userId', RecordId::ROUTE_PATTERN);
     Route::post('/suggestions', [OperationsController::class, 'suggest']);
     Route::post('/support', [OperationsController::class, 'createTicket']);
     Route::get('/support/mine', [OperationsController::class, 'mineTickets']);
@@ -105,26 +106,26 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
     Route::middleware(RequireAdminApi::class)->group(function () {
         Route::patch('/profiles/{type}/{id}/verify', [ProfilesController::class, 'verify'])
             ->whereIn('type', ['teacher', 'institute'])
-            ->whereUuid('id');
-        Route::patch('/profiles/institute/{id}/type', [ProfilesController::class, 'classifyInstitute'])->whereUuid('id');
-        Route::patch('/profiles/institute/{id}/bsl-verified', [ProfilesController::class, 'setBslVerified'])->whereUuid('id');
+            ->where('id', RecordId::ROUTE_PATTERN);
+        Route::patch('/profiles/institute/{id}/type', [ProfilesController::class, 'classifyInstitute'])->where('id', RecordId::ROUTE_PATTERN);
+        Route::patch('/profiles/institute/{id}/bsl-verified', [ProfilesController::class, 'setBslVerified'])->where('id', RecordId::ROUTE_PATTERN);
         Route::get('/safety/reports', [OperationsController::class, 'reports']);
-        Route::patch('/safety/reports/{id}/status', [OperationsController::class, 'updateReport'])->whereUuid('id');
+        Route::patch('/safety/reports/{id}/status', [OperationsController::class, 'updateReport'])->where('id', RecordId::ROUTE_PATTERN);
         Route::get('/suggestions', [OperationsController::class, 'suggestions']);
-        Route::patch('/suggestions/{id}/status', [OperationsController::class, 'updateSuggestion'])->whereUuid('id');
+        Route::patch('/suggestions/{id}/status', [OperationsController::class, 'updateSuggestion'])->where('id', RecordId::ROUTE_PATTERN);
         Route::get('/support', [OperationsController::class, 'tickets']);
-        Route::patch('/support/{id}/status', [OperationsController::class, 'updateTicket'])->whereUuid('id');
+        Route::patch('/support/{id}/status', [OperationsController::class, 'updateTicket'])->where('id', RecordId::ROUTE_PATTERN);
         Route::get('/referrals/top', [OperationsController::class, 'topReferrals']);
         Route::get('/analytics/summary', [OperationsController::class, 'analyticsSummary']);
 
         Route::get('/moderation/photos/pending', [ModerationController::class, 'pendingPhotos']);
-        Route::patch('/moderation/photos/{userId}', [ModerationController::class, 'reviewPhoto'])->whereUuid('userId');
+        Route::patch('/moderation/photos/{userId}', [ModerationController::class, 'reviewPhoto'])->where('userId', RecordId::ROUTE_PATTERN);
         Route::get('/moderation/conversations', [ModerationController::class, 'conversations']);
-        Route::get('/moderation/conversations/{id}/messages', [ModerationController::class, 'conversationMessages'])->whereUuid('id');
+        Route::get('/moderation/conversations/{id}/messages', [ModerationController::class, 'conversationMessages'])->where('id', RecordId::ROUTE_PATTERN);
         Route::get('/moderation/bookings', [ModerationController::class, 'bookings']);
         Route::get('/moderation/contact-stats', [ModerationController::class, 'contactStats']);
-        Route::post('/moderation/users/{userId}/suspend', [ModerationController::class, 'suspend'])->whereUuid('userId');
-        Route::post('/moderation/users/{userId}/unsuspend', [ModerationController::class, 'unsuspend'])->whereUuid('userId');
+        Route::post('/moderation/users/{userId}/suspend', [ModerationController::class, 'suspend'])->where('userId', RecordId::ROUTE_PATTERN);
+        Route::post('/moderation/users/{userId}/unsuspend', [ModerationController::class, 'unsuspend'])->where('userId', RecordId::ROUTE_PATTERN);
         Route::get('/moderation/users/suspended', [ModerationController::class, 'suspendedUsers']);
     });
 });

@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Str;
+use Tests\Support\NumericTestIds;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
@@ -198,7 +198,7 @@ class ExampleTest extends TestCase
 
     public function test_developer_portal_lists_registered_api_routes_and_masks_secrets(): void
     {
-        $directory = sys_get_temp_dir().'/nearby-teacher-developer-view-'.Str::uuid();
+        $directory = sys_get_temp_dir().'/nearby-teacher-developer-view-'.NumericTestIds::next();
         $this->assertTrue(mkdir($directory, 0700));
         $envFile = $directory.'/.env';
         $this->assertNotFalse(file_put_contents($envFile, "APP_NAME='Developer test app'\nDB_HOST='127.0.0.1'\nDB_PASSWORD='test-database-secret-marker'\nJWT_SECRET='test-jwt-secret-marker'\nFIREBASE_SERVICE_ACCOUNT_JSON='{\"private_key\":\"test-firebase-secret-marker\"}'\n"));
@@ -247,7 +247,7 @@ class ExampleTest extends TestCase
             ->assertSee('Step 1')
             ->assertSee('PASTE_FIREBASE_GOOGLE_ID_TOKEN')
             ->assertSee('+919876543210')
-            ->assertSee('00000000-0000-4000-8000-000000000001')
+            ->assertSee(1)
             ->assertSee('data-category="Auth"', false)
             ->assertSee('Use response token as bearer')
             ->assertSee('Join conversation')
@@ -286,7 +286,7 @@ class ExampleTest extends TestCase
 
     public function test_developer_configuration_update_is_allowlisted_and_preserves_blank_secrets(): void
     {
-        $directory = sys_get_temp_dir().'/nearby-teacher-developer-config-'.Str::uuid();
+        $directory = sys_get_temp_dir().'/nearby-teacher-developer-config-'.NumericTestIds::next();
         $this->assertTrue(mkdir($directory, 0700));
         $envFile = $directory.'/.env';
         $this->assertNotFalse(file_put_contents($envFile, "APP_NAME='Before'\nAPP_KEY='base64:".base64_encode(str_repeat('k', 32))."'\nDB_PASSWORD='keep-this-secret'\nSMTP_PASS='remove-this-secret'\n"));
@@ -341,7 +341,7 @@ class ExampleTest extends TestCase
 
     public function test_developer_setup_command_stores_only_a_password_hash_in_its_env_file(): void
     {
-        $directory = sys_get_temp_dir().'/nearby-teacher-developer-'.Str::uuid();
+        $directory = sys_get_temp_dir().'/nearby-teacher-developer-'.NumericTestIds::next();
         $this->assertTrue(mkdir($directory, 0700));
         $envFile = $directory.'/.env';
         $this->assertNotFalse(file_put_contents($envFile, "DEVELOPER_EMAIL=\nDEVELOPER_PASSWORD_HASH=\n"));
@@ -386,7 +386,7 @@ class ExampleTest extends TestCase
 
     public function test_admin_setup_command_stores_only_a_password_hash_in_its_env_file(): void
     {
-        $directory = sys_get_temp_dir().'/nearby-teacher-admin-'.Str::uuid();
+        $directory = sys_get_temp_dir().'/nearby-teacher-admin-'.NumericTestIds::next();
         $this->assertTrue(mkdir($directory, 0700));
         $envFile = $directory.'/.env';
         $this->assertNotFalse(file_put_contents($envFile, "ADMIN_EMAIL=\nADMIN_PASSWORD_HASH=\n"));
@@ -426,7 +426,7 @@ class ExampleTest extends TestCase
         $secret = 'test-secret-with-sufficient-entropy';
         config(['services.nearby_teacher.jwt_secret' => $secret]);
         $expired = JWT::encode([
-            'sub' => (string) Str::uuid(), 'iss' => 'nearby-teacher-auth',
+            'sub' => NumericTestIds::next(), 'iss' => 'nearby-teacher-auth',
             'iat' => now()->subDays(31)->timestamp, 'exp' => now()->subDay()->timestamp, 'ver' => 0,
         ], $secret, 'HS256');
         Http::preventStrayRequests();
@@ -482,14 +482,14 @@ class ExampleTest extends TestCase
     {
         config(['services.nearby_teacher.jwt_secret' => 'test-secret-with-sufficient-entropy']);
 
-        $userId = (string) Str::uuid();
+        $userId = NumericTestIds::next();
         $token = app(AuthenticationService::class)->issueOtpToken($userId);
         $claims = JWT::decode(
             $token,
             new Key('test-secret-with-sufficient-entropy', 'HS256')
         );
 
-        $this->assertSame($userId, $claims->sub);
+        $this->assertSame((string) $userId, $claims->sub);
         $this->assertSame('nearby-teacher-otp', $claims->iss);
         $this->assertGreaterThan(now()->timestamp, $claims->exp);
         $this->assertSame(0, $claims->ver);
@@ -501,7 +501,7 @@ class ExampleTest extends TestCase
         );
         $this->assertSame('nearby-teacher-auth', $sessionClaims->iss);
         $this->assertNotSame($sessionToken, app(AuthenticationService::class)->issueSessionToken($userId));
-        $this->assertTrue(Str::isUuid($sessionClaims->jti));
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{32}$/', $sessionClaims->jti);
         $this->assertGreaterThan(now()->timestamp, $sessionClaims->exp);
     }
 
@@ -526,7 +526,7 @@ class ExampleTest extends TestCase
     {
         $this->postJson('/broadcasting/auth', [
             'socket_id' => '123.456',
-            'channel_name' => 'private-conversation.'.Str::uuid(),
+            'channel_name' => 'private-conversation.'.NumericTestIds::next(),
         ])->assertUnauthorized()
             ->assertExactJson(['error' => 'Missing Authorization header']);
         $this->postJson('/chat/socket/authorize')->assertUnauthorized();
@@ -535,9 +535,9 @@ class ExampleTest extends TestCase
     public function test_chat_message_event_uses_a_private_conversation_channel(): void
     {
         $message = [
-            'id' => (string) Str::uuid(),
-            'conversation_id' => (string) Str::uuid(),
-            'sender_id' => (string) Str::uuid(),
+            'id' => NumericTestIds::next(),
+            'conversation_id' => NumericTestIds::next(),
+            'sender_id' => NumericTestIds::next(),
             'body' => 'Hello',
             'created_at' => now()->toDateTimeString(),
         ];
@@ -550,8 +550,8 @@ class ExampleTest extends TestCase
 
     public function test_private_conversation_channel_checks_membership(): void
     {
-        $conversationId = (string) Str::uuid();
-        $user = (object) ['id' => (string) Str::uuid()];
+        $conversationId = NumericTestIds::next();
+        $user = (object) ['id' => NumericTestIds::next()];
         $builder = \Mockery::mock(Builder::class);
         $participantQuery = \Mockery::mock(Builder::class);
 

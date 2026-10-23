@@ -11,7 +11,7 @@ class SocketIoController extends Controller
 {
     public function authorizeSocket(Request $request): JsonResponse
     {
-        $data = $request->validate(['conversationId' => ['sometimes', 'required', 'uuid']]);
+        $data = $request->validate(['conversationId' => ['sometimes', 'required', 'integer', 'min:1', 'max:9007199254740991']]);
         $user = $request->attributes->get('authenticated_user');
         $room = null;
         if (isset($data['conversationId'])) {

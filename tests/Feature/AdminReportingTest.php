@@ -11,20 +11,20 @@ use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
+use Tests\Support\NumericTestIds;
 use Tests\TestCase;
 
 class AdminReportingTest extends TestCase
 {
     private bool $transactionStarted = false;
 
-    private string $learner;
+    private int $learner;
 
-    private string $teacher;
+    private int $teacher;
 
-    private string $institute;
+    private int $institute;
 
-    private string $conversation;
+    private int $conversation;
 
     protected function setUp(): void
     {
@@ -41,7 +41,7 @@ class AdminReportingTest extends TestCase
         DB::beginTransaction();
         $this->transactionStarted = true;
         foreach (['learner', 'teacher', 'institute'] as $type) {
-            $id = (string) Str::uuid();
+            $id = NumericTestIds::next();
             $this->$type = $id;
             DB::table('users')->insert([
                 'id' => $id, 'account_type' => $type, 'full_name' => ucfirst($type).' Person',
@@ -51,15 +51,15 @@ class AdminReportingTest extends TestCase
                 'created_at' => '2026-10-20 12:00:00',
             ]);
         }
-        DB::table('teacher_profiles')->insert(['id' => (string) Str::uuid(), 'user_id' => $this->teacher, 'lesson_modes' => '[]']);
-        DB::table('institute_profiles')->insert(['id' => (string) Str::uuid(), 'user_id' => $this->institute, 'lesson_modes' => '[]']);
+        DB::table('teacher_profiles')->insert(['id' => NumericTestIds::next(), 'user_id' => $this->teacher, 'lesson_modes' => '[]']);
+        DB::table('institute_profiles')->insert(['id' => NumericTestIds::next(), 'user_id' => $this->institute, 'lesson_modes' => '[]']);
         foreach ([$this->teacher, $this->institute] as $provider) {
-            $id = (string) Str::uuid();
+            $id = NumericTestIds::next();
             DB::table('conversations')->insert(['id' => $id, 'learner_id' => $this->learner, 'provider_id' => $provider]);
             if ($provider === $this->teacher) {
                 $this->conversation = $id;
             }
-            DB::table('messages')->insert(['id' => (string) Str::uuid(), 'conversation_id' => $id, 'sender_id' => $this->learner,
+            DB::table('messages')->insert(['id' => NumericTestIds::next(), 'conversation_id' => $id, 'sender_id' => $this->learner,
                 'body' => '=HYPERLINK("https://example.test")', 'created_at' => '2026-10-20 12:00:00']);
         }
     }
@@ -164,12 +164,12 @@ class AdminReportingTest extends TestCase
     {
         $recorder = app(BusinessActivityRecorder::class);
         try {
-            $recorder->record('booking.created', (string) Str::uuid(), $this->learner, after: ['password' => 'secret']);
+            $recorder->record('booking.created', NumericTestIds::next(), $this->learner, after: ['password' => 'secret']);
             $this->fail('Unexpected snapshot fields must be rejected.');
         } catch (\InvalidArgumentException) {
             $this->assertSame(0, DB::table('business_activity')->count());
         }
-        $entityId = (string) Str::uuid();
+        $entityId = NumericTestIds::next();
         try {
             DB::transaction(function () use ($recorder, $entityId): void {
                 $recorder->record('booking.status_changed', $entityId, $this->learner, $this->teacher,
@@ -213,7 +213,7 @@ class AdminReportingTest extends TestCase
         DB::rollBack();
         $this->transactionStarted = false;
         $this->expectException(\LogicException::class);
-        app(BusinessActivityRecorder::class)->record('booking.created', (string) Str::uuid(), null);
+        app(BusinessActivityRecorder::class)->record('booking.created', NumericTestIds::next(), null);
     }
 
     public function test_management_sections_have_bounded_stable_pagination(): void
@@ -223,13 +223,13 @@ class AdminReportingTest extends TestCase
         for ($i = 0; $i < 31; $i++) {
             DB::table('subjects')->insert(['domain_id' => $domain, 'name' => 'Paging subject '.str_pad((string) $i, 2, '0', STR_PAD_LEFT)]);
             foreach (['learner', 'teacher', 'institute'] as $type) {
-                $id = (string) Str::uuid();
+                $id = NumericTestIds::next();
                 DB::table('users')->insert(['id' => $id, 'account_type' => $type, 'full_name' => 'Same paging name']);
                 if ($type === 'teacher') {
-                    DB::table('teacher_profiles')->insert(['id' => (string) Str::uuid(), 'user_id' => $id, 'lesson_modes' => '[]']);
+                    DB::table('teacher_profiles')->insert(['id' => NumericTestIds::next(), 'user_id' => $id, 'lesson_modes' => '[]']);
                 }
                 if ($type === 'institute') {
-                    DB::table('institute_profiles')->insert(['id' => (string) Str::uuid(), 'user_id' => $id, 'lesson_modes' => '[]']);
+                    DB::table('institute_profiles')->insert(['id' => NumericTestIds::next(), 'user_id' => $id, 'lesson_modes' => '[]']);
                 }
             }
         }
@@ -252,7 +252,7 @@ class AdminReportingTest extends TestCase
     {
         $this->withSession(['admin_authenticated' => true]);
         for ($i = 0; $i < 36; $i++) {
-            DB::table('users')->insert(['id' => (string) Str::uuid(), 'account_type' => 'learner', 'full_name' => 'Paging person '.$i, 'created_at' => '2026-10-20 12:00:00']);
+            DB::table('users')->insert(['id' => NumericTestIds::next(), 'account_type' => 'learner', 'full_name' => 'Paging person '.$i, 'created_at' => '2026-10-20 12:00:00']);
         }
         $url = '/admin/reports/users?q=Paging&type=learner&from=2026-10-01&to=2026-10-31&per_page=15';
         $first = $this->get($url)->assertOk()->assertSee('Showing 1–15 of 36 records')->viewData('records');

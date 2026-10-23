@@ -7,13 +7,13 @@ const { once } = require('node:events');
 const { io: connect } = require('socket.io-client');
 const { createChatServer } = require('../server');
 
-const learner = '11111111-1111-4111-8111-111111111111';
-const provider = '22222222-2222-4222-8222-222222222222';
-const outsider = '33333333-3333-4333-8333-333333333333';
-const conversation = '44444444-4444-4444-8444-444444444444';
+const learner = 1;
+const provider = 2;
+const outsider = 3;
+const conversation = 4;
 const secret = 'test-socket-secret-'.repeat(4);
 const message = {
-  id: '55555555-5555-4555-8555-555555555555', conversation_id: conversation,
+  id: 5, conversation_id: conversation,
   sender_id: learner, body: 'Hello from Laravel', created_at: '2026-01-01 00:00:00',
 };
 
@@ -130,6 +130,19 @@ test('authenticated chat ping acknowledges without calling the message API and i
   assert.equal(limited.status, 429);
   assert.equal(limited.ok, false);
   assert.deepEqual(requests.map((request) => request.path), ['/chat/socket/authorize']);
+});
+
+test('numeric conversation IDs accept canonical strings and reject legacy or unsafe IDs', {timeout: 10000}, async (t) => {
+  const {connected, requests} = await setup(t);
+  const socket = await connected('learner-token');
+  for (const conversationId of [0, -1, 1.5, true, [], '01', '1e0', Number.MAX_SAFE_INTEGER + 1, '00000000-0000-4000-8000-000000000001']) {
+    const ack = await socket.timeout(2000).emitWithAck('conversation.join', {conversationId});
+    assert.equal(ack.ok, false);
+    assert.equal(ack.status, 422);
+  }
+  assert.equal(requests.length, 1);
+  assert.equal((await socket.timeout(2000).emitWithAck('conversation.join', {conversationId: String(conversation)})).ok, true);
+  assert.equal(requests.at(-1).body.conversationId, conversation);
 });
 
 test('private room joins and message sending are authorized through Laravel', { timeout: 10000 }, async (t) => {

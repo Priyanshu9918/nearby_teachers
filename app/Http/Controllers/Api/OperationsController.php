@@ -9,7 +9,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 class OperationsController extends Controller
 {
@@ -17,13 +16,11 @@ class OperationsController extends Controller
     {
         $data = $request->validate([
             'targetType' => ['required', 'in:user,post,comment,message'],
-            'targetId' => ['required', 'uuid'],
+            'targetId' => ['required', 'integer', 'min:1', 'max:9007199254740991'],
             'reasonCategory' => ['required', 'in:fraud,fake_profile,inappropriate,spam,other'],
             'reason' => ['nullable', 'string', 'max:5000'],
         ]);
-        $id = (string) Str::uuid();
-        DB::table('reports')->insert([
-            'id' => $id,
+        $id = DB::table('reports')->insertGetId([
             'reporter_id' => $request->attributes->get('authenticated_user')->id,
             'target_type' => $data['targetType'],
             'target_id' => $data['targetId'],
@@ -49,7 +46,7 @@ class OperationsController extends Controller
         return response()->json(['reports' => $reports]);
     }
 
-    public function updateReport(Request $request, string $id): JsonResponse
+    public function updateReport(Request $request, int $id): JsonResponse
     {
         $data = $request->validate(['status' => ['required', 'in:open,reviewed,dismissed']]);
         $updated = DB::table('reports')->where('id', $id)->update($data);
@@ -60,14 +57,13 @@ class OperationsController extends Controller
         return response()->json(['report' => DB::table('reports')->where('id', $id)->first()]);
     }
 
-    public function block(Request $request, string $userId): JsonResponse
+    public function block(Request $request, int $userId): JsonResponse
     {
         $user = $request->attributes->get('authenticated_user');
         if ($userId === $user->id) {
             return response()->json(['error' => 'You cannot block your own account'], 400);
         }
         DB::table('blocks')->insertOrIgnore([
-            'id' => (string) Str::uuid(),
             'blocker_id' => $user->id,
             'blocked_id' => $userId,
             'created_at' => now(),
@@ -76,7 +72,7 @@ class OperationsController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    public function unblock(Request $request, string $userId): JsonResponse
+    public function unblock(Request $request, int $userId): JsonResponse
     {
         DB::table('blocks')
             ->where('blocker_id', $request->attributes->get('authenticated_user')->id)
@@ -92,9 +88,7 @@ class OperationsController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'notes' => ['nullable', 'string', 'max:5000'],
         ]);
-        $id = (string) Str::uuid();
-        DB::table('suggestions')->insert([
-            'id' => $id,
+        $id = DB::table('suggestions')->insertGetId([
             'submitted_by' => $request->attributes->get('authenticated_user')->id,
             'suggestion_type' => $data['suggestionType'],
             'name' => $data['name'],
@@ -118,7 +112,7 @@ class OperationsController extends Controller
         return response()->json(['suggestions' => $suggestions]);
     }
 
-    public function updateSuggestion(Request $request, string $id): JsonResponse
+    public function updateSuggestion(Request $request, int $id): JsonResponse
     {
         $data = $request->validate(['status' => ['required', 'in:open,added,declined']]);
         $updated = DB::table('suggestions')->where('id', $id)->update($data);
@@ -136,9 +130,7 @@ class OperationsController extends Controller
             'message' => ['required', 'string', 'max:10000'],
         ]);
         $user = $request->attributes->get('authenticated_user');
-        $id = (string) Str::uuid();
-        DB::table('support_tickets')->insert([
-            'id' => $id,
+        $id = DB::table('support_tickets')->insertGetId([
             'user_id' => $user->id,
             'subject' => $data['subject'],
             'message' => $data['message'],
@@ -181,7 +173,7 @@ class OperationsController extends Controller
         return response()->json(['tickets' => $tickets]);
     }
 
-    public function updateTicket(Request $request, string $id): JsonResponse
+    public function updateTicket(Request $request, int $id): JsonResponse
     {
         $data = $request->validate(['status' => ['required', 'in:open,in_progress,resolved']]);
         $updated = DB::table('support_tickets')->where('id', $id)->update([
@@ -240,10 +232,8 @@ class OperationsController extends Controller
         if ($referrer === $user->id) {
             return response()->json(['error' => "You can't refer yourself"], 400);
         }
-        $id = (string) Str::uuid();
         try {
-            DB::table('referrals')->insert([
-                'id' => $id,
+            $id = DB::table('referrals')->insertGetId([
                 'referrer_id' => $referrer,
                 'referred_id' => $user->id,
                 'created_at' => now(),
@@ -281,7 +271,6 @@ class OperationsController extends Controller
             'referrer' => ['nullable', 'string', 'max:2048'],
         ]);
         DB::table('page_views')->insert([
-            'id' => (string) Str::uuid(),
             'page_type' => $data['pageType'],
             'target' => $data['target'] ?? null,
             'platform' => $data['platform'] ?? null,

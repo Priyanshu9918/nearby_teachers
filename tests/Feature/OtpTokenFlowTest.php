@@ -23,7 +23,7 @@ class OtpTokenFlowTest extends TestCase
     public function test_google_bearer_verifies_phone_on_existing_identity_and_returns_fresh_token(string $method, string $endpoint): void
     {
         $user = (object) [
-            'id' => 'google-user', 'google_id' => 'firebase-uid', 'suspended_at' => null,
+            'id' => 1, 'google_id' => 'firebase-uid', 'suspended_at' => null,
             'phone_verified_at' => null, 'phone' => null, 'is_admin' => false,
         ];
         $authentication = $this->bindAuthentication();
@@ -33,7 +33,7 @@ class OtpTokenFlowTest extends TestCase
         $this->app['auth']->guard();
         DB::shouldReceive('transaction')->twice()->andReturnUsing(fn ($callback) => $callback());
         $otp = (object) [
-            'id' => 'otp-id', 'consumed_at' => null, 'expires_at' => now()->addMinutes(5),
+            'id' => 2, 'consumed_at' => null, 'expires_at' => now()->addMinutes(5),
             'attempts' => 0, 'code_hash' => Hash::make('123456'),
         ];
         $otpQuery = \Mockery::mock(Builder::class);
@@ -42,7 +42,7 @@ class OtpTokenFlowTest extends TestCase
         $otpQuery->shouldReceive('orderByDesc')->with('created_at')->once()->andReturnSelf();
         $otpQuery->shouldReceive('lockForUpdate')->once()->andReturnSelf();
         $otpQuery->shouldReceive('first')->once()->andReturn($otp);
-        $otpQuery->shouldReceive('where')->with('id', 'otp-id')->once()->andReturnSelf();
+        $otpQuery->shouldReceive('where')->with('id', 2)->once()->andReturnSelf();
         $otpQuery->shouldReceive('update')->once()->with(\Mockery::on(fn ($data) => isset($data['consumed_at'])))->andReturn(1);
         $query = \Mockery::mock(Builder::class);
         DB::shouldReceive('table')->with('users')->times(4)->andReturn($query);
@@ -61,10 +61,10 @@ class OtpTokenFlowTest extends TestCase
         DB::shouldReceive('transactionLevel')->once()->andReturn(1);
         $activity = \Mockery::mock(Builder::class);
         DB::shouldReceive('table')->with('business_activity')->once()->andReturn($activity);
-        $activity->shouldReceive('insert')->once()->andReturn(true);
+        $activity->shouldReceive('insertGetId')->once()->andReturn(3);
 
         $this->json($method, $endpoint, ['authMethod' => 'google', 'phone' => '+918112912880', 'code' => '123456'], ['Authorization' => 'Bearer google-session'])
-            ->assertOk()->assertJsonPath('user.id', 'google-user')->assertJsonPath('token', 'verified-google-session')->assertJsonPath('authMethod', 'google')
+            ->assertOk()->assertJsonPath('user.id', 1)->assertJsonPath('token', 'verified-google-session')->assertJsonPath('authMethod', 'google')
             ->assertJsonPath('mobileVerified', true)->assertJsonPath('phoneVerificationRequired', false);
     }
 

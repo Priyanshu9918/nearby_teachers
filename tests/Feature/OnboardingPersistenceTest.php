@@ -8,12 +8,12 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
+use Tests\Support\NumericTestIds;
 use Tests\TestCase;
 
 class OnboardingPersistenceTest extends TestCase
 {
-    private string $userId;
+    private int $userId;
 
     private bool $transactionStarted = false;
 
@@ -38,7 +38,7 @@ class OnboardingPersistenceTest extends TestCase
         DB::beginTransaction();
         $this->transactionStarted = true;
 
-        $this->userId = (string) Str::uuid();
+        $this->userId = NumericTestIds::next();
         DB::table('users')->insert([
             'id' => $this->userId,
             'account_type' => 'learner',
@@ -96,7 +96,7 @@ class OnboardingPersistenceTest extends TestCase
             'account_type' => 'teacher', 'full_name' => 'Saved Teacher', 'email' => 'saved@example.test',
         ]);
         DB::table('teacher_profiles')->insert([
-            'id' => (string) Str::uuid(), 'user_id' => $this->userId, 'lesson_modes' => '[]',
+            'id' => NumericTestIds::next(), 'user_id' => $this->userId, 'lesson_modes' => '[]',
             'city' => 'Jaipur', 'primary_subject_id' => $subject,
         ]);
         $this->getJson('/auth/onboarding')->assertOk()
@@ -142,7 +142,7 @@ class OnboardingPersistenceTest extends TestCase
     public function test_registration_rejects_duplicate_email_and_phone_verification_overrides(): void
     {
         DB::table('users')->insert([
-            'id' => (string) Str::uuid(), 'account_type' => 'learner',
+            'id' => NumericTestIds::next(), 'account_type' => 'learner',
             'full_name' => 'Another student', 'email' => 'taken@example.com',
         ]);
         $this->postJson('/auth/register', array_replace($this->sharedFields(), ['email' => 'taken@example.com']))

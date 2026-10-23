@@ -8,15 +8,15 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Queue;
-use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\Support\NumericTestIds;
 use Tests\TestCase;
 
 class StudentRegistrationCompletionTest extends TestCase
 {
     private bool $transactionStarted = false;
 
-    private string $userId;
+    private int $userId;
 
     protected function setUp(): void
     {
@@ -34,7 +34,7 @@ class StudentRegistrationCompletionTest extends TestCase
         Artisan::call('migrate', ['--force' => true]);
         DB::beginTransaction();
         $this->transactionStarted = true;
-        $this->userId = (string) Str::uuid();
+        $this->userId = NumericTestIds::next();
         DB::table('users')->insert([
             'id' => $this->userId, 'account_type' => 'learner', 'full_name' => 'New user',
             'phone' => '+919876543210', 'phone_verified_at' => now(),
@@ -165,7 +165,7 @@ class StudentRegistrationCompletionTest extends TestCase
     {
         $this->postJson('/auth/register', $this->form())->assertOk();
         DB::table('otp_codes')->insert([
-            'id' => (string) Str::uuid(), 'phone' => '+919876543210',
+            'id' => NumericTestIds::next(), 'phone' => '+919876543210',
             'code_hash' => Hash::make('123456'), 'expires_at' => now()->addMinutes(5),
         ]);
         $this->withoutHeader('Authorization');

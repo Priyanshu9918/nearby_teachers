@@ -6,7 +6,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
@@ -333,7 +332,6 @@ class WebsiteController extends Controller
     {
         try {
             DB::table('page_views')->insert([
-                'id' => (string) Str::uuid(),
                 'page_type' => $pageType,
                 'target' => $target,
                 'platform' => $platform,

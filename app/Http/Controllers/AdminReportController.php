@@ -55,7 +55,7 @@ class AdminReportController extends Controller
         return view('admin.reports.index', compact('report', 'title', 'columns', 'records', 'filters', 'userColumns', 'timestamp', 'availableReports'));
     }
 
-    public function user(Request $request, string $id): View
+    public function user(Request $request, int $id): View
     {
         $user = DB::table('users')->select($this->registry->get('users')->columns)
             ->selectRaw('CASE WHEN password_hash IS NOT NULL THEN 1 ELSE 0 END as password_set, CASE WHEN google_id IS NOT NULL THEN 1 ELSE 0 END as google_linked')
@@ -74,7 +74,7 @@ class AdminReportController extends Controller
         return view('admin.reports.user', compact('user', 'profile', 'subjects', 'related'));
     }
 
-    public function conversation(Request $request, string $id): View|StreamedResponse
+    public function conversation(Request $request, int $id): View|StreamedResponse
     {
         $conversation = DB::table('conversations as c')
             ->join('users as l', 'l.id', '=', 'c.learner_id')->join('users as p', 'p.id', '=', 'c.provider_id')

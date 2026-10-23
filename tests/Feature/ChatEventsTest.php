@@ -11,20 +11,20 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
+use Tests\Support\NumericTestIds;
 use Tests\TestCase;
 
 class ChatEventsTest extends TestCase
 {
-    private string $learner;
+    private int $learner;
 
-    private string $teacher;
+    private int $teacher;
 
-    private string $outsider;
+    private int $outsider;
 
-    private string $conversation;
+    private int $conversation;
 
-    private string $message;
+    private int $message;
 
     private bool $transaction = false;
 
@@ -42,12 +42,12 @@ class ChatEventsTest extends TestCase
         DB::beginTransaction();
         $this->transaction = true;
         foreach (['learner', 'teacher', 'outsider'] as $key) {
-            $this->$key = (string) Str::uuid();
+            $this->$key = NumericTestIds::next();
             DB::table('users')->insert(['id' => $this->$key, 'account_type' => $key === 'teacher' ? 'teacher' : 'learner',
                 'full_name' => 'Chat '.ucfirst($key), 'phone_verified_at' => now(), 'safety_disclaimer_acknowledged_at' => now()]);
         }
-        $this->conversation = (string) Str::uuid();
-        $this->message = (string) Str::uuid();
+        $this->conversation = NumericTestIds::next();
+        $this->message = NumericTestIds::next();
         DB::table('conversations')->insert(['id' => $this->conversation, 'learner_id' => $this->learner, 'provider_id' => $this->teacher]);
         DB::table('messages')->insert(['id' => $this->message, 'conversation_id' => $this->conversation, 'sender_id' => $this->learner, 'body' => 'Original']);
         $auth = \Mockery::mock(AuthenticationService::class);
@@ -74,8 +74,8 @@ class ChatEventsTest extends TestCase
     {
         foreach (['learner', 'teacher', 'institute'] as $senderRole) {
             foreach (['learner', 'teacher', 'institute'] as $recipientRole) {
-                $sender = (string) Str::uuid();
-                $recipient = (string) Str::uuid();
+                $sender = NumericTestIds::next();
+                $recipient = NumericTestIds::next();
                 foreach ([$sender => $senderRole, $recipient => $recipientRole] as $id => $role) {
                     DB::table('users')->insert(['id' => $id, 'account_type' => $role,
                         'full_name' => 'Role '.$role, 'phone_verified_at' => now(), 'safety_disclaimer_acknowledged_at' => now()]);
@@ -107,7 +107,7 @@ class ChatEventsTest extends TestCase
     public function test_start_still_rejects_self_unknown_users_and_missing_authentication(): void
     {
         $this->postJson('/messages/start', ['providerId' => strtoupper($this->learner)])->assertStatus(400);
-        $this->postJson('/messages/start', ['providerId' => (string) Str::uuid()])->assertUnprocessable();
+        $this->postJson('/messages/start', ['providerId' => NumericTestIds::next()])->assertUnprocessable();
         $this->withoutHeader('Authorization')->postJson('/messages/start', ['providerId' => $this->teacher])->assertUnauthorized();
         $this->assertSame(1, DB::table('conversations')->count());
     }
@@ -151,7 +151,7 @@ class ChatEventsTest extends TestCase
         $this->callEvent('history', ['perPage' => 1])->assertOk()->assertJsonCount(1, 'messages')->assertJsonPath('pagination.hasMore', true);
         $this->callEvent('history', ['perPage' => 101])->assertUnprocessable();
         $this->callEvent('history', ['cursor' => 'not-a-cursor'])->assertUnprocessable();
-        $this->callEvent('reply', ['replyToId' => (string) Str::uuid(), 'body' => 'Invalid target'])->assertNotFound();
+        $this->callEvent('reply', ['replyToId' => NumericTestIds::next(), 'body' => 'Invalid target'])->assertNotFound();
         $this->callEvent('send', ['body' => '   '])->assertUnprocessable();
         $this->callEvent('reply', ['body' => 'Missing target'])->assertUnprocessable();
         Event::assertDispatched(ChatMessageSent::class);

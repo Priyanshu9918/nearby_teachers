@@ -7,6 +7,7 @@ use App\Http\Controllers\LocationLookupController;
 use App\Http\Controllers\WebsiteController;
 use App\Http\Middleware\RequireAdminSession;
 use App\Http\Middleware\RequireDeveloperSession;
+use App\Support\RecordId;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Route;
 
@@ -51,14 +52,14 @@ Route::middleware(RequireAdminSession::class)->prefix('admin')->name('admin.')->
     Route::get('/', [AdminController::class, 'home'])->name('home');
 
     Route::get('/dashboard', [AdminReportController::class, 'dashboard'])->name('dashboard');
-    Route::get('/reports/users/{id}', [AdminReportController::class, 'user'])->whereUuid('id')->name('reports.user');
-    Route::get('/reports/conversations/{id}', [AdminReportController::class, 'conversation'])->whereUuid('id')->name('reports.conversation');
+    Route::get('/reports/users/{id}', [AdminReportController::class, 'user'])->where('id', RecordId::ROUTE_PATTERN)->name('reports.user');
+    Route::get('/reports/conversations/{id}', [AdminReportController::class, 'conversation'])->where('id', RecordId::ROUTE_PATTERN)->name('reports.conversation');
     Route::get('/reports/{report}', [AdminReportController::class, 'index'])->name('reports.index');
 
     Route::get('/{section}/create', [AdminController::class, 'create'])->name('create');
     Route::post('/{section}', [AdminController::class, 'store'])->name('store');
-    Route::get('/{section}/{id}/edit', [AdminController::class, 'edit'])->name('edit');
-    Route::put('/{section}/{id}', [AdminController::class, 'update'])->name('update');
-    Route::delete('/{section}/{id}', [AdminController::class, 'destroy'])->name('destroy');
+    Route::get('/{section}/{id}/edit', [AdminController::class, 'edit'])->where('id', RecordId::ROUTE_PATTERN)->name('edit');
+    Route::put('/{section}/{id}', [AdminController::class, 'update'])->where('id', RecordId::ROUTE_PATTERN)->name('update');
+    Route::delete('/{section}/{id}', [AdminController::class, 'destroy'])->where('id', RecordId::ROUTE_PATTERN)->name('destroy');
     Route::get('/{section}', [AdminController::class, 'index'])->name('index');
 });

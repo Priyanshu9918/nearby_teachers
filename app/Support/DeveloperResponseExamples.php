@@ -75,6 +75,26 @@ class DeveloperResponseExamples
             }
         }
 
-        return ['status' => $best['code'], 'contentType' => $contentType, 'body' => $best['body'] ?? ''];
+        $body = $best['body'] ?? '';
+        if (str_contains($contentType, 'json') && $body !== '') {
+            $body = json_encode($this->numericExamples(json_decode($body, true, flags: JSON_THROW_ON_ERROR)), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        }
+
+        return ['status' => $best['code'], 'contentType' => $contentType, 'body' => $body];
+    }
+
+    private function numericExamples(mixed $value, string $key = ''): mixed
+    {
+        if (is_array($value)) {
+            foreach ($value as $name => $child) {
+                $value[$name] = $this->numericExamples($child, (string) $name);
+            }
+        } elseif (is_string($value) && preg_match('/(?:^id$|_id$|Id$)/', $key)
+            && preg_match('/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/iD', $value)) {
+            // Saved documentation examples are immutable; adapt their record IDs for the portal.
+            $value = (int) hexdec(substr($value, -6)) ?: 1;
+        }
+
+        return $value;
     }
 }

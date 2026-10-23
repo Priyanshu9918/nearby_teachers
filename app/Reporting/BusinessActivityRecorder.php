@@ -3,7 +3,6 @@
 namespace App\Reporting;
 
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use InvalidArgumentException;
 use LogicException;
 
@@ -31,7 +30,7 @@ final class BusinessActivityRecorder
         'message.reaction_changed' => ['message_reaction', ['conversation_id', 'message_id', 'reaction']],
     ];
 
-    public function record(string $event, string $entityId, ?string $actorUserId, ?string $relatedUserId = null, array $before = [], array $after = []): string
+    public function record(string $event, int $entityId, ?int $actorUserId, ?int $relatedUserId = null, array $before = [], array $after = []): int
     {
         if (! isset(self::EVENTS[$event])) {
             throw new InvalidArgumentException('Unknown business activity event.');
@@ -44,9 +43,7 @@ final class BusinessActivityRecorder
         if ($unexpected !== []) {
             throw new InvalidArgumentException('Business activity contains undeclared snapshot fields.');
         }
-        $id = (string) Str::uuid();
-        DB::table('business_activity')->insert([
-            'id' => $id, 'event' => $event, 'entity_type' => $entityType, 'entity_id' => $entityId,
+        $id = DB::table('business_activity')->insertGetId(['event' => $event, 'entity_type' => $entityType, 'entity_id' => $entityId,
             'actor_user_id' => $actorUserId, 'related_user_id' => $relatedUserId, 'version' => 1,
             'before_data' => json_encode($before, JSON_THROW_ON_ERROR),
             'after_data' => json_encode($after, JSON_THROW_ON_ERROR), 'created_at' => now(),

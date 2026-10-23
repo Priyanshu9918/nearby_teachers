@@ -82,7 +82,7 @@
 
   <p class="card-title" style="margin-bottom:8px">Step 1 — Classify the institute</p>
   <div class="verify-form">
-    <input id="bsl-id-type" placeholder="Institute user_id (UUID)" style="width:280px" />
+    <input id="bsl-id-type" placeholder="Institute user_id (numeric ID)" style="width:280px" />
     <select id="bsl-institute-type">
       <option value="independent">Independent</option>
       <option value="franchise">Franchise</option>
@@ -94,7 +94,7 @@
 
   <p class="card-title" style="margin:20px 0 8px">Step 2 — Grant or revoke BSL Verified</p>
   <div class="verify-form">
-    <input id="bsl-id-verify" placeholder="Institute user_id (UUID)" style="width:280px" />
+    <input id="bsl-id-verify" placeholder="Institute user_id (numeric ID)" style="width:280px" />
     <button onclick="grantBslVerified(true)">Grant BSL Verified</button>
     <button onclick="grantBslVerified(false)" style="background:var(--danger)">Revoke</button>
   </div>

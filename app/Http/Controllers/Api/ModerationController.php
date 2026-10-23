@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class ModerationController extends Controller
 {
@@ -20,7 +19,7 @@ class ModerationController extends Controller
         return response()->json(['pending' => $pending]);
     }
 
-    public function reviewPhoto(Request $request, string $userId): JsonResponse
+    public function reviewPhoto(Request $request, int $userId): JsonResponse
     {
         $data = $request->validate(['status' => ['required', 'in:approved,rejected']]);
         $updated = DB::table('users')->where('id', $userId)
@@ -51,7 +50,7 @@ class ModerationController extends Controller
         return response()->json(['conversations' => $conversations]);
     }
 
-    public function conversationMessages(Request $request, string $id): JsonResponse
+    public function conversationMessages(Request $request, int $id): JsonResponse
     {
         $conversation = DB::table('conversations as c')
             ->join('users as learner', 'learner.id', '=', 'c.learner_id')
@@ -65,7 +64,6 @@ class ModerationController extends Controller
         }
 
         DB::table('admin_message_access_log')->insert([
-            'id' => (string) Str::uuid(),
             'admin_id' => $request->attributes->get('authenticated_user')->id,
             'conversation_id' => $id,
             'accessed_at' => now(),
@@ -82,7 +80,6 @@ class ModerationController extends Controller
     public function bookings(Request $request): JsonResponse
     {
         DB::table('admin_booking_access_log')->insert([
-            'id' => (string) Str::uuid(),
             'admin_id' => $request->attributes->get('authenticated_user')->id,
             'accessed_at' => now(),
         ]);
@@ -119,7 +116,7 @@ class ModerationController extends Controller
         ]);
     }
 
-    public function suspend(Request $request, string $userId): JsonResponse
+    public function suspend(Request $request, int $userId): JsonResponse
     {
         $data = $request->validate(['reason' => ['nullable', 'string', 'max:5000']]);
         $admin = $request->attributes->get('authenticated_user');
@@ -140,7 +137,7 @@ class ModerationController extends Controller
             ->select('id', 'full_name', 'suspended_at', 'suspended_reason')->first()]);
     }
 
-    public function unsuspend(string $userId): JsonResponse
+    public function unsuspend(int $userId): JsonResponse
     {
         $updated = DB::table('users')->where('id', $userId)->update([
             'suspended_at' => null,

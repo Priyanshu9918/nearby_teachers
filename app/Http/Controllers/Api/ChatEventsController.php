@@ -10,7 +10,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class ChatEventsController extends Controller
@@ -21,7 +20,7 @@ class ChatEventsController extends Controller
     {
         $user = $request->attributes->get('authenticated_user');
         if ($event === 'chat:unread_count') {
-            $data = $request->validate(['conversationId' => ['sometimes', 'nullable', 'uuid']]);
+            $data = $request->validate(['conversationId' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:9007199254740991']]);
             if (! empty($data['conversationId'])) {
                 $this->conversation($data['conversationId'], $user->id);
             }
@@ -34,8 +33,8 @@ class ChatEventsController extends Controller
 
             return response()->json(['conversationId' => $data['conversationId'] ?? null, 'unreadCount' => $query->count()]);
         }
-        $data = $request->validate(['conversationId' => ['required', 'uuid']]);
-        $conversationId = $data['conversationId'];
+        $data = $request->validate(['conversationId' => ['required', 'integer', 'min:1', 'max:9007199254740991']]);
+        $conversationId = (int) $data['conversationId'];
         $conversation = $this->conversation($conversationId, $user->id);
         if ($event === 'chat:history') {
             $page = $request->validate(['perPage' => ['sometimes', 'integer', 'between:1,100'], 'cursor' => ['sometimes', 'nullable', 'string', 'max:2048']]);
@@ -50,7 +49,7 @@ class ChatEventsController extends Controller
         }
         if (in_array($event, ['chat:send', 'chat:reply'], true)) {
             if ($event === 'chat:reply') {
-                $request->validate(['replyToId' => ['required', 'uuid']]);
+                $request->validate(['replyToId' => ['required', 'integer', 'min:1', 'max:9007199254740991']]);
             }
 
             return $this->messages->send($request, $conversationId);
@@ -62,7 +61,7 @@ class ChatEventsController extends Controller
 
             return response()->json($payload);
         }
-        $input = $request->validate(['messageId' => ['required', 'uuid']]);
+        $input = $request->validate(['messageId' => ['required', 'integer', 'min:1', 'max:9007199254740991']]);
         if ($event === 'chat:edit') {
             $input += $request->validate(['body' => ['required', 'string', 'max:5000', 'not_regex:/^\s*$/u']]);
         }
@@ -118,9 +117,9 @@ class ChatEventsController extends Controller
                 $previous = DB::table('message_reactions')->where('message_id', $message->id)->where('user_id', $user->id)->first();
                 $old = $previous->reaction ?? null;
                 if ($old !== $input['reaction']) {
-                    $id = $previous->id ?? (string) Str::uuid();
                     DB::table('message_reactions')->updateOrInsert(['message_id' => $message->id, 'user_id' => $user->id],
-                        ['id' => $id, 'conversation_id' => $conversationId, 'reaction' => $input['reaction'], 'created_at' => $previous->created_at ?? now(), 'updated_at' => now()]);
+                        ['conversation_id' => $conversationId, 'reaction' => $input['reaction'], 'created_at' => $previous->created_at ?? now(), 'updated_at' => now()]);
+                    $id = DB::table('message_reactions')->where('message_id', $message->id)->where('user_id', $user->id)->value('id');
                     $recorder->record('message.reaction_changed', $id, $user->id, $other, ['reaction' => $old],
                         ['conversation_id' => $conversationId, 'message_id' => $message->id, 'reaction' => $input['reaction']]);
                     $changed = true;
@@ -140,7 +139,7 @@ class ChatEventsController extends Controller
         return response()->json($payload);
     }
 
-    private function conversation(string $id, string $userId): object
+    private function conversation(int $id, int $userId): object
     {
         $conversation = DB::table('conversations')->where('id', $id)
             ->where(fn ($q) => $q->where('learner_id', $userId)->orWhere('provider_id', $userId))->first();

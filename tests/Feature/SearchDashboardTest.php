@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use Tests\Support\NumericTestIds;
 use Tests\TestCase;
 
 class SearchDashboardTest extends TestCase
@@ -113,16 +113,16 @@ class SearchDashboardTest extends TestCase
         DB::table('institute_profiles')->update(['latitude' => null, 'longitude' => null]);
     }
 
-    private function provider(string $type, float $lat, float $lng): string
+    private function provider(string $type, float $lat, float $lng): int
     {
-        $id = (string) Str::uuid();
+        $id = NumericTestIds::next();
         DB::table('users')->insert([
             'id' => $id, 'account_type' => $type, 'full_name' => 'Map provider',
             'phone_verified_at' => now(), 'profile_completed_at' => now(),
             'avatar_url' => 'https://example.com/pending.jpg', 'avatar_status' => 'pending',
         ]);
         DB::table($type.'_profiles')->insert([
-            'id' => (string) Str::uuid(), 'user_id' => $id,
+            'id' => NumericTestIds::next(), 'user_id' => $id,
             'latitude' => $lat, 'longitude' => $lng, 'lesson_modes' => '["online"]',
             ($type === 'teacher' ? 'rate_per_hour' : 'starting_rate') => 500,
         ]);
