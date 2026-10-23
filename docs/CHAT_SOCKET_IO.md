@@ -66,14 +66,68 @@ For direct Node access use its reachable host and port; the portal defaults to
 the page's origin for deployments with a reverse proxy. Allow the portal's
 browser origin in `SOCKET_IO_CORS_ORIGINS`.
 
-Connect, then use **Ping / round trip**, **conversation.join**,
-**conversation.leave**, and **message.send**. Sending saves a real message.
-The bounded log shows acknowledgements, timing, `message.sent`, connection
-errors and server-triggered `session.expired`. Expiry is observed, not emitted
-by the tester. Sessions expire within 15 minutes; reconnect with a valid token.
-Use two tabs with the learner/provider tokens to check actual live delivery.
-If sending acknowledges but no live event arrives, check the broadcasts worker.
-ACK timeouts are ambiguous; inspect REST history before resending.
+Expand **WebSockets** in the developer sidebar. Its submenu opens focused screens:
+Getting started, Connect & verify, Ping & heartbeat, Conversations, Send a
+message, Receive messages, Saved history, Session & reconnect, Leave & end test,
+and Run full check. Previous/Next links guide the sequence. Direct links such as
+`/developer#realtime/send` and `/developer#realtime/receive` reopen the selected
+step. Moving between steps keeps the active connection, token and conversation
+fields in page memory and does not send requests.
+
+Connection settings are shared in a collapsible panel. Only the current step's
+controls are shown. The Receive screen displays the latest 30 unique live
+messages as readable cards; mock events stay in the separate response preview.
+The event log is expandable. Each operation retains its latest actual result
+while navigating, and **Show mock** explicitly returns to a fictional example.
+An asynchronous result for another operation does not replace the current
+step's response.
+
+The **Chat events · 13** submenu additionally exposes every named event from
+[the chat event contract](CHAT_EVENTS.md), including listen-only receive/new.
+
+The tester presents plain-language buttons and a request/example selector for
+every supported operation. Each selection shows a labelled fictional mock
+response without sending traffic. Running an operation replaces it with its
+actual response or error. Logs and results redact credentials and remain only
+in page memory; the event log retains at most 150 entries.
+
+| Button / event | What it checks |
+|---|---|
+| Check chat server | Developer-session-protected `GET /developer/socket/health` checks the configured internal Node/Redis health; it does not accept a destination from browser input |
+| Verify user token | `POST /chat/socket/authorize` using the participant bearer |
+| Connect / Disconnect | Public Socket.IO connection, authentication, transport and lifecycle |
+| Ping / Start auto ping / Stop auto ping | `chat.ping` acknowledgement and round-trip time; auto ping runs every 5 seconds and stops on disconnect/expiry |
+| Heartbeat ping/pong | Automatic Engine.IO heartbeat packets, observed in the log |
+| Start / find conversation | Learner-only `POST /messages/start` with the provider UUID; fills the conversation field and sends no initial message |
+| Load my inbox | `GET /messages?perPage=20`; select a conversation to fill its UUID |
+| Check conversation access | `POST /chat/socket/authorize` with the conversation UUID |
+| Join / Leave conversation | `conversation.join` / `conversation.leave` with acknowledgements |
+| Send via socket | `message.send`; persists one real message |
+| Send via REST | `POST /messages/{conversationId}`; alternative real message send |
+| Load message history | `GET /messages/{conversationId}?perPage=20` |
+| Live message received | `message.sent`; listen-only, correlated by saved message ID in the full check |
+| Session expired | `session.expired`; listen-only, reconnect with a valid token |
+| Reconnection / errors | Logs `connect_error`, `disconnect`, reconnect attempts, success, errors and exhausted retries |
+
+For **Run full check**, supply a token and existing conversation UUID. It checks
+health → authorization → connect → ping → membership → join → history → leave
+→ disconnect, displaying Passed/Failed/Skipped per step. It opens a fresh
+connection and disconnects on completion, failure or cancellation. By default
+it creates no conversation or message. Select **Also send one real message**
+and enter a body to additionally verify the send acknowledgement, matching live
+event in this tab, and presence in the latest saved history page. If delivery
+times out, history is still checked; the check reports failure and never retries
+the send automatically. **Stop check** aborts pending reads/waits and disconnects;
+an already submitted mutation may still finish on the server.
+
+Use two tabs with learner/provider tokens to verify delivery to the other
+participant's actual device. A send acknowledgement confirms persistence, not
+delivery or reading. If no live event arrives, check the broadcasts worker.
+ACK timeouts are ambiguous; inspect REST history before resending. Session
+expiry is observed, not emitted by the tester, and may take up to 15 minutes.
+The named chat protocol now includes typing, delivered/read receipts, edit/delete,
+replies and reactions. See [all 13 named events and REST APIs](CHAT_EVENTS.md)
+for payloads, permissions, migration and developer-portal examples.
 
 `chat.ping` is an optional authenticated Socket.IO diagnostic event. Emit `{}`
 with an acknowledgement callback; response is
@@ -218,3 +272,9 @@ Node integration tests open loopback sockets and exercise authentication,
 membership, sending, private delivery, forged events, origin restrictions,
 session expiry and unavailable-adapter handling. Laravel tests exercise
 real MySQL membership checks and bridge payload/retry behavior.
+
+`node --test tests/Browser/*.test.cjs` also exercises the actual developer
+JavaScript with DOM/socket/HTTP doubles: mock previews, optional sends, ACK and
+delivery correlation, history checks, cancellation, reconnects, redaction and
+bounded logs. These tests make no production connections. Laravel's
+`DeveloperChatTesterTest` checks page access and the protected health endpoint.

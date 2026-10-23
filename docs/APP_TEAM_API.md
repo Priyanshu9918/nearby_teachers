@@ -239,6 +239,17 @@ For ages 13–17 send guardian details on the same DOB API:
 | Adult DOB saved after form | true | true | `home` |
 | Minor DOB saved, guardian pending | true | true | `guardian_consent` |
 | Minor consent confirmed | true | true | `home` |
+| `POST` | `/chat/events/send` | chat:send · Send message |
+| `POST` | `/chat/events/delivered` | chat:delivered · Confirm delivery |
+| `POST` | `/chat/events/read` | chat:read · Mark message read |
+| `POST` | `/chat/events/typing` | chat:typing · User typing |
+| `POST` | `/chat/events/stop_typing` | chat:stop_typing · User stopped typing |
+| `POST` | `/chat/events/delete` | chat:delete · Delete message |
+| `POST` | `/chat/events/edit` | chat:edit · Edit message |
+| `POST` | `/chat/events/reply` | chat:reply · Reply to message |
+| `POST` | `/chat/events/reaction` | chat:reaction · React to message |
+| `POST` | `/chat/events/history` | chat:history · Fetch chat history |
+| `POST` | `/chat/events/unread_count` | chat:unread_count · Unread message count |
 
 Under 13 is rejected. Guardian email delivers a consent link; phone is accepted
 but SMS consent delivery is unimplemented. Use link token in public
@@ -312,6 +323,17 @@ in that same subsection.
 | `POST` | `/feed/{postId}/comments` | Verified bearer | `body`; optional `parentCommentId` | Adds a comment or reply. |
 | `GET` | `/broadcasting/auth` | Verified participant bearer | `channel_name` query; `socket_id` for broadcaster auth when applicable | Legacy broadcaster authorization; Socket.IO clients use `/chat/socket/authorize`. |
 | `POST` | `/broadcasting/auth` | Verified bearer, conversation participant | `channel_name` | Legacy channel authorization; Socket.IO clients use the events below. |
+| `POST` | `/chat/events/send` | chat:send · Send message |
+| `POST` | `/chat/events/delivered` | chat:delivered · Confirm delivery |
+| `POST` | `/chat/events/read` | chat:read · Mark message read |
+| `POST` | `/chat/events/typing` | chat:typing · User typing |
+| `POST` | `/chat/events/stop_typing` | chat:stop_typing · User stopped typing |
+| `POST` | `/chat/events/delete` | chat:delete · Delete message |
+| `POST` | `/chat/events/edit` | chat:edit · Edit message |
+| `POST` | `/chat/events/reply` | chat:reply · Reply to message |
+| `POST` | `/chat/events/reaction` | chat:reaction · React to message |
+| `POST` | `/chat/events/history` | chat:history · Fetch chat history |
+| `POST` | `/chat/events/unread_count` | chat:unread_count · Unread message count |
 
 PUT is partial. Example:
 
@@ -406,6 +428,17 @@ in that same subsection.
 | `POST` | `/feed/{postId}/comments` | Verified bearer | `body`; optional `parentCommentId` | Adds a comment or reply. |
 | `GET` | `/broadcasting/auth` | Verified participant bearer | `channel_name` query; `socket_id` for broadcaster auth when applicable | Legacy broadcaster authorization; Socket.IO clients use `/chat/socket/authorize`. |
 | `POST` | `/broadcasting/auth` | Verified bearer, conversation participant | `channel_name` | Legacy channel authorization; Socket.IO clients use the events below. |
+| `POST` | `/chat/events/send` | chat:send · Send message |
+| `POST` | `/chat/events/delivered` | chat:delivered · Confirm delivery |
+| `POST` | `/chat/events/read` | chat:read · Mark message read |
+| `POST` | `/chat/events/typing` | chat:typing · User typing |
+| `POST` | `/chat/events/stop_typing` | chat:stop_typing · User stopped typing |
+| `POST` | `/chat/events/delete` | chat:delete · Delete message |
+| `POST` | `/chat/events/edit` | chat:edit · Edit message |
+| `POST` | `/chat/events/reply` | chat:reply · Reply to message |
+| `POST` | `/chat/events/reaction` | chat:reaction · React to message |
+| `POST` | `/chat/events/history` | chat:history · Fetch chat history |
+| `POST` | `/chat/events/unread_count` | chat:unread_count · Unread message count |
 
 PUT is partial. Example:
 
@@ -672,6 +705,17 @@ has the same wrapper.
 | Socket authorization | 180/min/bearer; bridge also enforces socket limits |
 | Page-view analytics | 120/min/IP |
 | Reverse lookup | 30/min/IP, with at least one second between lookups per IP |
+| `POST` | `/chat/events/send` | chat:send · Send message |
+| `POST` | `/chat/events/delivered` | chat:delivered · Confirm delivery |
+| `POST` | `/chat/events/read` | chat:read · Mark message read |
+| `POST` | `/chat/events/typing` | chat:typing · User typing |
+| `POST` | `/chat/events/stop_typing` | chat:stop_typing · User stopped typing |
+| `POST` | `/chat/events/delete` | chat:delete · Delete message |
+| `POST` | `/chat/events/edit` | chat:edit · Edit message |
+| `POST` | `/chat/events/reply` | chat:reply · Reply to message |
+| `POST` | `/chat/events/reaction` | chat:reaction · React to message |
+| `POST` | `/chat/events/history` | chat:history · Fetch chat history |
+| `POST` | `/chat/events/unread_count` | chat:unread_count · Unread message count |
 
 Ensure migrations, Firebase project configuration, SMS/email delivery and queue
 workers are deployed. Notifications use notifications queue; chat broadcast and

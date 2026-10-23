@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\ChatActivity;
 use App\Events\ChatMessageSent;
 use App\Http\Controllers\Controller;
 use App\Reporting\BusinessActivityRecorder;
@@ -103,7 +104,16 @@ class MessagesController extends Controller
         $messages = DB::table('messages')->where('conversation_id', $conversationId)
             ->orderByDesc('created_at')->orderByDesc('id');
 
-        return CursorPage::respond($request, $messages, 'messages', reverse: true);
+        $response = CursorPage::respond($request, $messages, 'messages', reverse: true);
+        $result = $response->getData(true);
+        $reactions = DB::table('message_reactions')->whereIn('message_id', array_column($result['messages'], 'id'))
+            ->whereNotNull('reaction')->select('message_id', 'user_id', 'reaction', 'updated_at')->get()->groupBy('message_id');
+        foreach ($result['messages'] as &$message) {
+            $message['reactions'] = $message['deleted_at'] === null ? ($reactions->get($message['id'])?->all() ?? []) : [];
+        }
+        unset($message);
+
+        return $response->setData($result);
     }
 
     public function send(Request $request, string $conversationId): JsonResponse
@@ -112,27 +122,41 @@ class MessagesController extends Controller
         if ($response = $this->checkContactGates($user)) {
             return $response;
         }
-        $data = $request->validate(['body' => ['required', 'string', 'max:5000']]);
+        $data = $request->validate(['body' => ['required', 'string', 'max:5000', 'not_regex:/^\\s*$/u'], 'replyToId' => ['sometimes', 'nullable', 'uuid']]);
         if (! $this->isParticipant($user->id, $conversationId)) {
             return response()->json(['error' => 'Conversation not found'], 404);
         }
 
         $id = (string) Str::uuid();
         DB::transaction(function () use ($id, $conversationId, $user, $data): void {
+            if (! empty($data['replyToId'])) {
+                $parent = DB::table('messages')->where('id', $data['replyToId'])->where('conversation_id', $conversationId)->lockForUpdate()->first();
+                abort_if($parent === null, 404, 'Reply target not found in this conversation');
+                abort_if($parent->deleted_at !== null, 409, 'Cannot reply to a deleted message');
+            }
             DB::table('messages')->insert([
                 'id' => $id,
                 'conversation_id' => $conversationId,
                 'sender_id' => $user->id,
                 'body' => $data['body'],
+                'reply_to_id' => $data['replyToId'] ?? null,
                 'created_at' => now(),
             ]);
             $conversation = DB::table('conversations')->where('id', $conversationId)->first();
             app(BusinessActivityRecorder::class)->record('message.created', $id, $user->id,
                 $conversation->learner_id === $user->id ? $conversation->provider_id : $conversation->learner_id,
                 after: ['conversation_id' => $conversationId]);
+            if (! empty($data['replyToId'])) {
+                app(BusinessActivityRecorder::class)->record('message.replied', $id, $user->id,
+                    $conversation->learner_id === $user->id ? $conversation->provider_id : $conversation->learner_id,
+                    after: ['conversation_id' => $conversationId, 'reply_to_id' => $data['replyToId']]);
+            }
         });
         $message = $this->savedMessage($id);
         event(new ChatMessageSent($message));
+        if (! empty($data['replyToId'])) {
+            event(new ChatActivity('chat:reply', ['conversationId' => $conversationId, 'message' => $message]));
+        }
 
         return response()->json(['message' => $message]);
     }
@@ -154,7 +178,7 @@ class MessagesController extends Controller
             ->exists();
     }
 
-    private function checkContactGates(object $user): ?JsonResponse
+    public function checkContactGates(object $user): ?JsonResponse
     {
         if ($user->safety_disclaimer_acknowledged_at === null) {
             return response()->json([

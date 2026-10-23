@@ -1,0 +1,147 @@
+name: Test and deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  tests:
+    name: Laravel and chat tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: nearby_ci_test
+          MYSQL_ROOT_PASSWORD: ci-only-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      APP_ENV: testing
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: mysql
+      DB_URL: ''
+      DB_HOST: 127.0.0.1
+      DB_PORT: '3306'
+      DB_DATABASE: nearby_ci_test
+      DB_USERNAME: root
+      DB_PASSWORD: ci-only-password
+      DB_SOCKET: ''
+      ONBOARDING_TEST_DATABASE: nearby_ci_test
+      FIREBASE_TEST_DATABASE: nearby_ci_test
+      OTP_TEST_DATABASE: nearby_ci_test
+      REPORTING_TEST_DATABASE: nearby_ci_test
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      MAIL_MAILER: array
+      BROADCAST_CONNECTION: log
+      BCRYPT_ROUNDS: '4'
+    steps:
+      - name: Check out the pushed commit
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, dom, xml, curl, fileinfo, pdo_mysql, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: realtime/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          cp .env.example .env
+          composer install --no-interaction --prefer-dist --no-progress
+          php artisan key:generate --force --no-interaction
+          npm ci --prefix realtime
+
+      - name: Check deployment scripts
+        run: |
+          bash -n scripts/deploy.sh scripts/setup-deploy-services.sh
+          node --test tests/Deployment/*.test.cjs
+
+      - name: Run Laravel tests against disposable MySQL
+        run: php artisan test
+
+      - name: Run Socket.IO tests
+        run: npm run chat:test
+
+      - name: Run developer portal interaction tests
+        run: node --test tests/Browser/*.test.cjs
+
+  deploy:
+    name: Deploy main to production
+    needs: tests
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    concurrency:
+      group: nearby-teachers-production
+      cancel-in-progress: false
+    env:
+      SSH_HOST: ${{ vars.SSH_HOST || '157.245.125.79' }}
+      SSH_USER: ${{ vars.SSH_USER || 'root' }}
+      SSH_PORT: ${{ vars.SSH_PORT || '22' }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/var/www/html/nearby_teachers' }}
+      APP_BASE_URL: ${{ vars.APP_BASE_URL || 'http://157.245.125.79/nearby_teachers/public' }}
+      DEPLOY_APP_USER: ${{ vars.DEPLOY_APP_USER || 'www-data' }}
+      DEPLOY_WEB_SERVICE: ${{ vars.DEPLOY_WEB_SERVICE || 'auto' }}
+      DEPLOY_SHA: ${{ github.sha }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+    steps:
+      - name: Check out the tested deployment script
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Deploy the tested commit over SSH
+        run: |
+          set -euo pipefail
+          : "${SSH_PRIVATE_KEY:?Add the SSH_PRIVATE_KEY repository secret.}"
+          : "${SSH_KNOWN_HOSTS:?Add the verified SSH_KNOWN_HOSTS repository secret.}"
+          [[ "$SSH_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.:-]*$ ]] || { echo 'Invalid SSH_HOST'; exit 1; }
+          [[ "$SSH_USER" =~ ^[a-zA-Z_][a-zA-Z0-9_.-]*$ ]] || { echo 'Invalid SSH_USER'; exit 1; }
+          [[ "$SSH_PORT" =~ ^[0-9]{1,5}$ ]] && (( 10#$SSH_PORT > 0 && 10#$SSH_PORT <= 65535 )) || { echo 'Invalid SSH_PORT'; exit 1; }
+          umask 077
+          ssh_directory="$(mktemp -d)"
+          trap 'rm -rf -- "$ssh_directory"' EXIT
+          printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > "$ssh_directory/key"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" | tr -d '\r' > "$ssh_directory/known_hosts"
+          ssh-keygen -y -P '' -f "$ssh_directory/key" > /dev/null
+          known_host="$SSH_HOST"
+          if (( 10#$SSH_PORT != 22 )); then known_host="[$SSH_HOST]:$SSH_PORT"; fi
+          ssh-keygen -F "$known_host" -f "$ssh_directory/known_hosts" > /dev/null || { echo 'SSH_KNOWN_HOSTS has no verified entry for this server/port.'; exit 1; }
+          printf -v remote_command 'bash -c %q -- %q %q %q %q %q' \
+            "$(cat scripts/deploy.sh)" "$DEPLOY_PATH" "$DEPLOY_SHA" "$APP_BASE_URL" "$DEPLOY_APP_USER" "$DEPLOY_WEB_SERVICE"
+          ssh -T -p "$SSH_PORT" -i "$ssh_directory/key" \
+            -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+            -o "UserKnownHostsFile=$ssh_directory/known_hosts" \
+            -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
+            "$SSH_USER@$SSH_HOST" "$remote_command" < /dev/null

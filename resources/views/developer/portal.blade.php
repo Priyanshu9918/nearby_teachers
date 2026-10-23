@@ -23,6 +23,7 @@
         @media(max-width:1000px){.explorer{grid-template-columns:230px minmax(0,1fr)}.sidebar{width:215px}.workspace{margin-left:215px}.field-grid{grid-template-columns:120px minmax(0,1fr)}}
         @media(max-width:720px){.sidebar{position:static;width:auto;padding:9px 12px}.brand{padding:2px 5px 8px}.brand-mark{width:32px;height:32px}.nav-label,.sidebar-bottom{display:none}.nav{display:flex;overflow:auto}.nav a{flex:none;padding:9px 10px;font-size:11px}.nav-icon{display:none}.workspace{margin:0}.topbar{height:56px;padding:0 14px}.secure-pill{display:none}main{padding:20px 13px 34px}.page-heading{align-items:flex-start}.page-heading h1{font-size:25px}.base-origin{max-width:45%;font-size:9px}.explorer{grid-template-columns:1fr}.endpoint-panel{position:static;max-height:340px}.endpoint-list{max-height:245px}.endpoint-tools{grid-template-columns:1fr 1fr}.config-grid,.param-grid{grid-template-columns:1fr}.field-grid{grid-template-columns:105px minmax(0,1fr)}.request-form,.panel-body{padding:15px}.panel-head{padding:15px}.response-body{max-height:50vh}.request-tip{width:100%;margin:0}.settings-actions{align-items:flex-start;flex-direction:column}}
         @media(max-width:720px){.overview-grid,.guide-grid{grid-template-columns:1fr}.stats-grid{gap:6px}.stat-card{padding:11px 8px}.workflow-card{grid-template-columns:30px minmax(0,1fr)}.workflow-card>.btn{grid-column:2;justify-self:start}.nav-category,.nav-section{display:none!important}}
+        @include('developer.chat-styles')
     </style>
 </head>
 <body>
@@ -39,7 +40,7 @@
                 <a href="#api-explorer" class="nav-category" data-tab="api-explorer" data-category="{{ $category }}"><span class="nav-icon" aria-hidden="true">•</span>{{ $category }} <span class="nav-count">{{ collect($catalog)->where('category', $category)->count() }}</span></a>
             @endforeach
             <div class="nav-section">Project</div>
-            <a href="#realtime" data-tab="realtime"><span class="nav-icon" aria-hidden="true">◉</span>WebSockets</a>
+            @include('developer.chat-navigation')
             <a href="#configuration" data-tab="configuration"><span class="nav-icon" aria-hidden="true">⚙</span>Configuration</a>
         </nav>
         <div class="sidebar-bottom">Restricted developer access<br>Secrets are never returned to this page.</div>
@@ -104,14 +105,6 @@
 
             <section class="tab" id="realtime" aria-label="WebSocket setup">
                 @include('developer.chat-tester')
-                <div class="panel">
-                    <div class="panel-head"><div><h2>Chat and WebSockets</h2><p>Use Socket.IO 4 for live chat; Laravel validates and saves messages.</p></div><span class="category-badge">Common</span></div>
-                    <div class="panel-body guide-grid">
-                        <article class="guide-card"><h3>1 · Configure Socket.IO</h3><p>Set the Socket.IO server URLs, shared secret and allowed origins in project configuration. Keep the secret server-side.</p><ul><li>Run <code>npm run chat:start</code>.</li><li>Run <code>php artisan queue:work --queue=broadcasts --sleep=1 --tries=3 --timeout=30</code>.</li><li>Restart Node and queue workers after changing settings.</li></ul><button class="btn" type="button" data-tab="configuration">Open configuration</button></article>
-                        <article class="guide-card"><h3>2 · Authenticate private channels</h3><p>Connect using auth.token with the Laravel bearer. Use conversation.join with conversationId; the Socket.IO server checks membership through Laravel.</p><p><code>private-conversation.{conversationId}</code></p><button class="btn" type="button" data-pick-api="POST /chat/socket/authorize">Test room auth</button></article>
-                        <article class="guide-card"><h3>3 · Send and receive messages</h3><p>Start or open a conversation with the chat endpoints. Use message.send or the REST send API; message.sent delivers saved messages to participants. Recover history using cursor pagination.</p><div class="guide-actions"><button class="btn" type="button" data-pick-api="POST /messages/start">Start conversation</button><button class="btn" type="button" data-pick-api="GET /messages">List conversations</button></div></article>
-                    </div>
-                </div>
             </section>
 
             <section class="tab" id="api-explorer" aria-label="API explorer">
@@ -139,11 +132,15 @@
                                 <div class="field"><label for="bearer-token">Bearer token <span class="hint">kept only in this page; never saved</span></label><input id="bearer-token" class="control" type="password" autocomplete="off" placeholder="Paste a user or admin API token"></div>
                                 <div class="field"><label for="request-headers">Additional headers <span class="hint">JSON object</span></label><textarea id="request-headers" spellcheck="false">{"Accept":"application/json","Content-Type":"application/json"}</textarea></div>
                                 <div class="field" id="request-body-field"><label for="request-body">JSON body <span class="hint">omit for GET/DELETE with no body</span></label><textarea id="request-body" spellcheck="false">{}</textarea></div>
-                                <div class="request-controls"><button class="btn btn-primary" id="send-request" type="submit">▶ Send request</button><button class="btn" id="clear-response" type="button">Clear response</button><span class="request-tip">Requests are sent to this application only.</span></div>
+                                <div class="request-controls"><button class="btn btn-primary" id="send-request" type="submit">▶ Send request</button><button class="btn" id="clear-response" type="button">Clear response</button><button class="btn" id="copy-curl" type="button">Copy cURL</button><span class="request-tip">Requests are sent to this application only.</span></div>
                             </form>
                         </section>
                         <section class="panel response-panel" aria-labelledby="response-heading">
                             <div class="panel-head"><div><h2 id="response-heading">Response</h2><p id="response-content-type">Run a request to inspect its status, timing, and body.</p></div><div class="response-toolbar"><span id="response-status" class="status-pill">Ready</span><span id="response-time" class="response-time"></span><button class="btn" id="copy-response" type="button">Copy</button></div></div>
+                            <div class="panel-body" id="curl-preview" hidden>
+                                <div class="field"><label for="curl-output">Generated cURL <span class="hint">Postman → Import → Raw text</span></label><textarea id="curl-output" rows="8" readonly spellcheck="false" aria-describedby="curl-feedback"></textarea></div>
+                                <p class="request-tip" id="curl-feedback" role="status" aria-live="polite"></p>
+                            </div>
                             <div class="panel-body" id="token-actions" style="padding:8px 16px" hidden><button class="btn" id="use-response-token" type="button">Use response token as bearer</button></div>
                             <pre class="response-body" id="response-body" hidden></pre>
                             <div class="response-empty" id="response-empty">Select an API endpoint, provide any required credentials, then send your request.</div>
@@ -229,9 +226,14 @@
     const responseType = document.getElementById('response-content-type');
     const useResponseToken = document.getElementById('use-response-token');
     const tokenActions = document.getElementById('token-actions');
+    const copyCurlButton = document.getElementById('copy-curl');
+    const curlPreview = document.getElementById('curl-preview');
+    const curlOutput = document.getElementById('curl-output');
+    const curlFeedback = document.getElementById('curl-feedback');
     const settingsSearch = document.getElementById('settings-search');
     const settingsCount = document.getElementById('settings-count');
     let currentId = null;
+    let responseVersion = 0;
 
     const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
     const categories = @js($categories);
@@ -308,6 +310,8 @@
     const endpointGuide = document.getElementById('endpoint-guide');
 
     function selectApi(api) {
+        clearCurlPreview();
+        responseVersion += 1;
         currentId = api.id;
         currentApi = api;
         method.value = api.method;
@@ -322,6 +326,11 @@
         bodyField.hidden = ['GET', 'DELETE'].includes(api.method);
         updateParams();
         renderCatalog();
+        const mock = api.mockResponse;
+        showResponse(mock?.body ?? 'No saved mock response is available for this endpoint.', 'Mock response', null, mock?.contentType ?? '');
+        responseType.textContent = mock
+            ? `Fictional example · HTTP ${mock.status} · ${mock.contentType}. Send a request to see the actual API response.`
+            : 'Send a request to see the actual API response.';
     }
 
     list.addEventListener('click', (event) => {
@@ -350,9 +359,9 @@
     path.addEventListener('input', updateParams);
     method.addEventListener('change', () => { bodyField.hidden = ['GET', 'DELETE'].includes(method.value); });
     renderCatalog();
+    if (apis.length) selectApi(apis[0]);
 
-    document.getElementById('api-form').addEventListener('submit', async (event) => {
-        event.preventDefault();
+    function prepareRequest() {
         const requestPath = path.value.trim();
         if (!requestPath.startsWith('/') || requestPath.startsWith('//') || requestPath.includes('\\')) {
             showResponse('Path must begin with one slash and remain on this application.', 'Request not sent', null, '');
@@ -374,6 +383,7 @@
             if (url.origin !== window.location.origin) throw new Error('Requests must stay on this application origin.');
             const queryString = query.value.trim().replace(/^\?/, '');
             if (queryString) new URLSearchParams(queryString).forEach((value, key) => url.searchParams.append(key, value));
+            url.hash = '';
         } catch (error) {
             showResponse(error.message || 'The request URL is invalid.', 'Invalid request', null, '');
             return;
@@ -434,16 +444,25 @@
             }
         }
 
+        return {url, method: method.value, headers: requestHeaders, body: requestBody};
+    }
+
+    document.getElementById('api-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const request = prepareRequest();
+        if (!request) return;
+        const version = ++responseVersion;
+        showResponse('Waiting for the API response…', 'Sending…', null, '');
         sendButton.disabled = true;
         sendButton.textContent = 'Sending…';
         const started = performance.now();
         const abortController = new AbortController();
         const timeout = setTimeout(() => abortController.abort(), 45000);
         try {
-            const response = await fetch(url.pathname + url.search, {
-                method: method.value,
-                headers: requestHeaders,
-                body: requestBody,
+            const response = await fetch(request.url.pathname + request.url.search, {
+                method: request.method,
+                headers: request.headers,
+                body: request.body,
                 credentials: 'same-origin',
                 redirect: 'error',
                 signal: abortController.signal,
@@ -456,11 +475,13 @@
             } catch {
                 if (raw === '') display = '(empty response body)';
             }
+            if (version !== responseVersion) return;
             showResponse(display, `${response.status} ${response.statusText || ''}`.trim(), `${Math.round(performance.now() - started)} ms`, contentType);
         } catch (error) {
             const message = error.name === 'AbortError'
                 ? 'Request timed out after 45 seconds.'
                 : `Request failed: ${error.message}. Confirm the application is reachable from this browser.`;
+            if (version !== responseVersion) return;
             showResponse(message, 'Network error', `${Math.round(performance.now() - started)} ms`, '');
         } finally {
             clearTimeout(timeout);
@@ -468,6 +489,51 @@
             sendButton.textContent = '▶ Send request';
         }
     });
+
+    function clearCurlPreview() {
+        curlPreview.hidden = true;
+        curlOutput.value = '';
+        curlFeedback.textContent = '';
+    }
+
+    function shellQuote(value) {
+        return `'${String(value).replace(/'/g, `'"'"'`)}'`;
+    }
+
+    copyCurlButton.addEventListener('click', async () => {
+        clearCurlPreview();
+        const request = prepareRequest();
+        if (!request) return;
+
+        const command = [`curl --globoff --request ${shellQuote(request.method)}`, `--url ${shellQuote(request.url.href)}`];
+        request.headers.forEach((value, name) => command.push(`--header ${shellQuote(`${name}: ${value}`)}`));
+        if (request.body !== undefined) command.push(`--data-raw ${shellQuote(request.body)}`);
+        curlOutput.value = command.join(' \\\n  ');
+        curlPreview.hidden = false;
+        copyCurlButton.disabled = true;
+        const copiedMessage = 'cURL copied. In Postman, choose Import → Raw text and paste it.';
+        try {
+            await navigator.clipboard.writeText(curlOutput.value);
+            curlFeedback.textContent = copiedMessage;
+        } catch {
+            curlOutput.focus();
+            curlOutput.select();
+            let copied = false;
+            try {
+                copied = document.execCommand('copy');
+            } catch {
+                // The selected command remains available for manual copying.
+            }
+            curlFeedback.textContent = copied
+                ? copiedMessage
+                : 'cURL generated. Copy the selected text, then choose Postman → Import → Raw text.';
+        } finally {
+            copyCurlButton.disabled = false;
+        }
+    });
+
+    document.getElementById('api-form').addEventListener('input', clearCurlPreview);
+    document.getElementById('api-form').addEventListener('change', clearCurlPreview);
 
     function showResponse(content, status, time, contentType) {
         responseEmpty.hidden = true;
@@ -494,6 +560,7 @@
                 tokenActions.hidden = true;
                 return;
             }
+            clearCurlPreview();
             token.value = responseToken;
             responseType.textContent = 'Response token copied into the bearer-token field for the next request.';
         } catch {
@@ -503,6 +570,9 @@
     });
 
     document.getElementById('clear-response').addEventListener('click', () => {
+        clearCurlPreview();
+        responseVersion += 1;
+        responseBody.textContent = '';
         responseBody.hidden = true;
         responseEmpty.hidden = false;
         responseStatus.textContent = 'Ready';
@@ -527,16 +597,21 @@
             const target = link.dataset.tab;
             document.querySelectorAll('.tab').forEach((tab) => tab.classList.toggle('active', tab.id === target));
             document.querySelectorAll('[data-tab]').forEach((item) => item.classList.toggle('active', item === link));
+            const pageHeading = document.querySelector('.page-heading');
+            if (pageHeading) pageHeading.hidden = target === 'realtime';
             if (target === 'api-explorer') renderCatalog();
-            window.history.replaceState(null, '', `#${target}`);
+            document.getElementById('chat-navigation')?.classList.toggle('is-active', target === 'realtime');
+            window.history.replaceState(null, '', target === 'realtime' && link.dataset.chatView ? `#realtime/${link.dataset.chatView}` : `#${target}`);
         });
     });
-    const initialTab = window.location.hash.slice(1)
+    const initialTab = window.location.hash.slice(1).split('/')[0]
         || new URLSearchParams(window.location.search).get('tab')
         || 'overview';
     const initialTabLink = document.querySelector(`[data-tab="${CSS.escape(initialTab)}"]`);
     if (initialTabLink) {
+        const initialHash = window.location.hash;
         initialTabLink.click();
+        if (initialTab === 'realtime' && initialHash.startsWith('#realtime/')) window.history.replaceState(null, '', initialHash);
     }
 
     function filterSettings() {

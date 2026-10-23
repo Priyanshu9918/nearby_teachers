@@ -61,6 +61,15 @@ unrestricted SQL/report-builder endpoint.
 - Explicit `before_data` and `after_data` snapshots.
 - Event timestamp and indexes for entity, participant and event timelines.
 
+Developer chat diagnostics reuse the existing conversation/message APIs and
+their authorization and history behavior. Messages sent by the tester follow
+the same transactional `message.created` recording and post-commit delivery as
+app messages. Health checks, pings, socket lifecycle and the diagnostic log are
+transient observations; they are not retained as business events or available
+for historical uptime/latency reporting. Conversation start/leave/end remains without business events; missing history
+is not reconstructed. Named persistent chat mutations are recorded as described
+below; typing hints remain transient.
+
 Current event coverage starts when migration `000029` is deployed:
 
 | Event | Recorded metadata |
@@ -74,6 +83,22 @@ Current event coverage starts when migration `000029` is deployed:
 | `booking.created` | Initial status, lesson mode, requested time and price |
 | `booking.status_changed` | Previous/new status; repeated same-status requests add no change event |
 | `message.created` | Message ID, conversation ID and participant IDs; message text is not duplicated |
+| `message.replied` | Source conversation and original message ID |
+| `message.delivered` / `message.read` | Recipient identity and first confirmed receipt timestamp |
+| `message.edited` / `message.deleted` | Conversation, previous/new revision and mutation timestamp; no original or edited message text |
+| `message.reaction_changed` | Conversation/message references and previous/new allowlisted reaction; null marks removal |
+
+Migration `000033` adds persisted receipt/edit/delete metadata, reply links and
+per-user reactions. Existing rows gain revision 1 and nullable new fields; no
+past delivery, edit or delete events are invented. Message edit/delete replaces
+or clears source text, so historical body versions cannot be reconstructed.
+Deleted messages retain tombstones and receipt metadata. Reaction rows remain
+for reporting, even when removed (null reaction) or their source message is
+deleted. The `messages`, `message-reactions` and activity reports expose explicit
+columns through the shared admin filters, CSV exporter and access logger.
+These events use schema version 1 and are recorded inside the source transaction;
+notifications dispatch only after commit. Typing and stop-typing have no retained
+business history. See [chat event contracts](CHAT_EVENTS.md).
 
 Registration and booking changes record history inside existing source
 transactions. Booking creation and message sends wrap source writes and event

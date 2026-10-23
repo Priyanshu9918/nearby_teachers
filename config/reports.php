@@ -26,8 +26,13 @@ return [
     ],
     'messages' => [
         'title' => 'Messages by sender', 'table' => 'messages', 'timestamp' => 'created_at',
-        'columns' => ['id', 'conversation_id', 'sender_id', 'body', 'read_at', 'created_at'],
+        'columns' => ['id', 'conversation_id', 'sender_id', 'body', 'reply_to_id', 'revision', 'delivered_at', 'read_at', 'edited_at', 'deleted_at', 'created_at'],
         'participants' => ['sender_id'], 'search' => ['body', 'conversation_id'],
+    ],
+    'message-reactions' => [
+        'title' => 'Chat message reactions', 'table' => 'message_reactions', 'timestamp' => 'updated_at',
+        'columns' => ['id', 'conversation_id', 'message_id', 'user_id', 'reaction', 'created_at', 'updated_at'],
+        'participants' => ['user_id'], 'search' => ['conversation_id', 'message_id', 'reaction'],
     ],
     'logins' => [
         'title' => 'Login and registration activity', 'table' => 'auth_activity', 'timestamp' => 'created_at',

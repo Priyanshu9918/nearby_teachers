@@ -166,6 +166,7 @@ class OnboardingPersistenceTest extends TestCase
         config([
             'services.nearby_teacher.otp_test_mode' => false,
             'services.nearby_teacher.jwt_secret' => str_repeat('test-secret-', 6),
+            'services.nearby_teacher.otp_sms_provider' => 'msg91',
             'services.nearby_teacher.msg91_auth_key' => 'test-key',
             'services.nearby_teacher.msg91_template_id' => 'test-template',
         ]);
@@ -220,6 +221,7 @@ class OnboardingPersistenceTest extends TestCase
         $this->app->instance('env', 'production');
         config([
             'services.nearby_teacher.otp_test_mode' => true,
+            'services.nearby_teacher.otp_sms_provider' => 'msg91',
             'services.nearby_teacher.msg91_auth_key' => 'test-key',
             'services.nearby_teacher.msg91_template_id' => 'test-template',
         ]);

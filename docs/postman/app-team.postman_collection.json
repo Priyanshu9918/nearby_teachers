@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Nearby Teacher — App Team API",
-    "description": "Nearby Teacher App Team API, updated 22 October 2026. Exactly five workflow folders: Auth, Learner, Teacher, Institute, Common. Read docs/APP_TEAM_API.md. Default baseUrl includes /nearby_teachers/public; there is no /api prefix. All registered application JSON APIs and health/location/broadcast compatibility surfaces are included; ordinary developer/admin HTML pages are not API requests. Admin JSON routes are restricted under Common > Admin only. Shared endpoint copies in Teacher/Institute describe role payloads, not additional routes or invented role restrictions. Select requests individually; running the full collection performs conflicting signup roles and state changes. Set credentials and real IDs manually. Normal OTP request/verify are No Auth; Google OTP request/verify require authMethod=google and the Google-linked Laravel bearer. Save the fresh OTP verification token for the same user. Normal registration requires email/password; Google-linked registration may omit them. Student form submission returns 200 with registrationSubmitted=true, registrationCompleted=false and nextScreen=age_verification until separate DOB succeeds. Teacher/institute require no DOB. Existing database values restore through GET /auth/onboarding; no pre-registration autosave was added. Route by nextScreen, including guardian_consent. Correct password on incomplete registration returns 409 with no token. Logout invalidates all API sessions and clears this collection token; Firebase global refresh-token revocation is not performed. All saved examples are fictional, based on controller response shapes, never live server captures. Fictional tokens are unusable. Production SMS/email codes must be supplied manually. Deploy migrations 000031/000032 with current code. Role folder coverage includes all shared participant chat/replies, feed offers or requests, comments and explicit replies, likes, booking status and safety acknowledgement. Teacher/institute can reply to existing participant conversations; only learners can start in-app conversations. Call/WhatsApp actions use returned provider phone from the quota-controlled profile lookup and frontend tel:/wa.me links; no dedicated call/WhatsApp API exists. Current collection has 152 runnable request variants and 353 fictional saved examples across 85 unique method/path operations.",
+    "description": "Nearby Teacher App Team API, updated 22 October 2026. Exactly five workflow folders: Auth, Learner, Teacher, Institute, Common. Read docs/APP_TEAM_API.md. Default baseUrl includes /nearby_teachers/public; there is no /api prefix. All registered application JSON APIs and health/location/broadcast compatibility surfaces are included; ordinary developer/admin HTML pages are not API requests. Admin JSON routes are restricted under Common > Admin only. Shared endpoint copies in Teacher/Institute describe role payloads, not additional routes or invented role restrictions. Select requests individually; running the full collection performs conflicting signup roles and state changes. Set credentials and real IDs manually. Normal OTP request/verify are No Auth; Google OTP request/verify require authMethod=google and the Google-linked Laravel bearer. Save the fresh OTP verification token for the same user. Normal registration requires email/password; Google-linked registration may omit them. Student form submission returns 200 with registrationSubmitted=true, registrationCompleted=false and nextScreen=age_verification until separate DOB succeeds. Teacher/institute require no DOB. Existing database values restore through GET /auth/onboarding; no pre-registration autosave was added. Route by nextScreen, including guardian_consent. Correct password on incomplete registration returns 409 with no token. Logout invalidates all API sessions and clears this collection token; Firebase global refresh-token revocation is not performed. All saved examples are fictional, based on controller response shapes, never live server captures. Fictional tokens are unusable. Production SMS/email codes must be supplied manually. Deploy migrations 000031/000032 with current code. Role folder coverage includes all shared participant chat/replies, feed offers or requests, comments and explicit replies, likes, booking status and safety acknowledgement. Teacher/institute can reply to existing participant conversations; only learners can start in-app conversations. Call/WhatsApp actions use returned provider phone from the quota-controlled profile lookup and frontend tel:/wa.me links; no dedicated call/WhatsApp API exists. Current collection has 196 runnable request variants and 397 fictional saved examples across 96 unique method/path operations. The named chat APIs require migration 000033; see docs/CHAT_EVENTS.md.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -9544,6 +9544,661 @@
               "body": "{\n  \"error\": \"Missing Authorization header\"\n}"
             }
           ]
+        },
+        {
+          "name": "Named chat events",
+          "description": "11 authenticated client actions. chat:receive and chat:new are server-only notifications. See docs/CHAT_EVENTS.md.",
+          "item": [
+            {
+              "name": "chat:send — Send message",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"body\": \"Example message\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/send"
+                },
+                "description": "Saves a real message; the acknowledgement confirms persistence."
+              },
+              "response": [
+                {
+                  "name": "Mock — Send message",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"body\": \"Example message\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/send"
+                    },
+                    "description": "Saves a real message; the acknowledgement confirms persistence."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"message\": {\n    \"id\": \"55555555-5555-4555-8555-555555555555\",\n    \"conversation_id\": \"44444444-4444-4444-8444-444444444444\",\n    \"sender_id\": \"11111111-1111-4111-8111-111111111111\",\n    \"body\": \"Example message\",\n    \"revision\": 1,\n    \"reply_to_id\": null,\n    \"delivered_at\": null,\n    \"read_at\": null,\n    \"edited_at\": null,\n    \"deleted_at\": null,\n    \"created_at\": \"2026-10-23 10:00:00\"\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:delivered — Confirm delivery",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/delivered"
+                },
+                "description": "Recipient acknowledgement that their client received this message; not inferred from connection presence."
+              },
+              "response": [
+                {
+                  "name": "Mock — Confirm delivery",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/delivered"
+                    },
+                    "description": "Recipient acknowledgement that their client received this message; not inferred from connection presence."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"userId\": \"22222222-2222-4222-8222-222222222222\",\n  \"deliveredAt\": \"2026-10-23 10:01:00\",\n  \"readAt\": null\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:read — Mark message read",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/read"
+                },
+                "description": "Recipient confirms reading. Also confirms delivery if needed; repeated receipts are idempotent."
+              },
+              "response": [
+                {
+                  "name": "Mock — Mark message read",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/read"
+                    },
+                    "description": "Recipient confirms reading. Also confirms delivery if needed; repeated receipts are idempotent."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"userId\": \"22222222-2222-4222-8222-222222222222\",\n  \"deliveredAt\": \"2026-10-23 10:01:00\",\n  \"readAt\": \"2026-10-23 10:02:00\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:typing — User typing",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/typing"
+                },
+                "description": "Participant-only transient typing hint. Expires after 5 seconds; not retained in business history."
+              },
+              "response": [
+                {
+                  "name": "Mock — User typing",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/typing"
+                    },
+                    "description": "Participant-only transient typing hint. Expires after 5 seconds; not retained in business history."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"userId\": \"11111111-1111-4111-8111-111111111111\",\n  \"typing\": true,\n  \"updatedAt\": \"2026-10-23T10:00:00Z\",\n  \"expiresAt\": \"2026-10-23T10:00:05Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:stop_typing — User stopped typing",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/stop_typing"
+                },
+                "description": "Stops the transient typing hint for this participant."
+              },
+              "response": [
+                {
+                  "name": "Mock — User stopped typing",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/stop_typing"
+                    },
+                    "description": "Stops the transient typing hint for this participant."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"userId\": \"11111111-1111-4111-8111-111111111111\",\n  \"typing\": false,\n  \"updatedAt\": \"2026-10-23T10:00:01Z\",\n  \"expiresAt\": \"2026-10-23T10:00:06Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:delete — Delete message",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/delete"
+                },
+                "description": "Sender only. Clears body and leaves a tombstone. Does not erase append-only business history."
+              },
+              "response": [
+                {
+                  "name": "Mock — Delete message",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/delete"
+                    },
+                    "description": "Sender only. Clears body and leaves a tombstone. Does not erase append-only business history."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"userId\": \"11111111-1111-4111-8111-111111111111\",\n  \"message\": {\n    \"id\": \"55555555-5555-4555-8555-555555555555\",\n    \"conversation_id\": \"44444444-4444-4444-8444-444444444444\",\n    \"sender_id\": \"11111111-1111-4111-8111-111111111111\",\n    \"body\": \"\",\n    \"revision\": 2,\n    \"reply_to_id\": null,\n    \"delivered_at\": null,\n    \"read_at\": null,\n    \"edited_at\": null,\n    \"deleted_at\": \"2026-10-23 10:03:00\",\n    \"created_at\": \"2026-10-23 10:00:00\"\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:edit — Edit message",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"body\": \"Edited example\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/edit"
+                },
+                "description": "Sender only. Increments revision; deleted messages cannot be edited."
+              },
+              "response": [
+                {
+                  "name": "Mock — Edit message",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"body\": \"Edited example\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/edit"
+                    },
+                    "description": "Sender only. Increments revision; deleted messages cannot be edited."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"userId\": \"11111111-1111-4111-8111-111111111111\",\n  \"message\": {\n    \"id\": \"55555555-5555-4555-8555-555555555555\",\n    \"conversation_id\": \"44444444-4444-4444-8444-444444444444\",\n    \"sender_id\": \"11111111-1111-4111-8111-111111111111\",\n    \"body\": \"Edited example\",\n    \"revision\": 2,\n    \"reply_to_id\": null,\n    \"delivered_at\": null,\n    \"read_at\": null,\n    \"edited_at\": \"2026-10-23 10:03:00\",\n    \"deleted_at\": null,\n    \"created_at\": \"2026-10-23 10:00:00\"\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:reply — Reply to message",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"replyToId\": \"55555555-5555-4555-8555-555555555555\",\n  \"body\": \"Example reply\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/reply"
+                },
+                "description": "Saves a new message linked to an existing, non-deleted message in the same conversation."
+              },
+              "response": [
+                {
+                  "name": "Mock — Reply to message",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"replyToId\": \"55555555-5555-4555-8555-555555555555\",\n  \"body\": \"Example reply\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/reply"
+                    },
+                    "description": "Saves a new message linked to an existing, non-deleted message in the same conversation."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"message\": {\n    \"id\": \"66666666-6666-4666-8666-666666666666\",\n    \"conversation_id\": \"44444444-4444-4444-8444-444444444444\",\n    \"sender_id\": \"11111111-1111-4111-8111-111111111111\",\n    \"body\": \"Example reply\",\n    \"revision\": 1,\n    \"reply_to_id\": \"55555555-5555-4555-8555-555555555555\",\n    \"delivered_at\": null,\n    \"read_at\": null,\n    \"edited_at\": null,\n    \"deleted_at\": null,\n    \"created_at\": \"2026-10-23 10:00:00\"\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:reaction — React to message",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"reaction\": \"👍\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/reaction"
+                },
+                "description": "One reaction per user per message. Set reaction to null to remove it. Repeated identical updates are idempotent."
+              },
+              "response": [
+                {
+                  "name": "Mock — React to message",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"reaction\": \"👍\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/reaction"
+                    },
+                    "description": "One reaction per user per message. Set reaction to null to remove it. Repeated identical updates are idempotent."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"userId\": \"11111111-1111-4111-8111-111111111111\",\n  \"reaction\": \"👍\",\n  \"updatedAt\": \"2026-10-23 10:03:00\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:history — Fetch chat history",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"perPage\": 20\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/history"
+                },
+                "description": "Participant-only bounded history, with reactions and reply IDs. Supports perPage 1–100 and cursor."
+              },
+              "response": [
+                {
+                  "name": "Mock — Fetch chat history",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"perPage\": 20\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/history"
+                    },
+                    "description": "Participant-only bounded history, with reactions and reply IDs. Supports perPage 1–100 and cursor."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"messages\": [\n    {\n      \"id\": \"55555555-5555-4555-8555-555555555555\",\n      \"conversation_id\": \"44444444-4444-4444-8444-444444444444\",\n      \"sender_id\": \"11111111-1111-4111-8111-111111111111\",\n      \"body\": \"Example message\",\n      \"revision\": 1,\n      \"reply_to_id\": null,\n      \"delivered_at\": null,\n      \"read_at\": null,\n      \"edited_at\": null,\n      \"deleted_at\": null,\n      \"created_at\": \"2026-10-23 10:00:00\",\n      \"reactions\": []\n    }\n  ],\n  \"pagination\": {\n    \"perPage\": 20,\n    \"hasMore\": false,\n    \"nextCursor\": null,\n    \"previousCursor\": null\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:unread_count — Unread message count",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/unread_count"
+                },
+                "description": "Counts incoming non-deleted unread messages. Optional conversationId scopes the count; otherwise counts all owned conversations."
+              },
+              "response": [
+                {
+                  "name": "Mock — Unread message count",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/unread_count"
+                    },
+                    "description": "Counts incoming non-deleted unread messages. Optional conversationId scopes the count; otherwise counts all owned conversations."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": null,\n  \"unreadCount\": 2\n}"
+                }
+              ]
+            }
+          ]
         }
       ],
       "description": "Student discovery, booking/review and learner-started conversation workflow; shared chat replies, feed posts/comments/replies, booking status, safety acknowledgement and provider call/WhatsApp contact lookup are included. Learner posts are requests. DOB is a separate required student registration step. Category placement adds no authorization beyond controllers."
@@ -12397,6 +13052,661 @@
               "body": "{\n  \"error\": \"Missing Authorization header\"\n}"
             }
           ]
+        },
+        {
+          "name": "Named chat events",
+          "description": "11 authenticated client actions. chat:receive and chat:new are server-only notifications. See docs/CHAT_EVENTS.md.",
+          "item": [
+            {
+              "name": "chat:send — Send message",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"body\": \"Example message\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/send"
+                },
+                "description": "Saves a real message; the acknowledgement confirms persistence."
+              },
+              "response": [
+                {
+                  "name": "Mock — Send message",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"body\": \"Example message\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/send"
+                    },
+                    "description": "Saves a real message; the acknowledgement confirms persistence."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"message\": {\n    \"id\": \"55555555-5555-4555-8555-555555555555\",\n    \"conversation_id\": \"44444444-4444-4444-8444-444444444444\",\n    \"sender_id\": \"11111111-1111-4111-8111-111111111111\",\n    \"body\": \"Example message\",\n    \"revision\": 1,\n    \"reply_to_id\": null,\n    \"delivered_at\": null,\n    \"read_at\": null,\n    \"edited_at\": null,\n    \"deleted_at\": null,\n    \"created_at\": \"2026-10-23 10:00:00\"\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:delivered — Confirm delivery",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/delivered"
+                },
+                "description": "Recipient acknowledgement that their client received this message; not inferred from connection presence."
+              },
+              "response": [
+                {
+                  "name": "Mock — Confirm delivery",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/delivered"
+                    },
+                    "description": "Recipient acknowledgement that their client received this message; not inferred from connection presence."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"userId\": \"22222222-2222-4222-8222-222222222222\",\n  \"deliveredAt\": \"2026-10-23 10:01:00\",\n  \"readAt\": null\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:read — Mark message read",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/read"
+                },
+                "description": "Recipient confirms reading. Also confirms delivery if needed; repeated receipts are idempotent."
+              },
+              "response": [
+                {
+                  "name": "Mock — Mark message read",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/read"
+                    },
+                    "description": "Recipient confirms reading. Also confirms delivery if needed; repeated receipts are idempotent."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"userId\": \"22222222-2222-4222-8222-222222222222\",\n  \"deliveredAt\": \"2026-10-23 10:01:00\",\n  \"readAt\": \"2026-10-23 10:02:00\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:typing — User typing",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/typing"
+                },
+                "description": "Participant-only transient typing hint. Expires after 5 seconds; not retained in business history."
+              },
+              "response": [
+                {
+                  "name": "Mock — User typing",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/typing"
+                    },
+                    "description": "Participant-only transient typing hint. Expires after 5 seconds; not retained in business history."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"userId\": \"11111111-1111-4111-8111-111111111111\",\n  \"typing\": true,\n  \"updatedAt\": \"2026-10-23T10:00:00Z\",\n  \"expiresAt\": \"2026-10-23T10:00:05Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:stop_typing — User stopped typing",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/stop_typing"
+                },
+                "description": "Stops the transient typing hint for this participant."
+              },
+              "response": [
+                {
+                  "name": "Mock — User stopped typing",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/stop_typing"
+                    },
+                    "description": "Stops the transient typing hint for this participant."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"userId\": \"11111111-1111-4111-8111-111111111111\",\n  \"typing\": false,\n  \"updatedAt\": \"2026-10-23T10:00:01Z\",\n  \"expiresAt\": \"2026-10-23T10:00:06Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:delete — Delete message",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/delete"
+                },
+                "description": "Sender only. Clears body and leaves a tombstone. Does not erase append-only business history."
+              },
+              "response": [
+                {
+                  "name": "Mock — Delete message",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/delete"
+                    },
+                    "description": "Sender only. Clears body and leaves a tombstone. Does not erase append-only business history."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"userId\": \"11111111-1111-4111-8111-111111111111\",\n  \"message\": {\n    \"id\": \"55555555-5555-4555-8555-555555555555\",\n    \"conversation_id\": \"44444444-4444-4444-8444-444444444444\",\n    \"sender_id\": \"11111111-1111-4111-8111-111111111111\",\n    \"body\": \"\",\n    \"revision\": 2,\n    \"reply_to_id\": null,\n    \"delivered_at\": null,\n    \"read_at\": null,\n    \"edited_at\": null,\n    \"deleted_at\": \"2026-10-23 10:03:00\",\n    \"created_at\": \"2026-10-23 10:00:00\"\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:edit — Edit message",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"body\": \"Edited example\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/edit"
+                },
+                "description": "Sender only. Increments revision; deleted messages cannot be edited."
+              },
+              "response": [
+                {
+                  "name": "Mock — Edit message",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"body\": \"Edited example\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/edit"
+                    },
+                    "description": "Sender only. Increments revision; deleted messages cannot be edited."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"userId\": \"11111111-1111-4111-8111-111111111111\",\n  \"message\": {\n    \"id\": \"55555555-5555-4555-8555-555555555555\",\n    \"conversation_id\": \"44444444-4444-4444-8444-444444444444\",\n    \"sender_id\": \"11111111-1111-4111-8111-111111111111\",\n    \"body\": \"Edited example\",\n    \"revision\": 2,\n    \"reply_to_id\": null,\n    \"delivered_at\": null,\n    \"read_at\": null,\n    \"edited_at\": \"2026-10-23 10:03:00\",\n    \"deleted_at\": null,\n    \"created_at\": \"2026-10-23 10:00:00\"\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:reply — Reply to message",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"replyToId\": \"55555555-5555-4555-8555-555555555555\",\n  \"body\": \"Example reply\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/reply"
+                },
+                "description": "Saves a new message linked to an existing, non-deleted message in the same conversation."
+              },
+              "response": [
+                {
+                  "name": "Mock — Reply to message",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"replyToId\": \"55555555-5555-4555-8555-555555555555\",\n  \"body\": \"Example reply\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/reply"
+                    },
+                    "description": "Saves a new message linked to an existing, non-deleted message in the same conversation."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"message\": {\n    \"id\": \"66666666-6666-4666-8666-666666666666\",\n    \"conversation_id\": \"44444444-4444-4444-8444-444444444444\",\n    \"sender_id\": \"11111111-1111-4111-8111-111111111111\",\n    \"body\": \"Example reply\",\n    \"revision\": 1,\n    \"reply_to_id\": \"55555555-5555-4555-8555-555555555555\",\n    \"delivered_at\": null,\n    \"read_at\": null,\n    \"edited_at\": null,\n    \"deleted_at\": null,\n    \"created_at\": \"2026-10-23 10:00:00\"\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:reaction — React to message",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"reaction\": \"👍\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/reaction"
+                },
+                "description": "One reaction per user per message. Set reaction to null to remove it. Repeated identical updates are idempotent."
+              },
+              "response": [
+                {
+                  "name": "Mock — React to message",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"reaction\": \"👍\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/reaction"
+                    },
+                    "description": "One reaction per user per message. Set reaction to null to remove it. Repeated identical updates are idempotent."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"userId\": \"11111111-1111-4111-8111-111111111111\",\n  \"reaction\": \"👍\",\n  \"updatedAt\": \"2026-10-23 10:03:00\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:history — Fetch chat history",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"perPage\": 20\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/history"
+                },
+                "description": "Participant-only bounded history, with reactions and reply IDs. Supports perPage 1–100 and cursor."
+              },
+              "response": [
+                {
+                  "name": "Mock — Fetch chat history",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"perPage\": 20\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/history"
+                    },
+                    "description": "Participant-only bounded history, with reactions and reply IDs. Supports perPage 1–100 and cursor."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"messages\": [\n    {\n      \"id\": \"55555555-5555-4555-8555-555555555555\",\n      \"conversation_id\": \"44444444-4444-4444-8444-444444444444\",\n      \"sender_id\": \"11111111-1111-4111-8111-111111111111\",\n      \"body\": \"Example message\",\n      \"revision\": 1,\n      \"reply_to_id\": null,\n      \"delivered_at\": null,\n      \"read_at\": null,\n      \"edited_at\": null,\n      \"deleted_at\": null,\n      \"created_at\": \"2026-10-23 10:00:00\",\n      \"reactions\": []\n    }\n  ],\n  \"pagination\": {\n    \"perPage\": 20,\n    \"hasMore\": false,\n    \"nextCursor\": null,\n    \"previousCursor\": null\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:unread_count — Unread message count",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/unread_count"
+                },
+                "description": "Counts incoming non-deleted unread messages. Optional conversationId scopes the count; otherwise counts all owned conversations."
+              },
+              "response": [
+                {
+                  "name": "Mock — Unread message count",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/unread_count"
+                    },
+                    "description": "Counts incoming non-deleted unread messages. Optional conversationId scopes the count; otherwise counts all owned conversations."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": null,\n  \"unreadCount\": 2\n}"
+                }
+              ]
+            }
+          ]
         }
       ],
       "description": "Teacher listing/stats/incoming bookings plus participant chat replies, socket authorization, feed offers/comments/replies, likes, booking status, safety acknowledgement and quota-controlled provider contact lookup for frontend call/WhatsApp actions. POST /messages/start remains learner-only. Registration is shared in Auth; DOB is not required. Calls/WhatsApp are external app launches, not dedicated APIs."
@@ -15248,6 +16558,661 @@
               ],
               "cookie": [],
               "body": "{\n  \"error\": \"Missing Authorization header\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Named chat events",
+          "description": "11 authenticated client actions. chat:receive and chat:new are server-only notifications. See docs/CHAT_EVENTS.md.",
+          "item": [
+            {
+              "name": "chat:send — Send message",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"body\": \"Example message\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/send"
+                },
+                "description": "Saves a real message; the acknowledgement confirms persistence."
+              },
+              "response": [
+                {
+                  "name": "Mock — Send message",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"body\": \"Example message\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/send"
+                    },
+                    "description": "Saves a real message; the acknowledgement confirms persistence."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"message\": {\n    \"id\": \"55555555-5555-4555-8555-555555555555\",\n    \"conversation_id\": \"44444444-4444-4444-8444-444444444444\",\n    \"sender_id\": \"11111111-1111-4111-8111-111111111111\",\n    \"body\": \"Example message\",\n    \"revision\": 1,\n    \"reply_to_id\": null,\n    \"delivered_at\": null,\n    \"read_at\": null,\n    \"edited_at\": null,\n    \"deleted_at\": null,\n    \"created_at\": \"2026-10-23 10:00:00\"\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:delivered — Confirm delivery",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/delivered"
+                },
+                "description": "Recipient acknowledgement that their client received this message; not inferred from connection presence."
+              },
+              "response": [
+                {
+                  "name": "Mock — Confirm delivery",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/delivered"
+                    },
+                    "description": "Recipient acknowledgement that their client received this message; not inferred from connection presence."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"userId\": \"22222222-2222-4222-8222-222222222222\",\n  \"deliveredAt\": \"2026-10-23 10:01:00\",\n  \"readAt\": null\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:read — Mark message read",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/read"
+                },
+                "description": "Recipient confirms reading. Also confirms delivery if needed; repeated receipts are idempotent."
+              },
+              "response": [
+                {
+                  "name": "Mock — Mark message read",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/read"
+                    },
+                    "description": "Recipient confirms reading. Also confirms delivery if needed; repeated receipts are idempotent."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"userId\": \"22222222-2222-4222-8222-222222222222\",\n  \"deliveredAt\": \"2026-10-23 10:01:00\",\n  \"readAt\": \"2026-10-23 10:02:00\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:typing — User typing",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/typing"
+                },
+                "description": "Participant-only transient typing hint. Expires after 5 seconds; not retained in business history."
+              },
+              "response": [
+                {
+                  "name": "Mock — User typing",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/typing"
+                    },
+                    "description": "Participant-only transient typing hint. Expires after 5 seconds; not retained in business history."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"userId\": \"11111111-1111-4111-8111-111111111111\",\n  \"typing\": true,\n  \"updatedAt\": \"2026-10-23T10:00:00Z\",\n  \"expiresAt\": \"2026-10-23T10:00:05Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:stop_typing — User stopped typing",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/stop_typing"
+                },
+                "description": "Stops the transient typing hint for this participant."
+              },
+              "response": [
+                {
+                  "name": "Mock — User stopped typing",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/stop_typing"
+                    },
+                    "description": "Stops the transient typing hint for this participant."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"userId\": \"11111111-1111-4111-8111-111111111111\",\n  \"typing\": false,\n  \"updatedAt\": \"2026-10-23T10:00:01Z\",\n  \"expiresAt\": \"2026-10-23T10:00:06Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:delete — Delete message",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/delete"
+                },
+                "description": "Sender only. Clears body and leaves a tombstone. Does not erase append-only business history."
+              },
+              "response": [
+                {
+                  "name": "Mock — Delete message",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/delete"
+                    },
+                    "description": "Sender only. Clears body and leaves a tombstone. Does not erase append-only business history."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"userId\": \"11111111-1111-4111-8111-111111111111\",\n  \"message\": {\n    \"id\": \"55555555-5555-4555-8555-555555555555\",\n    \"conversation_id\": \"44444444-4444-4444-8444-444444444444\",\n    \"sender_id\": \"11111111-1111-4111-8111-111111111111\",\n    \"body\": \"\",\n    \"revision\": 2,\n    \"reply_to_id\": null,\n    \"delivered_at\": null,\n    \"read_at\": null,\n    \"edited_at\": null,\n    \"deleted_at\": \"2026-10-23 10:03:00\",\n    \"created_at\": \"2026-10-23 10:00:00\"\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:edit — Edit message",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"body\": \"Edited example\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/edit"
+                },
+                "description": "Sender only. Increments revision; deleted messages cannot be edited."
+              },
+              "response": [
+                {
+                  "name": "Mock — Edit message",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"body\": \"Edited example\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/edit"
+                    },
+                    "description": "Sender only. Increments revision; deleted messages cannot be edited."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"userId\": \"11111111-1111-4111-8111-111111111111\",\n  \"message\": {\n    \"id\": \"55555555-5555-4555-8555-555555555555\",\n    \"conversation_id\": \"44444444-4444-4444-8444-444444444444\",\n    \"sender_id\": \"11111111-1111-4111-8111-111111111111\",\n    \"body\": \"Edited example\",\n    \"revision\": 2,\n    \"reply_to_id\": null,\n    \"delivered_at\": null,\n    \"read_at\": null,\n    \"edited_at\": \"2026-10-23 10:03:00\",\n    \"deleted_at\": null,\n    \"created_at\": \"2026-10-23 10:00:00\"\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:reply — Reply to message",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"replyToId\": \"55555555-5555-4555-8555-555555555555\",\n  \"body\": \"Example reply\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/reply"
+                },
+                "description": "Saves a new message linked to an existing, non-deleted message in the same conversation."
+              },
+              "response": [
+                {
+                  "name": "Mock — Reply to message",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"replyToId\": \"55555555-5555-4555-8555-555555555555\",\n  \"body\": \"Example reply\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/reply"
+                    },
+                    "description": "Saves a new message linked to an existing, non-deleted message in the same conversation."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"message\": {\n    \"id\": \"66666666-6666-4666-8666-666666666666\",\n    \"conversation_id\": \"44444444-4444-4444-8444-444444444444\",\n    \"sender_id\": \"11111111-1111-4111-8111-111111111111\",\n    \"body\": \"Example reply\",\n    \"revision\": 1,\n    \"reply_to_id\": \"55555555-5555-4555-8555-555555555555\",\n    \"delivered_at\": null,\n    \"read_at\": null,\n    \"edited_at\": null,\n    \"deleted_at\": null,\n    \"created_at\": \"2026-10-23 10:00:00\"\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:reaction — React to message",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"reaction\": \"👍\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/reaction"
+                },
+                "description": "One reaction per user per message. Set reaction to null to remove it. Repeated identical updates are idempotent."
+              },
+              "response": [
+                {
+                  "name": "Mock — React to message",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"reaction\": \"👍\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/reaction"
+                    },
+                    "description": "One reaction per user per message. Set reaction to null to remove it. Repeated identical updates are idempotent."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"userId\": \"11111111-1111-4111-8111-111111111111\",\n  \"reaction\": \"👍\",\n  \"updatedAt\": \"2026-10-23 10:03:00\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:history — Fetch chat history",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"perPage\": 20\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/history"
+                },
+                "description": "Participant-only bounded history, with reactions and reply IDs. Supports perPage 1–100 and cursor."
+              },
+              "response": [
+                {
+                  "name": "Mock — Fetch chat history",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"perPage\": 20\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/history"
+                    },
+                    "description": "Participant-only bounded history, with reactions and reply IDs. Supports perPage 1–100 and cursor."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"messages\": [\n    {\n      \"id\": \"55555555-5555-4555-8555-555555555555\",\n      \"conversation_id\": \"44444444-4444-4444-8444-444444444444\",\n      \"sender_id\": \"11111111-1111-4111-8111-111111111111\",\n      \"body\": \"Example message\",\n      \"revision\": 1,\n      \"reply_to_id\": null,\n      \"delivered_at\": null,\n      \"read_at\": null,\n      \"edited_at\": null,\n      \"deleted_at\": null,\n      \"created_at\": \"2026-10-23 10:00:00\",\n      \"reactions\": []\n    }\n  ],\n  \"pagination\": {\n    \"perPage\": 20,\n    \"hasMore\": false,\n    \"nextCursor\": null,\n    \"previousCursor\": null\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:unread_count — Unread message count",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/unread_count"
+                },
+                "description": "Counts incoming non-deleted unread messages. Optional conversationId scopes the count; otherwise counts all owned conversations."
+              },
+              "response": [
+                {
+                  "name": "Mock — Unread message count",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/unread_count"
+                    },
+                    "description": "Counts incoming non-deleted unread messages. Optional conversationId scopes the count; otherwise counts all owned conversations."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": null,\n  \"unreadCount\": 2\n}"
+                }
+              ]
             }
           ]
         }
@@ -21889,6 +23854,661 @@
                   ],
                   "cookie": [],
                   "body": "{\n  \"error\": \"Admin access required\"\n}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Named chat events",
+          "description": "11 authenticated client actions. chat:receive and chat:new are server-only notifications. See docs/CHAT_EVENTS.md.",
+          "item": [
+            {
+              "name": "chat:send — Send message",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"body\": \"Example message\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/send"
+                },
+                "description": "Saves a real message; the acknowledgement confirms persistence."
+              },
+              "response": [
+                {
+                  "name": "Mock — Send message",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"body\": \"Example message\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/send"
+                    },
+                    "description": "Saves a real message; the acknowledgement confirms persistence."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"message\": {\n    \"id\": \"55555555-5555-4555-8555-555555555555\",\n    \"conversation_id\": \"44444444-4444-4444-8444-444444444444\",\n    \"sender_id\": \"11111111-1111-4111-8111-111111111111\",\n    \"body\": \"Example message\",\n    \"revision\": 1,\n    \"reply_to_id\": null,\n    \"delivered_at\": null,\n    \"read_at\": null,\n    \"edited_at\": null,\n    \"deleted_at\": null,\n    \"created_at\": \"2026-10-23 10:00:00\"\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:delivered — Confirm delivery",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/delivered"
+                },
+                "description": "Recipient acknowledgement that their client received this message; not inferred from connection presence."
+              },
+              "response": [
+                {
+                  "name": "Mock — Confirm delivery",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/delivered"
+                    },
+                    "description": "Recipient acknowledgement that their client received this message; not inferred from connection presence."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"userId\": \"22222222-2222-4222-8222-222222222222\",\n  \"deliveredAt\": \"2026-10-23 10:01:00\",\n  \"readAt\": null\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:read — Mark message read",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/read"
+                },
+                "description": "Recipient confirms reading. Also confirms delivery if needed; repeated receipts are idempotent."
+              },
+              "response": [
+                {
+                  "name": "Mock — Mark message read",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/read"
+                    },
+                    "description": "Recipient confirms reading. Also confirms delivery if needed; repeated receipts are idempotent."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"userId\": \"22222222-2222-4222-8222-222222222222\",\n  \"deliveredAt\": \"2026-10-23 10:01:00\",\n  \"readAt\": \"2026-10-23 10:02:00\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:typing — User typing",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/typing"
+                },
+                "description": "Participant-only transient typing hint. Expires after 5 seconds; not retained in business history."
+              },
+              "response": [
+                {
+                  "name": "Mock — User typing",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/typing"
+                    },
+                    "description": "Participant-only transient typing hint. Expires after 5 seconds; not retained in business history."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"userId\": \"11111111-1111-4111-8111-111111111111\",\n  \"typing\": true,\n  \"updatedAt\": \"2026-10-23T10:00:00Z\",\n  \"expiresAt\": \"2026-10-23T10:00:05Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:stop_typing — User stopped typing",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/stop_typing"
+                },
+                "description": "Stops the transient typing hint for this participant."
+              },
+              "response": [
+                {
+                  "name": "Mock — User stopped typing",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/stop_typing"
+                    },
+                    "description": "Stops the transient typing hint for this participant."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"userId\": \"11111111-1111-4111-8111-111111111111\",\n  \"typing\": false,\n  \"updatedAt\": \"2026-10-23T10:00:01Z\",\n  \"expiresAt\": \"2026-10-23T10:00:06Z\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:delete — Delete message",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/delete"
+                },
+                "description": "Sender only. Clears body and leaves a tombstone. Does not erase append-only business history."
+              },
+              "response": [
+                {
+                  "name": "Mock — Delete message",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/delete"
+                    },
+                    "description": "Sender only. Clears body and leaves a tombstone. Does not erase append-only business history."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"userId\": \"11111111-1111-4111-8111-111111111111\",\n  \"message\": {\n    \"id\": \"55555555-5555-4555-8555-555555555555\",\n    \"conversation_id\": \"44444444-4444-4444-8444-444444444444\",\n    \"sender_id\": \"11111111-1111-4111-8111-111111111111\",\n    \"body\": \"\",\n    \"revision\": 2,\n    \"reply_to_id\": null,\n    \"delivered_at\": null,\n    \"read_at\": null,\n    \"edited_at\": null,\n    \"deleted_at\": \"2026-10-23 10:03:00\",\n    \"created_at\": \"2026-10-23 10:00:00\"\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:edit — Edit message",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"body\": \"Edited example\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/edit"
+                },
+                "description": "Sender only. Increments revision; deleted messages cannot be edited."
+              },
+              "response": [
+                {
+                  "name": "Mock — Edit message",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"body\": \"Edited example\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/edit"
+                    },
+                    "description": "Sender only. Increments revision; deleted messages cannot be edited."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"userId\": \"11111111-1111-4111-8111-111111111111\",\n  \"message\": {\n    \"id\": \"55555555-5555-4555-8555-555555555555\",\n    \"conversation_id\": \"44444444-4444-4444-8444-444444444444\",\n    \"sender_id\": \"11111111-1111-4111-8111-111111111111\",\n    \"body\": \"Edited example\",\n    \"revision\": 2,\n    \"reply_to_id\": null,\n    \"delivered_at\": null,\n    \"read_at\": null,\n    \"edited_at\": \"2026-10-23 10:03:00\",\n    \"deleted_at\": null,\n    \"created_at\": \"2026-10-23 10:00:00\"\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:reply — Reply to message",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"replyToId\": \"55555555-5555-4555-8555-555555555555\",\n  \"body\": \"Example reply\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/reply"
+                },
+                "description": "Saves a new message linked to an existing, non-deleted message in the same conversation."
+              },
+              "response": [
+                {
+                  "name": "Mock — Reply to message",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"replyToId\": \"55555555-5555-4555-8555-555555555555\",\n  \"body\": \"Example reply\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/reply"
+                    },
+                    "description": "Saves a new message linked to an existing, non-deleted message in the same conversation."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"message\": {\n    \"id\": \"66666666-6666-4666-8666-666666666666\",\n    \"conversation_id\": \"44444444-4444-4444-8444-444444444444\",\n    \"sender_id\": \"11111111-1111-4111-8111-111111111111\",\n    \"body\": \"Example reply\",\n    \"revision\": 1,\n    \"reply_to_id\": \"55555555-5555-4555-8555-555555555555\",\n    \"delivered_at\": null,\n    \"read_at\": null,\n    \"edited_at\": null,\n    \"deleted_at\": null,\n    \"created_at\": \"2026-10-23 10:00:00\"\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:reaction — React to message",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"reaction\": \"👍\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/reaction"
+                },
+                "description": "One reaction per user per message. Set reaction to null to remove it. Repeated identical updates are idempotent."
+              },
+              "response": [
+                {
+                  "name": "Mock — React to message",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"reaction\": \"👍\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/reaction"
+                    },
+                    "description": "One reaction per user per message. Set reaction to null to remove it. Repeated identical updates are idempotent."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"messageId\": \"55555555-5555-4555-8555-555555555555\",\n  \"userId\": \"11111111-1111-4111-8111-111111111111\",\n  \"reaction\": \"👍\",\n  \"updatedAt\": \"2026-10-23 10:03:00\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:history — Fetch chat history",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"perPage\": 20\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/history"
+                },
+                "description": "Participant-only bounded history, with reactions and reply IDs. Supports perPage 1–100 and cursor."
+              },
+              "response": [
+                {
+                  "name": "Mock — Fetch chat history",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"conversationId\": \"44444444-4444-4444-8444-444444444444\",\n  \"perPage\": 20\n}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/history"
+                    },
+                    "description": "Participant-only bounded history, with reactions and reply IDs. Supports perPage 1–100 and cursor."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"messages\": [\n    {\n      \"id\": \"55555555-5555-4555-8555-555555555555\",\n      \"conversation_id\": \"44444444-4444-4444-8444-444444444444\",\n      \"sender_id\": \"11111111-1111-4111-8111-111111111111\",\n      \"body\": \"Example message\",\n      \"revision\": 1,\n      \"reply_to_id\": null,\n      \"delivered_at\": null,\n      \"read_at\": null,\n      \"edited_at\": null,\n      \"deleted_at\": null,\n      \"created_at\": \"2026-10-23 10:00:00\",\n      \"reactions\": []\n    }\n  ],\n  \"pagination\": {\n    \"perPage\": 20,\n    \"hasMore\": false,\n    \"nextCursor\": null,\n    \"previousCursor\": null\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "chat:unread_count — Unread message count",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/chat/events/unread_count"
+                },
+                "description": "Counts incoming non-deleted unread messages. Optional conversationId scopes the count; otherwise counts all owned conversations."
+              },
+              "response": [
+                {
+                  "name": "Mock — Unread message count",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{}"
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/chat/events/unread_count"
+                    },
+                    "description": "Counts incoming non-deleted unread messages. Optional conversationId scopes the count; otherwise counts all owned conversations."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "body": "{\n  \"conversationId\": null,\n  \"unreadCount\": 2\n}"
                 }
               ]
             }

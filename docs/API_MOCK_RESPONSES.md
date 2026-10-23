@@ -29,6 +29,24 @@ In Postman, expand a request and select a saved **Mock** response to preview it
 without sending a request. Importing the collection does not create a mock server.
 Success/error examples are representative, not an exhaustive failure catalog.
 
+In the authenticated developer portal, selecting an endpoint displays a saved
+example in the Response panel, labelled **Mock response**. The portal reuses this
+collection, choosing the closest saved example for the category and signup/role
+variant. Registration completion aliases share registration examples. These are
+illustrations; editing inputs does not simulate server behavior. Mock tokens
+cannot be applied with the response-token button.
+
+**Send request** removes the preview immediately and displays the actual API
+response, including errors. Switching endpoints shows that endpoint's mock and
+prevents an older pending response from replacing it. **Copy cURL** generates the
+current request with its URL, query, headers, bearer and JSON body without
+sending it. Import it in Postman with **Import → Raw text**. The generated command
+remains selectable when browser clipboard access is unavailable.
+
+The [13 named chat events](CHAT_EVENTS.md) have additional fictional examples
+in the developer WebSockets sidebar and the app-team collection. Client actions
+have REST equivalents; receive/new are server-only notifications.
+
 ## Auth
 
 ### POST /auth/otp/request — Normal signup (No Auth)

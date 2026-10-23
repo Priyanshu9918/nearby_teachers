@@ -7,6 +7,18 @@ return [
     // Keep method/path pairs explicit so documentation coverage can be checked against routes.
     // Shared capabilities appear in each applicable role and in Common for reference.
     'route_groups' => [
+        'POST /chat/events/send' => ['Learner', 'Teacher', 'Institute', 'Common'],
+        'POST /chat/events/delivered' => ['Learner', 'Teacher', 'Institute', 'Common'],
+        'POST /chat/events/read' => ['Learner', 'Teacher', 'Institute', 'Common'],
+        'POST /chat/events/typing' => ['Learner', 'Teacher', 'Institute', 'Common'],
+        'POST /chat/events/stop_typing' => ['Learner', 'Teacher', 'Institute', 'Common'],
+        'POST /chat/events/delete' => ['Learner', 'Teacher', 'Institute', 'Common'],
+        'POST /chat/events/edit' => ['Learner', 'Teacher', 'Institute', 'Common'],
+        'POST /chat/events/reply' => ['Learner', 'Teacher', 'Institute', 'Common'],
+        'POST /chat/events/reaction' => ['Learner', 'Teacher', 'Institute', 'Common'],
+        'POST /chat/events/history' => ['Learner', 'Teacher', 'Institute', 'Common'],
+        'POST /chat/events/unread_count' => ['Learner', 'Teacher', 'Institute', 'Common'],
+
         'POST /auth/google' => ['Auth'],
         'POST /auth/otp/request' => ['Auth'],
         'POST /auth/otp/verify' => ['Auth'],

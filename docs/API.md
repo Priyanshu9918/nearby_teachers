@@ -406,6 +406,17 @@ which does not apply these publication checks.
 | Teacher fields | `bio`, numeric/null `rate_per_hour`, `linkedin_url`, numeric/null `primary_subject_id`. |
 | Institute fields | `description`, numeric/null `starting_rate`, `contact_person`, `instructors_text`, `website_url`, `institute_type`, boolean `is_bsl_official`, `bsl_official_since`. |
 | `results[].created_at`, `updated_at` | Listing timestamps. |
+| `POST` | `/chat/events/send` | chat:send · Send message |
+| `POST` | `/chat/events/delivered` | chat:delivered · Confirm delivery |
+| `POST` | `/chat/events/read` | chat:read · Mark message read |
+| `POST` | `/chat/events/typing` | chat:typing · User typing |
+| `POST` | `/chat/events/stop_typing` | chat:stop_typing · User stopped typing |
+| `POST` | `/chat/events/delete` | chat:delete · Delete message |
+| `POST` | `/chat/events/edit` | chat:edit · Edit message |
+| `POST` | `/chat/events/reply` | chat:reply · Reply to message |
+| `POST` | `/chat/events/reaction` | chat:reaction · React to message |
+| `POST` | `/chat/events/history` | chat:history · Fetch chat history |
+| `POST` | `/chat/events/unread_count` | chat:unread_count · Unread message count |
 
 This endpoint normalizes coordinates, prices and flags; it does not require the
 raw-profile JSON normalization described earlier. Phone, email and private
@@ -535,6 +546,17 @@ valid coordinates and the normal publication checks in Learner discovery.
 | `addressText`, `city`, `state`, `country` | Nullable, max 1000/120/120/120 |
 | `countryCode`, `currency` | 2/3 characters; stored uppercase; supplied currency non-null |
 | `trialDays`, `subjectIds` | 0–7 days; up to 5 distinct existing subject IDs |
+| `POST` | `/chat/events/send` | chat:send · Send message |
+| `POST` | `/chat/events/delivered` | chat:delivered · Confirm delivery |
+| `POST` | `/chat/events/read` | chat:read · Mark message read |
+| `POST` | `/chat/events/typing` | chat:typing · User typing |
+| `POST` | `/chat/events/stop_typing` | chat:stop_typing · User stopped typing |
+| `POST` | `/chat/events/delete` | chat:delete · Delete message |
+| `POST` | `/chat/events/edit` | chat:edit · Edit message |
+| `POST` | `/chat/events/reply` | chat:reply · Reply to message |
+| `POST` | `/chat/events/reaction` | chat:reaction · React to message |
+| `POST` | `/chat/events/history` | chat:history · Fetch chat history |
+| `POST` | `/chat/events/unread_count` | chat:unread_count · Unread message count |
 
 Supplying `countryCode` derives currency when `currency` is omitted. Stats accepts `days` 1–365 (default
 30) and returns `{sinceDays,newRequests,profileViews}`. `newRequests` counts
@@ -644,6 +666,17 @@ feed reading, likes, comments and replies.
 | `startingRate` | Nullable, 0..99999999.99 |
 | `instructorsText` | Nullable, max 2,000 characters |
 | `websiteUrl` | Nullable URL, max 2048 |
+| `POST` | `/chat/events/send` | chat:send · Send message |
+| `POST` | `/chat/events/delivered` | chat:delivered · Confirm delivery |
+| `POST` | `/chat/events/read` | chat:read · Mark message read |
+| `POST` | `/chat/events/typing` | chat:typing · User typing |
+| `POST` | `/chat/events/stop_typing` | chat:stop_typing · User stopped typing |
+| `POST` | `/chat/events/delete` | chat:delete · Delete message |
+| `POST` | `/chat/events/edit` | chat:edit · Edit message |
+| `POST` | `/chat/events/reply` | chat:reply · Reply to message |
+| `POST` | `/chat/events/reaction` | chat:reaction · React to message |
+| `POST` | `/chat/events/history` | chat:history · Fetch chat history |
+| `POST` | `/chat/events/unread_count` | chat:unread_count · Unread message count |
 
 Shared field validation, listing-completion requirements, subject replacement,
 stats semantics and incoming-booking pagination are the same as Teacher.
@@ -1076,6 +1109,17 @@ has the same wrapper.
 | Socket authorization | 180/min/bearer; bridge also enforces socket limits |
 | Page-view analytics | 120/min/IP |
 | Reverse lookup | 30/min/IP, with at least one second between lookups per IP |
+| `POST` | `/chat/events/send` | chat:send · Send message |
+| `POST` | `/chat/events/delivered` | chat:delivered · Confirm delivery |
+| `POST` | `/chat/events/read` | chat:read · Mark message read |
+| `POST` | `/chat/events/typing` | chat:typing · User typing |
+| `POST` | `/chat/events/stop_typing` | chat:stop_typing · User stopped typing |
+| `POST` | `/chat/events/delete` | chat:delete · Delete message |
+| `POST` | `/chat/events/edit` | chat:edit · Edit message |
+| `POST` | `/chat/events/reply` | chat:reply · Reply to message |
+| `POST` | `/chat/events/reaction` | chat:reaction · React to message |
+| `POST` | `/chat/events/history` | chat:history · Fetch chat history |
+| `POST` | `/chat/events/unread_count` | chat:unread_count · Unread message count |
 
 Laravel uses MySQL 8 with spatial and JSON functions. The legacy Express tree
 uses a separate PostgreSQL/PostGIS schema. Apply the project's pending Laravel

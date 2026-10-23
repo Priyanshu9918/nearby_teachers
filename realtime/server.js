@@ -58,6 +58,32 @@ function createChatServer(config) {
         }
         return respond(200, { ok: true });
       }
+      if (packet.event) {
+        const supported = new Set(['chat:delivered', 'chat:read', 'chat:typing', 'chat:stop_typing', 'chat:delete', 'chat:edit', 'chat:reply', 'chat:reaction']);
+        const { event, data, recipientIds } = packet;
+        if (!supported.has(event) || !data || !isUuid(data.conversationId) ||
+            !Array.isArray(recipientIds) || recipientIds.length !== 2 || !recipientIds.every(isUuid) ||
+            (data.userId !== undefined && !recipientIds.includes(data.userId)) ||
+            (data.messageId !== undefined && !isUuid(data.messageId)) ||
+            (data.message && (!isUuid(data.message.id) || data.message.conversation_id !== data.conversationId || !recipientIds.includes(data.message.sender_id)))) {
+          return respond(422, {error: 'Invalid chat event'});
+        }
+        const needsMessage = ['chat:edit', 'chat:delete', 'chat:reply'].includes(event);
+        const needsActor = ['chat:delivered', 'chat:read', 'chat:typing', 'chat:stop_typing', 'chat:reaction'].includes(event);
+        if ((needsMessage && (!data.message || typeof data.message.body !== 'string' || Array.from(data.message.body).length > 5000)) ||
+            (needsActor && !isUuid(data.userId)) ||
+            (['chat:delivered', 'chat:read', 'chat:reaction'].includes(event) && !isUuid(data.messageId)) ||
+            (event === 'chat:reaction' && data.reaction !== null && !['👍', '👎', '❤️', '😂', '😮', '😢', '🙏', '🎉'].includes(data.reaction)) ||
+            (['chat:typing', 'chat:stop_typing'].includes(event) && data.typing !== (event === 'chat:typing'))) {
+          return respond(422, {error: 'Invalid chat event'});
+        }
+        if (['chat:typing', 'chat:stop_typing'].includes(event) &&
+            (!Number.isFinite(Date.parse(data.expiresAt)) || Date.parse(data.expiresAt) < Date.now())) {
+          return respond(200, {ok: true, expired: true});
+        }
+        io.to(['private-conversation.' + data.conversationId, ...recipientIds.map((id) => 'user.' + id)]).emit(event, data);
+        return respond(200, {ok: true});
+      }
       const { message, recipientIds } = packet;
       if (!message || !isUuid(message.id) || !isUuid(message.conversation_id) || !isUuid(message.sender_id) ||
           typeof message.body !== 'string' || Array.from(message.body).length > 5000 ||
@@ -66,8 +92,11 @@ function createChatServer(config) {
         return respond(422, { error: 'Invalid chat event' });
       }
       // Room union sends one packet even when a socket belongs to both rooms.
-      io.to(['private-conversation.' + message.conversation_id, ...recipientIds.map((id) => 'user.' + id)])
-        .emit('message.sent', { message });
+      const recipients = io.to(['private-conversation.' + message.conversation_id, ...recipientIds.map((id) => 'user.' + id)]);
+      // Backwards compatibility plus the new names. Clients should subscribe to one or deduplicate by ID/revision.
+      recipients.emit('message.sent', {message});
+      recipients.emit('chat:receive', {message});
+      recipients.emit('chat:new', {message});
       return respond(200, { ok: true });
     } catch {
       if (!res.headersSent) respond(400, { error: 'Invalid event payload' });
@@ -139,12 +168,12 @@ function createChatServer(config) {
       if (Date.now() - windowStart >= 10000) { windowStart = Date.now(); eventCount = 0; }
       return ++eventCount > 30 || inFlight >= 4;
     };
-    const operation = (handler) => async (payload, callback) => {
+    const operation = (handler, requiresConversation = true) => async (payload, callback) => {
       const ack = typeof callback === 'function' ? callback : () => {};
       if (limited()) return ack({ ok: false, status: 429, error: 'Too many requests' });
       inFlight++;
       try {
-        if (!payload || !isUuid(payload.conversationId)) return ack({ ok: false, status: 422, error: 'Invalid conversationId' });
+        if (!payload || typeof payload !== 'object' || Array.isArray(payload) || (requiresConversation && !isUuid(payload.conversationId))) return ack({ ok: false, status: 422, error: 'Invalid conversationId' });
         const result = await handler(payload);
         if (socket.connected) ack({ ok: true, ...result });
       } catch (error) {
@@ -176,6 +205,19 @@ function createChatServer(config) {
       await socket.leave('private-conversation.' + conversationId);
       return {};
     }));
+    const chatActions = {
+      send: ['conversationId', 'body', 'replyToId'], delivered: ['conversationId', 'messageId'],
+      read: ['conversationId', 'messageId'], typing: ['conversationId'], stop_typing: ['conversationId'],
+      delete: ['conversationId', 'messageId'], edit: ['conversationId', 'messageId', 'body'],
+      reply: ['conversationId', 'replyToId', 'body'], reaction: ['conversationId', 'messageId', 'reaction'],
+      history: ['conversationId', 'perPage', 'cursor'], unread_count: ['conversationId'],
+    };
+    for (const [action, fields] of Object.entries(chatActions)) {
+      socket.on('chat:' + action, operation(async (payload) => {
+        const body = Object.fromEntries(fields.filter((key) => Object.hasOwn(payload, key)).map((key) => [key, payload[key]]));
+        return laravel(socket.data.token, '/chat/events/' + action, body);
+      }, action !== 'unread_count'));
+    }
     socket.on('message.send', operation(async ({ conversationId, body }) => {
       if (typeof body !== 'string' || !body.trim() || Array.from(body).length > 5000) {
         const error = new Error('Message body must contain 1–5000 characters');

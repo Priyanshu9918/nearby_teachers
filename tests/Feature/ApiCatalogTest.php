@@ -7,6 +7,29 @@ use Tests\TestCase;
 
 class ApiCatalogTest extends TestCase
 {
+    public function test_every_catalog_entry_has_a_saved_mock_response_and_signup_variants_match(): void
+    {
+        $catalog = $this->withSession(['developer_authenticated' => true])->get('/developer')
+            ->assertOk()->viewData('catalog');
+        foreach ($catalog as $entry) {
+            $this->assertNotNull($entry['mockResponse'], $entry['id']);
+            $this->assertGreaterThanOrEqual(200, $entry['mockResponse']['status']);
+            $this->assertLessThan(300, $entry['mockResponse']['status']);
+            $this->assertNotSame('', $entry['mockResponse']['body']);
+        }
+        $entries = array_column($catalog, null, 'id');
+        foreach (['student', 'teacher', 'institute'] as $role) {
+            $key = 'POST /auth/register'.($role === 'student' ? '' : '::'.$role);
+            foreach (['', '::google'] as $suffix) {
+                $mock = json_decode($entries[$key.$suffix]['mockResponse']['body'], true, flags: JSON_THROW_ON_ERROR);
+                $this->assertSame($role === 'student' ? 'learner' : $role, $mock['user']['account_type']);
+            }
+        }
+        $normal = $entries['POST /auth/otp/verify']['mockResponse']['body'];
+        $google = $entries['POST /auth/otp/verify::google']['mockResponse']['body'];
+        $this->assertNotSame($normal, $google);
+    }
+
     public function test_developer_catalog_covers_registered_routes_in_five_workflow_groups(): void
     {
         $response = $this->withSession(['developer_authenticated' => true])->get('/developer')->assertOk();

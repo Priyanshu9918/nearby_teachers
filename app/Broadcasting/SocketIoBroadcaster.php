@@ -34,8 +34,11 @@ class SocketIoBroadcaster extends Broadcaster
             throw new RuntimeException('SOCKET_IO_SHARED_SECRET must be at least 32 characters.');
         }
         $message = $payload['message'] ?? [];
-        $conversationId = $message['conversation_id'] ?? null;
-        if ($event !== 'message.sent' || ! is_string($conversationId) || ! Str::isUuid($conversationId)
+        $data = $payload['data'] ?? [];
+        $supported = ['chat:delivered', 'chat:read', 'chat:typing', 'chat:stop_typing', 'chat:delete', 'chat:edit', 'chat:reply', 'chat:reaction'];
+        $legacy = $event === 'message.sent';
+        $conversationId = $legacy ? ($message['conversation_id'] ?? null) : ($data['conversationId'] ?? null);
+        if ((! $legacy && ! in_array($event, $supported, true)) || ! is_string($conversationId) || ! Str::isUuid($conversationId)
             || $this->formatChannels($channels) !== ['private-conversation.'.$conversationId]) {
             throw new RuntimeException('Unsupported Socket.IO chat broadcast.');
         }
@@ -45,12 +48,27 @@ class SocketIoBroadcaster extends Broadcaster
             return;
         }
 
-        // Called by the broadcasts queue worker, never by the mobile client.
+        // Reload persisted content so delayed jobs cannot republish an old/deleted body.
+        if ($legacy || isset($data['message'])) {
+            $id = $legacy ? ($message['id'] ?? null) : ($data['message']['id'] ?? null);
+            $saved = DB::table('messages')->where('id', $id)->where('conversation_id', $conversationId)->first();
+            if ($saved === null) {
+                return;
+            }
+            if ($legacy) {
+                $message = (array) $saved;
+            } else {
+                $data['message'] = (array) $saved;
+            }
+        }
+        $packet = ['recipientIds' => [$conversation->learner_id, $conversation->provider_id]];
+        if ($legacy) {
+            $packet['message'] = $message;
+        } else {
+            $packet += ['event' => $event, 'data' => $data];
+        }
         Http::timeout(5)->connectTimeout(2)
             ->withHeaders(['X-Socket-Secret' => $secret])
-            ->post(rtrim($this->config['url'], '/').'/internal/events', [
-                'message' => $message,
-                'recipientIds' => [$conversation->learner_id, $conversation->provider_id],
-            ])->throw();
+            ->post(rtrim($this->config['url'], '/').'/internal/events', $packet)->throw();
     }
 }

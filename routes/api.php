@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BookingsController;
+use App\Http\Controllers\Api\ChatEventsController;
 use App\Http\Controllers\Api\CommunityController;
 use App\Http\Controllers\Api\I18nController;
 use App\Http\Controllers\Api\MessagesController;
@@ -74,6 +75,10 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
     Route::get('/bookings/mine', [BookingsController::class, 'mine']);
     Route::patch('/bookings/{id}/status', [BookingsController::class, 'updateStatus'])->whereUuid('id');
     Route::get('/messages', [MessagesController::class, 'index']);
+    foreach (['send', 'delivered', 'read', 'typing', 'stop_typing', 'delete', 'edit', 'reply', 'reaction', 'history', 'unread_count'] as $chatAction) {
+        Route::post('/chat/events/'.$chatAction, [ChatEventsController::class, 'dispatch'])
+            ->defaults('event', 'chat:'.$chatAction)->middleware('throttle:chat-send');
+    }
     Route::post('/chat/socket/authorize', [SocketIoController::class, 'authorizeSocket'])->middleware('throttle:socket-auth');
     Route::post('/messages/start', [MessagesController::class, 'start']);
     Route::get('/messages/{conversationId}', [MessagesController::class, 'show'])->whereUuid('conversationId');

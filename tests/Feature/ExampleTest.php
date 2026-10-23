@@ -249,11 +249,11 @@ class ExampleTest extends TestCase
             ->assertSee('00000000-0000-4000-8000-000000000001')
             ->assertSee('data-category="Auth"', false)
             ->assertSee('Use response token as bearer')
-            ->assertSee('private-conversation.{conversationId}')
-            ->assertSee('Configure Socket.IO')
+            ->assertSee('Join conversation')
+            ->assertSee('Connection settings')
             ->assertSee('Forgot password and email verification')
             ->assertSee('POST /auth/reset-password')
-            ->assertSee('POST /chat/socket/authorize')
+            ->assertSee('2. Verify token')
             ->assertDontSee('Configure Reverb')
             ->assertSee('lat=28.6139');
 

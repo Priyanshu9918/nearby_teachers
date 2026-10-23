@@ -23,6 +23,12 @@ final class BusinessActivityRecorder
         'booking.created' => ['booking', ['status', 'mode', 'requested_time', 'price']],
         'booking.status_changed' => ['booking', ['status']],
         'message.created' => ['message', ['conversation_id']],
+        'message.replied' => ['message', ['conversation_id', 'reply_to_id']],
+        'message.delivered' => ['message', ['conversation_id', 'delivered_at']],
+        'message.read' => ['message', ['conversation_id', 'read_at']],
+        'message.edited' => ['message', ['conversation_id', 'revision', 'edited_at']],
+        'message.deleted' => ['message', ['conversation_id', 'revision', 'deleted_at']],
+        'message.reaction_changed' => ['message_reaction', ['conversation_id', 'message_id', 'reaction']],
     ];
 
     public function record(string $event, string $entityId, ?string $actorUserId, ?string $relatedUserId = null, array $before = [], array $after = []): string

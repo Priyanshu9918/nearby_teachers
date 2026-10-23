@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\DeveloperResponseExamples;
 use Dotenv\Dotenv;
 use Illuminate\Console\Command;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -79,6 +83,32 @@ class DeveloperController extends Controller
             'settings' => $this->currentSettings($groups),
             'baseUrl' => $request->root(),
         ]);
+    }
+
+    public function socketHealth(): JsonResponse
+    {
+        // The destination comes from server configuration, never browser input.
+        $url = rtrim((string) config('broadcasting.connections.socketio.url'), '/');
+        $parts = parse_url($url);
+        if (! $parts || ! in_array($parts['scheme'] ?? '', ['http', 'https'], true)
+            || empty($parts['host']) || isset($parts['user']) || isset($parts['pass'])
+            || isset($parts['query']) || isset($parts['fragment'])) {
+            return response()->json(['ok' => false, 'error' => 'Socket.IO internal URL is not configured correctly.'], 503)
+                ->header('Cache-Control', 'no-store');
+        }
+
+        try {
+            $response = Http::acceptJson()->connectTimeout(2)->timeout(4)
+                ->withoutRedirecting()->get($url.'/health');
+            $ready = $response->successful() && $response->json('ok') === true;
+        } catch (ConnectionException) {
+            $ready = false;
+        }
+
+        return response()->json(['ok' => $ready, 'service' => 'Socket.IO',
+            'note' => $ready ? 'Configured chat server is ready. Test the public connection separately.'
+                : 'Configured chat server is unavailable or not ready. Check the Node service and Redis if configured.',
+        ], $ready ? 200 : 503)->header('Cache-Control', 'no-store');
     }
 
     public function updateSettings(Request $request): RedirectResponse
@@ -190,6 +220,7 @@ class DeveloperController extends Controller
     private function apiCatalog(): array
     {
         $catalog = [];
+        $examples = new DeveloperResponseExamples;
         $supportedMethods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 
         foreach (Route::getRoutes() as $route) {
@@ -284,6 +315,11 @@ class DeveloperController extends Controller
             return [$left['section'] === 'Admin only', $left['path'], $left['method'], $left['id']]
                 <=> [$right['section'] === 'Admin only', $right['path'], $right['method'], $right['id']];
         });
+
+        foreach ($catalog as &$entry) {
+            $entry['mockResponse'] = $examples->forEndpoint($entry);
+        }
+        unset($entry);
 
         return $catalog;
     }
@@ -403,6 +439,12 @@ class DeveloperController extends Controller
 
     private function requestExample(string $method, string $path): array
     {
+        foreach (config('chat_events') as $event => $contract) {
+            if ($method === 'POST' && $path === '/chat/events/'.$contract['action']) {
+                return ['bodyExample' => $contract['body'], 'queryExample' => '', 'guide' => $event.' · '.$contract['guide']];
+            }
+        }
+
         $examples = [
             'POST /auth/google' => [
                 'body' => ['firebaseIdToken' => 'PASTE_FIREBASE_GOOGLE_ID_TOKEN'],

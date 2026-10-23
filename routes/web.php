@@ -39,6 +39,8 @@ Route::post('/developer/login', [DeveloperController::class, 'authenticate'])
 Route::middleware(RequireDeveloperSession::class)->prefix('developer')->name('developer.')->group(function () {
     Route::post('/logout', [DeveloperController::class, 'logout'])->name('logout');
     Route::get('/', [DeveloperController::class, 'portal'])->name('portal');
+    Route::get('/socket/health', [DeveloperController::class, 'socketHealth'])
+        ->middleware(ThrottleRequests::class.':30,1')->name('socket.health');
     Route::post('/configuration', [DeveloperController::class, 'updateSettings'])
         ->middleware(ThrottleRequests::class.':10,1')
         ->name('configuration.update');

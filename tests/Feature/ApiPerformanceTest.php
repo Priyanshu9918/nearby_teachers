@@ -303,12 +303,16 @@ class ApiPerformanceTest extends TestCase
             'id' => (string) Str::uuid(), 'conversation_id' => $conversation,
             'sender_id' => $this->viewerId, 'body' => 'Saved message', 'created_at' => now()->toDateTimeString(),
         ];
+        DB::table('messages')->insert($message);
+        $message = (array) DB::table('messages')->where('id', $message['id'])->first();
         $secret = str_repeat('socket-secret-', 5);
         Http::fake(['http://socket.test/internal/events' => Http::sequence()->push(['ok' => true])->push([], 503)]);
         config([
             'broadcasting.connections.socketio.url' => 'http://socket.test',
             'broadcasting.connections.socketio.secret' => $secret,
         ]);
+        Broadcast::purge('socketio');
+        Http::preventStrayRequests();
         $bridge = Broadcast::connection('socketio');
         $this->assertInstanceOf(SocketIoBroadcaster::class, $bridge);
         $bridge->broadcast(['private-conversation.'.$conversation], 'message.sent', ['message' => $message]);

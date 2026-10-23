@@ -41,6 +41,14 @@ async function setup(t, options = {}) {
         authVersion: req.headers.authorization === 'Bearer fresh-token' ? 1 : 0,
       });
     }
+    if (req.url.startsWith('/chat/events/')) {
+      if (id === outsider || (body.conversationId && body.conversationId !== conversation)) return reply(404, {error: 'Conversation not found'});
+      const action = req.url.split('/').pop();
+      if (action === 'send' || action === 'reply') return reply(200, {message: {...message, sender_id: id, body: body.body, reply_to_id: body.replyToId || null}});
+      if (action === 'history') return reply(200, {messages: [message], pagination: {perPage: 20, hasMore: false, nextCursor: null}});
+      if (action === 'unread_count') return reply(200, {unreadCount: 1, conversationId: body.conversationId || null});
+      return reply(200, {conversationId: body.conversationId, messageId: body.messageId, userId: id, reaction: body.reaction});
+    }
     if (req.url === '/messages/' + conversation && id !== outsider) {
       return reply(200, { message: { ...message, sender_id: id, body: body.body } });
     }
@@ -188,4 +196,50 @@ test('password reset disconnects only older socket sessions', { timeout: 10000 }
   assert.equal(response.status, 200);
   assert.equal((await disconnected)[0], 'io server disconnect');
   assert.equal(fresh.connected, true);
+});
+
+test('all client chat events are forwarded to allowlisted Laravel APIs with authenticated ownership', {timeout: 10000}, async (t) => {
+  const {connected, requests} = await setup(t);
+  const socket = await connected('learner-token');
+  for (const action of ['send', 'delivered', 'read', 'typing', 'stop_typing', 'delete', 'edit', 'reply', 'reaction', 'history', 'unread_count']) {
+    const ack = await socket.timeout(2000).emitWithAck('chat:' + action, {conversationId: conversation, messageId: message.id, replyToId: message.id, body: 'Test', reaction: '👍', perPage: 20, userId: outsider, token: 'forged'});
+    assert.equal(ack.ok, true, action);
+    const forwarded = requests.find((request) => request.path === '/chat/events/' + action);
+    assert.ok(forwarded, action);
+    assert.equal(forwarded.body.userId, undefined);
+    assert.equal(forwarded.body.token, undefined);
+  }
+  assert.equal((await socket.timeout(2000).emitWithAck('chat:unread_count', {})).unreadCount, 1);
+  const stranger = await connected('outsider-token');
+  assert.equal((await stranger.timeout(2000).emitWithAck('chat:read', {conversationId: conversation, messageId: message.id})).status, 404);
+});
+
+test('new message aliases reach participants once each and cannot be published by clients', {timeout: 10000}, async (t) => {
+  const {connected, publish} = await setup(t);
+  const a = await connected('learner-token'), b = await connected('provider-token'), c = await connected('outsider-token');
+  let outsiderPackets = 0;
+  c.on('chat:receive', () => outsiderPackets++);
+  const received = once(a, 'chat:receive'), fresh = once(b, 'chat:new');
+  assert.equal((await publish({message, recipientIds: [learner, provider]})).status, 200);
+  assert.deepEqual((await received)[0], {message});
+  assert.deepEqual((await fresh)[0], {message});
+  a.emit('chat:new', {message: {...message, body: 'forged'}});
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  assert.equal(outsiderPackets, 0);
+});
+
+test('persistent chat notifications and typing are private, validated and server-authenticated', {timeout: 10000}, async (t) => {
+  const {connected, publish} = await setup(t);
+  const socket = await connected('provider-token');
+  for (const event of ['chat:delivered', 'chat:read', 'chat:typing', 'chat:stop_typing', 'chat:delete', 'chat:edit', 'chat:reply', 'chat:reaction']) {
+    const data = {conversationId: conversation, messageId: message.id, userId: learner, message, reaction: '👍', typing: event === 'chat:typing', expiresAt: new Date(Date.now() + 5000).toISOString()};
+    const incoming = once(socket, event);
+    assert.equal((await publish({event, data, recipientIds: [learner, provider]})).status, 200);
+    assert.deepEqual((await incoming)[0], data);
+    assert.equal((await publish({event, data, recipientIds: [learner, provider]}, {})).status, 401);
+  }
+  assert.equal((await publish({event: 'arbitrary', data: {conversationId: conversation}, recipientIds: [learner, provider]})).status, 422);
+  assert.equal((await publish({event: 'chat:typing', data: {conversationId: conversation, userId: outsider, typing: true}, recipientIds: [learner, provider]})).status, 422);
+  const expired = await publish({event: 'chat:typing', data: {conversationId: conversation, userId: learner, typing: true, expiresAt: new Date(Date.now() - 1000).toISOString()}, recipientIds: [learner, provider]});
+  assert.equal((await expired.json()).expired, true);
 });
