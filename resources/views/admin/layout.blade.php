@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light">
     <title>@yield('title', 'Admin') · Nearby Teacher</title>
-    <link rel="stylesheet" href="{{ asset('css/admin.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/admin.css') }}?v={{ substr(hash_file('sha256', public_path('css/admin.css')), 0, 12) }}">
     <script src="{{ asset('js/admin.js') }}" defer></script>
 </head>
 <body>

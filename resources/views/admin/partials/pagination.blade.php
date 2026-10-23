@@ -16,21 +16,21 @@
             @if (is_scalar($value))<input type="hidden" name="{{ $key }}" value="{{ $value }}">@endif
         @endforeach
         <label for="rows-per-page">Rows per page</label>
-        <select id="rows-per-page" name="per_page">
+        <select id="rows-per-page" name="per_page" aria-label="Rows per page">
             @foreach ([15, 25, 30, 50, 100] as $size)<option value="{{ $size }}" @selected($page->perPage() === $size)>{{ $size }}</option>@endforeach
         </select>
-        <button class="btn btn-small" type="submit">Update</button>
+        <button class="pagination-apply" type="submit">Apply</button>
     </form>
     <nav class="pagination-links" aria-label="Records pagination">
-        @if ($page->previousPageUrl())<a class="btn btn-small" href="{{ $page->previousPageUrl() }}" rel="prev" aria-label="Previous page">Previous</a>
-        @else <span class="btn btn-small pagination-disabled" aria-disabled="true">Previous</span> @endif
+        @if ($page->previousPageUrl())<a class="pagination-link pagination-direction pagination-previous" href="{{ $page->previousPageUrl() }}" rel="prev" aria-label="Previous page"><x-admin-icon name="chevron" class="pagination-back-icon" /><span class="pagination-label">Previous</span></a>
+        @else <span class="pagination-link pagination-direction pagination-disabled" aria-disabled="true" aria-label="Previous page"><x-admin-icon name="chevron" class="pagination-back-icon" /><span class="pagination-label">Previous</span></span> @endif
         @foreach ($numbers as $number)
             @if ($previous !== null && $number > $previous + 1)<span class="pagination-gap" aria-hidden="true">…</span>@endif
-            @if ($number === $current)<span class="btn btn-small pagination-current" aria-current="page" aria-label="Page {{ $number }}">{{ $number }}</span>
-            @else <a class="btn btn-small" href="{{ $page->url($number) }}" aria-label="Page {{ $number }}">{{ $number }}</a> @endif
+            @if ($number === $current)<span class="pagination-link pagination-current" aria-current="page" aria-label="Page {{ $number }}">{{ $number }}</span>
+            @else <a @class(['pagination-link', 'pagination-distance-2' => abs($number - $current) === 2 && $number !== 1 && $number !== $last]) href="{{ $page->url($number) }}" aria-label="Page {{ $number }}">{{ $number }}</a> @endif
             @php($previous = $number)
         @endforeach
-        @if ($page->nextPageUrl())<a class="btn btn-small" href="{{ $page->nextPageUrl() }}" rel="next" aria-label="Next page">Next</a>
-        @else <span class="btn btn-small pagination-disabled" aria-disabled="true">Next</span> @endif
+        @if ($page->nextPageUrl())<a class="pagination-link pagination-direction pagination-next" href="{{ $page->nextPageUrl() }}" rel="next" aria-label="Next page"><span class="pagination-label">Next</span><x-admin-icon name="chevron" /></a>
+        @else <span class="pagination-link pagination-direction pagination-disabled" aria-disabled="true" aria-label="Next page"><span class="pagination-label">Next</span><x-admin-icon name="chevron" /></span> @endif
     </nav>
 </div>
