@@ -14,7 +14,7 @@
         ping: ['Ping / round trip', 'chat.ping', {}, {ok: true, serverTime: '2026-10-23T10:00:00.000Z'}, 'An authenticated round trip to Node. Auto ping runs every 5 seconds and stops on disconnect.'],
         reconnect: ['Reconnect lifecycle (automatic)', 'reconnect_attempt / reconnect / reconnect_error / reconnect_failed', {}, {event: 'reconnect', attempt: 1, action: 'Reload history and rejoin the active conversation.'}, 'Up to 3 automatic retries after transport failure. Server disconnect/expiry needs an explicit reconnect with a valid token.'],
         heartbeat: ['Transport heartbeat (automatic)', 'Engine.IO ping → pong', {}, {packet: 'pong', note: 'Transport heartbeat reply; not a message acknowledgement.'}, 'The server sends heartbeats automatically. These are separate from chat.ping and are logged while connected.'],
-        start: ['Start / find conversation', 'POST /messages/start', {providerId: '22222222-2222-4222-8222-222222222222'}, {conversationId: uuid}, 'Learners only. Creates or reuses a conversation with a provider; this tester sends no initial body.'],
+        start: ['Start / find conversation', 'POST /messages/start', {providerId: '22222222-2222-4222-8222-222222222222'}, {conversationId: uuid}, 'Any account can start or reuse a conversation with another user. providerId is the other user UUID; this tester sends no initial body.'],
         inbox: ['Load my inbox', 'GET /messages?perPage=20', {}, {conversations: [{id: uuid, other_name: 'Example Teacher', last_message: 'Hello'}], nextCursor: null}, 'Shows a bounded inbox page. Pick a conversation to fill its UUID.'],
         history: ['Load message history', 'GET /messages/{conversationId}?perPage=20', {}, {messages: [message], nextCursor: null}, 'Loads the latest saved messages for this participant. No read-receipt event exists.'],
         'room-auth': ['Check conversation access', 'POST /chat/socket/authorize', {conversationId: uuid}, {userId: message.sender_id, room: 'private-conversation.' + uuid, expiresInSeconds: 900, authVersion: 0}, 'Confirms that the bearer is a participant before joining.'],
@@ -389,7 +389,7 @@
             case 'inbox': { const data = await rest(key, '/messages?perPage=20', 'GET', undefined, signal); populateInbox(data); return data; }
             case 'start': {
                 const providerId = field('provider').value.trim();
-                if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(providerId)) throw new Error('Enter the teacher/institute user UUID first.');
+                if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(providerId)) throw new Error('Enter the other user UUID first.');
                 const data = await rest(key, '/messages/start', 'POST', {providerId}, signal);
                 field('conversation').value = data.conversationId; return data;
             }

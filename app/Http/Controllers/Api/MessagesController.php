@@ -49,26 +49,35 @@ class MessagesController extends Controller
             'providerId' => ['required', 'uuid', 'exists:users,id'],
             'body' => ['nullable', 'string', 'max:5000'],
         ]);
-        if ($data['providerId'] === $user->id || $user->account_type !== 'learner') {
-            return response()->json(['error' => 'Only learners may start a conversation with a different provider'], 400);
-        }
-        $providerExists = DB::table('users')->where('id', $data['providerId'])
-            ->whereIn('account_type', ['teacher', 'institute'])->exists();
-        if (! $providerExists) {
-            return response()->json(['error' => 'Provider not found'], 404);
+        if (strcasecmp($data['providerId'], $user->id) === 0) {
+            return response()->json(['error' => 'Choose a different user to start a conversation'], 400);
         }
 
         [$conversationId, $messageId] = DB::transaction(function () use ($data, $user): array {
-            DB::table('conversations')->insertOrIgnore([
-                'id' => (string) Str::uuid(),
-                'learner_id' => $user->id,
-                'provider_id' => $data['providerId'],
-                'created_at' => now(),
-            ]);
+            // Lock both users in a stable order so opposite-side starts serialize.
+            $participants = DB::table('users')->whereIn('id', [$user->id, $data['providerId']])
+                ->orderBy('id')->lockForUpdate()->get(['id', 'account_type']);
+            abort_if($participants->count() !== 2, 404, 'User not found');
+            $recipient = $participants->first(fn ($participant) => $participant->id !== $user->id);
             $conversationId = DB::table('conversations')
-                ->where('learner_id', $user->id)
-                ->where('provider_id', $data['providerId'])
+                ->where(fn ($query) => $query
+                    ->where(fn ($pair) => $pair->where('learner_id', $user->id)->where('provider_id', $recipient->id))
+                    ->orWhere(fn ($pair) => $pair->where('learner_id', $recipient->id)->where('provider_id', $user->id)))
+                ->orderBy('created_at')->orderBy('id')
                 ->value('id');
+            if ($conversationId === null) {
+                // Retain legacy learner/provider columns without limiting who can chat.
+                $first = $participants->where('account_type', 'learner')->count() === 1
+                    ? $participants->firstWhere('account_type', 'learner') : $participants->first();
+                $second = $participants->first(fn ($participant) => $participant->id !== $first->id);
+                $conversationId = (string) Str::uuid();
+                DB::table('conversations')->insert([
+                    'id' => $conversationId,
+                    'learner_id' => $first->id,
+                    'provider_id' => $second->id,
+                    'created_at' => now(),
+                ]);
+            }
 
             $messageId = null;
             if (filled($data['body'] ?? null)) {
@@ -80,12 +89,12 @@ class MessagesController extends Controller
                     'body' => $data['body'],
                     'created_at' => now(),
                 ]);
-                app(BusinessActivityRecorder::class)->record('message.created', $messageId, $user->id, $data['providerId'],
+                app(BusinessActivityRecorder::class)->record('message.created', $messageId, $user->id, $recipient->id,
                     after: ['conversation_id' => $conversationId]);
             }
 
             return [$conversationId, $messageId];
-        });
+        }, 3);
 
         if ($messageId !== null) {
             event(new ChatMessageSent($this->savedMessage($messageId)));

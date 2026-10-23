@@ -36,7 +36,9 @@ class DeveloperResponseExamples
         // Both routes invoke the same registration completion action.
         $path = $endpoint['path'] === '/auth/onboarding/complete' ? '/auth/register' : $endpoint['path'];
         $signature = $endpoint['method'].' '.preg_replace('/\{[^}]+\}/', '{}', $path);
-        $candidates = $this->requests[$endpoint['category']][$signature] ?? [];
+        // Conversation start returns the same shape for every account type.
+        $category = $signature === 'POST /messages/start' ? 'Learner' : $endpoint['category'];
+        $candidates = $this->requests[$category][$signature] ?? [];
         $best = null;
         $bestScore = PHP_INT_MIN;
         foreach ($candidates as $candidate) {

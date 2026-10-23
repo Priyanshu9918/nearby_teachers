@@ -70,6 +70,68 @@ class ChatEventsTest extends TestCase
         return $this->postJson('/chat/events/'.$action, ['conversationId' => $this->conversation, ...$extra]);
     }
 
+    public function test_any_role_can_start_chat_and_both_sides_reuse_the_same_conversation(): void
+    {
+        foreach (['learner', 'teacher', 'institute'] as $senderRole) {
+            foreach (['learner', 'teacher', 'institute'] as $recipientRole) {
+                $sender = (string) Str::uuid();
+                $recipient = (string) Str::uuid();
+                foreach ([$sender => $senderRole, $recipient => $recipientRole] as $id => $role) {
+                    DB::table('users')->insert(['id' => $id, 'account_type' => $role,
+                        'full_name' => 'Role '.$role, 'phone_verified_at' => now(), 'safety_disclaimer_acknowledged_at' => now()]);
+                }
+                $id = $this->withToken($sender)->postJson('/messages/start', ['providerId' => $recipient, 'body' => 'Hello'])
+                    ->assertOk()->json('conversationId');
+                $this->withToken($recipient)->postJson('/messages/start', ['providerId' => $sender])
+                    ->assertOk()->assertJsonPath('conversationId', $id);
+                $this->postJson('/messages/'.$id, ['body' => 'Reply'])->assertOk()->assertJsonPath('message.sender_id', $recipient);
+                $this->postJson('/chat/socket/authorize', ['conversationId' => $id])->assertOk()->assertJsonPath('room', 'private-conversation.'.$id);
+                $this->getJson('/messages')->assertOk()->assertJsonPath('conversations.0.id', $id);
+                $this->withToken($sender)->getJson('/messages')->assertOk()->assertJsonPath('conversations.0.id', $id);
+                $this->getJson('/messages/'.$id)->assertOk()->assertJsonCount(2, 'messages');
+                $this->assertSame(1, DB::table('conversations')->whereIn('learner_id', [$sender, $recipient])->whereIn('provider_id', [$sender, $recipient])->count());
+                $this->assertSame(1, DB::table('business_activity')->where('event', 'message.created')->where('actor_user_id', $sender)->where('related_user_id', $recipient)->count());
+                $this->withToken($this->outsider)->getJson('/messages/'.$id)->assertNotFound();
+            }
+        }
+    }
+
+    public function test_teacher_can_reopen_existing_learner_chat_without_reversing_participant_columns(): void
+    {
+        $this->withToken($this->teacher)->postJson('/messages/start', ['providerId' => $this->learner])
+            ->assertOk()->assertJsonPath('conversationId', $this->conversation);
+        $this->assertSame(1, DB::table('conversations')->count());
+        $this->assertSame($this->learner, DB::table('conversations')->value('learner_id'));
+    }
+
+    public function test_start_still_rejects_self_unknown_users_and_missing_authentication(): void
+    {
+        $this->postJson('/messages/start', ['providerId' => strtoupper($this->learner)])->assertStatus(400);
+        $this->postJson('/messages/start', ['providerId' => (string) Str::uuid()])->assertUnprocessable();
+        $this->withoutHeader('Authorization')->postJson('/messages/start', ['providerId' => $this->teacher])->assertUnauthorized();
+        $this->assertSame(1, DB::table('conversations')->count());
+    }
+
+    public function test_start_rolls_back_new_conversation_and_message_when_history_recording_fails(): void
+    {
+        DB::listen(function ($query): void {
+            if (str_contains($query->sql, 'insert into `business_activity`')) {
+                throw new \RuntimeException('History unavailable');
+            }
+        });
+        $this->withoutExceptionHandling();
+        try {
+            $this->withToken($this->teacher)->postJson('/messages/start', ['providerId' => $this->outsider, 'body' => 'Do not save']);
+            $this->fail('Expected history recording failure');
+        } catch (\RuntimeException $error) {
+            $this->assertSame('History unavailable', $error->getMessage());
+        }
+        $this->assertSame(1, DB::table('conversations')->count());
+        $this->assertSame(1, DB::table('messages')->count());
+        $this->assertSame(0, DB::table('business_activity')->count());
+        Event::assertNotDispatched(ChatMessageSent::class);
+    }
+
     public function test_all_events_require_auth_and_outsiders_cannot_access_any_conversation_operation(): void
     {
         foreach (['send', 'delivered', 'read', 'typing', 'stop_typing', 'delete', 'edit', 'reply', 'reaction', 'history', 'unread_count'] as $action) {

@@ -413,7 +413,7 @@ class DeveloperController extends Controller
             $variant['label'] = $category.' · phone / WhatsApp / call contact';
             $variant['guide'] = 'Use a verified bearer to retrieve profile.phone for a teacher or institute (type path parameter). The app can open tel:<phone> or https://wa.me/<international-digits>. These links launch external apps; this API does not place calls or send WhatsApp messages. Anonymous responses omit phone. Reveal limit: 5 distinct provider profiles per day; hide contact actions when phone is absent. This lookup does not return learner phone numbers.';
         } elseif (in_array($key, ['GET /messages', 'GET /messages/{conversationId}', 'POST /messages/{conversationId}'], true)) {
-            $variant['guide'] = trim(($example['guide'] ?? '').' Chat is available to Learner, Teacher and Institute participants. Providers reply in an existing conversation; POST /messages/start is learner-only. Sending requires safety acknowledgement and guardian consent when applicable.');
+            $variant['guide'] = trim(($example['guide'] ?? '').' Learner, Teacher and Institute accounts can start or reply to conversations. POST /messages/start accepts the other user UUID as providerId and reuses an existing conversation in either direction. Sending requires safety acknowledgement and guardian consent when applicable.');
             if ($method === 'POST' && $isProvider) {
                 $variant['bodyExample'] = ['body' => $category === 'Institute'
                     ? 'Thanks for contacting our institute. How can we help with your classes?'
@@ -555,7 +555,7 @@ class DeveloperController extends Controller
             'PATCH /bookings/{id}/status' => ['body' => ['status' => 'accepted'], 'pathDefaults' => ['id' => '00000000-0000-4000-8000-000000000002']],
             'POST /messages/start' => [
                 'body' => ['providerId' => '00000000-0000-4000-8000-000000000001', 'body' => 'Hello, I would like to ask about your lessons.'],
-                'guide' => 'Requires a learner bearer token, an existing teacher/institute UUID, safety acknowledgement, and guardian consent for minors.',
+                'guide' => 'Any account can start a conversation. Set providerId to the other user UUID (learner, teacher or institute). Starting from either side reuses the same conversation.',
             ],
             'POST /messages/{conversationId}' => ['body' => ['body' => 'Hello, thanks for getting back to me.'], 'pathDefaults' => ['conversationId' => '00000000-0000-4000-8000-000000000003']],
             'GET /messages/{conversationId}' => ['pathDefaults' => ['conversationId' => '00000000-0000-4000-8000-000000000003']],
