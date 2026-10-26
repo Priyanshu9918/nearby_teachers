@@ -7,6 +7,7 @@ return [
     // Keep method/path pairs explicit so documentation coverage can be checked against routes.
     // Shared capabilities appear in each applicable role and in Common for reference.
     'route_groups' => [
+        'POST /presence/update' => ['Common'],
         'POST /chat/events/send' => ['Learner', 'Teacher', 'Institute', 'Common'],
         'POST /chat/events/delivered' => ['Learner', 'Teacher', 'Institute', 'Common'],
         'POST /chat/events/read' => ['Learner', 'Teacher', 'Institute', 'Common'],
@@ -38,6 +39,7 @@ return [
         'PATCH /auth/link-google' => ['Auth'],
 
         'POST /auth/date-of-birth' => ['Learner'],
+        'POST /auth/guardian-details' => ['Learner'],
         'POST /auth/parental-consent/confirm' => ['Learner'],
         'GET /search/dashboard' => ['Learner'],
         'GET /search/counts' => ['Learner'],

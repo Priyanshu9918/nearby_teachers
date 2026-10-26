@@ -4,12 +4,18 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminReportController;
 use App\Http\Controllers\DeveloperController;
 use App\Http\Controllers\LocationLookupController;
+use App\Http\Controllers\ParentalConsentController;
 use App\Http\Controllers\WebsiteController;
 use App\Http\Middleware\RequireAdminSession;
 use App\Http\Middleware\RequireDeveloperSession;
 use App\Support\RecordId;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/parental-consent/{token}', [ParentalConsentController::class, 'show'])
+    ->middleware(ThrottleRequests::class.':30,1')->name('parental-consent.show');
+Route::post('/parental-consent/{token}', [ParentalConsentController::class, 'decide'])
+    ->middleware(ThrottleRequests::class.':20,1')->name('parental-consent.decide');
 
 Route::get('/health', fn () => response()->json(['ok' => true]));
 

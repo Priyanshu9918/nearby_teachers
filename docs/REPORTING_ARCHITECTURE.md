@@ -150,6 +150,14 @@ need explicit events if historical questions about those actions are required.
 
 ## Operations and growth
 
+App presence is ephemeral operational telemetry stored in expiring Redis keys,
+not a source business mutation. Presence heartbeats/activity/background and
+automatic expiry do not write business events or alter SQL users/profiles.
+Current provider search flags do not establish historical online duration,
+last-seen history or past active counts. These are explicit coverage gaps;
+new historical reporting would need approved aggregates and retention, without
+raw device IDs, requests or tokens. See [presence coverage](PRESENCE.md#reporting-coverage).
+
 Run migrations before deploying code that writes new event types/tables:
 
 ```sh
@@ -193,3 +201,14 @@ not its historical events. Earlier blocks/unblocks have no invented history.
 Blocked chat attempts create no message/activity mutation; they are not recorded
 as a new security-attempt report. Generic report participant/date/search filters,
 CSV exports, admin access checks and access logging apply to these events.
+
+## Parent consent decisions
+
+`parental_consent.requested` and `parental_consent.decided` version 1 retain
+before/after status only, in the same transaction as the learner mutation.
+Parent decisions have no authenticated actor ID; related participant is the
+learner. Users reports explicitly expose consent confirmation/rejection/expiry
+timestamps and activity reports cover request/decision history. Token hashes
+and raw links are never reportable. Read-time expiry has no synthetic event;
+app-team SMS delivery and guardian identity verification are not captured.
+Legacy decisions are not reconstructed. See [consent contract](PARENTAL_CONSENT.md).

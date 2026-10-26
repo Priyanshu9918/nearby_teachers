@@ -19,6 +19,7 @@
     </source>
     <php>
         <env name="APP_ENV" value="testing"/>
+        <env name="PRESENCE_ENABLED" value="false"/>
         <env name="OTP_DELIVERY_CHANNELS" value="sms"/>
         <env name="OTP_SMS_PROVIDER" value="auto"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>

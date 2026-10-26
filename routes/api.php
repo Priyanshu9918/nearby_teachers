@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\ModerationController;
 use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\OperationsController;
 use App\Http\Controllers\Api\PasswordRecoveryController;
+use App\Http\Controllers\Api\PresenceController;
 use App\Http\Controllers\Api\ProfilesController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SocketIoController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\Api\SubjectsController;
 use App\Http\Middleware\AttachOptionalApiUser;
 use App\Http\Middleware\RequireAdminApi;
 use App\Http\Middleware\RequireApiAuthentication;
+use App\Http\Middleware\ThrottlePresence;
 use App\Support\RecordId;
 use Illuminate\Support\Facades\Route;
 
@@ -30,7 +32,7 @@ Route::post('/auth/login', [AuthController::class, 'login'])
     ->middleware('throttle:10,1');
 Route::post('/auth/forgot-password', [PasswordRecoveryController::class, 'forgot'])->middleware('throttle:email-code');
 Route::post('/auth/reset-password', [PasswordRecoveryController::class, 'reset'])->middleware('throttle:20,1');
-Route::post('/auth/parental-consent/confirm', [AuthController::class, 'confirmParentalConsent']);
+Route::post('/auth/parental-consent/confirm', [AuthController::class, 'confirmParentalConsent'])->middleware('throttle:20,1');
 Route::get('/auth/safety-disclaimer', [AuthController::class, 'safetyDisclaimer']);
 Route::get('/i18n/languages', [I18nController::class, 'languages']);
 Route::get('/i18n/{lang}', [I18nController::class, 'translations']);
@@ -53,6 +55,7 @@ Route::middleware(AttachOptionalApiUser::class)
     ->middleware('throttle:60,1');
 
 Route::middleware(RequireApiAuthentication::class)->group(function () {
+    Route::post('/presence/update', PresenceController::class)->middleware(ThrottlePresence::class);
     Route::get('/auth/session', [AuthController::class, 'session']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/auth/email/verification/request', [PasswordRecoveryController::class, 'requestVerification'])->middleware('throttle:email-code');
@@ -67,6 +70,7 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
     Route::patch('/auth/link-phone', [AuthController::class, 'linkPhone']);
     Route::patch('/auth/link-google', [AuthController::class, 'linkGoogle']);
     Route::post('/auth/date-of-birth', [AuthController::class, 'setDateOfBirth']);
+    Route::post('/auth/guardian-details', [AuthController::class, 'setGuardianDetails'])->middleware('throttle:10,1');
     Route::post('/auth/acknowledge-safety-disclaimer', [AuthController::class, 'acknowledgeSafetyDisclaimer']);
     Route::put('/profiles/me', [ProfilesController::class, 'updateMine']);
     Route::get('/profiles/me/stats', [ProfilesController::class, 'stats']);

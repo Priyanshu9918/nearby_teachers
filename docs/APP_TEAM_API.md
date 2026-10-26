@@ -189,8 +189,8 @@ See [email recovery](EMAIL_AUTH.md) for code requirements.
 
 | Method | Path | Access | Request / query | Result / notes |
 |---|---|---|---|---|
-| `POST` | `/auth/date-of-birth` | Verified bearer | `dateOfBirth` (`YYYY-MM-DD`); for ages 13–17 also `guardianName`, `guardianContact` | Rejects users under 13. Minors need guardian consent before messaging/booking. Guardian email delivery must be configured; phone-contact SMS consent delivery is not implemented. |
-| `POST` | `/auth/parental-consent/confirm` | Public, one-time token | `token` | Confirms guardian consent; returns `ok`, `confirmedFor`. |
+| `POST` | `/auth/date-of-birth` | Verified bearer | `dateOfBirth` (`YYYY-MM-DD`); for ages 13–17 also `guardianName`, `guardianContact` | Rejects users under 13. Minors need guardian consent before messaging/booking. Returns parentalConsent.link, expiresAt and parent name/phone; app team sends the link. See [consent contract](PARENTAL_CONSENT.md). |
+| `POST` | `/auth/parental-consent/confirm` | Public, one-time token | `token`, optional `decision` (`approve`/`reject`) | Saves a one-time decision; returns `ok`, `parentalConsentStatus`. |
 | `GET` | `/search` | Public | Required `lat`, `lng`; optional `radiusKm` (default 7, max 500), `subjectId`, `q`, `freeOnly` (`true`/`false`) | Up to 50 nearby teacher/institute results with `distance_km`; uses MySQL `ST_Distance_Sphere`. |
 | `GET` | `/search/counts` | Public | Required `lat`, `lng`; optional `radiusKm` (default 7) | Teacher and institute counts in the radius. |
 | `GET` | `/search/other-city` | Public | Required `city`; optional `subjectId`, `q` | Up to 50 online providers matching city/country text. |
@@ -229,7 +229,7 @@ After form success call `/auth/date-of-birth` using the active bearer:
 For ages 13–17 send guardian details on the same DOB API:
 
 ```json
-{"dateOfBirth":"2010-01-01","guardianName":"Guardian Example","guardianContact":"guardian@example.com"}
+{"dateOfBirth":"2010-01-01","guardianName":"Guardian Example","guardianContact":"+919876543211"}
 ```
 
 | Student state | Submitted | Completed | Next screen |
@@ -251,11 +251,13 @@ For ages 13–17 send guardian details on the same DOB API:
 | `POST` | `/chat/events/history` | chat:history · Fetch chat history |
 | `POST` | `/chat/events/unread_count` | chat:unread_count · Unread message count |
 
-Under 13 is rejected. Guardian email delivers a consent link; phone is accepted
-but SMS consent delivery is unimplemented. Use link token in public
-`POST /auth/parental-consent/confirm` as `{token:"<consent token>"}`. This is a
-separate single-use token from email, never the bearer. Refresh session after
-confirmation. DOB alone does not submit an unsubmitted registration form.
+Under 13 is rejected. `guardianContact` is an international parent phone number.
+DOB returns `parentalConsent:{status,link,expiresAt,parent:{name,phone}}`; the app
+team sends the link. The hosted page offers Approve/Reject. Login/session return
+`parentalConsentStatus` (`pending`, `approved`, `rejected`, `expired`,
+`not_required`) and `parentalConsentRequired`. Pending, rejected and expired
+learners remain on `guardian_consent`; approval routes to home. See
+[full contract and integration](PARENTAL_CONSENT.md).
 
 ### Discovery, booking and review integration
 
@@ -518,6 +520,7 @@ compatibility/system endpoints are here. Classification does not widen access.
 | `POST` | `/feed/{postId}/comments` | Verified bearer | `body`; optional `parentCommentId` | Adds a comment or reply. |
 | `POST` | `/safety/reports` | Verified bearer | `targetType` (`user`, `post`, `comment`, `message`), `targetId`, `reasonCategory` (`fraud`, `fake_profile`, `inappropriate`, `spam`, `other`); optional `reason` | Creates a report. |
 | `POST` | `/safety/blocks/{userId}` | Verified bearer | — | Blocks a user. |
+| `POST` | `/presence/update` | Verified bearer | `deviceId`, `event` (`foreground`, `activity`, `heartbeat`, `background`) | Returns `{isActive}`. Five-minute inactivity and 90-second heartbeat expiry; [integration details](PRESENCE.md). |
 | `DELETE` | `/safety/blocks/{userId}` | Verified bearer | — | Unblocks a user. |
 | `POST` | `/suggestions` | Verified bearer | `suggestionType` (`course`, `city`, `state`, `country`), `name`; optional `notes` | Submits a suggestion. |
 | `POST` | `/support` | Verified bearer | `subject`, `message` | Creates a support ticket. |
@@ -563,6 +566,11 @@ Unblock removes only the caller's block. Discovery/contact-number/booking
 behavior is unchanged. See [chat blocking](CHAT_EVENTS.md#block-and-unblock-messages).
 Referral/support/suggestion bodies and error shapes are in the endpoint
 reference and saved examples.
+
+Provider search results expose boolean `isActive`. Integrate app lifecycle and
+real interaction events through `POST /presence/update`; automatic heartbeats
+never reset the idle clock. Multiple devices are independent. See
+[presence integration, errors and deployment](PRESENCE.md).
 
 ### WhatsApp and call integration
 

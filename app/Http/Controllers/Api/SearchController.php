@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\Presence\UserPresence;
 use App\Support\GeoBounds;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -90,7 +91,7 @@ class SearchController extends Controller
             $counts[$type] = $profiles->count();
         }
 
-        return response()->json([
+        return $this->providerResponse([
             'center' => ['latitude' => $latitude, 'longitude' => (float) $data['lng']],
             'radiusKm' => $radiusKm,
             'teacherCount' => $counts['teacher'],
@@ -171,7 +172,7 @@ class SearchController extends Controller
                 return $result;
             });
 
-        return response()->json(['results' => $rows])
+        return $this->providerResponse(['results' => $rows])
             ->header('Server-Timing', 'search;dur='.round((hrtime(true) - $started) / 1000000, 2));
     }
 
@@ -233,7 +234,7 @@ class SearchController extends Controller
         }
         $sql .= ' ORDER BY '.$this->weightedRating('t.rating_avg', 't.rating_count').' DESC, (SELECT count(*) FROM referrals WHERE referrer_id = t.user_id) DESC LIMIT 50';
 
-        return response()->json(['results' => DB::select($sql, $bindings)]);
+        return $this->providerResponse(['results' => DB::select($sql, $bindings)]);
     }
 
     public function bySubject(Request $request, int $subjectId): JsonResponse
@@ -296,7 +297,7 @@ class SearchController extends Controller
                 return $result;
             }, DB::select($sql, $bindings));
 
-            return response()->json([
+            return $this->providerResponse([
                 'tier' => $tier,
                 'totalCount' => (int) DB::selectOne($countSql, $countBindings)->total,
                 'results' => $results,
@@ -309,7 +310,7 @@ class SearchController extends Controller
             $sql = $base." SELECT m.profile_type, m.user_id, u.full_name, CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url, m.price, m.rating_avg, m.rating_count, m.is_verified, m.trial_days, m.city, m.state, m.country FROM matching m JOIN users u ON u.id = m.user_id WHERE lower(m.$column) = lower(?) ORDER BY ".$this->weightedRating('m.rating_avg', 'm.rating_count').' DESC, (SELECT count(*) FROM referrals WHERE referrer_id = m.user_id) DESC LIMIT 50';
             $countSql = $base." SELECT count(*) AS total FROM matching m WHERE lower(m.$column) = lower(?)";
 
-            return response()->json([
+            return $this->providerResponse([
                 'tier' => $tier,
                 'totalCount' => (int) DB::selectOne($countSql, [$subjectId, $value])->total,
                 'results' => DB::select($sql, [$subjectId, $value]),
@@ -321,7 +322,7 @@ class SearchController extends Controller
                 $sql = $base.' SELECT m.profile_type, m.user_id, u.full_name, CASE WHEN u.avatar_status = \'approved\' THEN u.avatar_url ELSE NULL END AS avatar_url, m.price, m.rating_avg, m.rating_count, m.is_verified, m.trial_days, m.city, m.country FROM matching m JOIN users u ON u.id = m.user_id WHERE lower(m.country) = lower(?) ORDER BY '.$this->weightedRating('m.rating_avg', 'm.rating_count').' DESC, (SELECT count(*) FROM referrals WHERE referrer_id = m.user_id) DESC LIMIT 50';
                 $countSql = $base.' SELECT count(*) AS total FROM matching m WHERE lower(m.country) = lower(?)';
 
-                return response()->json([
+                return $this->providerResponse([
                     'tier' => $tier,
                     'country' => $data['country'],
                     'totalCount' => (int) DB::selectOne($countSql, [$subjectId, $data['country']])->total,
@@ -334,6 +335,13 @@ class SearchController extends Controller
         }
 
         return response()->json(['error' => 'Invalid search tier'], 400);
+    }
+
+    private function providerResponse(array $data): JsonResponse
+    {
+        $data['results'] = app(UserPresence::class)->decorate($data['results']);
+
+        return response()->json($data)->header('Cache-Control', 'no-store');
     }
 
     private function weightedRating(string $averageColumn, string $countColumn): string

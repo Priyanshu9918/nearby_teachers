@@ -257,7 +257,8 @@ class FirebaseGoogleAuthTest extends TestCase
         DB::table('users')->where('id', $id)->update(['profile_completed_at' => null]);
         $this->google()->assertOk()->assertJsonPath('nextScreen', 'onboarding')->assertJsonPath('nextStep', 'complete_profile');
         DB::table('users')->where('id', $id)->update(['account_type' => 'learner', 'profile_completed_at' => now(), 'date_of_birth' => '2010-01-01', 'is_minor' => true]);
-        $this->google()->assertOk()->assertJsonPath('nextScreen', 'guardian_consent');
+        $this->google()->assertOk()->assertJsonPath('nextScreen', 'guardian_details')
+            ->assertJsonPath('guardianDetailsRequired', true)->assertJsonPath('parentalConsentStatus', 'details_required');
     }
 
     public function test_explicit_google_linking_is_audited_once_and_cannot_replace_another_identity(): void
