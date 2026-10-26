@@ -11,6 +11,8 @@ final class BusinessActivityRecorder
     // Each event explicitly owns its snapshot contract. No raw request/user arrays.
     private const EVENTS = [
         'auth.logged_out' => ['user', ['auth_version', 'scope']],
+        'user.blocked' => ['user', ['blocked']],
+        'user.unblocked' => ['user', ['blocked']],
         // Form submission and completion are distinct; students complete after valid DOB.
         'registration.submitted' => ['user', ['account_type', 'registration_submitted_at']],
         'registration.completed' => ['user', ['account_type', 'profile_completed_at']],

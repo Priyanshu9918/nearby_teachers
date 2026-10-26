@@ -565,7 +565,12 @@ class ExampleTest extends TestCase
 
                 return $builder;
             });
-        $builder->shouldReceive('exists')->once()->andReturn(true);
+        $builder->shouldReceive('first')->once()->with(['learner_id', 'provider_id'])
+            ->andReturn((object) ['learner_id' => $user->id, 'provider_id' => NumericTestIds::next()]);
+        $blocks = \Mockery::mock(Builder::class);
+        DB::shouldReceive('table')->once()->with('blocks')->andReturn($blocks);
+        $blocks->shouldReceive('where')->once()->with(\Mockery::type(\Closure::class))->andReturnSelf();
+        $blocks->shouldReceive('exists')->once()->andReturn(false);
 
         $channel = Broadcast::getChannels()->get('conversation.{conversationId}');
 

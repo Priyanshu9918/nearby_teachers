@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\ChatBlocking;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,12 +16,13 @@ class SocketIoController extends Controller
         $user = $request->attributes->get('authenticated_user');
         $room = null;
         if (isset($data['conversationId'])) {
-            $allowed = DB::table('conversations')->where('id', $data['conversationId'])
+            $conversation = DB::table('conversations')->where('id', $data['conversationId'])
                 ->where(fn ($query) => $query->where('learner_id', $user->id)->orWhere('provider_id', $user->id))
-                ->exists();
-            if (! $allowed) {
+                ->first(['learner_id', 'provider_id']);
+            if ($conversation === null) {
                 return response()->json(['error' => 'Conversation not found'], 404);
             }
+            app(ChatBlocking::class)->assertCanMessage($conversation->learner_id, $conversation->provider_id);
             $room = 'private-conversation.'.$data['conversationId'];
         }
 

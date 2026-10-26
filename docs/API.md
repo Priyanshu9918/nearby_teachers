@@ -767,8 +767,15 @@ string/integer types. Use subject IDs, not the virtual domain ID, in API request
 Avatar updates accept an already-hosted URL and mark it pending moderation;
 there is no image-upload API. Public listing images require approval. Safety
 acknowledgement is a contact gate; display the text returned by the API.
-Block/unblock stores relationships; discovery/messaging currently do not apply
-block filtering, so blocking is not a delivery guarantee.
+Block/unblock is idempotent and enforces messaging restrictions in both
+directions through REST and Socket.IO. Responses add `userId`, `blocked` and
+`chatStatus:{otherUserId,blockedByMe,canMessage}`. History responses also expose
+`chatStatus`; inbox rows add `other_user_id`, `blocked_by_me` and `can_message`.
+Show Block/Unblock using these fields and disable sending when unavailable.
+Old history remains readable; a sender can delete their own old content.
+Blocked chat writes return `403` with `code:CHAT_BLOCKED`; unknown block targets
+return `404`, self-targets `400`. Discovery, phone reveal and bookings retain
+their existing behavior. See [chat blocking](CHAT_EVENTS.md#block-and-unblock-messages).
 
 ### Shared bookings, feed and support
 

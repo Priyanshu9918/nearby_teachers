@@ -2,6 +2,7 @@
 
 namespace App\Broadcasting;
 
+use App\Services\ChatBlocking;
 use App\Support\RecordId;
 use Illuminate\Broadcasting\Broadcasters\Broadcaster;
 use Illuminate\Support\Facades\DB;
@@ -45,6 +46,11 @@ class SocketIoBroadcaster extends Broadcaster
         $conversation = DB::table('conversations')->where('id', $conversationId)
             ->select('learner_id', 'provider_id')->first();
         if ($conversation === null) {
+            return;
+        }
+        // Recheck at delivery time: already connected sockets must not bypass a
+        // block, and queued messages/typing/receipts must not leak across it.
+        if ($event !== 'chat:delete' && app(ChatBlocking::class)->blocked($conversation->learner_id, $conversation->provider_id)) {
             return;
         }
 

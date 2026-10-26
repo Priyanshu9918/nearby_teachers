@@ -74,6 +74,7 @@ Current event coverage starts when migration `000029` is deployed:
 
 | Event | Recorded metadata |
 |---|---|
+| `user.blocked` / `user.unblocked` | From message-blocking enforcement: version 1, target user entity/related ID, blocker actor ID and before/after `blocked` flag; no message bodies or request/token snapshots |
 | `identity.phone_verified` | From 22 October 2026: verified flag before/after and phone-changed flag; no phone, OTP or token snapshot |
 | `identity.google_linked` | Previous/new link flag, local user ID; Firebase UID/email/token are not duplicated |
 | `auth.logged_out` | Previous/new auth version and `scope:all_sessions`; token revocation and history commit together |
@@ -182,3 +183,13 @@ status. History includes only the last four phone digits and no code or raw gate
 payload. Results measure submission acknowledgement, not actual delivery. Historical
 requests before this feature and receipt webhooks are not covered. See
 [OTP delivery](OTP_DELIVERY.md) for partial failure and external-send limitations.
+
+Message blocking uses the existing `blocks` report for current relationships and
+the `activity` report for append-only block/unblock history. Each real block or
+unblock is recorded in the same transaction as its relationship change; retries
+that leave state unchanged create no duplicate event. History-write failures
+roll back the relationship mutation. Unblocking deletes the current relationship,
+not its historical events. Earlier blocks/unblocks have no invented history.
+Blocked chat attempts create no message/activity mutation; they are not recorded
+as a new security-attempt report. Generic report participant/date/search filters,
+CSV exports, admin access checks and access logging apply to these events.

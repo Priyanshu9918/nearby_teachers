@@ -19642,7 +19642,7 @@
                 "{{userId}}"
               ]
             },
-            "description": "Stores relationship. Current messaging/search controllers do not enforce block filtering. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures.",
+            "description": "Blocks messaging in both directions through REST and Socket.IO. Existing history remains readable; see docs/CHAT_EVENTS.md.",
             "body": {
               "mode": "raw",
               "raw": "{}",
@@ -19679,7 +19679,7 @@
                     "{{userId}}"
                   ]
                 },
-                "description": "Stores relationship. Current messaging/search controllers do not enforce block filtering. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures.",
+                "description": "Blocks messaging in both directions through REST and Socket.IO. Existing history remains readable; see docs/CHAT_EVENTS.md.",
                 "body": {
                   "mode": "raw",
                   "raw": "{}",
@@ -19700,7 +19700,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"ok\": true\n}"
+              "body": "{\n  \"ok\": true,\n  \"userId\": 2,\n  \"blocked\": true,\n  \"chatStatus\": {\n    \"otherUserId\": 2,\n    \"blockedByMe\": true,\n    \"canMessage\": false\n  }\n}"
             },
             {
               "name": "Fictional example — 401 Bearer missing",
@@ -19727,7 +19727,7 @@
                     "{{userId}}"
                   ]
                 },
-                "description": "Stores relationship. Current messaging/search controllers do not enforce block filtering. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures.",
+                "description": "Blocks messaging in both directions through REST and Socket.IO. Existing history remains readable; see docs/CHAT_EVENTS.md.",
                 "body": {
                   "mode": "raw",
                   "raw": "{}",
@@ -19773,7 +19773,7 @@
                 "{{userId}}"
               ]
             },
-            "description": " See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures."
+            "description": "Removes only your block. Messaging remains unavailable if the other user also blocked you. See docs/CHAT_EVENTS.md."
           },
           "response": [
             {
@@ -19797,7 +19797,7 @@
                     "{{userId}}"
                   ]
                 },
-                "description": " See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures."
+                "description": "Removes only your block. Messaging remains unavailable if the other user also blocked you. See docs/CHAT_EVENTS.md."
               },
               "status": "OK",
               "code": 200,
@@ -19809,7 +19809,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"ok\": true\n}"
+              "body": "{\n  \"ok\": true,\n  \"userId\": 2,\n  \"blocked\": false,\n  \"chatStatus\": {\n    \"otherUserId\": 2,\n    \"blockedByMe\": false,\n    \"canMessage\": true\n  }\n}"
             },
             {
               "name": "Fictional example — 401 Bearer missing",
@@ -19832,7 +19832,7 @@
                     "{{userId}}"
                   ]
                 },
-                "description": " See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures."
+                "description": "Removes only your block. Messaging remains unavailable if the other user also blocked you. See docs/CHAT_EVENTS.md."
               },
               "status": "Unauthorized",
               "code": 401,

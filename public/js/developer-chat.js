@@ -16,8 +16,10 @@
         reconnect: ['Reconnect lifecycle (automatic)', 'reconnect_attempt / reconnect / reconnect_error / reconnect_failed', {}, {event: 'reconnect', attempt: 1, action: 'Reload history and rejoin the active conversation.'}, 'Up to 3 automatic retries after transport failure. Server disconnect/expiry needs an explicit reconnect with a valid token.'],
         heartbeat: ['Transport heartbeat (automatic)', 'Engine.IO ping → pong', {}, {packet: 'pong', note: 'Transport heartbeat reply; not a message acknowledgement.'}, 'The server sends heartbeats automatically. These are separate from chat.ping and are logged while connected.'],
         start: ['Start / find conversation', 'POST /messages/start', {providerId: 2}, {conversationId: exampleConversationId}, 'Any account can start or reuse a conversation with another user. providerId is the other user ID; this tester sends no initial body.'],
+        block: ['Block user', 'POST /safety/blocks/{userId}', {}, {ok: true, userId: 2, blocked: true, chatStatus: {otherUserId: 2, blockedByMe: true, canMessage: false}}, 'Blocks messaging in both directions for the selected user. Existing history stays available.'],
+        unblock: ['Unblock user', 'DELETE /safety/blocks/{userId}', {}, {ok: true, userId: 2, blocked: false, chatStatus: {otherUserId: 2, blockedByMe: false, canMessage: true}}, 'Removes only your block. Messaging stays unavailable if the other participant has also blocked you.'],
         inbox: ['Load my inbox', 'GET /messages?perPage=20', {}, {conversations: [{id: exampleConversationId, other_name: 'Example Teacher', last_message: 'Hello'}], nextCursor: null}, 'Shows a bounded inbox page. Pick a conversation to fill its ID.'],
-        history: ['Load message history', 'GET /messages/{conversationId}?perPage=20', {}, {messages: [message], nextCursor: null}, 'Loads the latest saved messages for this participant. No read-receipt event exists.'],
+        history: ['Load message history', 'GET /messages/{conversationId}?perPage=20', {}, {messages: [message], chatStatus: {otherUserId: 2, blockedByMe: false, canMessage: true}, nextCursor: null}, 'Loads saved messages and current block status for this participant. History remains available after blocking.'],
         'room-auth': ['Check conversation access', 'POST /chat/socket/authorize', {conversationId: exampleConversationId}, {userId: message.sender_id, room: 'private-conversation.' + exampleConversationId, expiresInSeconds: 900, authVersion: 0}, 'Confirms that the bearer is a participant before joining.'],
         join: ['Join conversation', 'conversation.join', {conversationId: exampleConversationId}, {ok: true, room: 'private-conversation.' + exampleConversationId}, 'Joins an authorized conversation room. User-room delivery is automatic after connecting.'],
         send: ['Send via socket', 'message.send', {conversationId: exampleConversationId, body: 'Example message'}, {ok: true, message}, 'Saves a real message through Laravel. ACK confirms persistence; the queue delivers message.sent separately.'],
@@ -37,7 +39,7 @@
         overview: ['Getting started', 'Test live chat one step at a time. Choose a task below or from the WebSockets sidebar.', Object.keys(operations)],
         connection: ['Connect & verify', 'Start here: check your chat service, verify a user token and connect.', ['health', 'authorize', 'connect', 'error']],
         ping: ['Ping & heartbeat', 'Check connectivity and round-trip time without sending a chat message.', ['ping', 'heartbeat', 'error']],
-        conversations: ['Conversations', 'Find a conversation, check your access and join its live room.', ['inbox', 'start', 'room-auth', 'join', 'error']],
+        conversations: ['Conversations', 'Find a conversation, block or unblock a user, check your access and join its live room.', ['inbox', 'start', 'block', 'unblock', 'room-auth', 'join', 'error']],
         send: ['Send a message', 'Send one test message through Socket.IO or the REST API.', ['send', 'rest-send', 'error']],
         receive: ['Receive messages', 'Watch incoming messages from the other participant in real time.', ['receive', 'error']],
         events: ['Chat events', 'Run the named chat events or inspect incoming notifications. Every event has a fictional preview.', Object.keys(chatContracts)],
@@ -52,6 +54,7 @@
     const lines = [];
     const secrets = new Set();
     const deliveries = new Map();
+    const inboxUsers = new Map();
     let socket, pingTimer, pingBusy = false, running = false, manualBusy = false, flowController;
     let sent = 0, received = 0, lastPing = '—';
     field('url').value = window.location.origin;
@@ -373,11 +376,21 @@
         });
     }
     function populateInbox(data) {
+        inboxUsers.clear();
         field('inbox-select').replaceChildren();
         const placeholder = document.createElement('option'); placeholder.value = ''; placeholder.textContent = 'Choose a conversation'; field('inbox-select').append(placeholder);
         for (const item of data.conversations || []) {
+            if (validId(item.other_user_id)) inboxUsers.set(String(item.id), item.other_user_id);
             const option = document.createElement('option'); option.value = item.id; option.textContent = `${item.other_name || 'Participant'} · ${item.id}`; field('inbox-select').append(option);
         }
+    }
+    function updateBlockStatus(data) {
+        if (!data.chatStatus) return;
+        const state = data.chatStatus;
+        if (validId(state.otherUserId)) field('block-user').value = state.otherUserId;
+        field('block-status').textContent = state.blockedByMe
+            ? 'You blocked this user. Unblock to remove your block.'
+            : (state.canMessage ? 'Messaging is available.' : 'Messaging is unavailable for this conversation.');
     }
     async function perform(key, signal) {
         if (chatContracts[key]) return emit(key, chatPayload(key), signal);
@@ -392,10 +405,19 @@
                 const providerId = field('provider').value.trim();
                 if (!validId(providerId)) throw new Error('Enter the other user ID first.');
                 const data = await rest(key, '/messages/start', 'POST', {providerId: Number(providerId)}, signal);
+                field('block-user').value = providerId;
                 field('conversation').value = data.conversationId; return data;
             }
             case 'room-auth': return rest(key, '/chat/socket/authorize', 'POST', {conversationId: conversationId()}, signal);
-            case 'history': return rest(key, '/messages/' + conversationId() + '?perPage=20', 'GET', undefined, signal);
+            case 'history': { const data = await rest(key, '/messages/' + conversationId() + '?perPage=20', 'GET', undefined, signal); updateBlockStatus(data); return data; }
+            case 'block':
+            case 'unblock': {
+                const userId = field('block-user').value.trim();
+                if (!validId(userId)) throw new Error('Enter the other user ID to block or unblock.');
+                const data = await rest(key, '/safety/blocks/' + userId, key === 'block' ? 'POST' : 'DELETE', undefined, signal);
+                updateBlockStatus(data);
+                return data;
+            }
             case 'rest-send': { const data = await rest(key, '/messages/' + conversationId(), 'POST', {body: messageBody()}, signal); sent++; metrics(); return data; }
             default: return emit(key, {conversationId: conversationId(), ...(key === 'send' ? {body: messageBody()} : {})}, signal);
         }
@@ -465,7 +487,7 @@
     }
     document.querySelectorAll('[data-chat-view]').forEach((link) => link.addEventListener('click', (event) => { event.preventDefault(); showView(link.dataset.chatView, true, link.dataset.chatEvent); }));
     window.addEventListener('hashchange', () => { if (window.location.hash.startsWith('#realtime')) showView(window.location.hash.split('/')[1] || 'overview', true, window.location.hash.split('/')[2]); });
-    for (const key of ['health', 'authorize', 'connect', 'disconnect', 'ping', 'start', 'inbox', 'history', 'room-auth', 'join', 'send', 'rest-send', 'leave']) field(key).addEventListener('click', () => manual(key));
+    for (const key of ['health', 'authorize', 'connect', 'disconnect', 'ping', 'start', 'block', 'unblock', 'inbox', 'history', 'room-auth', 'join', 'send', 'rest-send', 'leave']) field(key).addEventListener('click', () => manual(key));
     field('event-run').addEventListener('click', () => manual(selectedOperation));
     field('event-rest').addEventListener('click', async () => {
         if (running || manualBusy) return;
@@ -476,7 +498,12 @@
     });
     field('operation').addEventListener('change', () => { if (selectedView === 'events') showView('events', true, field('operation').value); else showOperation(field('operation').value); });
     field('show-mock').addEventListener('click', () => preview(field('operation').value));
-    field('inbox-select').addEventListener('change', () => { if (!running && field('inbox-select').value) field('conversation').value = field('inbox-select').value; });
+    field('inbox-select').addEventListener('change', () => {
+        if (running || !field('inbox-select').value) return;
+        field('conversation').value = field('inbox-select').value;
+        field('block-user').value = inboxUsers.get(field('inbox-select').value) || '';
+        field('block-status').textContent = 'Load saved history to check the current block status.';
+    });
     field('use-token').addEventListener('click', () => { token.value = document.getElementById('bearer-token')?.value.trim() || ''; log('token selected', {available: Boolean(token.value)}); });
     field('ping-start').addEventListener('click', () => {
         if (running || manualBusy || !socket?.connected || pingTimer) return;

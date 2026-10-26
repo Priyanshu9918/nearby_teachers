@@ -6,6 +6,7 @@ use App\Events\ChatActivity;
 use App\Events\ChatMessageSent;
 use App\Http\Controllers\Controller;
 use App\Reporting\BusinessActivityRecorder;
+use App\Services\ChatBlocking;
 use App\Support\CursorPage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -29,7 +30,9 @@ class MessagesController extends Controller
                 $join->where('last_message.id', '=', $latestId);
             })
             ->where(fn ($query) => $query->where('c.learner_id', $user->id)->orWhere('c.provider_id', $user->id))
-            ->select('c.id', 'c.learner_id', 'c.provider_id', 'other.full_name as other_name')
+            ->select('c.id', 'c.learner_id', 'c.provider_id', 'other.id as other_user_id', 'other.full_name as other_name')
+            ->selectRaw('EXISTS (SELECT 1 FROM blocks WHERE blocker_id = ? AND blocked_id = other.id) AS blocked_by_me', [$user->id])
+            ->selectRaw('NOT EXISTS (SELECT 1 FROM blocks WHERE (blocker_id = ? AND blocked_id = other.id) OR (blocker_id = other.id AND blocked_id = ?)) AS can_message', [$user->id, $user->id])
             ->selectRaw("CASE WHEN other.avatar_status = 'approved' THEN other.avatar_url ELSE NULL END AS other_avatar")
             ->addSelect('last_message.body as last_message', 'last_message.created_at as last_message_at')
             ->selectRaw('COALESCE(last_message.created_at, c.created_at) AS activity_at')
@@ -54,9 +57,8 @@ class MessagesController extends Controller
 
         [$conversationId, $messageId] = DB::transaction(function () use ($data, $user): array {
             // Lock both users in a stable order so opposite-side starts serialize.
-            $participants = DB::table('users')->whereIn('id', [$user->id, $data['providerId']])
-                ->orderBy('id')->lockForUpdate()->get(['id', 'account_type']);
-            abort_if($participants->count() !== 2, 404, 'User not found');
+            $participants = app(ChatBlocking::class)->lockParticipants($user->id, (int) $data['providerId']);
+            app(ChatBlocking::class)->assertCanMessage($user->id, (int) $data['providerId']);
             $recipient = $participants->first(fn ($participant) => $participant->id !== $user->id);
             $conversationId = DB::table('conversations')
                 ->where(fn ($query) => $query
@@ -101,7 +103,8 @@ class MessagesController extends Controller
     public function show(Request $request, int $conversationId): JsonResponse
     {
         $user = $request->attributes->get('authenticated_user');
-        if (! $this->isParticipant($user->id, $conversationId)) {
+        $conversation = $this->conversation($user->id, $conversationId);
+        if ($conversation === null) {
             return response()->json(['error' => 'Conversation not found'], 404);
         }
 
@@ -110,6 +113,8 @@ class MessagesController extends Controller
 
         $response = CursorPage::respond($request, $messages, 'messages', reverse: true);
         $result = $response->getData(true);
+        $other = $conversation->learner_id === $user->id ? $conversation->provider_id : $conversation->learner_id;
+        $result['chatStatus'] = ['otherUserId' => $other, ...app(ChatBlocking::class)->status($user->id, $other)];
         $reactions = DB::table('message_reactions')->whereIn('message_id', array_column($result['messages'], 'id'))
             ->whereNotNull('reaction')->select('message_id', 'user_id', 'reaction', 'updated_at')->get()->groupBy('message_id');
         foreach ($result['messages'] as &$message) {
@@ -127,11 +132,14 @@ class MessagesController extends Controller
             return $response;
         }
         $data = $request->validate(['body' => ['required', 'string', 'max:5000', 'not_regex:/^\\s*$/u'], 'replyToId' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:9007199254740991']]);
-        if (! $this->isParticipant($user->id, $conversationId)) {
+        $conversation = $this->conversation($user->id, $conversationId);
+        if ($conversation === null) {
             return response()->json(['error' => 'Conversation not found'], 404);
         }
 
-        $id = DB::transaction(function () use ($conversationId, $user, $data): int {
+        $id = DB::transaction(function () use ($conversationId, $conversation, $user, $data): int {
+            app(ChatBlocking::class)->lockParticipants($conversation->learner_id, $conversation->provider_id);
+            app(ChatBlocking::class)->assertCanMessage($conversation->learner_id, $conversation->provider_id);
             if (! empty($data['replyToId'])) {
                 $parent = DB::table('messages')->where('id', $data['replyToId'])->where('conversation_id', $conversationId)->lockForUpdate()->first();
                 abort_if($parent === null, 404, 'Reply target not found in this conversation');
@@ -144,7 +152,6 @@ class MessagesController extends Controller
                 'reply_to_id' => $data['replyToId'] ?? null,
                 'created_at' => now(),
             ]);
-            $conversation = DB::table('conversations')->where('id', $conversationId)->first();
             app(BusinessActivityRecorder::class)->record('message.created', $id, $user->id,
                 $conversation->learner_id === $user->id ? $conversation->provider_id : $conversation->learner_id,
                 after: ['conversation_id' => $conversationId]);
@@ -155,7 +162,7 @@ class MessagesController extends Controller
             }
 
             return $id;
-        });
+        }, 3);
         $message = $this->savedMessage($id);
         event(new ChatMessageSent($message));
         if (! empty($data['replyToId'])) {
@@ -175,11 +182,11 @@ class MessagesController extends Controller
         return (array) $message;
     }
 
-    private function isParticipant(int $userId, int $conversationId): bool
+    private function conversation(int $userId, int $conversationId): ?object
     {
         return DB::table('conversations')->where('id', $conversationId)
             ->where(fn ($query) => $query->where('learner_id', $userId)->orWhere('provider_id', $userId))
-            ->exists();
+            ->first(['id', 'learner_id', 'provider_id']);
     }
 
     public function checkContactGates(object $user): ?JsonResponse

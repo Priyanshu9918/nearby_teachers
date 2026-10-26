@@ -130,8 +130,10 @@ function createChatServer(config) {
     });
     const data = await response.json();
     if (!response.ok) {
-      const error = new Error(response.status === 401 || response.status === 403 ? 'Authentication or access denied' : 'Request rejected');
+      const blocked = response.status === 403 && data.code === 'CHAT_BLOCKED';
+      const error = new Error(blocked ? 'Messaging is unavailable for this conversation.' : (response.status === 401 || response.status === 403 ? 'Authentication or access denied' : 'Request rejected'));
       error.status = response.status;
+      if (blocked) error.code = 'CHAT_BLOCKED';
       error.details = data.errors;
       throw error;
     }
@@ -186,7 +188,7 @@ function createChatServer(config) {
         const result = await handler(payload);
         if (socket.connected) ack({ ok: true, ...result });
       } catch (error) {
-        ack({ ok: false, status: error.status || 503, error: error.message, errors: error.details });
+        ack({ ok: false, status: error.status || 503, error: error.message, errors: error.details, ...(error.code === 'CHAT_BLOCKED' ? { code: 'CHAT_BLOCKED' } : {}) });
       } finally {
         inFlight--;
       }

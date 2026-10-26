@@ -552,8 +552,16 @@ See [cursor semantics](API.md#cursor-pagination).
 
 Feed supports posts/likes/comments, with one post per account every seven days;
 no post/comment edit/delete APIs exist. Avatar accepts a hosted URL, not upload.
-Blocking stores a relationship; discovery and messages currently do not enforce
-it. Referral/support/suggestion bodies and error shapes are in the endpoint
+Blocking stops messaging in both directions, including existing REST/socket
+conversations. Use `POST /safety/blocks/{userId}` and
+`DELETE /safety/blocks/{userId}` with the other participant's user ID.
+Both return `{ok,userId,blocked,chatStatus:{otherUserId,blockedByMe,canMessage}}`.
+History adds `chatStatus`; inbox rows add `other_user_id`, `blocked_by_me` and
+`can_message`. Show Block/Unblock and disable the composer from these fields.
+Blocked writes return `403` / `CHAT_BLOCKED`; old history remains readable.
+Unblock removes only the caller's block. Discovery/contact-number/booking
+behavior is unchanged. See [chat blocking](CHAT_EVENTS.md#block-and-unblock-messages).
+Referral/support/suggestion bodies and error shapes are in the endpoint
 reference and saved examples.
 
 ### WhatsApp and call integration
