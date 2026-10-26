@@ -22,6 +22,9 @@ class UserPresence
             $this->unavailable($error);
             abort(response()->json(['error' => 'Presence is temporarily unavailable.', 'code' => 'PRESENCE_UNAVAILABLE'], 503));
         }
+        abort_if($code === 3, response()->json([
+            'error' => 'Invalid or expired session.', 'code' => 'PRESENCE_SESSION_INVALID',
+        ], 403));
         abort_if($code === 1, response()->json([
             'error' => 'Send foreground before activity or heartbeat.', 'code' => 'PRESENCE_FOREGROUND_REQUIRED',
         ], 409));
@@ -48,7 +51,7 @@ class UserPresence
         try {
             foreach (array_chunk(array_values(array_unique($ids)), config('presence.batch_size')) as $chunk) {
                 // Current versions exclude logout/password-reset sessions immediately.
-                // One query and one Redis pipeline per batch, never per result.
+                // Bounded account and presence queries per batch, never per result.
                 $versions = DB::table('users')->whereIn('id', $chunk)->whereIn('account_type', ['teacher', 'institute'])
                     ->whereNull('suspended_at')->whereNotNull('phone_verified_at')->whereNotNull('profile_completed_at')
                     ->pluck('auth_version', 'id')->map(static fn ($version) => (int) $version)->all();
@@ -69,7 +72,7 @@ class UserPresence
 
     private function unavailable(Throwable $error): void
     {
-        // Do not log raw Redis exception messages/URLs, identifiers or credentials.
-        Log::warning('Presence Redis is unavailable.', ['exception' => $error::class]);
+        // Do not log raw database exception messages, identifiers or credentials.
+        Log::warning('Presence database store is unavailable.', ['exception' => $error::class]);
     }
 }

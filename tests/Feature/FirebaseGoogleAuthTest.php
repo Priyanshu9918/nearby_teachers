@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Testing\TestResponse;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\FirebaseTokens;
 use Tests\Support\NumericTestIds;
 use Tests\TestCase;
@@ -270,6 +271,45 @@ class FirebaseGoogleAuthTest extends TestCase
         $this->assertSame(1, DB::table('business_activity')->where('event', 'identity.google_linked')->count());
         $this->patchJson('/auth/link-google', ['firebaseIdToken' => $this->firebaseToken(['sub' => 'other-uid'])], $bearer)->assertStatus(409);
         $this->assertSame('firebase-google-user', DB::table('users')->where('id', $id)->value('google_id'));
+    }
+
+    #[DataProvider('learnerConsentLoginCases')]
+    public function test_login_status_is_learner_only_and_matches_parent_decision_for_google_and_password(
+        string $role, ?int $age, bool $approved, bool $rejected, ?string $expected
+    ): void {
+        $id = $this->user();
+        DB::table('users')->where('id', $id)->update([
+            'account_type' => $role,
+            'date_of_birth' => $age === null ? null : now()->subYears($age)->toDateString(),
+            'is_minor' => $age !== null && $age < 18,
+            'parental_consent_confirmed_at' => $approved ? now() : null,
+            'parental_consent_rejected_at' => $rejected ? now() : null,
+            'parental_consent_expires_at' => now()->subDay(),
+        ]);
+        $google = $this->google()->assertOk()->assertJsonStructure(['token', 'user']);
+        $password = $this->postJson('/auth/login', ['email' => 'google@example.test', 'password' => 'test-password']);
+        $password->assertStatus($age === null ? 409 : 200);
+        foreach ([$google, $password] as $response) {
+            if ($expected === null) {
+                $response->assertJsonMissingPath('status');
+            } else {
+                $response->assertJsonPath('status', $expected);
+            }
+        }
+    }
+
+    public static function learnerConsentLoginCases(): array
+    {
+        return [
+            'thirteen pending' => ['learner', 13, false, false, 'pending'],
+            'seventeen rejected' => ['learner', 17, false, true, 'reject'],
+            'sixteen approved' => ['learner', 16, true, false, 'approve'],
+            'adult' => ['learner', 18, false, false, null],
+            'under thirteen' => ['learner', 12, false, false, null],
+            'teacher' => ['teacher', 16, false, false, null],
+            'institute' => ['institute', 16, false, false, null],
+            'dob missing' => ['learner', null, false, false, null],
+        ];
     }
 
     private function google(array $claims = []): TestResponse

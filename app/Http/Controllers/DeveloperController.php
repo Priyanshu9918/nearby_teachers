@@ -457,7 +457,7 @@ class DeveloperController extends Controller
         $examples = [
             'POST /auth/google' => [
                 'body' => ['firebaseIdToken' => 'PASTE_FIREBASE_GOOGLE_ID_TOKEN'],
-                'guide' => 'Step 1 · Google sign-in. Replace the token with a verified Firebase Google ID token.',
+                'guide' => 'Step 1 · Google sign-in. Replace the token with a verified Firebase Google ID token. Learners aged 13–17 receive status=pending/reject/approve for parent consent; use nextScreen for routing.',
             ],
             'POST /auth/otp/request' => [
                 'body' => ['phone' => '+919876543210'],
@@ -473,7 +473,7 @@ class DeveloperController extends Controller
             ],
             'POST /auth/login' => [
                 'body' => ['email' => 'anita@example.com', 'password' => 'a-secure-password'],
-                'guide' => 'Email/password login returns a token only for completed registration. An incomplete account receives 409 REGISTRATION_INCOMPLETE with next-step flags. Google users sign in through /auth/google.',
+                'guide' => 'Email/password login returns a token only for completed registration. An incomplete account receives 409 REGISTRATION_INCOMPLETE with next-step flags. Google users sign in through /auth/google. Learners aged 13–17 receive status=pending/reject/approve for parent consent; adults, teachers and institutes omit this field.',
             ],
             'POST /auth/forgot-password' => [
                 'body' => ['email' => 'anita@example.com'],
@@ -526,6 +526,9 @@ class DeveloperController extends Controller
                 'body' => ['token' => 'PASTE_ONE_TIME_GUARDIAN_TOKEN', 'decision' => 'approve'],
                 'guide' => 'Public one-time approve/reject decision. Prefer the hosted parentalConsent.link page. The guardian-details response returns the link and parent phone for app-team delivery. Refresh /auth/session after the decision.',
             ],
+            'GET /auth/parental-consent/status' => [
+                'guide' => 'Authenticated learner consent status. After guardian-details, poll every 15–30 seconds while waiting or refresh on app foreground. Returns status=pending/reject/approve plus detailed parentalConsentStatus, nextScreen, parent details and decision/expiry timestamps. Adult learners return not_required. Missing DOB returns 409 DOB_REQUIRED. Does not create or replace links; tokens and link hashes are never returned.',
+            ],
             'POST /auth/guardian-details' => [
                 'body' => ['guardianName' => 'Example Parent', 'guardianContact' => '+919876543211'],
                 'guide' => 'After minor DOB returns guardianDetailsRequired, submit the parent form here. Returns parentalConsent.link, expiry and parent name/phone for app-team delivery. Each submission creates a new one-time request.',
@@ -572,7 +575,7 @@ class DeveloperController extends Controller
             'POST /safety/reports' => ['body' => ['targetType' => 'user', 'targetId' => 1, 'reasonCategory' => 'fake_profile', 'reason' => 'Example report reason.']],
             'POST /presence/update' => [
                 'body' => ['deviceId' => 'app-device-unique-id', 'event' => 'foreground'],
-                'guide' => 'Report foreground/activity/heartbeat/background for this authenticated device. Heartbeat every 30 seconds; only activity resets the five-minute idle timer. See docs/PRESENCE.md.',
+                'guide' => 'Database-backed presence for this authenticated device; no Redis required. Send foreground/activity/heartbeat/background. Heartbeat every 30 seconds; foreground/activity reset the five-minute idle timer. Background removes the device immediately; a missing heartbeat expires it in 90 seconds. Only current state is retained; the Laravel scheduler prunes expired rows in bounded batches.',
             ],
             'POST /suggestions' => ['body' => ['suggestionType' => 'course', 'name' => 'Beginner Sign Language', 'notes' => 'Example suggestion.']],
             'POST /support' => ['body' => ['subject' => 'Example support request', 'message' => 'Please describe your support question here.']],

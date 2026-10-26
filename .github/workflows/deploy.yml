@@ -20,15 +20,6 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     services:
-      redis:
-        image: redis:7.2-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd="redis-cli ping"
-          --health-interval=5s
-          --health-timeout=3s
-          --health-retries=10
       mysql:
         image: mysql:8.0
         env:
@@ -56,8 +47,6 @@ jobs:
       FIREBASE_TEST_DATABASE: nearby_ci_test
       OTP_TEST_DATABASE: nearby_ci_test
       REPORTING_TEST_DATABASE: nearby_ci_test
-      PRESENCE_TEST_REDIS_HOST: 127.0.0.1
-      PRESENCE_TEST_REDIS_PORT: '6379'
       CACHE_STORE: array
       SESSION_DRIVER: array
       QUEUE_CONNECTION: sync

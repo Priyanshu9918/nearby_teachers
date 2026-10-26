@@ -278,7 +278,7 @@ class StudentRegistrationCompletionTest extends TestCase
         $link = $this->minorConsentLink();
         $this->post($link, ['decision' => 'reject'])->assertOk()->assertSee('Consent rejected');
         $this->postJson('/auth/login', ['email' => 'dob@example.test', 'password' => 'test-password'])
-            ->assertOk()->assertJsonPath('parentalConsentStatus', 'rejected')
+            ->assertOk()->assertJsonPath('status', 'reject')->assertJsonPath('parentalConsentStatus', 'rejected')
             ->assertJsonPath('parentalConsentPending', false)->assertJsonPath('parentalConsentRequired', true)
             ->assertJsonPath('nextScreen', 'guardian_consent')->assertJsonMissingPath('user.parental_consent_token');
         $this->postJson('/messages/start', ['providerId' => $this->userId + 1])->assertStatus(403);
@@ -397,6 +397,61 @@ class StudentRegistrationCompletionTest extends TestCase
         $this->assertNull($saved->parental_consent_token);
         $this->assertNull($saved->parental_consent_expires_at);
         $this->getJson('/auth/session')->assertJsonPath('guardianDetailsRequired', true);
+    }
+
+    public function test_consent_status_polling_is_private_read_only_and_observes_parent_approval(): void
+    {
+        $link = $this->minorConsentLink();
+        $before = (array) DB::table('users')->where('id', $this->userId)->first();
+        $historyCount = DB::table('business_activity')->count();
+        foreach (range(1, 3) as $i) {
+            $this->getJson('/auth/parental-consent/status?userId=999999')
+                ->assertOk()->assertJsonPath('status', 'pending')->assertJsonPath('parentalConsentStatus', 'pending')
+                ->assertJsonPath('parent.phone', '+919876543211')->assertJsonPath('nextScreen', 'guardian_consent')
+                ->assertHeader('Cache-Control', 'no-store, private')
+                ->assertJsonMissingPath('token')->assertJsonMissingPath('link')->assertJsonMissingPath('user')
+                ->assertDontSee(basename($link))->assertDontSee($before['parental_consent_token']);
+        }
+        $this->assertSame($before, (array) DB::table('users')->where('id', $this->userId)->first());
+        $this->assertSame($historyCount, DB::table('business_activity')->count());
+        $this->post($link, ['decision' => 'approve'])->assertOk();
+        $this->getJson('/auth/parental-consent/status')->assertOk()->assertJsonPath('status', 'approve')
+            ->assertJsonPath('parentalConsentStatus', 'approved')->assertJsonPath('parentalConsentRequired', false)
+            ->assertJsonPath('nextScreen', 'home');
+    }
+
+    public function test_consent_status_distinguishes_rejected_expired_and_missing_details(): void
+    {
+        $this->postJson('/auth/register', $this->form())->assertOk();
+        $this->postJson('/auth/date-of-birth', ['dateOfBirth' => now()->subYears(16)->toDateString()])->assertOk();
+        $this->getJson('/auth/parental-consent/status')->assertOk()->assertJsonPath('status', 'pending')
+            ->assertJsonPath('parentalConsentStatus', 'details_required')->assertJsonPath('guardianDetailsRequired', true)
+            ->assertJsonPath('parent', null)->assertJsonPath('nextScreen', 'guardian_details');
+        $link = $this->minorConsentLink(false);
+        $this->post($link, ['decision' => 'reject'])->assertOk();
+        $this->getJson('/auth/parental-consent/status')->assertOk()->assertJsonPath('status', 'reject')
+            ->assertJsonPath('parentalConsentStatus', 'rejected')->assertJsonPath('parentalConsentRequired', true);
+        $this->minorConsentLink(false);
+        $this->travel(49)->hours();
+        $this->getJson('/auth/parental-consent/status')->assertOk()->assertJsonPath('status', 'pending')
+            ->assertJsonPath('parentalConsentStatus', 'expired')->assertJsonPath('parentalConsentRequired', true);
+        $this->travelBack();
+    }
+
+    public function test_consent_status_requires_auth_and_dob_and_handles_adult_learners(): void
+    {
+        $this->getJson('/auth/parental-consent/status')->assertStatus(409)->assertJsonPath('code', 'DOB_REQUIRED');
+        $this->postJson('/auth/date-of-birth', ['dateOfBirth' => '2000-01-01'])->assertOk();
+        $this->getJson('/auth/parental-consent/status')->assertOk()->assertJsonPath('status', 'not_required')
+            ->assertJsonPath('parentalConsentRequired', false);
+        $this->withoutHeader('Authorization')->getJson('/auth/parental-consent/status')->assertUnauthorized();
+    }
+
+    #[DataProvider('providerRoles')]
+    public function test_providers_cannot_poll_learner_consent(string $role): void
+    {
+        DB::table('users')->where('id', $this->userId)->update(['account_type' => $role]);
+        $this->getJson('/auth/parental-consent/status')->assertForbidden();
     }
 
     private function minorConsentLink(bool $register = true): string

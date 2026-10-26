@@ -70,6 +70,7 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
     Route::patch('/auth/link-phone', [AuthController::class, 'linkPhone']);
     Route::patch('/auth/link-google', [AuthController::class, 'linkGoogle']);
     Route::post('/auth/date-of-birth', [AuthController::class, 'setDateOfBirth']);
+    Route::get('/auth/parental-consent/status', [AuthController::class, 'parentalConsentStatus'])->middleware('throttle:60,1');
     Route::post('/auth/guardian-details', [AuthController::class, 'setGuardianDetails'])->middleware('throttle:10,1');
     Route::post('/auth/acknowledge-safety-disclaimer', [AuthController::class, 'acknowledgeSafetyDisclaimer']);
     Route::put('/profiles/me', [ProfilesController::class, 'updateMine']);
