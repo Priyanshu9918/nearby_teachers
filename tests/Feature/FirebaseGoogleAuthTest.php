@@ -289,7 +289,9 @@ class FirebaseGoogleAuthTest extends TestCase
         $google = $this->google()->assertOk()->assertJsonStructure(['token', 'user']);
         $password = $this->postJson('/auth/login', ['email' => 'google@example.test', 'password' => 'test-password']);
         $password->assertStatus($age === null ? 409 : 200);
+        $complete = $age !== null && ! ($role === 'learner' && $age < 18 && ! $approved);
         foreach ([$google, $password] as $response) {
+            $response->assertJsonPath('profileCompleted', $complete)->assertJsonPath('registrationCompleted', $complete);
             if ($expected === null) {
                 $response->assertJsonMissingPath('status');
             } else {

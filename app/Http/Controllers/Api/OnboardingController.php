@@ -60,8 +60,8 @@ class OnboardingController extends Controller
                     ...$state->forUser($saved),
                 ], 409));
             }
-            if ($state->registrationSubmitted($saved) && $state->requiresDateOfBirth($saved)) {
-                // The form is already saved. Retries resume the separate DOB step.
+            if ($state->registrationSubmitted($saved)) {
+                // The saved form resumes DOB/consent instead of resubmitting or changing role.
                 return;
             }
 
@@ -173,7 +173,8 @@ class OnboardingController extends Controller
                 $userUpdates['terms_accepted_at'] = $user->terms_accepted_at ?? $now;
                 $userUpdates['safety_disclaimer_acknowledged_at'] = $user->safety_disclaimer_acknowledged_at ?? $now;
                 $userUpdates['registration_submitted_at'] = $user->registration_submitted_at ?? $now;
-                if ($accountType !== 'learner' || ($user->date_of_birth ?? null) !== null) {
+                if ($accountType !== 'learner' || (($user->date_of_birth ?? null) !== null
+                    && ! app(OnboardingState::class)->requiresParentalConsent($user))) {
                     $userUpdates['profile_completed_at'] = $user->profile_completed_at ?? $now;
                 }
             }

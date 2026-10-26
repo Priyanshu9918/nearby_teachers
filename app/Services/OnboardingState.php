@@ -16,9 +16,27 @@ final class OnboardingState
             || ($user->profile_completed_at ?? null) !== null;
     }
 
+    // Form + DOB can be ready while the learner is still awaiting consent.
+    public function registrationDetailsCompleted(object $user): bool
+    {
+        if (! in_array($user->account_type ?? 'learner', ['learner', 'student'], true)) {
+            return ($user->profile_completed_at ?? null) !== null;
+        }
+
+        return $this->registrationSubmitted($user) && ! $this->requiresDateOfBirth($user);
+    }
+
+    public function requiresParentalConsent(object $user): bool
+    {
+        return in_array($user->account_type ?? 'learner', ['learner', 'student'], true)
+            && (bool) ($user->is_minor ?? false)
+            && ($user->parental_consent_confirmed_at ?? null) === null;
+    }
+
     public function registrationCompleted(object $user): bool
     {
-        return ($user->profile_completed_at ?? null) !== null && ! $this->requiresDateOfBirth($user);
+        return ($user->profile_completed_at ?? null) !== null
+            && $this->registrationDetailsCompleted($user) && ! $this->requiresParentalConsent($user);
     }
 
     public function forUser(object $user): array
@@ -28,14 +46,14 @@ final class OnboardingState
         $submitted = $this->registrationSubmitted($user);
         $ageRequired = $this->requiresDateOfBirth($user);
         $consentStatus = app(ParentalConsent::class)->status($user);
-        $consentPending = (bool) ($user->is_minor ?? false) && ($user->parental_consent_confirmed_at ?? null) === null;
+        $consentPending = $this->requiresParentalConsent($user);
         $nextStep = match (true) {
             ! $verified => 'mobile_verification',
             ! $submitted => 'complete_profile',
             $ageRequired => 'age_verification',
-            ! $completed => 'complete_profile',
             $consentStatus === 'details_required' => 'guardian_details',
             $consentPending => 'guardian_consent',
+            ! $completed => 'complete_profile',
             default => 'home',
         };
 

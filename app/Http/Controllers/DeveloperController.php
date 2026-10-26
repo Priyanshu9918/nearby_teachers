@@ -368,7 +368,7 @@ class DeveloperController extends Controller
                     }
                 }
                 $guide = $role === 'student'
-                    ? 'Submit the form after OTP verification, then call Learner → POST /auth/date-of-birth. Registration stays pending until DOB is saved. Minor accounts also follow guardian consent.'
+                    ? 'Submit the form after OTP verification, then call Learner → POST /auth/date-of-birth. Registration stays pending until DOB is saved and required guardian consent is approved.'
                     : 'Submit the form after OTP verification. Teacher and institute registration does not require the DOB step.';
                 foreach ([false, true] as $google) {
                     $variantBody = $body;
@@ -473,7 +473,7 @@ class DeveloperController extends Controller
             ],
             'POST /auth/login' => [
                 'body' => ['email' => 'anita@example.com', 'password' => 'a-secure-password'],
-                'guide' => 'Email/password login returns a token only for completed registration. An incomplete account receives 409 REGISTRATION_INCOMPLETE with next-step flags. Google users sign in through /auth/google. Learners aged 13–17 receive status=pending/reject/approve for parent consent; adults, teachers and institutes omit this field.',
+                'guide' => 'Email/password login requires the saved form and DOB. Learners awaiting parent approval can log in, with profileCompleted=false, registrationCompleted=false and consent next-step flags. Missing form/DOB returns 409 REGISTRATION_INCOMPLETE. Google users sign in through /auth/google. Learners aged 13–17 receive status=pending/reject/approve for parent consent; adults, teachers and institutes omit this field.',
             ],
             'POST /auth/forgot-password' => [
                 'body' => ['email' => 'anita@example.com'],
@@ -539,7 +539,7 @@ class DeveloperController extends Controller
             'PATCH /auth/link-google' => ['body' => ['firebaseIdToken' => 'PASTE_FIREBASE_GOOGLE_ID_TOKEN']],
             'POST /auth/date-of-birth' => [
                 'body' => ['dateOfBirth' => '1998-06-15'],
-                'guide' => 'Submit dateOfBirth only. Under 13 is rejected. Ages 13–17 return guardianDetailsRequired and nextScreen=guardian_details; open the parent form and submit it to POST /auth/guardian-details. Adults do not need this form.',
+                'guide' => 'Submit dateOfBirth only. Under 13 is rejected. Ages 13–17 return guardianDetailsRequired and nextScreen=guardian_details; open the parent form and submit it to POST /auth/guardian-details. Adults do not need this form. Learner completion stays false until DOB and required parent approval are complete.',
             ],
             'POST /auth/acknowledge-safety-disclaimer' => ['body' => []],
             'POST /location-lookup/reverse' => [
@@ -579,6 +579,10 @@ class DeveloperController extends Controller
             ],
             'POST /suggestions' => ['body' => ['suggestionType' => 'course', 'name' => 'Beginner Sign Language', 'notes' => 'Example suggestion.']],
             'POST /support' => ['body' => ['subject' => 'Example support request', 'message' => 'Please describe your support question here.']],
+            'POST /franchise/enquiries' => ['body' => ['name' => 'Asha Learner', 'phone' => '+919876543210', 'location' => 'Lucknow, Alambagh'],
+                'guide' => 'Submit a BSL franchise enquiry. Bearer authentication and a verified account phone are required. Send the contact phone with its country code. Returns 201; enquiries are visible only in admin reports. Limit: 5 submissions per minute.'],
+            'POST /jobs/applications' => ['body' => ['name' => 'Asha Learner', 'phone' => '+919876543210', 'expectedSalary' => 25000, 'courseIds' => [1]],
+                'guide' => 'Submit a BSL teaching job enquiry. Use 1–5 distinct course IDs from GET /subjects bslFeatured. expectedSalary is INR per month, positive, up to 99999999.99 with at most two decimals. Bearer authentication and a verified account phone are required. Returns 201; applications are visible only in admin reports. Limit: 5 submissions per minute.'],
             'POST /referrals/redeem' => ['body' => ['code' => 'PASTE_REFERRAL_CODE']],
             'POST /analytics/page-view' => ['body' => ['pageType' => 'teacher', 'target' => 'teacher-profile', 'platform' => 'web', 'referrer' => 'developer-portal']],
             'PATCH /safety/reports/{id}/status' => ['body' => ['status' => 'reviewed'], 'pathDefaults' => ['id' => 5]],

@@ -28,7 +28,7 @@ final class ParentalConsent
 
     public function status(object $user): string
     {
-        if (! ($user->is_minor ?? false)) {
+        if (! in_array($user->account_type ?? 'learner', ['learner', 'student'], true) || ! ($user->is_minor ?? false)) {
             return 'not_required';
         }
         if (($user->parental_consent_confirmed_at ?? null) !== null) {
@@ -70,12 +70,24 @@ final class ParentalConsent
         return DB::transaction(function () use ($token, $decision): string {
             $user = $this->find($token, true);
             $status = $decision === 'approve' ? 'approved' : 'rejected';
-            DB::table('users')->where('id', $user->id)->update([
+            $state = app(OnboardingState::class);
+            $updates = [
                 'parental_consent_confirmed_at' => $decision === 'approve' ? now() : null,
                 'parental_consent_rejected_at' => $decision === 'reject' ? now() : null,
                 'parental_consent_token' => null,
                 'updated_at' => now(),
-            ]);
+            ];
+            if ($decision === 'approve' && $state->registrationDetailsCompleted($user)) {
+                $updates['profile_completed_at'] = now();
+            }
+            DB::table('users')->where('id', $user->id)->update($updates);
+            $fresh = DB::table('users')->where('id', $user->id)->first();
+            if (! $state->registrationCompleted($user) && $state->registrationCompleted($fresh)) {
+                app(BusinessActivityRecorder::class)->record('registration.completed', $user->id, null,
+                    relatedUserId: $user->id,
+                    before: ['account_type' => $user->account_type, 'profile_completed_at' => $user->profile_completed_at],
+                    after: ['account_type' => $fresh->account_type, 'profile_completed_at' => $fresh->profile_completed_at]);
+            }
             // Link possession identifies the decision; do not invent a guardian user ID.
             app(BusinessActivityRecorder::class)->record('parental_consent.decided', $user->id, null,
                 relatedUserId: $user->id, before: ['status' => 'pending'], after: ['status' => $status]);
