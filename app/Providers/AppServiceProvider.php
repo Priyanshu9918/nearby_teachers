@@ -27,6 +27,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Broadcast::extend('socketio', fn ($app, array $config) => new SocketIoBroadcaster($config));
+        RateLimiter::for('enquiries', fn (Request $request) => Limit::perMinute(5)
+            ->by($request->path().':'.($request->attributes->get('authenticated_user')?->id ?? $request->ip())));
         RateLimiter::for('presence', fn (Request $request) => Limit::perMinute(120)
             ->by('presence:'.($request->attributes->get('authenticated_user')?->id ?? $request->ip())));
         // The Socket.IO bridge shares an IP across clients; limit each bearer separately.

@@ -30,7 +30,9 @@ class AdminReportController extends Controller
         }
         $types = DB::table('users')->select('account_type')->selectRaw('count(*) as total')->groupBy('account_type')->pluck('total', 'account_type');
         $registered = DB::table('users')->whereNotNull('profile_completed_at')
-            ->where(fn ($query) => $query->where('account_type', '!=', 'learner')->orWhereNotNull('date_of_birth'))->count();
+            ->where(fn ($query) => $query->where('account_type', '!=', 'learner')
+                ->orWhere(fn ($learner) => $learner->whereNotNull('date_of_birth')
+                    ->where(fn ($consent) => $consent->where('is_minor', false)->orWhereNotNull('parental_consent_confirmed_at'))))->count();
         $daily = DB::table('users')->where('created_at', '>=', now()->subDays(29)->startOfDay())
             ->selectRaw('DATE(created_at) as day, count(*) as total')->groupByRaw('DATE(created_at)')->orderBy('day')->get();
 

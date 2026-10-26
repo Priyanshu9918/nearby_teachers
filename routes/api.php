@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BookingsController;
 use App\Http\Controllers\Api\ChatEventsController;
 use App\Http\Controllers\Api\CommunityController;
+use App\Http\Controllers\Api\EnquiriesController;
 use App\Http\Controllers\Api\I18nController;
 use App\Http\Controllers\Api\MessagesController;
 use App\Http\Controllers\Api\ModerationController;
@@ -104,6 +105,8 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
     Route::delete('/safety/blocks/{userId}', [OperationsController::class, 'unblock'])->where('userId', RecordId::ROUTE_PATTERN);
     Route::post('/suggestions', [OperationsController::class, 'suggest']);
     Route::post('/support', [OperationsController::class, 'createTicket']);
+    Route::post('/franchise/enquiries', [EnquiriesController::class, 'franchise'])->middleware('throttle:enquiries');
+    Route::post('/jobs/applications', [EnquiriesController::class, 'teachingJob'])->middleware('throttle:enquiries');
     Route::get('/support/mine', [OperationsController::class, 'mineTickets']);
     Route::get('/referrals/mine', [OperationsController::class, 'referralMine']);
     Route::post('/referrals/redeem', [OperationsController::class, 'redeemReferral']);

@@ -13,7 +13,10 @@ final class BusinessActivityRecorder
         'auth.logged_out' => ['user', ['auth_version', 'scope']],
         'user.blocked' => ['user', ['blocked']],
         'user.unblocked' => ['user', ['blocked']],
-        // Form submission and completion are distinct; students complete after valid DOB.
+        // Version 1 submission history excludes contact details; no follow-up/decision workflow exists yet.
+        'franchise_enquiry.submitted' => ['franchise_enquiry', ['status']],
+        'teaching_job_application.submitted' => ['teaching_job_application', ['status', 'course_ids', 'expected_salary', 'currency', 'salary_period']],
+        // Form submission and completion are distinct; learners complete after DOB and required parent approval.
         'registration.submitted' => ['user', ['account_type', 'registration_submitted_at']],
         'registration.completed' => ['user', ['account_type', 'profile_completed_at']],
         // Age history stores flags, never birth dates, guardian contacts or consent tokens.

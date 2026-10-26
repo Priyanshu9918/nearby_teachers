@@ -82,6 +82,8 @@ return [
         'DELETE /safety/blocks/{userId}' => ['Common'],
         'POST /suggestions' => ['Common'],
         'POST /support' => ['Common'],
+        'POST /franchise/enquiries' => ['Common'],
+        'POST /jobs/applications' => ['Common'],
         'GET /support/mine' => ['Common'],
         'GET /referrals/mine' => ['Common'],
         'POST /referrals/redeem' => ['Common'],

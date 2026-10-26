@@ -119,21 +119,30 @@ class StudentRegistrationCompletionTest extends TestCase
     {
         $this->postJson('/auth/register', $this->form())->assertOk();
         $this->postJson('/auth/date-of-birth', ['dateOfBirth' => now()->subYears(16)->toDateString()])
-            ->assertOk()->assertJsonPath('registrationCompleted', true)
+            ->assertOk()->assertJsonPath('registrationCompleted', false)
+            ->assertJsonPath('profileCompleted', false)->assertJsonPath('onboardingRequired', true)
             ->assertJsonPath('isMinor', true)->assertJsonPath('parentalConsentStatus', 'details_required')
             ->assertJsonPath('guardianDetailsRequired', true)->assertJsonPath('parentalConsentRequired', true)
             ->assertJsonPath('nextScreen', 'guardian_details')->assertJsonPath('nextStepEndpoint', '/auth/guardian-details')
             ->assertJsonMissingPath('parentalConsent');
         $this->assertNull(DB::table('users')->where('id', $this->userId)->value('parental_consent_token'));
+        $this->assertNull(DB::table('users')->where('id', $this->userId)->value('profile_completed_at'));
+        $this->assertSame(0, DB::table('business_activity')->where('event', 'registration.completed')->count());
         $this->assertSame(0, DB::table('business_activity')->where('event', 'parental_consent.requested')->count());
         $this->getJson('/auth/session')->assertOk()->assertJsonPath('nextScreen', 'guardian_details');
         $this->postJson('/auth/login', ['email' => 'dob@example.test', 'password' => 'test-password'])
-            ->assertOk()->assertJsonPath('guardianDetailsRequired', true)->assertJsonPath('nextScreen', 'guardian_details');
+            ->assertOk()->assertJsonPath('guardianDetailsRequired', true)->assertJsonPath('nextScreen', 'guardian_details')
+            ->assertJsonPath('profileCompleted', false)->assertJsonPath('registrationCompleted', false);
+        $this->getJson('/auth/onboarding')->assertOk()->assertJsonPath('profileCompleted', false)
+            ->assertJsonPath('autosaveEnabled', false)->assertJsonPath('nextScreen', 'guardian_details');
+        $this->patchJson('/auth/onboarding', ['fullName' => 'Changed'])->assertStatus(409);
+        $this->postJson('/auth/register', [])->assertOk()->assertJsonPath('nextScreen', 'guardian_details');
         $this->postJson('/messages/start', [])->assertForbidden();
         $this->postJson('/bookings', [])->assertForbidden();
         $details = $this->postJson('/auth/guardian-details', [
             'guardianName' => 'Guardian', 'guardianContact' => '+919876543211',
         ])->assertOk()->assertJsonPath('parentalConsentStatus', 'pending')
+            ->assertJsonPath('profileCompleted', false)->assertJsonPath('registrationCompleted', false)
             ->assertJsonPath('guardianDetailsRequired', false)->assertJsonPath('nextScreen', 'guardian_consent');
         Queue::assertNothingPushed();
         $token = basename($details->json('parentalConsent.link'));
@@ -145,6 +154,8 @@ class StudentRegistrationCompletionTest extends TestCase
         $this->postJson('/auth/date-of-birth', ['dateOfBirth' => now()->subYears(16)->toDateString()])
             ->assertOk()->assertJsonPath('parentalConsentStatus', 'approved')->assertJsonMissingPath('parentalConsent');
         $this->assertSame(1, DB::table('business_activity')->where('event', 'parental_consent.requested')->count());
+        $this->assertSame(1, DB::table('business_activity')->where('event', 'registration.completed')->count());
+        $this->assertNotNull(DB::table('users')->where('id', $this->userId)->value('profile_completed_at'));
         $history = json_encode(DB::table('business_activity')->get());
         $this->assertStringNotContainsString('+919876543211', $history);
         $this->assertStringNotContainsString($saved->parental_consent_token, $history);
@@ -206,7 +217,7 @@ class StudentRegistrationCompletionTest extends TestCase
             ->assertJsonPath('registrationCompleted', true);
     }
 
-    public function test_completion_history_failure_rolls_back_dob_completion_and_guardian_notification(): void
+    public function test_completion_history_failure_rolls_back_adult_dob_completion(): void
     {
         $this->postJson('/auth/register', $this->form())->assertOk();
         $failHistory = true;
@@ -217,7 +228,7 @@ class StudentRegistrationCompletionTest extends TestCase
             }
         });
         $this->postJson('/auth/date-of-birth', [
-            'dateOfBirth' => now()->subYears(16)->toDateString(),
+            'dateOfBirth' => '2000-01-01',
         ])->assertStatus(500);
         $failHistory = false;
         $saved = DB::table('users')->where('id', $this->userId)->first();
@@ -279,6 +290,7 @@ class StudentRegistrationCompletionTest extends TestCase
         $this->post($link, ['decision' => 'reject'])->assertOk()->assertSee('Consent rejected');
         $this->postJson('/auth/login', ['email' => 'dob@example.test', 'password' => 'test-password'])
             ->assertOk()->assertJsonPath('status', 'reject')->assertJsonPath('parentalConsentStatus', 'rejected')
+            ->assertJsonPath('profileCompleted', false)->assertJsonPath('registrationCompleted', false)
             ->assertJsonPath('parentalConsentPending', false)->assertJsonPath('parentalConsentRequired', true)
             ->assertJsonPath('nextScreen', 'guardian_consent')->assertJsonMissingPath('user.parental_consent_token');
         $this->postJson('/messages/start', ['providerId' => $this->userId + 1])->assertStatus(403);
@@ -289,13 +301,23 @@ class StudentRegistrationCompletionTest extends TestCase
     public function test_expired_and_replaced_links_cannot_make_a_decision(): void
     {
         $old = $this->minorConsentLink();
+        $oldHash = DB::table('users')->where('id', $this->userId)->value('parental_consent_token');
+        $this->assertSame(hash('sha256', basename($old)), $oldHash);
         $new = $this->minorConsentLink(false);
+        $newHash = DB::table('users')->where('id', $this->userId)->value('parental_consent_token');
+        $this->assertNotSame($old, $new);
+        $this->assertNotSame($oldHash, $newHash);
+        $this->assertSame(hash('sha256', basename($new)), $newHash);
         $this->get($old)->assertNotFound();
+        $this->postJson('/auth/parental-consent/confirm', ['token' => basename($old), 'decision' => 'approve'])
+            ->assertNotFound();
+        $this->get($new)->assertOk();
         $this->travel(49)->hours();
         $this->get($new)->assertStatus(410);
         $this->postJson('/auth/parental-consent/confirm', ['token' => basename($new), 'decision' => 'approve'])->assertStatus(410);
         $this->getJson('/auth/session')->assertOk()->assertJsonPath('parentalConsentStatus', 'expired')
-            ->assertJsonPath('parentalConsentRequired', true)->assertJsonPath('nextScreen', 'guardian_consent');
+            ->assertJsonPath('parentalConsentRequired', true)->assertJsonPath('nextScreen', 'guardian_consent')
+            ->assertJsonPath('profileCompleted', false)->assertJsonPath('registrationCompleted', false);
         $this->travelBack();
     }
 
@@ -452,6 +474,69 @@ class StudentRegistrationCompletionTest extends TestCase
     {
         DB::table('users')->where('id', $this->userId)->update(['account_type' => $role]);
         $this->getJson('/auth/parental-consent/status')->assertForbidden();
+    }
+
+    public function test_approval_completes_registration_and_reports_only_when_parent_approves(): void
+    {
+        $link = $this->minorConsentLink();
+        $this->withSession(['admin_authenticated' => true]);
+        $this->get(route('admin.dashboard'))->assertOk()->assertViewHas('registered', 0);
+        $csv = $this->get('/admin/reports/users?q=dob@example.test&export=1')->assertOk()->streamedContent();
+        $lines = explode("\n", trim($csv));
+        $row = array_combine(str_getcsv($lines[0]), str_getcsv($lines[1]));
+        $this->assertSame('0', $row['registration_completed']);
+        $this->assertSame(0, DB::table('business_activity')->where('event', 'registration.completed')->count());
+        $this->post($link, ['decision' => 'approve'])->assertOk();
+        $this->getJson('/auth/parental-consent/status')->assertOk()->assertJsonPath('profileCompleted', true)
+            ->assertJsonPath('registrationCompleted', true)->assertJsonPath('onboardingRequired', false);
+        $this->get(route('admin.dashboard'))->assertOk()->assertViewHas('registered', 1);
+        $csv = $this->get('/admin/reports/users?q=dob@example.test&export=1')->assertOk()->streamedContent();
+        $lines = explode("\n", trim($csv));
+        $row = array_combine(str_getcsv($lines[0]), str_getcsv($lines[1]));
+        $this->assertSame('1', $row['registration_completed']);
+        $this->assertSame(1, DB::table('business_activity')->where('event', 'registration.completed')->count());
+        // A replacement request removes effective completion, including legacy timestamps.
+        $this->minorConsentLink(false);
+        $this->getJson('/auth/session')->assertOk()->assertJsonPath('profileCompleted', false)
+            ->assertJsonPath('registrationCompleted', false)->assertJsonPath('nextScreen', 'guardian_consent');
+        $this->get(route('admin.dashboard'))->assertOk()->assertViewHas('registered', 0);
+    }
+
+    public function test_completion_history_failure_rolls_back_parent_approval_and_keeps_link_usable(): void
+    {
+        $link = $this->minorConsentLink();
+        $failHistory = true;
+        DB::listen(function ($query) use (&$failHistory): void {
+            if ($failHistory && str_starts_with($query->sql, 'insert into `business_activity`')
+                && in_array('registration.completed', $query->bindings, true)) {
+                throw new \RuntimeException('Simulated guardian completion failure');
+            }
+        });
+        $this->postJson('/auth/parental-consent/confirm', ['token' => basename($link), 'decision' => 'approve'])
+            ->assertStatus(500);
+        $failHistory = false;
+        $saved = DB::table('users')->where('id', $this->userId)->first();
+        $this->assertNull($saved->profile_completed_at);
+        $this->assertNull($saved->parental_consent_confirmed_at);
+        $this->assertSame(hash('sha256', basename($link)), $saved->parental_consent_token);
+        $this->assertSame(0, DB::table('business_activity')->where('event', 'registration.completed')->count());
+        $this->getJson('/auth/session')->assertOk()->assertJsonPath('profileCompleted', false);
+        $this->post($link, ['decision' => 'approve'])->assertOk();
+        $this->getJson('/auth/session')->assertOk()->assertJsonPath('profileCompleted', true);
+    }
+
+    public function test_parent_approval_before_form_does_not_prematurely_complete_registration(): void
+    {
+        $this->postJson('/auth/date-of-birth', ['dateOfBirth' => now()->subYears(16)->toDateString()])->assertOk();
+        $response = $this->postJson('/auth/guardian-details', [
+            'guardianName' => 'Guardian', 'guardianContact' => '+919876543211',
+        ])->assertOk();
+        $this->post($response->json('parentalConsent.link'), ['decision' => 'approve'])->assertOk();
+        $this->getJson('/auth/session')->assertOk()->assertJsonPath('profileCompleted', false)
+            ->assertJsonPath('nextScreen', 'onboarding');
+        $this->postJson('/auth/register', $this->form())->assertOk()->assertJsonPath('profileCompleted', true)
+            ->assertJsonPath('registrationCompleted', true)->assertJsonPath('nextScreen', 'home');
+        $this->assertSame(1, DB::table('business_activity')->where('event', 'registration.completed')->count());
     }
 
     private function minorConsentLink(bool $register = true): string

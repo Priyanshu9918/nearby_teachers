@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Nearby Teacher — App Team API",
-    "description": "Nearby Teacher App Team API, updated 22 October 2026. Exactly five workflow folders: Auth, Learner, Teacher, Institute, Common. Read docs/APP_TEAM_API.md. Default baseUrl includes /nearby_teachers/public; there is no /api prefix. All registered application JSON APIs and health/location/broadcast compatibility surfaces are included; ordinary developer/admin HTML pages are not API requests. Admin JSON routes are restricted under Common > Admin only. Shared endpoint copies in Teacher/Institute describe role payloads, not additional routes or invented role restrictions. Select requests individually; running the full collection performs conflicting signup roles and state changes. Set credentials and real IDs manually. Normal OTP request/verify are No Auth; Google OTP request/verify require authMethod=google and the Google-linked Laravel bearer. Save the fresh OTP verification token for the same user. Normal registration requires email/password; Google-linked registration may omit them. Student form submission returns 200 with registrationSubmitted=true, registrationCompleted=false and nextScreen=age_verification until separate DOB succeeds. Teacher/institute require no DOB. Existing database values restore through GET /auth/onboarding; no pre-registration autosave was added. Route by nextScreen, including guardian_consent. Correct password on incomplete registration returns 409 with no token. Logout invalidates all API sessions and clears this collection token; Firebase global refresh-token revocation is not performed. All saved examples are fictional, based on controller response shapes, never live server captures. Fictional tokens are unusable. Production SMS/email codes must be supplied manually. Deploy migrations 000031/000032 with current code. Role folder coverage includes all shared participant chat/replies, feed offers or requests, comments and explicit replies, likes, booking status and safety acknowledgement. Teacher/institute can reply to existing participant conversations; only learners can start in-app conversations. Call/WhatsApp actions use returned provider phone from the quota-controlled profile lookup and frontend tel:/wa.me links; no dedicated call/WhatsApp API exists. The collection includes shared endpoint variants and fictional saved examples; Database-backed presence lifecycle requests are under Common; no Redis is needed for presence. See docs/PRESENCE.md. The named chat APIs require migration 000033; see docs/CHAT_EVENTS.md.",
+    "description": "Nearby Teacher App Team API, updated 22 October 2026. Exactly five workflow folders: Auth, Learner, Teacher, Institute, Common. Read docs/APP_TEAM_API.md. Default baseUrl includes /nearby_teachers/public; there is no /api prefix. All registered application JSON APIs and health/location/broadcast compatibility surfaces are included; ordinary developer/admin HTML pages are not API requests. Admin JSON routes are restricted under Common > Admin only. Shared endpoint copies in Teacher/Institute describe role payloads, not additional routes or invented role restrictions. Select requests individually; running the full collection performs conflicting signup roles and state changes. Set credentials and real IDs manually. Normal OTP request/verify are No Auth; Google OTP request/verify require authMethod=google and the Google-linked Laravel bearer. Save the fresh OTP verification token for the same user. Normal registration requires email/password; Google-linked registration may omit them. Student form submission returns 200 with registrationSubmitted=true, registrationCompleted=false and nextScreen=age_verification until separate DOB and required parent approval succeed. Teacher/institute require no DOB. Existing database values restore through GET /auth/onboarding; no pre-registration autosave was added. Route by nextScreen, including guardian_consent. Correct password on incomplete registration returns 409 with no token. Logout invalidates all API sessions and clears this collection token; Firebase global refresh-token revocation is not performed. All saved examples are fictional, based on controller response shapes, never live server captures. Fictional tokens are unusable. Production SMS/email codes must be supplied manually. Deploy migrations 000031/000032 with current code. Role folder coverage includes all shared participant chat/replies, feed offers or requests, comments and explicit replies, likes, booking status and safety acknowledgement. Teacher/institute can reply to existing participant conversations; only learners can start in-app conversations. Call/WhatsApp actions use returned provider phone from the quota-controlled profile lookup and frontend tel:/wa.me links; no dedicated call/WhatsApp API exists. The collection includes shared endpoint variants and fictional saved examples; Database-backed presence lifecycle requests are under Common; no Redis is needed for presence. See docs/PRESENCE.md. The named chat APIs require migration 000033; see docs/CHAT_EVENTS.md.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -1328,7 +1328,7 @@
                 "google"
               ]
             },
-            "description": "Public. Exchange the Firebase ID token from a verified Google sign-in for a Laravel bearer. Save token, follow nextScreen/nextStep. Pending registration still returns a bearer for onboarding. Firebase ID token and Laravel bearer are different credentials. Saved examples are fictional contract illustrations, not live captures. For learners aged 13–17, response status is pending, reject or approve. Missing parent details and expired links map to pending; parentalConsentStatus and nextScreen retain the detailed state. Teacher, institute and adult responses omit this status field.",
+            "description": "Public. Exchange the Firebase ID token from a verified Google sign-in for a Laravel bearer. Save token, follow nextScreen/nextStep. Pending registration still returns a bearer for onboarding. Firebase ID token and Laravel bearer are different credentials. Saved examples are fictional contract illustrations, not live captures. For learners aged 13–17, response status is pending, reject or approve. Missing parent details and expired links map to pending; parentalConsentStatus and nextScreen retain the detailed state. Teacher, institute and adult responses omit this status field. Learner profileCompleted and registrationCompleted remain false until DOB and required parent approval are complete; onboardingRequired remains true. Consent-pending learners can log in and resume the consent screen.",
             "auth": {
               "type": "noauth"
             },
@@ -1541,7 +1541,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"token\": \"FICTIONAL_BEARER_TOKEN_NOT_VALID_FOR_AUTHENTICATION\",\n  \"user\": {\n    \"id\": \"10000000-0000-4000-8000-000000000001\",\n    \"account_type\": \"learner\",\n    \"full_name\": \"Example Student\",\n    \"email\": \"student@example.com\",\n    \"phone\": \"+919876543210\",\n    \"google_id\": \"FICTIONAL_GOOGLE_UID_NOT_A_REAL_ACCOUNT\",\n    \"avatar_url\": null,\n    \"is_admin\": 0,\n    \"date_of_birth\": \"2010-01-01\",\n    \"is_minor\": 1,\n    \"guardian_name\": \"Example Guardian\",\n    \"guardian_contact\": \"+919876543211\",\n    \"parental_consent_confirmed_at\": null,\n    \"safety_disclaimer_acknowledged_at\": \"2026-10-22 10:00:00\",\n    \"terms_accepted_at\": \"2026-10-22 10:00:00\",\n    \"registration_submitted_at\": \"2026-10-22 10:00:00\",\n    \"profile_completed_at\": \"2026-10-22 10:00:00\",\n    \"avatar_status\": \"approved\",\n    \"preferred_language\": \"en\",\n    \"suspended_at\": null,\n    \"suspended_reason\": null,\n    \"suspended_by\": null,\n    \"phone_verified_at\": \"2026-10-22 10:00:00\",\n    \"referral_code\": null,\n    \"created_at\": \"2026-10-22 10:00:00\",\n    \"updated_at\": \"2026-10-22 10:00:00\",\n    \"email_verified_at\": \"2026-10-22 10:00:00\",\n    \"auth_version\": 0,\n    \"auth_tokens_invalid_before\": null,\n    \"password_set\": false\n  },\n  \"authMethod\": \"google\",\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": true,\n  \"registrationCompleted\": true,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": false,\n  \"ageVerificationRequired\": false,\n  \"parentalConsentPending\": true,\n  \"nextScreen\": \"guardian_consent\",\n  \"nextStep\": \"guardian_consent\",\n  \"nextStepEndpoint\": \"/auth/session\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"parentalConsentStatus\": \"pending\",\n  \"parentalConsentRequired\": true,\n  \"status\": \"pending\"\n}"
+              "body": "{\n  \"token\": \"FICTIONAL_BEARER_TOKEN_NOT_VALID_FOR_AUTHENTICATION\",\n  \"user\": {\n    \"id\": \"10000000-0000-4000-8000-000000000001\",\n    \"account_type\": \"learner\",\n    \"full_name\": \"Example Student\",\n    \"email\": \"student@example.com\",\n    \"phone\": \"+919876543210\",\n    \"google_id\": \"FICTIONAL_GOOGLE_UID_NOT_A_REAL_ACCOUNT\",\n    \"avatar_url\": null,\n    \"is_admin\": 0,\n    \"date_of_birth\": \"2010-01-01\",\n    \"is_minor\": 1,\n    \"guardian_name\": \"Example Guardian\",\n    \"guardian_contact\": \"+919876543211\",\n    \"parental_consent_confirmed_at\": null,\n    \"safety_disclaimer_acknowledged_at\": \"2026-10-22 10:00:00\",\n    \"terms_accepted_at\": \"2026-10-22 10:00:00\",\n    \"registration_submitted_at\": \"2026-10-22 10:00:00\",\n    \"profile_completed_at\": null,\n    \"avatar_status\": \"approved\",\n    \"preferred_language\": \"en\",\n    \"suspended_at\": null,\n    \"suspended_reason\": null,\n    \"suspended_by\": null,\n    \"phone_verified_at\": \"2026-10-22 10:00:00\",\n    \"referral_code\": null,\n    \"created_at\": \"2026-10-22 10:00:00\",\n    \"updated_at\": \"2026-10-22 10:00:00\",\n    \"email_verified_at\": \"2026-10-22 10:00:00\",\n    \"auth_version\": 0,\n    \"auth_tokens_invalid_before\": null,\n    \"password_set\": false\n  },\n  \"authMethod\": \"google\",\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": false,\n  \"registrationCompleted\": false,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": true,\n  \"ageVerificationRequired\": false,\n  \"parentalConsentPending\": true,\n  \"nextScreen\": \"guardian_consent\",\n  \"nextStep\": \"guardian_consent\",\n  \"nextStepEndpoint\": \"/auth/session\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"parentalConsentStatus\": \"pending\",\n  \"parentalConsentRequired\": true,\n  \"status\": \"pending\"\n}"
             },
             {
               "name": "Fictional example — 400 Google sign-in not verified",
@@ -1691,7 +1691,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"token\": \"FICTIONAL_BEARER_TOKEN_NOT_VALID_FOR_AUTHENTICATION\",\n  \"user\": {\n    \"id\": \"10000000-0000-4000-8000-000000000001\",\n    \"account_type\": \"learner\",\n    \"full_name\": \"Example Student\",\n    \"email\": \"student@example.com\",\n    \"phone\": null,\n    \"google_id\": \"FICTIONAL_GOOGLE_UID_NOT_A_REAL_ACCOUNT\",\n    \"avatar_url\": null,\n    \"is_admin\": 0,\n    \"date_of_birth\": \"2010-01-01\",\n    \"is_minor\": 1,\n    \"guardian_name\": \"Example Parent\",\n    \"guardian_contact\": \"+919876543211\",\n    \"parental_consent_confirmed_at\": null,\n    \"safety_disclaimer_acknowledged_at\": null,\n    \"terms_accepted_at\": null,\n    \"registration_submitted_at\": \"2026-10-26 10:00:00\",\n    \"profile_completed_at\": \"2026-10-26 10:00:00\",\n    \"avatar_status\": \"approved\",\n    \"preferred_language\": \"en\",\n    \"suspended_at\": null,\n    \"suspended_reason\": null,\n    \"suspended_by\": null,\n    \"phone_verified_at\": \"2026-10-26 10:00:00\",\n    \"referral_code\": null,\n    \"created_at\": \"2026-10-22 10:00:00\",\n    \"updated_at\": \"2026-10-22 10:00:00\",\n    \"email_verified_at\": \"2026-10-22 10:00:00\",\n    \"auth_version\": 0,\n    \"auth_tokens_invalid_before\": null,\n    \"password_set\": false,\n    \"parental_consent_rejected_at\": null,\n    \"parental_consent_expires_at\": \"2026-10-28 10:00:00\"\n  },\n  \"authMethod\": \"google\",\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": true,\n  \"registrationCompleted\": true,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": false,\n  \"ageVerificationRequired\": false,\n  \"parentalConsentPending\": true,\n  \"nextScreen\": \"guardian_consent\",\n  \"nextStep\": \"guardian_consent\",\n  \"nextStepEndpoint\": \"/auth/session\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"parentalConsentStatus\": \"pending\",\n  \"parentalConsentRequired\": true,\n  \"status\": \"pending\",\n  \"guardianDetailsRequired\": false\n}"
+              "body": "{\n  \"token\": \"FICTIONAL_BEARER_TOKEN_NOT_VALID_FOR_AUTHENTICATION\",\n  \"user\": {\n    \"id\": \"10000000-0000-4000-8000-000000000001\",\n    \"account_type\": \"learner\",\n    \"full_name\": \"Example Student\",\n    \"email\": \"student@example.com\",\n    \"phone\": null,\n    \"google_id\": \"FICTIONAL_GOOGLE_UID_NOT_A_REAL_ACCOUNT\",\n    \"avatar_url\": null,\n    \"is_admin\": 0,\n    \"date_of_birth\": \"2010-01-01\",\n    \"is_minor\": 1,\n    \"guardian_name\": \"Example Parent\",\n    \"guardian_contact\": \"+919876543211\",\n    \"parental_consent_confirmed_at\": null,\n    \"safety_disclaimer_acknowledged_at\": null,\n    \"terms_accepted_at\": null,\n    \"registration_submitted_at\": \"2026-10-26 10:00:00\",\n    \"profile_completed_at\": null,\n    \"avatar_status\": \"approved\",\n    \"preferred_language\": \"en\",\n    \"suspended_at\": null,\n    \"suspended_reason\": null,\n    \"suspended_by\": null,\n    \"phone_verified_at\": \"2026-10-26 10:00:00\",\n    \"referral_code\": null,\n    \"created_at\": \"2026-10-22 10:00:00\",\n    \"updated_at\": \"2026-10-22 10:00:00\",\n    \"email_verified_at\": \"2026-10-22 10:00:00\",\n    \"auth_version\": 0,\n    \"auth_tokens_invalid_before\": null,\n    \"password_set\": false,\n    \"parental_consent_rejected_at\": null,\n    \"parental_consent_expires_at\": \"2026-10-28 10:00:00\"\n  },\n  \"authMethod\": \"google\",\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": false,\n  \"registrationCompleted\": false,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": true,\n  \"ageVerificationRequired\": false,\n  \"parentalConsentPending\": true,\n  \"nextScreen\": \"guardian_consent\",\n  \"nextStep\": \"guardian_consent\",\n  \"nextStepEndpoint\": \"/auth/session\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"parentalConsentStatus\": \"pending\",\n  \"parentalConsentRequired\": true,\n  \"status\": \"pending\",\n  \"guardianDetailsRequired\": false\n}"
             },
             {
               "name": "200 Learner age 13–17 — parent consent reject",
@@ -1741,7 +1741,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"token\": \"FICTIONAL_BEARER_TOKEN_NOT_VALID_FOR_AUTHENTICATION\",\n  \"user\": {\n    \"id\": \"10000000-0000-4000-8000-000000000001\",\n    \"account_type\": \"learner\",\n    \"full_name\": \"Example Student\",\n    \"email\": \"student@example.com\",\n    \"phone\": null,\n    \"google_id\": \"FICTIONAL_GOOGLE_UID_NOT_A_REAL_ACCOUNT\",\n    \"avatar_url\": null,\n    \"is_admin\": 0,\n    \"date_of_birth\": \"2010-01-01\",\n    \"is_minor\": 1,\n    \"guardian_name\": \"Example Parent\",\n    \"guardian_contact\": \"+919876543211\",\n    \"parental_consent_confirmed_at\": null,\n    \"safety_disclaimer_acknowledged_at\": null,\n    \"terms_accepted_at\": null,\n    \"registration_submitted_at\": \"2026-10-26 10:00:00\",\n    \"profile_completed_at\": \"2026-10-26 10:00:00\",\n    \"avatar_status\": \"approved\",\n    \"preferred_language\": \"en\",\n    \"suspended_at\": null,\n    \"suspended_reason\": null,\n    \"suspended_by\": null,\n    \"phone_verified_at\": \"2026-10-26 10:00:00\",\n    \"referral_code\": null,\n    \"created_at\": \"2026-10-22 10:00:00\",\n    \"updated_at\": \"2026-10-22 10:00:00\",\n    \"email_verified_at\": \"2026-10-22 10:00:00\",\n    \"auth_version\": 0,\n    \"auth_tokens_invalid_before\": null,\n    \"password_set\": false,\n    \"parental_consent_rejected_at\": \"2026-10-26 10:00:00\",\n    \"parental_consent_expires_at\": \"2026-10-28 10:00:00\"\n  },\n  \"authMethod\": \"google\",\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": true,\n  \"registrationCompleted\": true,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": false,\n  \"ageVerificationRequired\": false,\n  \"parentalConsentPending\": false,\n  \"nextScreen\": \"guardian_consent\",\n  \"nextStep\": \"guardian_consent\",\n  \"nextStepEndpoint\": \"/auth/session\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"parentalConsentStatus\": \"rejected\",\n  \"parentalConsentRequired\": true,\n  \"status\": \"reject\",\n  \"guardianDetailsRequired\": false\n}"
+              "body": "{\n  \"token\": \"FICTIONAL_BEARER_TOKEN_NOT_VALID_FOR_AUTHENTICATION\",\n  \"user\": {\n    \"id\": \"10000000-0000-4000-8000-000000000001\",\n    \"account_type\": \"learner\",\n    \"full_name\": \"Example Student\",\n    \"email\": \"student@example.com\",\n    \"phone\": null,\n    \"google_id\": \"FICTIONAL_GOOGLE_UID_NOT_A_REAL_ACCOUNT\",\n    \"avatar_url\": null,\n    \"is_admin\": 0,\n    \"date_of_birth\": \"2010-01-01\",\n    \"is_minor\": 1,\n    \"guardian_name\": \"Example Parent\",\n    \"guardian_contact\": \"+919876543211\",\n    \"parental_consent_confirmed_at\": null,\n    \"safety_disclaimer_acknowledged_at\": null,\n    \"terms_accepted_at\": null,\n    \"registration_submitted_at\": \"2026-10-26 10:00:00\",\n    \"profile_completed_at\": null,\n    \"avatar_status\": \"approved\",\n    \"preferred_language\": \"en\",\n    \"suspended_at\": null,\n    \"suspended_reason\": null,\n    \"suspended_by\": null,\n    \"phone_verified_at\": \"2026-10-26 10:00:00\",\n    \"referral_code\": null,\n    \"created_at\": \"2026-10-22 10:00:00\",\n    \"updated_at\": \"2026-10-22 10:00:00\",\n    \"email_verified_at\": \"2026-10-22 10:00:00\",\n    \"auth_version\": 0,\n    \"auth_tokens_invalid_before\": null,\n    \"password_set\": false,\n    \"parental_consent_rejected_at\": \"2026-10-26 10:00:00\",\n    \"parental_consent_expires_at\": \"2026-10-28 10:00:00\"\n  },\n  \"authMethod\": \"google\",\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": false,\n  \"registrationCompleted\": false,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": true,\n  \"ageVerificationRequired\": false,\n  \"parentalConsentPending\": false,\n  \"nextScreen\": \"guardian_consent\",\n  \"nextStep\": \"guardian_consent\",\n  \"nextStepEndpoint\": \"/auth/session\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"parentalConsentStatus\": \"rejected\",\n  \"parentalConsentRequired\": true,\n  \"status\": \"reject\",\n  \"guardianDetailsRequired\": false\n}"
             },
             {
               "name": "200 Learner age 13–17 — parent consent approve",
@@ -2027,7 +2027,7 @@
                 "login"
               ]
             },
-            "description": "Public email/password login. Complete student registration includes the separate valid DOB step; teacher/institute do not require DOB. Incorrect credentials return 401. Correct credentials with incomplete registration return 409 REGISTRATION_INCOMPLETE and no token. Complete minors still follow guardian_consent until consent is confirmed. Saved examples are fictional contract illustrations, not live captures. For learners aged 13–17, response status is pending, reject or approve. Missing parent details and expired links map to pending; parentalConsentStatus and nextScreen retain the detailed state. Teacher, institute and adult responses omit this status field.",
+            "description": "Public email/password login. Complete student registration includes the separate valid DOB step; teacher/institute do not require DOB. Incorrect credentials return 401. Correct credentials with incomplete registration return 409 REGISTRATION_INCOMPLETE and no token. Complete minors still follow guardian_consent until consent is confirmed. Saved examples are fictional contract illustrations, not live captures. For learners aged 13–17, response status is pending, reject or approve. Missing parent details and expired links map to pending; parentalConsentStatus and nextScreen retain the detailed state. Teacher, institute and adult responses omit this status field. Learner profileCompleted and registrationCompleted remain false until DOB and required parent approval are complete; onboardingRequired remains true. Consent-pending learners can log in and resume the consent screen.",
             "auth": {
               "type": "noauth"
             },
@@ -2140,7 +2140,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"token\": \"FICTIONAL_BEARER_TOKEN_NOT_VALID_FOR_AUTHENTICATION\",\n  \"user\": {\n    \"id\": \"10000000-0000-4000-8000-000000000001\",\n    \"account_type\": \"learner\",\n    \"full_name\": \"Example Student\",\n    \"email\": \"student@example.com\",\n    \"phone\": \"+919876543210\",\n    \"google_id\": null,\n    \"avatar_url\": null,\n    \"is_admin\": 0,\n    \"date_of_birth\": \"2010-01-01\",\n    \"is_minor\": 1,\n    \"guardian_name\": \"Example Guardian\",\n    \"guardian_contact\": \"+919876543211\",\n    \"parental_consent_confirmed_at\": null,\n    \"safety_disclaimer_acknowledged_at\": \"2026-10-22 10:00:00\",\n    \"terms_accepted_at\": \"2026-10-22 10:00:00\",\n    \"registration_submitted_at\": \"2026-10-22 10:00:00\",\n    \"profile_completed_at\": \"2026-10-22 10:00:00\",\n    \"avatar_status\": \"approved\",\n    \"preferred_language\": \"en\",\n    \"suspended_at\": null,\n    \"suspended_reason\": null,\n    \"suspended_by\": null,\n    \"phone_verified_at\": \"2026-10-22 10:00:00\",\n    \"referral_code\": null,\n    \"created_at\": \"2026-10-22 10:00:00\",\n    \"updated_at\": \"2026-10-22 10:00:00\",\n    \"email_verified_at\": null,\n    \"auth_version\": 0,\n    \"auth_tokens_invalid_before\": null,\n    \"password_set\": true\n  },\n  \"authMethod\": \"password\",\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": true,\n  \"registrationCompleted\": true,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": false,\n  \"ageVerificationRequired\": false,\n  \"parentalConsentPending\": true,\n  \"nextScreen\": \"guardian_consent\",\n  \"nextStep\": \"guardian_consent\",\n  \"nextStepEndpoint\": \"/auth/session\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"parentalConsentStatus\": \"pending\",\n  \"parentalConsentRequired\": true,\n  \"status\": \"pending\"\n}"
+              "body": "{\n  \"token\": \"FICTIONAL_BEARER_TOKEN_NOT_VALID_FOR_AUTHENTICATION\",\n  \"user\": {\n    \"id\": \"10000000-0000-4000-8000-000000000001\",\n    \"account_type\": \"learner\",\n    \"full_name\": \"Example Student\",\n    \"email\": \"student@example.com\",\n    \"phone\": \"+919876543210\",\n    \"google_id\": null,\n    \"avatar_url\": null,\n    \"is_admin\": 0,\n    \"date_of_birth\": \"2010-01-01\",\n    \"is_minor\": 1,\n    \"guardian_name\": \"Example Guardian\",\n    \"guardian_contact\": \"+919876543211\",\n    \"parental_consent_confirmed_at\": null,\n    \"safety_disclaimer_acknowledged_at\": \"2026-10-22 10:00:00\",\n    \"terms_accepted_at\": \"2026-10-22 10:00:00\",\n    \"registration_submitted_at\": \"2026-10-22 10:00:00\",\n    \"profile_completed_at\": null,\n    \"avatar_status\": \"approved\",\n    \"preferred_language\": \"en\",\n    \"suspended_at\": null,\n    \"suspended_reason\": null,\n    \"suspended_by\": null,\n    \"phone_verified_at\": \"2026-10-22 10:00:00\",\n    \"referral_code\": null,\n    \"created_at\": \"2026-10-22 10:00:00\",\n    \"updated_at\": \"2026-10-22 10:00:00\",\n    \"email_verified_at\": null,\n    \"auth_version\": 0,\n    \"auth_tokens_invalid_before\": null,\n    \"password_set\": true\n  },\n  \"authMethod\": \"password\",\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": false,\n  \"registrationCompleted\": false,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": true,\n  \"ageVerificationRequired\": false,\n  \"parentalConsentPending\": true,\n  \"nextScreen\": \"guardian_consent\",\n  \"nextStep\": \"guardian_consent\",\n  \"nextStepEndpoint\": \"/auth/session\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"parentalConsentStatus\": \"pending\",\n  \"parentalConsentRequired\": true,\n  \"status\": \"pending\"\n}"
             },
             {
               "name": "Fictional example — 409 Form submitted; separate DOB step pending",
@@ -2340,7 +2340,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"token\": \"FICTIONAL_BEARER_TOKEN_NOT_VALID_FOR_AUTHENTICATION\",\n  \"user\": {\n    \"id\": \"10000000-0000-4000-8000-000000000001\",\n    \"account_type\": \"learner\",\n    \"full_name\": \"Example Student\",\n    \"email\": \"student@example.com\",\n    \"phone\": \"+919876543210\",\n    \"google_id\": null,\n    \"avatar_url\": null,\n    \"is_admin\": 0,\n    \"date_of_birth\": \"2010-01-01\",\n    \"is_minor\": 1,\n    \"guardian_name\": \"Example Parent\",\n    \"guardian_contact\": \"+919876543211\",\n    \"parental_consent_confirmed_at\": null,\n    \"safety_disclaimer_acknowledged_at\": \"2026-10-22 10:00:00\",\n    \"terms_accepted_at\": \"2026-10-22 10:00:00\",\n    \"registration_submitted_at\": \"2026-10-26 10:00:00\",\n    \"profile_completed_at\": \"2026-10-26 10:00:00\",\n    \"avatar_status\": \"approved\",\n    \"preferred_language\": \"en\",\n    \"suspended_at\": null,\n    \"suspended_reason\": null,\n    \"suspended_by\": null,\n    \"phone_verified_at\": \"2026-10-26 10:00:00\",\n    \"referral_code\": null,\n    \"created_at\": \"2026-10-22 10:00:00\",\n    \"updated_at\": \"2026-10-22 10:00:00\",\n    \"email_verified_at\": null,\n    \"auth_version\": 0,\n    \"auth_tokens_invalid_before\": null,\n    \"password_set\": true,\n    \"parental_consent_rejected_at\": null,\n    \"parental_consent_expires_at\": \"2026-10-28 10:00:00\"\n  },\n  \"authMethod\": \"password\",\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": true,\n  \"registrationCompleted\": true,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": false,\n  \"ageVerificationRequired\": false,\n  \"parentalConsentPending\": true,\n  \"nextScreen\": \"guardian_consent\",\n  \"nextStep\": \"guardian_consent\",\n  \"nextStepEndpoint\": \"/auth/session\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"parentalConsentStatus\": \"pending\",\n  \"parentalConsentRequired\": true,\n  \"status\": \"pending\",\n  \"guardianDetailsRequired\": false\n}"
+              "body": "{\n  \"token\": \"FICTIONAL_BEARER_TOKEN_NOT_VALID_FOR_AUTHENTICATION\",\n  \"user\": {\n    \"id\": \"10000000-0000-4000-8000-000000000001\",\n    \"account_type\": \"learner\",\n    \"full_name\": \"Example Student\",\n    \"email\": \"student@example.com\",\n    \"phone\": \"+919876543210\",\n    \"google_id\": null,\n    \"avatar_url\": null,\n    \"is_admin\": 0,\n    \"date_of_birth\": \"2010-01-01\",\n    \"is_minor\": 1,\n    \"guardian_name\": \"Example Parent\",\n    \"guardian_contact\": \"+919876543211\",\n    \"parental_consent_confirmed_at\": null,\n    \"safety_disclaimer_acknowledged_at\": \"2026-10-22 10:00:00\",\n    \"terms_accepted_at\": \"2026-10-22 10:00:00\",\n    \"registration_submitted_at\": \"2026-10-26 10:00:00\",\n    \"profile_completed_at\": null,\n    \"avatar_status\": \"approved\",\n    \"preferred_language\": \"en\",\n    \"suspended_at\": null,\n    \"suspended_reason\": null,\n    \"suspended_by\": null,\n    \"phone_verified_at\": \"2026-10-26 10:00:00\",\n    \"referral_code\": null,\n    \"created_at\": \"2026-10-22 10:00:00\",\n    \"updated_at\": \"2026-10-22 10:00:00\",\n    \"email_verified_at\": null,\n    \"auth_version\": 0,\n    \"auth_tokens_invalid_before\": null,\n    \"password_set\": true,\n    \"parental_consent_rejected_at\": null,\n    \"parental_consent_expires_at\": \"2026-10-28 10:00:00\"\n  },\n  \"authMethod\": \"password\",\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": false,\n  \"registrationCompleted\": false,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": true,\n  \"ageVerificationRequired\": false,\n  \"parentalConsentPending\": true,\n  \"nextScreen\": \"guardian_consent\",\n  \"nextStep\": \"guardian_consent\",\n  \"nextStepEndpoint\": \"/auth/session\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"parentalConsentStatus\": \"pending\",\n  \"parentalConsentRequired\": true,\n  \"status\": \"pending\",\n  \"guardianDetailsRequired\": false\n}"
             },
             {
               "name": "200 Learner age 13–17 — parent consent reject",
@@ -2390,7 +2390,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"token\": \"FICTIONAL_BEARER_TOKEN_NOT_VALID_FOR_AUTHENTICATION\",\n  \"user\": {\n    \"id\": \"10000000-0000-4000-8000-000000000001\",\n    \"account_type\": \"learner\",\n    \"full_name\": \"Example Student\",\n    \"email\": \"student@example.com\",\n    \"phone\": \"+919876543210\",\n    \"google_id\": null,\n    \"avatar_url\": null,\n    \"is_admin\": 0,\n    \"date_of_birth\": \"2010-01-01\",\n    \"is_minor\": 1,\n    \"guardian_name\": \"Example Parent\",\n    \"guardian_contact\": \"+919876543211\",\n    \"parental_consent_confirmed_at\": null,\n    \"safety_disclaimer_acknowledged_at\": \"2026-10-22 10:00:00\",\n    \"terms_accepted_at\": \"2026-10-22 10:00:00\",\n    \"registration_submitted_at\": \"2026-10-26 10:00:00\",\n    \"profile_completed_at\": \"2026-10-26 10:00:00\",\n    \"avatar_status\": \"approved\",\n    \"preferred_language\": \"en\",\n    \"suspended_at\": null,\n    \"suspended_reason\": null,\n    \"suspended_by\": null,\n    \"phone_verified_at\": \"2026-10-26 10:00:00\",\n    \"referral_code\": null,\n    \"created_at\": \"2026-10-22 10:00:00\",\n    \"updated_at\": \"2026-10-22 10:00:00\",\n    \"email_verified_at\": null,\n    \"auth_version\": 0,\n    \"auth_tokens_invalid_before\": null,\n    \"password_set\": true,\n    \"parental_consent_rejected_at\": \"2026-10-26 10:00:00\",\n    \"parental_consent_expires_at\": \"2026-10-28 10:00:00\"\n  },\n  \"authMethod\": \"password\",\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": true,\n  \"registrationCompleted\": true,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": false,\n  \"ageVerificationRequired\": false,\n  \"parentalConsentPending\": false,\n  \"nextScreen\": \"guardian_consent\",\n  \"nextStep\": \"guardian_consent\",\n  \"nextStepEndpoint\": \"/auth/session\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"parentalConsentStatus\": \"rejected\",\n  \"parentalConsentRequired\": true,\n  \"status\": \"reject\",\n  \"guardianDetailsRequired\": false\n}"
+              "body": "{\n  \"token\": \"FICTIONAL_BEARER_TOKEN_NOT_VALID_FOR_AUTHENTICATION\",\n  \"user\": {\n    \"id\": \"10000000-0000-4000-8000-000000000001\",\n    \"account_type\": \"learner\",\n    \"full_name\": \"Example Student\",\n    \"email\": \"student@example.com\",\n    \"phone\": \"+919876543210\",\n    \"google_id\": null,\n    \"avatar_url\": null,\n    \"is_admin\": 0,\n    \"date_of_birth\": \"2010-01-01\",\n    \"is_minor\": 1,\n    \"guardian_name\": \"Example Parent\",\n    \"guardian_contact\": \"+919876543211\",\n    \"parental_consent_confirmed_at\": null,\n    \"safety_disclaimer_acknowledged_at\": \"2026-10-22 10:00:00\",\n    \"terms_accepted_at\": \"2026-10-22 10:00:00\",\n    \"registration_submitted_at\": \"2026-10-26 10:00:00\",\n    \"profile_completed_at\": null,\n    \"avatar_status\": \"approved\",\n    \"preferred_language\": \"en\",\n    \"suspended_at\": null,\n    \"suspended_reason\": null,\n    \"suspended_by\": null,\n    \"phone_verified_at\": \"2026-10-26 10:00:00\",\n    \"referral_code\": null,\n    \"created_at\": \"2026-10-22 10:00:00\",\n    \"updated_at\": \"2026-10-22 10:00:00\",\n    \"email_verified_at\": null,\n    \"auth_version\": 0,\n    \"auth_tokens_invalid_before\": null,\n    \"password_set\": true,\n    \"parental_consent_rejected_at\": \"2026-10-26 10:00:00\",\n    \"parental_consent_expires_at\": \"2026-10-28 10:00:00\"\n  },\n  \"authMethod\": \"password\",\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": false,\n  \"registrationCompleted\": false,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": true,\n  \"ageVerificationRequired\": false,\n  \"parentalConsentPending\": false,\n  \"nextScreen\": \"guardian_consent\",\n  \"nextStep\": \"guardian_consent\",\n  \"nextStepEndpoint\": \"/auth/session\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"parentalConsentStatus\": \"rejected\",\n  \"parentalConsentRequired\": true,\n  \"status\": \"reject\",\n  \"guardianDetailsRequired\": false\n}"
             },
             {
               "name": "200 Learner age 13–17 — parent consent approve",
@@ -2649,7 +2649,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"user\": {\n    \"id\": \"10000000-0000-4000-8000-000000000001\",\n    \"account_type\": \"learner\",\n    \"full_name\": \"Example Student\",\n    \"email\": \"student@example.com\",\n    \"phone\": \"+919876543210\",\n    \"google_id\": null,\n    \"avatar_url\": null,\n    \"is_admin\": 0,\n    \"date_of_birth\": \"2010-01-01\",\n    \"is_minor\": 1,\n    \"guardian_name\": \"Example Guardian\",\n    \"guardian_contact\": \"+919876543211\",\n    \"parental_consent_confirmed_at\": null,\n    \"safety_disclaimer_acknowledged_at\": \"2026-10-22 10:00:00\",\n    \"terms_accepted_at\": \"2026-10-22 10:00:00\",\n    \"registration_submitted_at\": \"2026-10-22 10:00:00\",\n    \"profile_completed_at\": \"2026-10-22 10:00:00\",\n    \"avatar_status\": \"approved\",\n    \"preferred_language\": \"en\",\n    \"suspended_at\": null,\n    \"suspended_reason\": null,\n    \"suspended_by\": null,\n    \"phone_verified_at\": \"2026-10-22 10:00:00\",\n    \"referral_code\": null,\n    \"created_at\": \"2026-10-22 10:00:00\",\n    \"updated_at\": \"2026-10-22 10:00:00\",\n    \"email_verified_at\": null,\n    \"auth_version\": 0,\n    \"auth_tokens_invalid_before\": null,\n    \"password_set\": true\n  },\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": true,\n  \"registrationCompleted\": true,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": false,\n  \"ageVerificationRequired\": false,\n  \"parentalConsentPending\": true,\n  \"nextScreen\": \"guardian_consent\",\n  \"nextStep\": \"guardian_consent\",\n  \"nextStepEndpoint\": \"/auth/session\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"parentalConsentStatus\": \"pending\",\n  \"parentalConsentRequired\": true\n}"
+              "body": "{\n  \"user\": {\n    \"id\": \"10000000-0000-4000-8000-000000000001\",\n    \"account_type\": \"learner\",\n    \"full_name\": \"Example Student\",\n    \"email\": \"student@example.com\",\n    \"phone\": \"+919876543210\",\n    \"google_id\": null,\n    \"avatar_url\": null,\n    \"is_admin\": 0,\n    \"date_of_birth\": \"2010-01-01\",\n    \"is_minor\": 1,\n    \"guardian_name\": \"Example Guardian\",\n    \"guardian_contact\": \"+919876543211\",\n    \"parental_consent_confirmed_at\": null,\n    \"safety_disclaimer_acknowledged_at\": \"2026-10-22 10:00:00\",\n    \"terms_accepted_at\": \"2026-10-22 10:00:00\",\n    \"registration_submitted_at\": \"2026-10-22 10:00:00\",\n    \"profile_completed_at\": null,\n    \"avatar_status\": \"approved\",\n    \"preferred_language\": \"en\",\n    \"suspended_at\": null,\n    \"suspended_reason\": null,\n    \"suspended_by\": null,\n    \"phone_verified_at\": \"2026-10-22 10:00:00\",\n    \"referral_code\": null,\n    \"created_at\": \"2026-10-22 10:00:00\",\n    \"updated_at\": \"2026-10-22 10:00:00\",\n    \"email_verified_at\": null,\n    \"auth_version\": 0,\n    \"auth_tokens_invalid_before\": null,\n    \"password_set\": true\n  },\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": false,\n  \"registrationCompleted\": false,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": true,\n  \"ageVerificationRequired\": false,\n  \"parentalConsentPending\": true,\n  \"nextScreen\": \"guardian_consent\",\n  \"nextStep\": \"guardian_consent\",\n  \"nextStepEndpoint\": \"/auth/session\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"parentalConsentStatus\": \"pending\",\n  \"parentalConsentRequired\": true\n}"
             },
             {
               "name": "Fictional example — 200 Complete teacher; no DOB required",
@@ -5232,7 +5232,7 @@
                 "date-of-birth"
               ]
             },
-            "description": "First submit dateOfBirth only. Under 13 is rejected. Ages 13–17 return guardianDetailsRequired=true, parentalConsentStatus=details_required and nextScreen=guardian_details. Open a separate parent form and submit it to POST /auth/guardian-details. Adults skip parent consent. Repeating DOB does not create or replace consent links.",
+            "description": "First submit dateOfBirth only. Under 13 is rejected. Ages 13–17 return guardianDetailsRequired=true, parentalConsentStatus=details_required and nextScreen=guardian_details. Open a separate parent form and submit it to POST /auth/guardian-details. Adults skip parent consent. Repeating DOB does not create or replace consent links. Learner profileCompleted and registrationCompleted remain false until DOB and required parent approval are complete; onboardingRequired remains true. Consent-pending learners can log in and resume the consent screen.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"dateOfBirth\": \"2000-01-01\"\n}",
@@ -5336,7 +5336,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"isMinor\": true,\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": true,\n  \"registrationCompleted\": true,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": false,\n  \"ageVerificationRequired\": false,\n  \"parentalConsentPending\": false,\n  \"nextScreen\": \"guardian_details\",\n  \"nextStep\": \"guardian_details\",\n  \"nextStepEndpoint\": \"/auth/guardian-details\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"parentalConsentStatus\": \"details_required\",\n  \"parentalConsentRequired\": true,\n  \"guardianDetailsRequired\": true\n}"
+              "body": "{\n  \"isMinor\": true,\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": false,\n  \"registrationCompleted\": false,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": true,\n  \"ageVerificationRequired\": false,\n  \"parentalConsentPending\": false,\n  \"nextScreen\": \"guardian_details\",\n  \"nextStep\": \"guardian_details\",\n  \"nextStepEndpoint\": \"/auth/guardian-details\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"parentalConsentStatus\": \"details_required\",\n  \"parentalConsentRequired\": true,\n  \"guardianDetailsRequired\": true\n}"
             },
             {
               "name": "Fictional example — 400 Minimum age not met",
@@ -5411,7 +5411,7 @@
                 "date-of-birth"
               ]
             },
-            "description": "First submit dateOfBirth only. Under 13 is rejected. Ages 13–17 return guardianDetailsRequired=true, parentalConsentStatus=details_required and nextScreen=guardian_details. Open a separate parent form and submit it to POST /auth/guardian-details. Adults skip parent consent. Repeating DOB does not create or replace consent links.",
+            "description": "First submit dateOfBirth only. Under 13 is rejected. Ages 13–17 return guardianDetailsRequired=true, parentalConsentStatus=details_required and nextScreen=guardian_details. Open a separate parent form and submit it to POST /auth/guardian-details. Adults skip parent consent. Repeating DOB does not create or replace consent links. Learner profileCompleted and registrationCompleted remain false until DOB and required parent approval are complete; onboardingRequired remains true. Consent-pending learners can log in and resume the consent screen.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"dateOfBirth\": \"2010-01-01\"\n}",
@@ -5468,7 +5468,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"isMinor\": true,\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": true,\n  \"registrationCompleted\": true,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": false,\n  \"ageVerificationRequired\": false,\n  \"parentalConsentPending\": false,\n  \"nextScreen\": \"guardian_details\",\n  \"nextStep\": \"guardian_details\",\n  \"nextStepEndpoint\": \"/auth/guardian-details\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"parentalConsentStatus\": \"details_required\",\n  \"parentalConsentRequired\": true,\n  \"guardianDetailsRequired\": true\n}"
+              "body": "{\n  \"isMinor\": true,\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": false,\n  \"registrationCompleted\": false,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": true,\n  \"ageVerificationRequired\": false,\n  \"parentalConsentPending\": false,\n  \"nextScreen\": \"guardian_details\",\n  \"nextStep\": \"guardian_details\",\n  \"nextStepEndpoint\": \"/auth/guardian-details\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"parentalConsentStatus\": \"details_required\",\n  \"parentalConsentRequired\": true,\n  \"guardianDetailsRequired\": true\n}"
             }
           ]
         },
@@ -5496,7 +5496,7 @@
                 "guardian-details"
               ]
             },
-            "description": "Submit only after DOB returns guardianDetailsRequired=true. Required guardianName and international guardianContact phone. Returns parentalConsent.link, expiry and parent name/phone; app team sends the link. A repeat submission replaces the previous link and resets approval to pending.",
+            "description": "Submit only after DOB returns guardianDetailsRequired=true. Required guardianName and international guardianContact phone. Returns parentalConsent.link, expiry and parent name/phone; app team sends the link. A repeat submission replaces the previous link and resets approval to pending. Learner profileCompleted and registrationCompleted remain false until DOB and required parent approval are complete; onboardingRequired remains true. Consent-pending learners can log in and resume the consent screen.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"guardianName\": \"Example Guardian\",\n  \"guardianContact\": \"+919876543211\"\n}",
@@ -5553,7 +5553,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": true,\n  \"registrationCompleted\": true,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": false,\n  \"ageVerificationRequired\": false,\n  \"parentalConsentPending\": true,\n  \"nextScreen\": \"guardian_consent\",\n  \"nextStep\": \"guardian_consent\",\n  \"nextStepEndpoint\": \"/auth/session\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"message\": \"Send this link to the parent/guardian phone. Messaging and booking require approval.\",\n  \"parentalConsentStatus\": \"pending\",\n  \"parentalConsentRequired\": true,\n  \"parentalConsent\": {\n    \"status\": \"pending\",\n    \"link\": \"{{baseUrl}}/parental-consent/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n    \"expiresAt\": \"2026-10-28 10:00:00\",\n    \"parent\": {\n      \"name\": \"Example Guardian\",\n      \"phone\": \"+919876543211\"\n    }\n  },\n  \"guardianDetailsRequired\": false\n}"
+              "body": "{\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": false,\n  \"registrationCompleted\": false,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": true,\n  \"ageVerificationRequired\": false,\n  \"parentalConsentPending\": true,\n  \"nextScreen\": \"guardian_consent\",\n  \"nextStep\": \"guardian_consent\",\n  \"nextStepEndpoint\": \"/auth/session\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"message\": \"Send this link to the parent/guardian phone. Messaging and booking require approval.\",\n  \"parentalConsentStatus\": \"pending\",\n  \"parentalConsentRequired\": true,\n  \"parentalConsent\": {\n    \"status\": \"pending\",\n    \"link\": \"{{baseUrl}}/parental-consent/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n    \"expiresAt\": \"2026-10-28 10:00:00\",\n    \"parent\": {\n      \"name\": \"Example Guardian\",\n      \"phone\": \"+919876543211\"\n    }\n  },\n  \"guardianDetailsRequired\": false\n}"
             },
             {
               "name": "422 Invalid parent phone",
@@ -10620,7 +10620,7 @@
                 "status"
               ]
             },
-            "description": "Check the authenticated learner’s consent after guardian-details; no userId or consent token required. Poll every 15–30 seconds while the waiting screen is visible, or refresh on app foreground. Read-only: never replaces a link or resets approval. status=pending/reject/approve; details_required and expired map to pending with the exact reason in parentalConsentStatus. Adults return not_required. Teachers/institutes are forbidden; missing DOB is 409 DOB_REQUIRED. Response excludes consent token/link/hash."
+            "description": "Check the authenticated learner’s consent after guardian-details; no userId or consent token required. Poll every 15–30 seconds while the waiting screen is visible, or refresh on app foreground. Read-only: never replaces a link or resets approval. status=pending/reject/approve; details_required and expired map to pending with the exact reason in parentalConsentStatus. Adults return not_required. Teachers/institutes are forbidden; missing DOB is 409 DOB_REQUIRED. Response excludes consent token/link/hash. Learner profileCompleted and registrationCompleted remain false until DOB and required parent approval are complete; onboardingRequired remains true. Consent-pending learners can log in and resume the consent screen."
           },
           "response": [
             {
@@ -10668,7 +10668,7 @@
                   "value": "no-store, private"
                 }
               ],
-              "body": "{\n  \"status\": \"pending\",\n  \"parentalConsentStatus\": \"pending\",\n  \"parentalConsentPending\": true,\n  \"parentalConsentRequired\": true,\n  \"guardianDetailsRequired\": false,\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": true,\n  \"registrationCompleted\": true,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": false,\n  \"ageVerificationRequired\": false,\n  \"nextScreen\": \"guardian_consent\",\n  \"nextStep\": \"guardian_consent\",\n  \"nextStepEndpoint\": \"/auth/session\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"expiresAt\": \"2026-10-28 10:00:00\",\n  \"approvedAt\": null,\n  \"rejectedAt\": null,\n  \"parent\": {\n    \"name\": \"Example Parent\",\n    \"phone\": \"+919876543211\"\n  }\n}"
+              "body": "{\n  \"status\": \"pending\",\n  \"parentalConsentStatus\": \"pending\",\n  \"parentalConsentPending\": true,\n  \"parentalConsentRequired\": true,\n  \"guardianDetailsRequired\": false,\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": false,\n  \"registrationCompleted\": false,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": true,\n  \"ageVerificationRequired\": false,\n  \"nextScreen\": \"guardian_consent\",\n  \"nextStep\": \"guardian_consent\",\n  \"nextStepEndpoint\": \"/auth/session\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"expiresAt\": \"2026-10-28 10:00:00\",\n  \"approvedAt\": null,\n  \"rejectedAt\": null,\n  \"parent\": {\n    \"name\": \"Example Parent\",\n    \"phone\": \"+919876543211\"\n  }\n}"
             },
             {
               "name": "200 rejected",
@@ -10715,7 +10715,7 @@
                   "value": "no-store, private"
                 }
               ],
-              "body": "{\n  \"status\": \"reject\",\n  \"parentalConsentStatus\": \"rejected\",\n  \"parentalConsentPending\": false,\n  \"parentalConsentRequired\": true,\n  \"guardianDetailsRequired\": false,\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": true,\n  \"registrationCompleted\": true,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": false,\n  \"ageVerificationRequired\": false,\n  \"nextScreen\": \"guardian_consent\",\n  \"nextStep\": \"guardian_consent\",\n  \"nextStepEndpoint\": \"/auth/session\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"expiresAt\": \"2026-10-28 10:00:00\",\n  \"approvedAt\": null,\n  \"rejectedAt\": \"2026-10-26 10:00:00\",\n  \"parent\": {\n    \"name\": \"Example Parent\",\n    \"phone\": \"+919876543211\"\n  }\n}"
+              "body": "{\n  \"status\": \"reject\",\n  \"parentalConsentStatus\": \"rejected\",\n  \"parentalConsentPending\": false,\n  \"parentalConsentRequired\": true,\n  \"guardianDetailsRequired\": false,\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": false,\n  \"registrationCompleted\": false,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": true,\n  \"ageVerificationRequired\": false,\n  \"nextScreen\": \"guardian_consent\",\n  \"nextStep\": \"guardian_consent\",\n  \"nextStepEndpoint\": \"/auth/session\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"expiresAt\": \"2026-10-28 10:00:00\",\n  \"approvedAt\": null,\n  \"rejectedAt\": \"2026-10-26 10:00:00\",\n  \"parent\": {\n    \"name\": \"Example Parent\",\n    \"phone\": \"+919876543211\"\n  }\n}"
             },
             {
               "name": "200 approved",
@@ -10809,7 +10809,7 @@
                   "value": "no-store, private"
                 }
               ],
-              "body": "{\n  \"status\": \"pending\",\n  \"parentalConsentStatus\": \"details_required\",\n  \"parentalConsentPending\": false,\n  \"parentalConsentRequired\": true,\n  \"guardianDetailsRequired\": true,\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": true,\n  \"registrationCompleted\": true,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": false,\n  \"ageVerificationRequired\": false,\n  \"nextScreen\": \"guardian_details\",\n  \"nextStep\": \"guardian_details\",\n  \"nextStepEndpoint\": \"/auth/guardian-details\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"expiresAt\": null,\n  \"approvedAt\": null,\n  \"rejectedAt\": null,\n  \"parent\": null\n}"
+              "body": "{\n  \"status\": \"pending\",\n  \"parentalConsentStatus\": \"details_required\",\n  \"parentalConsentPending\": false,\n  \"parentalConsentRequired\": true,\n  \"guardianDetailsRequired\": true,\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": false,\n  \"registrationCompleted\": false,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": true,\n  \"ageVerificationRequired\": false,\n  \"nextScreen\": \"guardian_details\",\n  \"nextStep\": \"guardian_details\",\n  \"nextStepEndpoint\": \"/auth/guardian-details\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"expiresAt\": null,\n  \"approvedAt\": null,\n  \"rejectedAt\": null,\n  \"parent\": null\n}"
             },
             {
               "name": "200 expired",
@@ -10856,7 +10856,7 @@
                   "value": "no-store, private"
                 }
               ],
-              "body": "{\n  \"status\": \"pending\",\n  \"parentalConsentStatus\": \"expired\",\n  \"parentalConsentPending\": false,\n  \"parentalConsentRequired\": true,\n  \"guardianDetailsRequired\": false,\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": true,\n  \"registrationCompleted\": true,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": false,\n  \"ageVerificationRequired\": false,\n  \"nextScreen\": \"guardian_consent\",\n  \"nextStep\": \"guardian_consent\",\n  \"nextStepEndpoint\": \"/auth/session\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"expiresAt\": \"2026-10-25 10:00:00\",\n  \"approvedAt\": null,\n  \"rejectedAt\": null,\n  \"parent\": {\n    \"name\": \"Example Parent\",\n    \"phone\": \"+919876543211\"\n  }\n}"
+              "body": "{\n  \"status\": \"pending\",\n  \"parentalConsentStatus\": \"expired\",\n  \"parentalConsentPending\": false,\n  \"parentalConsentRequired\": true,\n  \"guardianDetailsRequired\": false,\n  \"mobileVerified\": true,\n  \"phoneVerificationRequired\": false,\n  \"profileCompleted\": false,\n  \"registrationCompleted\": false,\n  \"registrationSubmitted\": true,\n  \"onboardingRequired\": true,\n  \"ageVerificationRequired\": false,\n  \"nextScreen\": \"guardian_consent\",\n  \"nextStep\": \"guardian_consent\",\n  \"nextStepEndpoint\": \"/auth/session\",\n  \"onboardingEndpoint\": \"/auth/onboarding\",\n  \"registerEndpoint\": \"/auth/register\",\n  \"expiresAt\": \"2026-10-25 10:00:00\",\n  \"approvedAt\": null,\n  \"rejectedAt\": null,\n  \"parent\": {\n    \"name\": \"Example Parent\",\n    \"phone\": \"+919876543211\"\n  }\n}"
             },
             {
               "name": "200 not_required",
@@ -25934,6 +25934,370 @@
               ],
               "cookie": [],
               "body": "{\n  \"error\": \"Presence is temporarily unavailable.\",\n  \"code\": \"PRESENCE_UNAVAILABLE\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST /franchise/enquiries",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/franchise/enquiries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "franchise",
+                "enquiries"
+              ]
+            },
+            "description": "Required: name (max 160), phone with country code (normalized to E.164), location (city/area, max 255). Bearer required; learner, teacher and institute accounts with verified phone can submit. User ownership comes from the token; userId is not accepted as ownership. Returns 201 with status=submitted (receipt only, not acceptance). Limit 5 requests/minute per signed-in user, 429 when exceeded. This API stores the enquiry for the BSL team; it does not send SMS/email. Name/contact/course labels are saved as submission snapshots. Only authenticated admin report pages/CSV expose submissions; no public list API. Deploy migration 2026_10_26_000037_create_bsl_enquiries. Examples are fictional.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Asha Learner\",\n  \"phone\": \"+919876543210\",\n  \"location\": \"Lucknow, Alambagh\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Fictional example — 201 Submitted",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/franchise/enquiries",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "franchise",
+                    "enquiries"
+                  ]
+                },
+                "description": "Required: name (max 160), phone with country code (normalized to E.164), location (city/area, max 255). Bearer required; learner, teacher and institute accounts with verified phone can submit. User ownership comes from the token; userId is not accepted as ownership. Returns 201 with status=submitted (receipt only, not acceptance). Limit 5 requests/minute per signed-in user, 429 when exceeded. This API stores the enquiry for the BSL team; it does not send SMS/email. Name/contact/course labels are saved as submission snapshots. Only authenticated admin report pages/CSV expose submissions; no public list API. Deploy migration 2026_10_26_000037_create_bsl_enquiries. Examples are fictional.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Asha Learner\",\n  \"phone\": \"+919876543210\",\n  \"location\": \"Lucknow, Alambagh\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"Your franchise enquiry has been submitted.\",\n  \"enquiry\": {\n    \"id\": 101,\n    \"name\": \"Asha Learner\",\n    \"phone\": \"+919876543210\",\n    \"location\": \"Lucknow, Alambagh\",\n    \"status\": \"submitted\",\n    \"createdAt\": \"2026-10-26T13:00:00.000000Z\"\n  }\n}"
+            },
+            {
+              "name": "Fictional example — 401 Bearer missing",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/franchise/enquiries",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "franchise",
+                    "enquiries"
+                  ]
+                },
+                "description": "Required: name (max 160), phone with country code (normalized to E.164), location (city/area, max 255). Bearer required; learner, teacher and institute accounts with verified phone can submit. User ownership comes from the token; userId is not accepted as ownership. Returns 201 with status=submitted (receipt only, not acceptance). Limit 5 requests/minute per signed-in user, 429 when exceeded. This API stores the enquiry for the BSL team; it does not send SMS/email. Name/contact/course labels are saved as submission snapshots. Only authenticated admin report pages/CSV expose submissions; no public list API. Deploy migration 2026_10_26_000037_create_bsl_enquiries. Examples are fictional.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Asha Learner\",\n  \"phone\": \"+919876543210\",\n  \"location\": \"Lucknow, Alambagh\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Missing Authorization header\"\n}"
+            },
+            {
+              "name": "Fictional example — 422 Invalid phone",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/franchise/enquiries",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "franchise",
+                    "enquiries"
+                  ]
+                },
+                "description": "Required: name (max 160), phone with country code (normalized to E.164), location (city/area, max 255). Bearer required; learner, teacher and institute accounts with verified phone can submit. User ownership comes from the token; userId is not accepted as ownership. Returns 201 with status=submitted (receipt only, not acceptance). Limit 5 requests/minute per signed-in user, 429 when exceeded. This API stores the enquiry for the BSL team; it does not send SMS/email. Name/contact/course labels are saved as submission snapshots. Only authenticated admin report pages/CSV expose submissions; no public list API. Deploy migration 2026_10_26_000037_create_bsl_enquiries. Examples are fictional.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Asha Learner\",\n  \"phone\": \"invalid\",\n  \"location\": \"Lucknow, Alambagh\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Unprocessable Content",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"Enter a valid phone number with country code, e.g. +919876543210.\",\n  \"errors\": {\n    \"phone\": [\n      \"Enter a valid phone number with country code, e.g. +919876543210.\"\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST /jobs/applications",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/jobs/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "jobs",
+                "applications"
+              ]
+            },
+            "description": "Required: name (max 160), phone with country code, expectedSalary (INR per month, positive, up to 99999999.99, at most two decimals), courseIds (1–5 distinct IDs from GET /subjects → bslFeatured). Replace example ID 1 with a real BSL course ID. Numeric salary only, without ₹ or commas; response salary is a decimal string. Non-BSL or unknown course IDs return 422. Bearer required; learner, teacher and institute accounts with verified phone can submit. User ownership comes from the token; userId is not accepted as ownership. Returns 201 with status=submitted (receipt only, not acceptance). Limit 5 requests/minute per signed-in user, 429 when exceeded. This API stores the enquiry for the BSL team; it does not send SMS/email. Name/contact/course labels are saved as submission snapshots. Only authenticated admin report pages/CSV expose submissions; no public list API. Deploy migration 2026_10_26_000037_create_bsl_enquiries. Examples are fictional.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Asha Learner\",\n  \"phone\": \"+919876543210\",\n  \"expectedSalary\": 25000,\n  \"courseIds\": [\n    1\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Fictional example — 201 Submitted",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/jobs/applications",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "jobs",
+                    "applications"
+                  ]
+                },
+                "description": "Required: name (max 160), phone with country code, expectedSalary (INR per month, positive, up to 99999999.99, at most two decimals), courseIds (1–5 distinct IDs from GET /subjects → bslFeatured). Replace example ID 1 with a real BSL course ID. Numeric salary only, without ₹ or commas; response salary is a decimal string. Non-BSL or unknown course IDs return 422. Bearer required; learner, teacher and institute accounts with verified phone can submit. User ownership comes from the token; userId is not accepted as ownership. Returns 201 with status=submitted (receipt only, not acceptance). Limit 5 requests/minute per signed-in user, 429 when exceeded. This API stores the enquiry for the BSL team; it does not send SMS/email. Name/contact/course labels are saved as submission snapshots. Only authenticated admin report pages/CSV expose submissions; no public list API. Deploy migration 2026_10_26_000037_create_bsl_enquiries. Examples are fictional.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Asha Learner\",\n  \"phone\": \"+919876543210\",\n  \"expectedSalary\": 25000,\n  \"courseIds\": [\n    1\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"Your teaching job application has been submitted.\",\n  \"application\": {\n    \"id\": 201,\n    \"name\": \"Asha Learner\",\n    \"phone\": \"+919876543210\",\n    \"expectedSalary\": \"25000.00\",\n    \"currency\": \"INR\",\n    \"salaryPeriod\": \"monthly\",\n    \"courses\": [\n      {\n        \"id\": 1,\n        \"name\": \"Spoken English\"\n      }\n    ],\n    \"status\": \"submitted\",\n    \"createdAt\": \"2026-10-26T13:00:00.000000Z\"\n  }\n}"
+            },
+            {
+              "name": "Fictional example — 401 Bearer missing",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/jobs/applications",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "jobs",
+                    "applications"
+                  ]
+                },
+                "description": "Required: name (max 160), phone with country code, expectedSalary (INR per month, positive, up to 99999999.99, at most two decimals), courseIds (1–5 distinct IDs from GET /subjects → bslFeatured). Replace example ID 1 with a real BSL course ID. Numeric salary only, without ₹ or commas; response salary is a decimal string. Non-BSL or unknown course IDs return 422. Bearer required; learner, teacher and institute accounts with verified phone can submit. User ownership comes from the token; userId is not accepted as ownership. Returns 201 with status=submitted (receipt only, not acceptance). Limit 5 requests/minute per signed-in user, 429 when exceeded. This API stores the enquiry for the BSL team; it does not send SMS/email. Name/contact/course labels are saved as submission snapshots. Only authenticated admin report pages/CSV expose submissions; no public list API. Deploy migration 2026_10_26_000037_create_bsl_enquiries. Examples are fictional.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Asha Learner\",\n  \"phone\": \"+919876543210\",\n  \"expectedSalary\": 25000,\n  \"courseIds\": [\n    1\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Missing Authorization header\"\n}"
+            },
+            {
+              "name": "Fictional example — 422 Invalid phone",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/jobs/applications",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "jobs",
+                    "applications"
+                  ]
+                },
+                "description": "Required: name (max 160), phone with country code, expectedSalary (INR per month, positive, up to 99999999.99, at most two decimals), courseIds (1–5 distinct IDs from GET /subjects → bslFeatured). Replace example ID 1 with a real BSL course ID. Numeric salary only, without ₹ or commas; response salary is a decimal string. Non-BSL or unknown course IDs return 422. Bearer required; learner, teacher and institute accounts with verified phone can submit. User ownership comes from the token; userId is not accepted as ownership. Returns 201 with status=submitted (receipt only, not acceptance). Limit 5 requests/minute per signed-in user, 429 when exceeded. This API stores the enquiry for the BSL team; it does not send SMS/email. Name/contact/course labels are saved as submission snapshots. Only authenticated admin report pages/CSV expose submissions; no public list API. Deploy migration 2026_10_26_000037_create_bsl_enquiries. Examples are fictional.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Asha Learner\",\n  \"phone\": \"invalid\",\n  \"expectedSalary\": 25000,\n  \"courseIds\": [\n    1\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Unprocessable Content",
+              "code": 422,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"message\": \"Enter a valid phone number with country code, e.g. +919876543210.\",\n  \"errors\": {\n    \"phone\": [\n      \"Enter a valid phone number with country code, e.g. +919876543210.\"\n    ]\n  }\n}"
             }
           ]
         }

@@ -132,7 +132,7 @@ class AuthController extends Controller
             DB::table('otp_codes')->where('id', $otp->id)->update(['consumed_at' => now()]);
             $user = DB::table('users')->where('phone', $phone)->first();
             if ($user !== null) {
-                if (app(OnboardingState::class)->registrationCompleted($user)) {
+                if (app(OnboardingState::class)->registrationDetailsCompleted($user)) {
                     return ['error' => 'This account is already registered. Log in with your email and password.', 'loginRequired' => true];
                 }
 
@@ -262,7 +262,7 @@ class AuthController extends Controller
         if ($user->suspended_at !== null) {
             return response()->json(['error' => 'This account has been suspended.', 'suspended' => true], 403);
         }
-        if (! app(OnboardingState::class)->registrationCompleted($user)) {
+        if (! app(OnboardingState::class)->registrationDetailsCompleted($user)) {
             return response()->json([
                 'error' => 'Complete your registration before logging in.',
                 'code' => 'REGISTRATION_INCOMPLETE',
@@ -465,6 +465,7 @@ class AuthController extends Controller
                 'updated_at' => now(),
             ];
             if ($saved->account_type === 'learner' && $state->registrationSubmitted($saved)
+                && (! $isMinor || $saved->parental_consent_confirmed_at !== null)
                 && ! $state->registrationCompleted($saved)) {
                 $updates['profile_completed_at'] = now();
             }
