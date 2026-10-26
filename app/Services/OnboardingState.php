@@ -27,12 +27,14 @@ final class OnboardingState
         $completed = $this->registrationCompleted($user);
         $submitted = $this->registrationSubmitted($user);
         $ageRequired = $this->requiresDateOfBirth($user);
+        $consentStatus = app(ParentalConsent::class)->status($user);
         $consentPending = (bool) ($user->is_minor ?? false) && ($user->parental_consent_confirmed_at ?? null) === null;
         $nextStep = match (true) {
             ! $verified => 'mobile_verification',
             ! $submitted => 'complete_profile',
             $ageRequired => 'age_verification',
             ! $completed => 'complete_profile',
+            $consentStatus === 'details_required' => 'guardian_details',
             $consentPending => 'guardian_consent',
             default => 'home',
         };
@@ -45,7 +47,10 @@ final class OnboardingState
             'registrationSubmitted' => $submitted,
             'onboardingRequired' => ! $completed,
             'ageVerificationRequired' => $ageRequired,
-            'parentalConsentPending' => $consentPending,
+            'parentalConsentPending' => $consentStatus === 'pending',
+            'parentalConsentRequired' => $consentPending,
+            'parentalConsentStatus' => $consentStatus,
+            'guardianDetailsRequired' => $consentStatus === 'details_required',
             // Incomplete users open the common form, with inline OTP if required.
             'nextScreen' => ! $completed && in_array($nextStep, ['mobile_verification', 'complete_profile'], true)
                 ? 'onboarding' : $nextStep,
@@ -54,6 +59,7 @@ final class OnboardingState
                 'mobile_verification' => '/auth/link-phone',
                 'complete_profile' => '/auth/register',
                 'age_verification' => '/auth/date-of-birth',
+                'guardian_details' => '/auth/guardian-details',
                 'guardian_consent' => '/auth/session',
                 default => '/profiles/me',
             },

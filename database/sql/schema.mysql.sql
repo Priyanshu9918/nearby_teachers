@@ -17,6 +17,8 @@ CREATE TABLE users (
   guardian_contact VARCHAR(255) NULL,
   parental_consent_token VARCHAR(128) NULL,
   parental_consent_confirmed_at DATETIME(6) NULL,
+  parental_consent_expires_at DATETIME(6) NULL,
+  parental_consent_rejected_at DATETIME(6) NULL,
   safety_disclaimer_acknowledged_at DATETIME(6) NULL,
   terms_accepted_at DATETIME(6) NULL,
   profile_completed_at DATETIME(6) NULL,
@@ -29,6 +31,7 @@ CREATE TABLE users (
   referral_code VARCHAR(32) NULL UNIQUE,
   created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  INDEX users_parental_consent_token_index (parental_consent_token),
   CONSTRAINT users_suspended_by_fk FOREIGN KEY (suspended_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

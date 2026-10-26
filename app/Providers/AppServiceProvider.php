@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Broadcasting\SocketIoBroadcaster;
+use App\Services\Presence\PresenceStore;
+use App\Services\Presence\RedisPresenceStore;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
@@ -16,7 +18,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(PresenceStore::class, RedisPresenceStore::class);
     }
 
     /**
@@ -25,6 +27,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Broadcast::extend('socketio', fn ($app, array $config) => new SocketIoBroadcaster($config));
+        RateLimiter::for('presence', fn (Request $request) => Limit::perMinute(120)
+            ->by('presence:'.($request->attributes->get('authenticated_user')?->id ?? $request->ip())));
         // The Socket.IO bridge shares an IP across clients; limit each bearer separately.
         RateLimiter::for('socket-auth', fn (Request $request) => Limit::perMinute(180)
             ->by(hash('sha256', (string) $request->bearerToken())));

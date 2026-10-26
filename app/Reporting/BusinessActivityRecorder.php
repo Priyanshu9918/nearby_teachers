@@ -17,6 +17,8 @@ final class BusinessActivityRecorder
         'registration.submitted' => ['user', ['account_type', 'registration_submitted_at']],
         'registration.completed' => ['user', ['account_type', 'profile_completed_at']],
         // Age history stores flags, never birth dates, guardian contacts or consent tokens.
+        'parental_consent.requested' => ['user', ['status']],
+        'parental_consent.decided' => ['user', ['status']],
         'onboarding.age_verified' => ['user', ['age_verified', 'is_minor']],
         'identity.phone_verified' => ['user', ['verified', 'phone_changed']],
         'identity.google_linked' => ['user', ['linked']],

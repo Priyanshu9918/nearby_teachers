@@ -523,8 +523,12 @@ class DeveloperController extends Controller
                 'guide' => 'Final submit. Rejected until mobileVerified is true. Students then call POST /auth/date-of-birth.',
             ],
             'POST /auth/parental-consent/confirm' => [
-                'body' => ['token' => 'PASTE_ONE_TIME_GUARDIAN_TOKEN'],
-                'guide' => 'Public one-time confirmation. The guardian receives this token in the consent email link; it is never returned in the user/session JSON. Refresh /auth/session after confirmation.',
+                'body' => ['token' => 'PASTE_ONE_TIME_GUARDIAN_TOKEN', 'decision' => 'approve'],
+                'guide' => 'Public one-time approve/reject decision. Prefer the hosted parentalConsent.link page. The guardian-details response returns the link and parent phone for app-team delivery. Refresh /auth/session after the decision.',
+            ],
+            'POST /auth/guardian-details' => [
+                'body' => ['guardianName' => 'Example Parent', 'guardianContact' => '+919876543211'],
+                'guide' => 'After minor DOB returns guardianDetailsRequired, submit the parent form here. Returns parentalConsent.link, expiry and parent name/phone for app-team delivery. Each submission creates a new one-time request.',
             ],
             'POST /auth/account-type' => ['body' => ['accountType' => 'learner']],
             'PATCH /auth/preferred-language' => ['body' => ['language' => 'en']],
@@ -532,7 +536,7 @@ class DeveloperController extends Controller
             'PATCH /auth/link-google' => ['body' => ['firebaseIdToken' => 'PASTE_FIREBASE_GOOGLE_ID_TOKEN']],
             'POST /auth/date-of-birth' => [
                 'body' => ['dateOfBirth' => '1998-06-15'],
-                'guide' => 'Separate student step after form submission. Ages 13–17 also require guardianName and guardianContact (use an email for consent delivery). Under 13 is rejected. Teacher/institute registration does not require DOB. Follow nextScreen and parentalConsentPending.',
+                'guide' => 'Submit dateOfBirth only. Under 13 is rejected. Ages 13–17 return guardianDetailsRequired and nextScreen=guardian_details; open the parent form and submit it to POST /auth/guardian-details. Adults do not need this form.',
             ],
             'POST /auth/acknowledge-safety-disclaimer' => ['body' => []],
             'POST /location-lookup/reverse' => [
@@ -566,6 +570,10 @@ class DeveloperController extends Controller
             'POST /feed' => ['body' => ['city' => 'New Delhi', 'body' => 'Looking for a BSL teacher for beginner classes.', 'subjectId' => 1]],
             'POST /feed/{postId}/comments' => ['body' => ['body' => 'Thanks for sharing.'], 'pathDefaults' => ['postId' => 4]],
             'POST /safety/reports' => ['body' => ['targetType' => 'user', 'targetId' => 1, 'reasonCategory' => 'fake_profile', 'reason' => 'Example report reason.']],
+            'POST /presence/update' => [
+                'body' => ['deviceId' => 'app-device-unique-id', 'event' => 'foreground'],
+                'guide' => 'Report foreground/activity/heartbeat/background for this authenticated device. Heartbeat every 30 seconds; only activity resets the five-minute idle timer. See docs/PRESENCE.md.',
+            ],
             'POST /suggestions' => ['body' => ['suggestionType' => 'course', 'name' => 'Beginner Sign Language', 'notes' => 'Example suggestion.']],
             'POST /support' => ['body' => ['subject' => 'Example support request', 'message' => 'Please describe your support question here.']],
             'POST /referrals/redeem' => ['body' => ['code' => 'PASTE_REFERRAL_CODE']],

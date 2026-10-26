@@ -191,7 +191,7 @@ class ApiCatalogTest extends TestCase
         }
     }
 
-    public function test_api_guides_cover_the_same_five_groups_and_registered_operations(): void
+    public function test_frozen_api_guides_keep_valid_groups_for_published_operations(): void
     {
         $groups = config('api_catalog.groups');
         $routes = config('api_catalog.route_groups');
@@ -212,8 +212,11 @@ class ApiCatalogTest extends TestCase
                     }
                 }
             }
-            $this->assertEqualsCanonicalizing(array_keys($routes), array_keys($coverage), $file);
-            foreach ($routes as $key => $expectedGroups) {
+            // Owner freezes Markdown guides; runtime catalog and Postman above must
+            // still cover every route. Validate existing published rows here.
+            $this->assertNotEmpty($coverage, $file);
+            foreach ($coverage as $key => $publishedGroups) {
+                $expectedGroups = $routes[$key];
                 // Published guides stay unchanged per owner request; runtime groups are checked above.
                 if ($key === 'POST /messages/start') {
                     $expectedGroups = ['Learner'];

@@ -4,11 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\RevokeChatSessions;
-use App\Jobs\SendNotificationEmail;
 use App\Reporting\BusinessActivityRecorder;
 use App\Services\AuthenticationService;
 use App\Services\OnboardingState;
 use App\Services\OtpDelivery;
+use App\Services\ParentalConsent;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -436,8 +436,8 @@ class AuthController extends Controller
     {
         $data = $request->validate([
             'dateOfBirth' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
-            'guardianName' => ['nullable', 'string', 'max:160'],
-            'guardianContact' => ['nullable', 'string', 'max:255'],
+            'guardianName' => ['prohibited'],
+            'guardianContact' => ['prohibited'],
         ]);
         $birthDate = CarbonImmutable::createFromFormat('Y-m-d', $data['dateOfBirth']);
         $age = $birthDate->age;
@@ -450,43 +450,17 @@ class AuthController extends Controller
             return response()->json(['error' => 'You must be at least 13 to use Nearby Teacher'], 400);
         }
 
-        if ($age < 18) {
-            if (empty($data['guardianName']) || empty($data['guardianContact'])) {
-                return response()->json([
-                    'error' => 'A parent or guardian name and contact (email or phone) are required for users under 18',
-                ], 400);
-            }
-            if (str_contains($data['guardianContact'], '@')) {
-                if (filter_var($data['guardianContact'], FILTER_VALIDATE_EMAIL) === false) {
-                    return response()->json(['error' => 'Enter a valid guardian email address or phone number'], 400);
-                }
-            } else {
-                try {
-                    $this->validatedPhone($data['guardianContact']);
-                } catch (ValidationException) {
-                    return response()->json(['error' => 'Enter a valid guardian email address or phone number'], 400);
-                }
-            }
-
-        }
-
         $isMinor = $age < 18;
-        $token = $isMinor ? bin2hex(random_bytes(24)) : null;
-        $fresh = DB::transaction(function () use ($user, $birthDate, $isMinor, $data, $token): object {
+        $fresh = DB::transaction(function () use ($user, $birthDate, $isMinor): object {
             $saved = DB::table('users')->where('id', $user->id)->lockForUpdate()->first();
             abort_if($saved === null, 403, 'Invalid or expired token');
+            abort_if($saved->date_of_birth !== null && $saved->date_of_birth !== $birthDate->toDateString(), 409, 'Date of birth is already set. Contact support to correct it.');
             $state = app(OnboardingState::class);
             $updates = [
                 'date_of_birth' => $birthDate->toDateString(),
                 'is_minor' => $isMinor,
-                'parental_consent_token' => $token,
                 'updated_at' => now(),
             ];
-            if ($isMinor) {
-                $updates['guardian_name'] = $data['guardianName'];
-                $updates['guardian_contact'] = $data['guardianContact'];
-                $updates['parental_consent_confirmed_at'] = null;
-            }
             if ($saved->account_type === 'learner' && $state->registrationSubmitted($saved)
                 && ! $state->registrationCompleted($saved)) {
                 $updates['profile_completed_at'] = now();
@@ -505,50 +479,70 @@ class AuthController extends Controller
             return $fresh;
         });
 
-        if ($isMinor) {
-            if (str_contains($data['guardianContact'], '@')) {
-                $this->sendGuardianConsentEmail($fresh->full_name, $data['guardianContact'], $token);
-            } else {
-                Log::warning('Guardian consent was recorded with a phone contact; SMS consent delivery is not configured.');
-            }
-        }
-
         return response()->json([
             'isMinor' => $isMinor,
             ...app(OnboardingState::class)->forUser($fresh),
-            ...($isMinor ? [
-                'message' => 'A consent request has been sent to your parent/guardian. Messaging and booking are unavailable until they confirm.',
-            ] : []),
+        ])->header('Cache-Control', 'no-store, private');
+    }
+
+    public function setGuardianDetails(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'guardianName' => ['required', 'string', 'max:160'],
+            'guardianContact' => ['required', 'string', 'max:255'],
+            'dateOfBirth' => ['prohibited'],
         ]);
+        try {
+            [$phone] = $this->validatedPhone($data['guardianContact']);
+        } catch (ValidationException) {
+            throw ValidationException::withMessages([
+                'guardianContact' => 'Enter a valid parent phone number with country code, e.g. +919876543211',
+            ]);
+        }
+        $user = $request->attributes->get('authenticated_user');
+        $token = bin2hex(random_bytes(24));
+        $fresh = DB::transaction(function () use ($user, $data, $phone, $token): object {
+            $saved = DB::table('users')->where('id', $user->id)->lockForUpdate()->first();
+            abort_if($saved === null, 403, 'Invalid or expired token');
+            abort_if($saved->account_type !== 'learner' || $saved->date_of_birth === null || ! $saved->is_minor,
+                409, 'Save a learner date of birth requiring parent consent before submitting guardian details.');
+            DB::table('users')->where('id', $saved->id)->update([
+                'guardian_name' => $data['guardianName'],
+                'guardian_contact' => $phone,
+                'parental_consent_token' => hash('sha256', $token),
+                'parental_consent_expires_at' => now()->addHours(48),
+                'parental_consent_confirmed_at' => null,
+                'parental_consent_rejected_at' => null,
+                'updated_at' => now(),
+            ]);
+            app(BusinessActivityRecorder::class)->record('parental_consent.requested', $saved->id, $saved->id,
+                before: ['status' => app(ParentalConsent::class)->status($saved)], after: ['status' => 'pending']);
+
+            return DB::table('users')->where('id', $saved->id)->first();
+        });
+
+        return response()->json([
+            ...app(OnboardingState::class)->forUser($fresh),
+            'message' => 'Send this link to the parent/guardian phone. Messaging and booking require approval.',
+            'parentalConsent' => [
+                'status' => 'pending',
+                'link' => route('parental-consent.show', ['token' => $token]),
+                'expiresAt' => $fresh->parental_consent_expires_at,
+                'parent' => ['name' => $fresh->guardian_name, 'phone' => $fresh->guardian_contact],
+            ],
+        ])->header('Cache-Control', 'no-store, private');
     }
 
     public function confirmParentalConsent(Request $request): JsonResponse
     {
-        $data = $request->validate(['token' => ['required', 'string', 'max:128']]);
+        $data = $request->validate([
+            'token' => ['required', 'string', 'size:48', 'regex:/^[a-f0-9]+$/'],
+            'decision' => ['sometimes', 'in:approve,reject'],
+        ]);
+        $status = app(ParentalConsent::class)->decide($data['token'], $data['decision'] ?? 'approve');
 
-        $user = DB::transaction(function () use ($data): ?object {
-            $user = DB::table('users')->select('id', 'full_name')
-                ->where('parental_consent_token', $data['token'])
-                ->lockForUpdate()
-                ->first();
-            if ($user === null) {
-                return null;
-            }
-
-            DB::table('users')->where('id', $user->id)->where('parental_consent_token', $data['token'])->update([
-                'parental_consent_confirmed_at' => now(),
-                'parental_consent_token' => null,
-                'updated_at' => now(),
-            ]);
-
-            return $user;
-        });
-
-        if ($user === null) {
-            return response()->json(['error' => 'This consent link is invalid or has already been used.'], 404);
-        }
-
-        return response()->json(['ok' => true, 'confirmedFor' => $user->full_name]);
+        return response()->json(['ok' => true, 'parentalConsentStatus' => $status])
+            ->header('Cache-Control', 'no-store');
     }
 
     public function safetyDisclaimer(): JsonResponse
@@ -666,18 +660,5 @@ class AuthController extends Controller
     private function emptyLessonModes(): array
     {
         return ['lesson_modes' => '[]'];
-    }
-
-    private function sendGuardianConsentEmail(string $fullName, string $guardianContact, string $token): void
-    {
-        $consentLink = rtrim(config('services.nearby_teacher.app_base_url'), '/').'/parental-consent/'.$token;
-        SendNotificationEmail::dispatch(
-            $guardianContact,
-            $fullName.' wants to use Nearby Teacher — your consent is needed',
-            $fullName.' has signed up for Nearby Teacher and listed you as their parent/guardian. '
-            .'Nearby Teacher connects learners with nearby teachers and institutes; background checks are not '
-            .'conducted on listings. If you consent to '.$fullName.' using the platform, confirm here: '
-            .$consentLink."\n\nIf you did not expect this, you can ignore this email."
-        );
     }
 }

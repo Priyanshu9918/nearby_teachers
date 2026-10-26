@@ -250,8 +250,8 @@ checks authenticated identity, contact gates and a teacher/institute target.
 
 | Method | Path | Access | Request / query | Result / notes |
 |---|---|---|---|---|
-| `POST` | `/auth/date-of-birth` | Verified bearer | `dateOfBirth` (`YYYY-MM-DD`); for ages 13–17 also `guardianName`, `guardianContact` | Rejects users under 13. Minors need guardian consent before messaging/booking. Guardian email delivery must be configured; phone-contact SMS consent delivery is not implemented. |
-| `POST` | `/auth/parental-consent/confirm` | Public, one-time token | `token` | Confirms guardian consent; returns `ok`, `confirmedFor`. |
+| `POST` | `/auth/date-of-birth` | Verified bearer | `dateOfBirth` (`YYYY-MM-DD`); for ages 13–17 also `guardianName`, `guardianContact` | Rejects users under 13. Minors need guardian consent before messaging/booking. Returns parentalConsent.link, expiresAt and parent name/phone; app team sends the link. See [consent contract](PARENTAL_CONSENT.md). |
+| `POST` | `/auth/parental-consent/confirm` | Public, one-time token | `token`, optional `decision` (`approve`/`reject`) | Saves a one-time decision; returns `ok`, `parentalConsentStatus`. |
 | `GET` | `/search` | Public | Required `lat`, `lng`; optional `radiusKm` (default 7, max 500), `subjectId`, `q`, `freeOnly` (`true`/`false`) | Up to 50 nearby teacher/institute results with `distance_km`; uses MySQL `ST_Distance_Sphere`. |
 | `GET` | `/search/counts` | Public | Required `lat`, `lng`; optional `radiusKm` (default 7) | Teacher and institute counts in the radius. |
 | `GET` | `/search/other-city` | Public | Required `city`; optional `subjectId`, `q` | Up to 50 online providers matching city/country text. |
@@ -298,19 +298,18 @@ For ages 13–17:
 {
   "dateOfBirth":"2010-01-01",
   "guardianName":"Guardian Example",
-  "guardianContact":"guardian@example.com"
+  "guardianContact":"+919876543211"
 }
 ```
 
-The response marks registration complete if the form was submitted, but
-`parentalConsentPending:true` and `nextScreen:"guardian_consent"`. Guardian name
-and email/international phone are required for minors. Guardian email is queued;
-SMS consent delivery is not implemented, so use email for a deliverable link.
-The link contains a separate single-use consent token, never the user's bearer.
-The frontend consent page submits `{token:"<email-link consent token>"}` to
-public `POST /auth/parental-consent/confirm`. Success is
-`{ok:true,confirmedFor:"Student Example"}`; invalid/used tokens return `404`.
-Refresh session afterwards to observe confirmed consent and home routing.
+The response includes `parentalConsentStatus:"pending"`, `parentalConsentRequired:true`,
+`nextScreen:"guardian_consent"` and `parentalConsent` containing `link`, `expiresAt`,
+and `parent:{name,phone}`. `guardianContact` must be an international phone number.
+The app team sends this link; the backend does not send consent SMS/email.
+Parents open the hosted page and explicitly approve or reject. Links expire in
+48 hours and are single use. Login/session expose `parentalConsentStatus`:
+`pending`, `approved`, `rejected`, `expired`, or `not_required`. Only approval
+unlocks existing consent gates. See [complete contract](PARENTAL_CONSENT.md).
 Under-13 or age over 120 is `400`; invalid/future date is `422`. Students require
 DOB to complete; teachers/institutes do not need this page/API.
 
@@ -742,6 +741,7 @@ shown in this shared documentation category.
 | `GET` | `/feed/{postId}/comments` | Public | `perPage`, `cursor` | Lists comments. |
 | `POST` | `/feed/{postId}/comments` | Verified bearer | `body`; optional `parentCommentId` | Adds a comment or reply. |
 | `POST` | `/safety/reports` | Verified bearer | `targetType` (`user`, `post`, `comment`, `message`), `targetId`, `reasonCategory` (`fraud`, `fake_profile`, `inappropriate`, `spam`, `other`); optional `reason` | Creates a report. |
+| `POST` | `/presence/update` | Verified bearer | `deviceId`, `event` (`foreground`, `activity`, `heartbeat`, `background`) | Returns `{isActive}`. Five-minute inactivity and 90-second heartbeat expiry; [presence contract](PRESENCE.md). |
 | `POST` | `/safety/blocks/{userId}` | Verified bearer | — | Blocks a user. |
 | `DELETE` | `/safety/blocks/{userId}` | Verified bearer | — | Unblocks a user. |
 | `POST` | `/suggestions` | Verified bearer | `suggestionType` (`course`, `city`, `state`, `country`), `name`; optional `notes` | Submits a suggestion. |
@@ -752,6 +752,11 @@ shown in this shared documentation category.
 | `POST` | `/analytics/page-view` | Public | `pageType`; optional `target`, `platform`, `referrer` | Records a view. `pageType`: `institute`, `teacher`, `city_index`, `city_feed`, `city_directory`, `download`, `app_profile`. Limited to 120 requests/minute per IP. |
 
 ### Catalog and settings details
+
+Provider search results add boolean `isActive` without changing inclusion/rank.
+Only real interaction resets the five-minute idle clock; send foreground
+heartbeats every 30 seconds. Presence requires shared Redis and explicit enablement.
+See [API, app lifecycle and deployment](PRESENCE.md).
 
 | Endpoint | Response |
 |---|---|

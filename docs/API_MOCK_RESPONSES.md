@@ -731,7 +731,7 @@ Content-Type: `application/json`
     "date_of_birth": "2010-01-01",
     "is_minor": 1,
     "guardian_name": "Example Guardian",
-    "guardian_contact": "guardian@example.com",
+    "guardian_contact": "+919876543211",
     "parental_consent_confirmed_at": null,
     "safety_disclaimer_acknowledged_at": "2026-10-22 10:00:00",
     "terms_accepted_at": "2026-10-22 10:00:00",
@@ -1013,7 +1013,7 @@ Content-Type: `application/json`
     "date_of_birth": "2010-01-01",
     "is_minor": 1,
     "guardian_name": "Example Guardian",
-    "guardian_contact": "guardian@example.com",
+    "guardian_contact": "+919876543211",
     "parental_consent_confirmed_at": null,
     "safety_disclaimer_acknowledged_at": "2026-10-22 10:00:00",
     "terms_accepted_at": "2026-10-22 10:00:00",
@@ -1382,7 +1382,7 @@ Content-Type: `application/json`
     "date_of_birth": "2010-01-01",
     "is_minor": 1,
     "guardian_name": "Example Guardian",
-    "guardian_contact": "guardian@example.com",
+    "guardian_contact": "+919876543211",
     "parental_consent_confirmed_at": null,
     "safety_disclaimer_acknowledged_at": "2026-10-22 10:00:00",
     "terms_accepted_at": "2026-10-22 10:00:00",
@@ -3454,7 +3454,7 @@ Content-Type: `application/json`
 
 ### POST /auth/date-of-birth
 
-Separate student age page after successful registration form submission. DOB is required to complete learner/student registration, not teacher/institute registration. Format YYYY-MM-DD; minimum age 13. Ages 13–17 require guardianName/guardianContact (email recommended; phone accepted but SMS consent delivery is not configured). DOB alone does not submit an unsaved registration form. Saved examples are fictional contract illustrations, not live captures.
+Separate student age page after successful registration form submission. DOB is required to complete learner/student registration, not teacher/institute registration. Format YYYY-MM-DD; minimum age 13. Ages 13–17 require guardianName/guardianContact (international parent phone; response includes parentalConsent.link and parent details for app-team delivery). DOB alone does not submit an unsaved registration form. Saved examples are fictional contract illustrations, not live captures.
 
 Request:
 
@@ -3522,7 +3522,15 @@ Content-Type: `application/json`
   "nextStepEndpoint": "/auth/session",
   "onboardingEndpoint": "/auth/onboarding",
   "registerEndpoint": "/auth/register",
-  "message": "A consent request has been sent to your parent/guardian. Messaging and booking are unavailable until they confirm."
+  "parentalConsentStatus": "pending",
+  "parentalConsentRequired": true,
+  "parentalConsent": {
+    "status": "pending",
+    "link": "{{baseUrl}}/parental-consent/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "expiresAt": "2026-10-28 10:00:00",
+    "parent": {"name": "Example Guardian", "phone": "+919876543211"}
+  },
+  "message": "Send this link to the parent/guardian phone. Messaging and booking require approval."
 }
 ```
 
@@ -3548,7 +3556,7 @@ Content-Type: `application/json`
 
 ```json
 {
-  "error": "A parent or guardian name and contact (email or phone) are required for users under 18"
+  "error": "A parent or guardian name and phone number are required for users under 18"
 }
 ```
 
@@ -3556,7 +3564,7 @@ Content-Type: `application/json`
 
 ### POST /auth/date-of-birth — Minor with guardian details
 
-Separate student age page after successful registration form submission. DOB is required to complete learner/student registration, not teacher/institute registration. Format YYYY-MM-DD; minimum age 13. Ages 13–17 require guardianName/guardianContact (email recommended; phone accepted but SMS consent delivery is not configured). DOB alone does not submit an unsaved registration form. Saved examples are fictional contract illustrations, not live captures.
+Separate student age page after successful registration form submission. DOB is required to complete learner/student registration, not teacher/institute registration. Format YYYY-MM-DD; minimum age 13. Ages 13–17 require guardianName/guardianContact (international parent phone; response includes parentalConsent.link and parent details for app-team delivery). DOB alone does not submit an unsaved registration form. Saved examples are fictional contract illustrations, not live captures.
 
 Request:
 
@@ -3575,7 +3583,7 @@ Request body:
 {
   "dateOfBirth": "2010-01-01",
   "guardianName": "Example Guardian",
-  "guardianContact": "guardian@example.com"
+  "guardianContact": "+919876543211"
 }
 ```
 
@@ -3600,7 +3608,15 @@ Content-Type: `application/json`
   "nextStepEndpoint": "/auth/session",
   "onboardingEndpoint": "/auth/onboarding",
   "registerEndpoint": "/auth/register",
-  "message": "A consent request has been sent to your parent/guardian. Messaging and booking are unavailable until they confirm."
+  "parentalConsentStatus": "pending",
+  "parentalConsentRequired": true,
+  "parentalConsent": {
+    "status": "pending",
+    "link": "{{baseUrl}}/parental-consent/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "expiresAt": "2026-10-28 10:00:00",
+    "parent": {"name": "Example Guardian", "phone": "+919876543211"}
+  },
+  "message": "Send this link to the parent/guardian phone. Messaging and booking require approval."
 }
 ```
 
@@ -3613,7 +3629,7 @@ Content-Type: `application/json`
 
 ```json
 {
-  "error": "Enter a valid guardian email address or phone number"
+  "error": "Enter a valid guardian phone number with country code"
 }
 ```
 
@@ -3621,7 +3637,7 @@ Content-Type: `application/json`
 
 ### POST /auth/parental-consent/confirm
 
-Public, no bearer. Use the single-use consent token from the guardian email link, not the student bearer. Confirm only after the guardian has consented. After success the student calls GET /auth/session to obtain nextScreen=home. Saved examples are fictional contract illustrations, not live captures.
+Public, no bearer. Use the single-use consent token from parentalConsent.link returned by DOB, not the student bearer. Confirm only after the guardian has consented. After success the student calls GET /auth/session to obtain nextScreen=home. Saved examples are fictional contract illustrations, not live captures.
 
 Request:
 
@@ -3649,7 +3665,7 @@ Content-Type: `application/json`
 ```json
 {
   "ok": true,
-  "confirmedFor": "Asha Sharma"
+  "parentalConsentStatus": "approved"
 }
 ```
 
@@ -3735,7 +3751,8 @@ Content-Type: `application/json`
           "name": "Mathematics",
           "is_bsl": false
         }
-      ]
+      ],
+      "isActive": false
     },
     {
       "id": "10000000-0000-4000-8000-000000000018",
@@ -3779,7 +3796,8 @@ Content-Type: `application/json`
       "website_url": null,
       "institute_type": "independent",
       "is_bsl_official": false,
-      "bsl_official_since": null
+      "bsl_official_since": null,
+      "isActive": false
     }
   ]
 }
@@ -3860,7 +3878,8 @@ Content-Type: `application/json`
       "rating_count": 10,
       "is_verified": 0,
       "trial_days": 1,
-      "distance_km": 1.25
+      "distance_km": 1.25,
+      "isActive": false
     }
   ]
 }
@@ -3958,7 +3977,8 @@ Content-Type: `application/json`
       "is_verified": 0,
       "trial_days": 1,
       "city": "Delhi",
-      "country": "India"
+      "country": "India",
+      "isActive": false
     }
   ]
 }
@@ -3999,7 +4019,8 @@ Content-Type: `application/json`
       "rating_count": 10,
       "is_verified": 0,
       "trial_days": 1,
-      "distance_km": 1.25
+      "distance_km": 1.25,
+      "isActive": false
     }
   ]
 }
@@ -4042,7 +4063,8 @@ Content-Type: `application/json`
       "trial_days": 1,
       "city": "Delhi",
       "state": "Delhi",
-      "country": "India"
+      "country": "India",
+      "isActive": false
     }
   ]
 }
@@ -4085,7 +4107,8 @@ Content-Type: `application/json`
       "trial_days": 1,
       "city": "Delhi",
       "state": "Delhi",
-      "country": "India"
+      "country": "India",
+      "isActive": false
     }
   ]
 }
@@ -4128,7 +4151,8 @@ Content-Type: `application/json`
       "trial_days": 1,
       "city": "Delhi",
       "state": "Delhi",
-      "country": "India"
+      "country": "India",
+      "isActive": false
     }
   ]
 }
@@ -11264,3 +11288,100 @@ Content-Type: `application/json`
 ```
 
 </details>
+
+
+## App presence lifecycle examples
+
+See [presence](PRESENCE.md). These examples assume one device; another active device can keep `isActive:true` after background.
+
+### POST /presence/update · foreground
+
+```http
+POST {{baseUrl}}/presence/update
+Authorization: Bearer {{token}}
+Content-Type: application/json
+```
+
+```json
+{
+  "deviceId": "app-device-unique-id",
+  "event": "foreground"
+}
+```
+
+Example response:
+
+```json
+{
+  "isActive": true
+}
+```
+
+### POST /presence/update · activity
+
+```http
+POST {{baseUrl}}/presence/update
+Authorization: Bearer {{token}}
+Content-Type: application/json
+```
+
+```json
+{
+  "deviceId": "app-device-unique-id",
+  "event": "activity"
+}
+```
+
+Example response:
+
+```json
+{
+  "isActive": true
+}
+```
+
+### POST /presence/update · heartbeat
+
+```http
+POST {{baseUrl}}/presence/update
+Authorization: Bearer {{token}}
+Content-Type: application/json
+```
+
+```json
+{
+  "deviceId": "app-device-unique-id",
+  "event": "heartbeat"
+}
+```
+
+Example response:
+
+```json
+{
+  "isActive": true
+}
+```
+
+### POST /presence/update · background
+
+```http
+POST {{baseUrl}}/presence/update
+Authorization: Bearer {{token}}
+Content-Type: application/json
+```
+
+```json
+{
+  "deviceId": "app-device-unique-id",
+  "event": "background"
+}
+```
+
+Example response:
+
+```json
+{
+  "isActive": false
+}
+```

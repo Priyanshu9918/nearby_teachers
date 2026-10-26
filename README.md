@@ -70,6 +70,7 @@ Requirements: PHP 8.2+, Composer, the `pdo_mysql` PHP extension, MySQL 8, and No
    - [Email login and password recovery](docs/EMAIL_AUTH.md)
    - [Admin portal guide](docs/ADMIN.md)
    - [Pagination, workers and performance changes](docs/PERFORMANCE.md)
+   - [Active/inactive provider presence and mobile integration](docs/PRESENCE.md)
 
    The existing Express code and documentation below are retained as a legacy
    implementation reference. Do not run the Express service against the
@@ -1045,3 +1046,5 @@ src/
 - Every endpoint that should require login uses the `requireAuth`
   middleware — grep for routes without it if adding new ones, to avoid
   accidentally leaving something open.
+
+Parent approval/rejection links and the app-team delivery contract: [Parental consent](docs/PARENTAL_CONSENT.md).
