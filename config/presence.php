@@ -1,13 +1,10 @@
 <?php
 
 return [
-    // Enable only after the shared Redis connection has been provisioned.
-    'enabled' => (bool) env('PRESENCE_ENABLED', false),
-    'connection' => 'presence',
-    'prefix' => env('PRESENCE_PREFIX', 'nearby:presence:v1:'),
+    // Current device state only; expired rows are removed by presence:prune.
+    'enabled' => (bool) env('PRESENCE_ENABLED', true),
     'idle_seconds' => 300,
     'heartbeat_seconds' => 90,
-    'key_ttl_seconds' => 600,
     'max_devices' => 20,
     'batch_size' => 500,
 ];

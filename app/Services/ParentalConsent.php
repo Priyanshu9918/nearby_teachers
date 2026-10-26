@@ -3,10 +3,29 @@
 namespace App\Services;
 
 use App\Reporting\BusinessActivityRecorder;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 final class ParentalConsent
 {
+    /** Simple login status applies only to learners currently aged 13–17. */
+    public function loginFields(object $user): array
+    {
+        if (($user->account_type ?? null) !== 'learner' || ($user->date_of_birth ?? null) === null) {
+            return [];
+        }
+        $age = CarbonImmutable::parse($user->date_of_birth)->age;
+        if ($age < 13 || $age >= 18) {
+            return [];
+        }
+
+        return ['status' => match (true) {
+            ($user->parental_consent_confirmed_at ?? null) !== null => 'approve',
+            ($user->parental_consent_rejected_at ?? null) !== null => 'reject',
+            default => 'pending',
+        }];
+    }
+
     public function status(object $user): string
     {
         if (! ($user->is_minor ?? false)) {

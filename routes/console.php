@@ -11,3 +11,5 @@ Artisan::command('inspire', function () {
 
 Schedule::call(fn () => DB::table('email_otp_codes')->where('expires_at', '<', now()->subDay())
     ->limit(1000)->delete())->name('prune-expired-email-codes')->everyFiveMinutes()->withoutOverlapping();
+
+Schedule::command('presence:prune')->everyMinute()->withoutOverlapping(5)->evenInMaintenanceMode();

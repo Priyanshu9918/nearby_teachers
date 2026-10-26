@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Services\AuthenticationService;
+use App\Services\Presence\DatabasePresenceStore;
 use App\Services\Presence\PresenceStore;
 use App\Services\Presence\UserPresence;
 use Carbon\Carbon;
@@ -24,26 +25,17 @@ class PresenceTest extends TestCase
 
     private bool $transaction = false;
 
-    private string $prefix;
-
     protected function setUp(): void
     {
         parent::setUp();
         $database = getenv('ONBOARDING_TEST_DATABASE');
-        $port = getenv('PRESENCE_TEST_REDIS_PORT');
-        if (! $database || ! $port) {
-            $this->markTestSkipped('Requires disposable ONBOARDING_TEST_DATABASE ending in _test and a separate PRESENCE_TEST_REDIS_PORT.');
+        if (! $database) {
+            $this->markTestSkipped('Requires disposable ONBOARDING_TEST_DATABASE ending in _test.');
         }
         $this->assertStringEndsWith('_test', $database);
-        $this->prefix = 'nearby-presence-test:'.bin2hex(random_bytes(8)).':';
         config([
             'database.connections.mysql.url' => null, 'database.connections.mysql.database' => $database,
-            'database.redis.client' => 'predis', 'presence.enabled' => true, 'presence.prefix' => $this->prefix,
-            'database.redis.presence' => [
-                'url' => null, 'host' => getenv('PRESENCE_TEST_REDIS_HOST') ?: '127.0.0.1',
-                'port' => (int) $port, 'database' => 15, 'username' => null, 'password' => null,
-                'timeout' => 1, 'read_write_timeout' => 1,
-            ],
+            'presence.enabled' => true,
         ]);
         DB::purge('mysql');
         $this->assertStringEndsWith('_test', DB::connection()->getDatabaseName());
@@ -73,12 +65,6 @@ class PresenceTest extends TestCase
     protected function tearDown(): void
     {
         if ($this->transaction) {
-            // Only delete known keys in this test's random namespace; never FLUSHDB.
-            foreach ([$this->teacher, $this->institute] as $id) {
-                foreach ([0, 1] as $version) {
-                    app('redis')->connection('presence')->del($this->prefix.'{'.$id.':'.$version.'}:devices', $this->prefix.'{'.$id.':'.$version.'}:active');
-                }
-            }
             DB::disableQueryLog();
             DB::rollBack();
         }
@@ -166,11 +152,11 @@ class PresenceTest extends TestCase
         $this->event('foreground', 'device-id-21')->assertStatus(429)->assertJsonPath('code', 'PRESENCE_DEVICE_LIMIT');
         $this->travel(90)->seconds();
         $this->event('foreground', 'device-id-21')->assertOk();
-        $redis = app('redis')->connection('presence');
-        $key = $this->prefix.'{'.$this->teacher.':0}:devices';
-        $this->assertSame(1, $redis->hlen($key));
-        $this->assertLessThanOrEqual(600, $redis->ttl($key));
-        $this->assertStringNotContainsString('device-id-21', json_encode($redis->hgetall($key)));
+        $rows = DB::table('user_presence_devices')->where('user_id', $this->teacher)->get();
+        $this->assertCount(1, $rows);
+        $this->assertSame(hash('sha256', 'device-id-21'), $rows[0]->device_hash);
+        $this->assertSame(now()->timestamp + 90, (int) $rows[0]->expires_at);
+        $this->assertStringNotContainsString('device-id-21', json_encode($rows));
     }
 
     public function test_presence_requires_verified_authentication_and_valid_server_owned_inputs(): void
@@ -226,7 +212,7 @@ class PresenceTest extends TestCase
         $this->assertFalse(app(UserPresence::class)->decorate([(object) ['user_id' => $this->teacher]])[0]->isActive);
     }
 
-    public function test_result_enrichment_batches_user_versions_and_redis_reads(): void
+    public function test_result_enrichment_batches_user_versions_and_presence_reads(): void
     {
         $store = Mockery::mock(PresenceStore::class);
         $store->shouldReceive('activeFor')->once()->with([$this->teacher => 0, $this->institute => 0], now()->timestamp)
@@ -251,10 +237,10 @@ class PresenceTest extends TestCase
         foreach ($response->json('results') as $row) {
             $this->assertFalse($row['isActive']);
         }
-        Log::shouldHaveReceived('warning')->twice()->with('Presence Redis is unavailable.', ['exception' => RuntimeException::class]);
+        Log::shouldHaveReceived('warning')->twice()->with('Presence database store is unavailable.', ['exception' => RuntimeException::class]);
     }
 
-    public function test_disabled_presence_makes_no_redis_or_enrichment_database_calls(): void
+    public function test_disabled_presence_makes_no_store_or_enrichment_database_calls(): void
     {
         config(['presence.enabled' => false]);
         $store = Mockery::mock(PresenceStore::class);
@@ -277,6 +263,56 @@ class PresenceTest extends TestCase
         $this->event('background')->assertOk();
         $this->assertSame($before, (array) DB::table('users')->where('id', $this->teacher)->first());
         $this->assertSame(0, DB::table('business_activity')->count());
+    }
+
+    public function test_database_reads_are_batched_and_heartbeat_updates_do_not_grow_rows(): void
+    {
+        $this->event('foreground')->assertOk();
+        foreach (range(1, 10) as $i) {
+            $this->travel(30)->seconds();
+            $this->event('heartbeat')->assertOk();
+        }
+        $this->assertSame(1, DB::table('user_presence_devices')->where('user_id', $this->teacher)->count());
+        $this->event('activity')->assertOk();
+        $rows = collect(range(1, 500))->map(fn ($i) => (object) ['user_id' => $i % 2 ? $this->teacher : $this->institute]);
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $result = app(UserPresence::class)->decorate($rows);
+        $this->assertCount(2, DB::getQueryLog());
+        $this->assertTrue($result[0]->isActive);
+        $this->assertFalse($result[1]->isActive);
+        DB::disableQueryLog();
+    }
+
+    public function test_prune_is_bounded_and_keeps_unexpired_devices(): void
+    {
+        foreach (range(1, 5) as $i) {
+            $this->event('foreground', 'expired-device-'.$i)->assertOk();
+        }
+        $this->travel(90)->seconds();
+        $this->withToken($this->institute)->event('foreground')->assertOk();
+        $this->artisan('presence:prune', ['--batch' => 2, '--batches' => 2])
+            ->expectsOutputToContain('Removed 4 expired presence devices.')->assertSuccessful();
+        $this->assertSame(2, DB::table('user_presence_devices')->count());
+        $this->assertTrue($this->active($this->institute));
+        $this->assertFalse($this->active($this->teacher));
+        $this->artisan('presence:prune')->expectsOutputToContain('Removed 1 expired presence devices.')->assertSuccessful();
+        $this->assertSame(1, DB::table('user_presence_devices')->count());
+        $this->artisan('presence:prune', ['--batch' => 0])->assertExitCode(2);
+        $this->artisan('presence:prune', ['--batch' => 5001])->assertExitCode(2);
+        $this->artisan('presence:prune', ['--batches' => 101])->assertExitCode(2);
+    }
+
+    public function test_stale_authenticated_requests_cannot_recreate_logged_out_presence(): void
+    {
+        $this->event('foreground')->assertOk();
+        DB::table('users')->where('id', $this->teacher)->increment('auth_version');
+        $store = app(DatabasePresenceStore::class);
+        $this->assertSame([3, 0], $store->update($this->teacher, 0, 'stale-device', 'foreground', now()->timestamp));
+        $this->assertFalse($this->active($this->teacher, 1));
+        $this->event('foreground')->assertOk();
+        $this->assertSame(1, DB::table('user_presence_devices')->where('user_id', $this->teacher)->count());
+        $this->assertSame(1, (int) DB::table('user_presence_devices')->where('user_id', $this->teacher)->value('auth_version'));
     }
 
     public function test_presence_is_rate_limited_per_user_including_multiple_devices(): void

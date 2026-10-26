@@ -40,6 +40,7 @@ return [
 
         'POST /auth/date-of-birth' => ['Learner'],
         'POST /auth/guardian-details' => ['Learner'],
+        'GET /auth/parental-consent/status' => ['Learner'],
         'POST /auth/parental-consent/confirm' => ['Learner'],
         'GET /search/dashboard' => ['Learner'],
         'GET /search/counts' => ['Learner'],

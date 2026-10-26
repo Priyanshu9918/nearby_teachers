@@ -207,6 +207,7 @@ class AuthController extends Controller
             'user' => $user,
             'authMethod' => 'google',
             ...app(OnboardingState::class)->forUser($user),
+            ...app(ParentalConsent::class)->loginFields($user),
         ]);
     }
 
@@ -267,6 +268,7 @@ class AuthController extends Controller
                 'code' => 'REGISTRATION_INCOMPLETE',
                 'registrationRequired' => true,
                 ...app(OnboardingState::class)->forUser($user),
+                ...app(ParentalConsent::class)->loginFields($user),
             ], 409);
         }
 
@@ -277,6 +279,7 @@ class AuthController extends Controller
             'user' => $user,
             'authMethod' => 'password',
             ...app(OnboardingState::class)->forUser($user),
+            ...app(ParentalConsent::class)->loginFields($user),
         ]);
     }
 
@@ -529,6 +532,30 @@ class AuthController extends Controller
                 'link' => route('parental-consent.show', ['token' => $token]),
                 'expiresAt' => $fresh->parental_consent_expires_at,
                 'parent' => ['name' => $fresh->guardian_name, 'phone' => $fresh->guardian_contact],
+            ],
+        ])->header('Cache-Control', 'no-store, private');
+    }
+
+    public function parentalConsentStatus(Request $request): JsonResponse
+    {
+        $user = $request->attributes->get('authenticated_user');
+        abort_unless($user->account_type === 'learner', 403, 'Consent status is available only for learners.');
+        $state = app(OnboardingState::class)->forUser($user);
+        if ($user->date_of_birth === null) {
+            return response()->json([
+                'error' => 'Save the learner date of birth first.', 'code' => 'DOB_REQUIRED', ...$state,
+            ], 409)->header('Cache-Control', 'no-store, private');
+        }
+        $fields = app(ParentalConsent::class)->loginFields($user);
+
+        return response()->json([
+            ...$state,
+            'status' => $fields['status'] ?? 'not_required',
+            'expiresAt' => $user->parental_consent_expires_at,
+            'approvedAt' => $user->parental_consent_confirmed_at,
+            'rejectedAt' => $user->parental_consent_rejected_at,
+            'parent' => $user->guardian_name === null && $user->guardian_contact === null ? null : [
+                'name' => $user->guardian_name, 'phone' => $user->guardian_contact,
             ],
         ])->header('Cache-Control', 'no-store, private');
     }

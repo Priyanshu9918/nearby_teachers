@@ -3,8 +3,8 @@
 namespace App\Providers;
 
 use App\Broadcasting\SocketIoBroadcaster;
+use App\Services\Presence\DatabasePresenceStore;
 use App\Services\Presence\PresenceStore;
-use App\Services\Presence\RedisPresenceStore;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
@@ -18,7 +18,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->bind(PresenceStore::class, RedisPresenceStore::class);
+        $this->app->bind(PresenceStore::class, DatabasePresenceStore::class);
     }
 
     /**
