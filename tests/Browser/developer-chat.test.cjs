@@ -106,8 +106,12 @@ function tester(config = {}) {
 
             if (url.endsWith('/chat/socket/authorize')) body = {userId: 'user-id', room: null};
             if (url.endsWith('/messages/start')) body = {conversationId};
-            if (url.endsWith('/messages?perPage=20')) body = {conversations: [{id: conversationId, other_name: 'Example Teacher'}]};
-            if (url.includes('/messages/' + conversationId)) body = options.method === 'GET' ? {messages: config.missingHistory ? [] : [message]} : {message};
+            if (url.endsWith('/messages?perPage=20')) body = {conversations: [{id: conversationId, other_user_id: 2, other_name: 'Example Teacher'}]};
+            if (url.includes('/messages/' + conversationId)) body = options.method === 'GET' ? {messages: config.missingHistory ? [] : [message], chatStatus: {otherUserId: 2, blockedByMe: false, canMessage: true}} : {message};
+            if (url.endsWith('/safety/blocks/2')) {
+                const blocked = options.method === 'POST';
+                body = {ok: true, userId: 2, blocked, chatStatus: {otherUserId: 2, blockedByMe: blocked, canMessage: !blocked && !config.blockedByOther}};
+            }
             return {ok: !config.httpError, status: config.httpError ? 403 : 200, text: async () => JSON.stringify(config.httpError ? {error: 'Access denied', token: 'must-not-log', nested: {password: 'must-not-log'}} : body)};
         }
     };
@@ -132,6 +136,44 @@ test('all operations have readable mock responses and no network request runs on
         assert.doesNotThrow(() => JSON.parse(t.field('result').textContent));
         assert.ok(t.field('operation-help').textContent.length > 20);
     }
+});
+
+test('block controls use the participant user ID and explicit authenticated POST and DELETE requests', async () => {
+    const t = tester();
+    await t.click('inbox');
+    t.field('inbox-select').value = conversationId;
+    t.change('inbox-select');
+    assert.equal(t.field('block-user').value, '2');
+    await t.click('block');
+    let request = t.requests.at(-1);
+    assert.equal(request.url, 'https://example.test/nearby/public/safety/blocks/2');
+    assert.equal(request.options.method, 'POST');
+    assert.equal(request.options.headers.Authorization, 'Bearer private-user-bearer');
+    assert.match(t.field('block-status').textContent, /You blocked this user/);
+    await t.click('unblock');
+    request = t.requests.at(-1);
+    assert.equal(request.options.method, 'DELETE');
+    assert.equal(request.url, 'https://example.test/nearby/public/safety/blocks/2');
+    assert.equal(t.field('block-status').textContent, 'Messaging is available.');
+    assert.equal(t.emits.some(({event}) => event === 'message.send'), false);
+});
+
+test('history fills block target and reciprocal blocking remains unavailable after removing own block', async () => {
+    const t = tester({blockedByOther: true});
+    await t.click('history');
+    assert.equal(t.field('block-user').value, '2');
+    await t.click('unblock');
+    assert.equal(t.field('block-status').textContent, 'Messaging is unavailable for this conversation.');
+});
+
+test('invalid block target makes no API request', async () => {
+    const t = tester();
+    t.field('block-user').value = '../2';
+    await t.click('block');
+    assert.equal(t.requests.length, 0);
+    t.field('block-user').value = '';
+    await t.click('unblock');
+    assert.equal(t.requests.length, 0);
 });
 
 test('unavailable chat service keeps the actual diagnostic response and stops full check', async () => {

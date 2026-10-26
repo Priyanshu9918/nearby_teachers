@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\SendNotificationEmail;
+use App\Reporting\BusinessActivityRecorder;
+use App\Services\ChatBlocking;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -63,22 +65,39 @@ class OperationsController extends Controller
         if ($userId === $user->id) {
             return response()->json(['error' => 'You cannot block your own account'], 400);
         }
-        DB::table('blocks')->insertOrIgnore([
-            'blocker_id' => $user->id,
-            'blocked_id' => $userId,
-            'created_at' => now(),
-        ]);
+        DB::transaction(function () use ($user, $userId): void {
+            app(ChatBlocking::class)->lockParticipants($user->id, $userId);
+            if (DB::table('blocks')->where('blocker_id', $user->id)->where('blocked_id', $userId)->exists()) {
+                return;
+            }
+            DB::table('blocks')->insert([
+                'blocker_id' => $user->id, 'blocked_id' => $userId, 'created_at' => now(),
+            ]);
+            app(BusinessActivityRecorder::class)->record('user.blocked', $userId, $user->id, $userId,
+                before: ['blocked' => false], after: ['blocked' => true]);
+        }, 3);
 
-        return response()->json(['ok' => true]);
+        return response()->json(['ok' => true, 'userId' => $userId, 'blocked' => true,
+            'chatStatus' => ['otherUserId' => $userId, ...app(ChatBlocking::class)->status($user->id, $userId)]]);
     }
 
     public function unblock(Request $request, int $userId): JsonResponse
     {
-        DB::table('blocks')
-            ->where('blocker_id', $request->attributes->get('authenticated_user')->id)
-            ->where('blocked_id', $userId)->delete();
+        $user = $request->attributes->get('authenticated_user');
+        if ($userId === $user->id) {
+            return response()->json(['error' => 'You cannot unblock your own account'], 400);
+        }
+        DB::transaction(function () use ($user, $userId): void {
+            app(ChatBlocking::class)->lockParticipants($user->id, $userId);
+            $deleted = DB::table('blocks')->where('blocker_id', $user->id)->where('blocked_id', $userId)->delete();
+            if ($deleted) {
+                app(BusinessActivityRecorder::class)->record('user.unblocked', $userId, $user->id, $userId,
+                    before: ['blocked' => true], after: ['blocked' => false]);
+            }
+        }, 3);
 
-        return response()->json(['ok' => true]);
+        return response()->json(['ok' => true, 'userId' => $userId, 'blocked' => false,
+            'chatStatus' => ['otherUserId' => $userId, ...app(ChatBlocking::class)->status($user->id, $userId)]]);
     }
 
     public function suggest(Request $request): JsonResponse

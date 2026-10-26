@@ -6,6 +6,7 @@ use App\Events\ChatActivity;
 use App\Events\ChatTyping;
 use App\Http\Controllers\Controller;
 use App\Reporting\BusinessActivityRecorder;
+use App\Services\ChatBlocking;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -55,6 +56,7 @@ class ChatEventsController extends Controller
             return $this->messages->send($request, $conversationId);
         }
         if (in_array($event, ['chat:typing', 'chat:stop_typing'], true)) {
+            app(ChatBlocking::class)->assertCanMessage($conversation->learner_id, $conversation->provider_id);
             $payload = ['conversationId' => $conversationId, 'userId' => $user->id,
                 'typing' => $event === 'chat:typing', 'updatedAt' => now()->toISOString(), 'expiresAt' => now()->addSeconds(5)->toISOString()];
             event(new ChatTyping($event, $payload));
@@ -70,6 +72,11 @@ class ChatEventsController extends Controller
         }
         $other = $conversation->learner_id === $user->id ? $conversation->provider_id : $conversation->learner_id;
         $payload = DB::transaction(function () use ($event, $input, $conversationId, $user, $other): array {
+            app(ChatBlocking::class)->lockParticipants($user->id, $other);
+            // Senders retain the ability to remove their own historical content.
+            if ($event !== 'chat:delete') {
+                app(ChatBlocking::class)->assertCanMessage($user->id, $other);
+            }
             $message = DB::table('messages')->where('id', $input['messageId'])->where('conversation_id', $conversationId)->lockForUpdate()->first();
             abort_if($message === null, 404, 'Message not found in this conversation');
             $payload = ['conversationId' => $conversationId, 'messageId' => $message->id, 'userId' => $user->id];
@@ -134,7 +141,7 @@ class ChatEventsController extends Controller
             }
 
             return $payload;
-        });
+        }, 3);
 
         return response()->json($payload);
     }

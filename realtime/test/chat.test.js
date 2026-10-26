@@ -37,6 +37,11 @@ async function setup(t, options = {}) {
       res.end(JSON.stringify(data));
     };
     if (!id) return reply(401, { error: 'Invalid token' });
+    if (options.blocked && (
+      (req.url === '/chat/socket/authorize' && body.conversationId) ||
+      req.url === '/messages/' + conversation ||
+      (req.url.startsWith('/chat/events/') && !['history', 'unread_count', 'delete'].includes(req.url.split('/').pop()))
+    )) return reply(403, {error: 'Messaging is unavailable for this conversation.', code: 'CHAT_BLOCKED'});
     if (req.url === '/chat/socket/authorize') {
       if (body.conversationId && (body.conversationId !== conversation || id === outsider)) {
         return reply(404, { error: 'Conversation not found' });
@@ -158,6 +163,26 @@ test('private room joins and message sending are authorized through Laravel', { 
   assert.equal((await other.timeout(2000).emitWithAck('conversation.join', { conversationId: conversation })).status, 404);
   assert.equal((await other.timeout(2000).emitWithAck('message.send', { conversationId: conversation, body: 'Forbidden' })).status, 404);
   assert.equal((await socket.timeout(2000).emitWithAck('conversation.join', { conversationId: 'user.' + outsider })).status, 422);
+});
+
+test('already joined sockets honor a subsequent API block and recover after unblock', {timeout: 10000}, async (t) => {
+  const options = {blocked: false};
+  const {connected} = await setup(t, options);
+  const first = await connected('learner-token');
+  const second = await connected('provider-token');
+  assert.equal((await first.timeout(2000).emitWithAck('conversation.join', {conversationId: conversation})).ok, true);
+  options.blocked = true;
+  for (const socket of [first, second]) {
+    for (const event of ['message.send', 'chat:send', 'chat:reply', 'chat:typing', 'chat:read', 'chat:reaction', 'conversation.join']) {
+      const result = await socket.timeout(2000).emitWithAck(event, {conversationId: conversation, body: 'Blocked', messageId: message.id, replyToId: message.id, reaction: '👍'});
+      assert.equal(result.ok, false, event);
+      assert.equal(result.status, 403, event);
+      assert.equal(result.code, 'CHAT_BLOCKED', event);
+    }
+    assert.equal((await socket.timeout(2000).emitWithAck('chat:history', {conversationId: conversation})).ok, true);
+  }
+  options.blocked = false;
+  assert.equal((await first.timeout(2000).emitWithAck('message.send', {conversationId: conversation, body: 'Allowed'})).ok, true);
 });
 
 test('server event reaches both participant devices once and never outsiders', { timeout: 10000 }, async (t) => {

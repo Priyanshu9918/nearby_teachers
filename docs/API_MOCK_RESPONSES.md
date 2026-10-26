@@ -9488,7 +9488,7 @@ Content-Type: `application/json`
 
 ### POST /safety/blocks/{{userId}}
 
-Stores relationship. Current messaging/search controllers do not enforce block filtering. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures.
+Blocks messaging in both directions through REST and Socket.IO. Existing history remains readable; see docs/CHAT_EVENTS.md. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures.
 
 Request:
 
@@ -9514,7 +9514,14 @@ Content-Type: `application/json`
 
 ```json
 {
-  "ok": true
+  "ok": true,
+  "userId": 2,
+  "blocked": true,
+  "chatStatus": {
+    "otherUserId": 2,
+    "blockedByMe": true,
+    "canMessage": false
+  }
 }
 ```
 
@@ -9554,7 +9561,14 @@ Content-Type: `application/json`
 
 ```json
 {
-  "ok": true
+  "ok": true,
+  "userId": 2,
+  "blocked": false,
+  "chatStatus": {
+    "otherUserId": 2,
+    "blockedByMe": false,
+    "canMessage": true
+  }
 }
 ```
 

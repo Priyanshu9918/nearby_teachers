@@ -69,6 +69,57 @@ const history = await socket.timeout(7000).emitWithAck('chat:history', {
 });
 ```
 
+## Block and unblock messages
+
+Use the other participant's **user ID**, not the conversation ID:
+
+```http
+POST /safety/blocks/2
+Authorization: Bearer <user login token>
+
+DELETE /safety/blocks/2
+Authorization: Bearer <user login token>
+```
+
+Both endpoints are idempotent. Responses retain `ok` and add `userId`, `blocked`
+(the caller's own block), and `chatStatus`:
+
+```json
+{
+  "ok": true,
+  "userId": 2,
+  "blocked": true,
+  "chatStatus": {"otherUserId": 2, "blockedByMe": true, "canMessage": false}
+}
+```
+
+A block in either direction stops both participants from starting/sending,
+replying, editing, reacting, typing or emitting delivery/read receipts. REST
+and Socket.IO use the same enforcement, including sockets connected before the
+block. Disallowed actions return HTTP/ACK `403`, with code `CHAT_BLOCKED`
+and a generic error. Global socket authentication still works for other chats;
+joining the blocked conversation is denied. New persistent chat mutations and
+block changes lock the participant rows in ID order to serialize concurrent
+requests. Queued Socket.IO deliveries recheck blocking before publishing.
+Packets already in flight cannot be recalled.
+
+History, inbox and unread-count reads remain available to participants. A sender
+can still delete their own old message; its tombstone can be broadcast so stored
+content disappears on connected devices. Blocking does not delete messages.
+History responses add `chatStatus`; inbox rows add `other_user_id`,
+`blocked_by_me` and `can_message` (SQL flags `0`/`1`). Use these to show
+Block/Unblock and disable the composer when messaging is unavailable. Refresh
+history/status when opening a chat or after a blocked send. A block-status push
+event is not emitted. Removing your block does not remove the other person's
+block, so use `chatStatus.canMessage` to decide whether sending can resume.
+Unknown targets return `404`; self-block/unblock returns `400`.
+
+The Developer chat tester has **Block user / Unblock user** controls in
+Conversations, Send and Saved history. Loading history fills the participant ID
+and current status automatically. Mobile app UI lives outside this repository;
+integrate the endpoints and status fields there. This change concerns messaging;
+discovery, phone reveal and bookings retain their existing behavior.
+
 ## Delivery, ordering and limits
 
 `message.sent`, `chat:receive` and `chat:new` represent the same saved message.
