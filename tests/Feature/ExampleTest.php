@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Events\ChatMessageSent;
 use App\Services\AuthenticationService;
+use App\Services\SeoDirectory;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Illuminate\Database\Query\Builder;
@@ -39,7 +40,7 @@ class ExampleTest extends TestCase
 
         $this->get('/robots.txt')
             ->assertOk()
-            ->assertSee('Sitemap: '.config('app.url').'/sitemap.xml')
+            ->assertSee('Sitemap: '.SeoDirectory::url('/sitemap.xml'))
             ->assertSee('Allow: /location-lookup');
     }
 

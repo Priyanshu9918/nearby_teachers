@@ -38,7 +38,7 @@
     @else
         <div class="list">
             @foreach ($teachers as $teacher)
-                <a class="row" href="{{ route('website.teacher', ['slug' => $teacher->slug]) }}">
+                <a class="row" href="{{ \App\Services\SeoDirectory::url('/teacher/'.$teacher->slug) }}">
                     <div><p class="name">{{ $teacher->full_name }}</p><p class="meta">
                         @if ($teacher->rating_count > 0)★ {{ $teacher->rating_avg }} ({{ $teacher->rating_count }})
                         @else{{ data_get($t, 'website.noReviewsYet') }}@endif

@@ -1150,3 +1150,5 @@ No refresh, media upload, read-receipt or message-idempotency API exists here;
 OS push delivery/registration is separate.
 
 Institute address and GPS enrichment support is described in [INSTITUTE_REGISTRATION_ADDRESS.md](INSTITUTE_REGISTRATION_ADDRESS.md). No subject selection is required or accepted in institute registration.
+
+Teacher SEO URLs now identify one `/teacher/{name-city}` page; `teacherSeoUrl` and `teacherProfileUrl` point to the same URL, or are null when publication requirements (including a supported country) are missing. See [international SEO](TEACHER_SEO_PAGES.md).

@@ -1,5 +1,11 @@
 # Reporting architecture
 
+International SEO now uses `teacher.seo_state_changed`, `seo.route_configured`,
+`seo.page_registered` and `seo.page_updated` version 1 events in their source
+transactions. Current pages, wording and URL ownership are explicit reports;
+legacy teacher-page events stay append-only. See
+[TEACHER_SEO_PAGES.md](TEACHER_SEO_PAGES.md) for lifecycle, privacy and gaps.
+
 Institute address/GPS APIs emit version 1 `institute.address_updated` and
 `institute.location_updated` events with changed field names and status flags,
 never exact address snapshots or credentials. The institute profile report
@@ -19,13 +25,6 @@ teacher-profile report explicitly exposes/searches `location_details` with its
 normal admin access logging and CSV behavior. See
 [TEACHER_LOCATION_GEOCODING.md](TEACHER_LOCATION_GEOCODING.md) for data contracts,
 Google retention/reuse limitations, privacy and coverage gaps.
-
-Teacher public page publication and URL changes now emit version 1
-`teacher.pages_published` / `teacher.pages_updated` events inside their source
-transactions. The teacher profile report explicitly includes both page slugs.
-Teacher page views use `teacher` with `seo:<user_id>` / `profile:<user_id>`
-targets. Coverage, examples and gaps are documented in
-[TEACHER_SEO_PAGES.md](TEACHER_SEO_PAGES.md#reporting-and-history).
 
 The owner may need new reports as the product grows. Reporting is therefore a
 shared module with explicit data contracts and a business history stream.

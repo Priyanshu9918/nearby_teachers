@@ -1,0 +1,220 @@
+<?php
+
+namespace App\Services;
+
+use App\Reporting\BusinessActivityRecorder;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+
+final class SeoDirectory
+{
+    public const COUNT_SQL = "(SELECT count(*) FROM teacher_profiles sp JOIN users su ON su.id = sp.user_id WHERE su.account_type = 'teacher' AND su.suspended_at IS NULL AND su.phone_verified_at IS NOT NULL AND su.profile_completed_at IS NOT NULL AND sp.public_page_slug IS NOT NULL AND sp.seo_country = r.country AND ((r.kind = 'city' AND sp.seo_city_slug = r.city_slug) OR (r.kind = 'online' AND JSON_CONTAINS(sp.lesson_modes, JSON_QUOTE('online')) = 1)) AND EXISTS (SELECT 1 FROM profile_subjects sx WHERE sx.profile_type = 'teacher' AND sx.profile_id = sp.user_id AND sx.subject_id = r.subject_id))";
+
+    public static function url(string $path): string
+    {
+        return rtrim(config('seo.public_url'), '/').'/'.ltrim($path, '/');
+    }
+
+    public static function country(object $profile): ?string
+    {
+        $code = strtolower(trim($profile->country_code ?? ''));
+        $name = Str::lower(trim($profile->country ?? ''));
+        if ($name === '') {
+            return isset(config('seo.countries')[$code]) ? $code : null;
+        }
+        $ascii = Str::lower(Str::ascii($name));
+        foreach (config('seo.countries') as $country => $definition) {
+            foreach ([$country, $definition['name'], ...$definition['aliases']] as $value) {
+                if ($name === Str::lower($value) || ($ascii !== '' && $ascii === Str::lower(Str::ascii($value)))) {
+                    return $country;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public static function language(string $country): string
+    {
+        return config('seo.countries.'.$country.'.language', 'en');
+    }
+
+    public static function labels(string $language): array
+    {
+        return json_decode(file_get_contents(resource_path('seo/'.$language.'.json')), true, flags: JSON_THROW_ON_ERROR);
+    }
+
+    public static function text(array $labels, string $key, array $values = []): string
+    {
+        $text = $labels[$key];
+        foreach ($values as $name => $value) {
+            $text = str_replace(':'.$name, (string) $value, $text);
+        }
+
+        return $text;
+    }
+
+    public static function citySlug(string $city): string
+    {
+        $slug = config('seo.city_slugs.'.Str::lower(trim($city))) ?? substr(Str::slug($city), 0, 180);
+
+        return $slug === 'online' ? 'online-city' : ($slug ?: 'city-'.substr(hash('sha256', $city), 0, 12));
+    }
+
+    public function teachers(): Builder
+    {
+        return DB::table('teacher_profiles as p')->join('users as u', 'u.id', '=', 'p.user_id')
+            ->where('u.account_type', 'teacher')->whereNull('u.suspended_at')
+            ->whereNotNull('u.phone_verified_at')->whereNotNull('u.profile_completed_at')
+            ->whereNotNull('p.public_page_slug')->whereNotNull('p.seo_country')->whereNotNull('p.seo_city_slug')
+            ->whereExists(fn (Builder $query) => $query->selectRaw('1')->from('profile_subjects as ps')
+                ->where('ps.profile_type', 'teacher')->whereColumn('ps.profile_id', 'p.user_id'));
+    }
+
+    public function matching(object $page): Builder
+    {
+        $query = $this->teachers()->where('p.seo_country', $page->country)
+            ->whereExists(fn (Builder $subjects) => $subjects->selectRaw('1')->from('profile_subjects as ps')
+                ->where('ps.profile_type', 'teacher')->whereColumn('ps.profile_id', 'p.user_id')->where('ps.subject_id', $page->subject_id));
+        if ($page->kind === 'online') {
+            $query->whereJsonContains('p.lesson_modes', 'online');
+        } else {
+            $query->where('p.seo_city_slug', $page->city_slug);
+        }
+
+        return $query;
+    }
+
+    public function pages(): Builder
+    {
+        return DB::table('seo_directory_pages as r')->join('seo_subject_routes as sr', 'sr.id', '=', 'r.route_id')
+            ->where('sr.enabled', true)->whereRaw(self::COUNT_SQL.' > 0')
+            ->select('r.*', 'sr.display_name');
+    }
+
+    public static function pagePath(object $route, string $kind, string $citySlug): string
+    {
+        $prefix = '/'.$route->country;
+        if ($route->language !== self::language($route->country)) {
+            $prefix .= '/'.$route->language;
+        }
+
+        return $prefix.'/'.($kind === 'online' ? 'online' : $citySlug).'/'.($kind === 'online' ? $route->online_slug : $route->city_slug);
+    }
+
+    public static function claim(string $path, string $type, int $id): bool
+    {
+        $hash = hash('sha256', $path);
+        DB::table('seo_urls')->insertOrIgnore(['path' => $path, 'path_hash' => $hash, 'target_type' => $type, 'target_id' => $id, 'created_at' => now()]);
+        $owner = DB::table('seo_urls')->where('path_hash', $hash)->where('path', $path)->first();
+
+        return $owner !== null && $owner->target_type === $type && (int) $owner->target_id === $id;
+    }
+
+    public function seedRoutes(object $subject, string $country): void
+    {
+        $catalog = json_decode(file_get_contents(resource_path('seo/subjects.json')), true, flags: JSON_THROW_ON_ERROR);
+        $key = Str::slug($subject->name);
+        if ($key === '') {
+            return;
+        }
+        $known = str_starts_with($key, 'ielts-') ? 'ielts' : null;
+        foreach ($catalog as $name => $definition) {
+            if (in_array($key, $definition['aliases'], true)) {
+                $known = $name;
+                break;
+            }
+        }
+        foreach (config('seo.countries.'.$country.'.languages') as $language) {
+            if (DB::table('seo_subject_routes')->where('subject_id', $subject->id)->where('country', $country)->where('language', $language)->exists()) {
+                continue;
+            }
+            if ($language !== 'en' && ($known === null || ! isset($catalog[$known][$language]))) {
+                continue; // Never label English-only content as a translated page.
+            }
+            $display = $known === null ? $subject->name : $catalog[$known][$language];
+            if ($known === 'maths' && $language === 'en' && $country === 'us') {
+                $display = 'Math';
+            }
+            $style = config('seo.countries.'.$country.'.style');
+            $base = $known === 'maths' ? ($country === 'us' ? 'math' : 'maths') : ($known ?? $key);
+            $citySlug = substr($base.'-'.$style, 0, 220);
+            $onlineSlug = $known === 'ielts' ? ($country === 'us' ? 'ielts-prep' : 'ielts-coaching') : $citySlug;
+            if ($language === 'es') {
+                $citySlug = $known === 'ielts' ? 'preparacion-ielts' : 'clases-particulares-de-'.Str::slug($display);
+                $onlineSlug = $citySlug;
+            } elseif ($language === 'fr') {
+                $citySlug = 'cours-de-'.Str::slug($display);
+                $onlineSlug = $citySlug;
+            } elseif ($language === 'pt') {
+                $citySlug = 'aulas-de-'.Str::slug($display);
+                $onlineSlug = $citySlug;
+            }
+            // Reserved Slavic/East-Asian/Arabic scripts keep English URL wording;
+            // Hindi/Bengali/Urdu follow Indian-English wording via the country style.
+            if (DB::table('seo_subject_routes')->where('country', $country)->where('language', $language)
+                ->where(fn (Builder $q) => $q->where('city_slug', $citySlug)->orWhere('online_slug', $onlineSlug))->exists()) {
+                continue;
+            }
+            $inserted = DB::table('seo_subject_routes')->insertOrIgnore(['subject_id' => $subject->id, 'country' => $country,
+                'language' => $language, 'display_name' => $display, 'city_slug' => $citySlug, 'online_slug' => $onlineSlug,
+                'enabled' => true, 'created_at' => now(), 'updated_at' => now()]);
+            if (! $inserted) {
+                continue;
+            }
+            $id = DB::table('seo_subject_routes')->where('subject_id', $subject->id)->where('country', $country)->where('language', $language)->value('id');
+            app(BusinessActivityRecorder::class)->record('seo.route_configured', $id, null,
+                after: ['subject_id' => (int) $subject->id, 'country' => $country, 'language' => $language,
+                    'city_slug' => $citySlug, 'online_slug' => $onlineSlug, 'enabled' => true]);
+        }
+    }
+
+    public function ensurePages(object $profile, array $subjects): void
+    {
+        $routes = DB::table('seo_subject_routes')->where('country', $profile->seo_country)->where('enabled', true)
+            ->whereIn('subject_id', $subjects)->get();
+        $online = in_array('online', (json_decode($profile->lesson_modes ?: '[]', true) ?: []), true);
+        foreach ($routes as $route) {
+            foreach ($online ? ['city', 'online'] : ['city'] as $kind) {
+                $citySlug = $kind === 'online' ? 'online' : $profile->seo_city_slug;
+                $identity = ['route_id' => $route->id, 'kind' => $kind, 'city_slug' => $citySlug];
+                $page = DB::table('seo_directory_pages')->where($identity)->first();
+                $path = self::pagePath($route, $kind, $citySlug);
+                if ($page === null) {
+                    $inserted = DB::table('seo_directory_pages')->insertOrIgnore([...$identity, 'subject_id' => $route->subject_id,
+                        'country' => $route->country, 'language' => $route->language, 'city' => $kind === 'city' ? $profile->city : null,
+                        'path' => $path, 'created_at' => now(), 'updated_at' => now()]);
+                    $id = DB::table('seo_directory_pages')->where($identity)->value('id');
+                    if ($id === null || ! self::claim($path, 'listing', (int) $id)) {
+                        throw new \LogicException('SEO URL is already owned.');
+                    }
+                    if (! $inserted) {
+                        continue;
+                    }
+                    app(BusinessActivityRecorder::class)->record('seo.page_registered', $id, null,
+                        after: ['path' => $path, 'country' => $route->country, 'language' => $route->language,
+                            'kind' => $kind, 'subject_id' => (int) $route->subject_id]);
+                } elseif ($page->path !== $path) {
+                    if (! self::claim($path, 'listing', (int) $page->id)) {
+                        throw new \LogicException('SEO URL is already owned.');
+                    }
+                    DB::table('seo_directory_pages')->where('id', $page->id)->update(['path' => $path, 'updated_at' => now()]);
+                    app(BusinessActivityRecorder::class)->record('seo.page_updated', $page->id, null,
+                        before: ['path' => $page->path], after: ['path' => $path]);
+                }
+            }
+        }
+    }
+
+    public function sync(): int
+    {
+        $count = 0;
+        foreach (DB::table('teacher_profiles')->orderBy('user_id')->lazyById(100, 'user_id') as $profile) {
+            DB::transaction(fn () => app(TeacherPublicPages::class)->publish((int) $profile->user_id));
+            $count++;
+        }
+
+        return $count;
+    }
+}

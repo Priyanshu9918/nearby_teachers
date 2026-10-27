@@ -156,7 +156,7 @@ class ProfilesController extends Controller
         $teacherResponse = [];
         if ($isTeacher) {
             $profile = DB::table($profileTable)->where('user_id', $user->id)
-                ->select('user_id', 'slug', 'seo_slug', 'public_profile_slug', 'location_details')->first();
+                ->select('public_page_slug', 'seo_country', 'user_id', 'slug', 'seo_slug', 'public_profile_slug', 'location_details')->first();
             $teacherResponse = [...TeacherPublicPages::urls($profile, $user->full_name),
                 'locationDetails' => $profile->location_details === null ? null : json_decode($profile->location_details, true, flags: JSON_THROW_ON_ERROR)];
         }
@@ -198,6 +198,7 @@ class ProfilesController extends Controller
         }
         // Enrichment belongs to the owner onboarding response and admin reports only.
         unset($profile->location_details);
+        unset($profile->seo_state_hash);
         unset($profile->district, $profile->sub_district, $profile->locality, $profile->locality_type, $profile->postal_code);
 
         $phoneQuota = null;

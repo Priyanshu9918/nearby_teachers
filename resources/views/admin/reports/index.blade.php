@@ -13,7 +13,11 @@
         @if ($report === 'users')<a class="btn btn-small" href="{{ route('admin.reports.user', $record->id) }}">User report</a>
         @elseif ($report === 'conversations')<a class="btn btn-small" href="{{ route('admin.reports.conversation', $record->id) }}">Read messages</a>
         @elseif ($report === 'messages')<a class="btn btn-small" href="{{ route('admin.reports.conversation', $record->conversation_id) }}">Conversation</a>
-        @elseif ($report === 'teacher-profiles' && ($record->seo_slug ?? $record->slug))<a class="btn btn-small" href="{{ route('website.teacher', ['slug' => $record->seo_slug ?? $record->slug]) }}" target="_blank" rel="noopener noreferrer">Open SEO page <x-admin-icon name="arrow" /></a>
+        @elseif ($report === 'teacher-profiles' && $record->seo_public)<a class="btn btn-small" href="{{ \App\Services\SeoDirectory::url('/teacher/'.$record->public_page_slug) }}" target="_blank" rel="noopener noreferrer">Open teacher page <x-admin-icon name="arrow" /></a>
+        @elseif ($report === 'teacher-profiles')<span>Needs eligible profile and country</span>
+        @elseif ($report === 'seo-pages')
+            @if ($record->eligible_teachers > 0 && $record->route_enabled)<a class="btn btn-small" href="{{ \App\Services\SeoDirectory::url($record->path) }}" target="_blank" rel="noopener noreferrer">Open page</a><span>Published</span>@else<span>{{ $record->route_enabled ? 'No matching teachers' : 'Disabled' }}</span>@endif
+        @elseif ($report === 'seo-subject-routes')<a class="btn btn-small" href="{{ route('admin.seo.edit', ['id' => $record->id]) }}">Edit wording</a>
         @else — @endif
     </td>
     @foreach ($columns as $column)
