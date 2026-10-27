@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\CountryCurrency;
 use App\Services\OnboardingState;
+use App\Services\TeacherPublicPages;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -57,7 +58,7 @@ class ProfilesController extends Controller
             'subjectIds.*' => ['integer', 'distinct', 'exists:subjects,id'],
         ];
         if ($isTeacher) {
-            $rules['linkedinUrl'] = ['sometimes', 'nullable', 'url', 'max:2048'];
+            $rules['linkedinUrl'] = ['sometimes', 'nullable', 'url:http,https', 'max:2048'];
         } else {
             $rules['instructorsText'] = ['sometimes', 'nullable', 'string', 'max:2000'];
             $rules['websiteUrl'] = ['sometimes', 'nullable', 'url', 'max:2048'];
@@ -118,7 +119,7 @@ class ProfilesController extends Controller
         $updateParts[] = 'updated_at = now()';
 
         DB::transaction(function () use ($request, $user, $type, $profileTable, $updateParts, $bindings): void {
-            if (! DB::table($profileTable)->where('user_id', $user->id)->exists()) {
+            if (DB::table($profileTable)->where('user_id', $user->id)->lockForUpdate()->first() === null) {
                 abort(404, 'Profile not found');
             }
 
@@ -143,9 +144,14 @@ class ProfilesController extends Controller
             }
 
             $this->ensureSlug($profileTable, $user->id, $user->full_name);
+            if ($type === 'teacher') {
+                app(TeacherPublicPages::class)->publish((int) $user->id);
+            }
         });
 
-        return response()->json(['ok' => true]);
+        return response()->json(['ok' => true, ...($isTeacher
+            ? TeacherPublicPages::urls(DB::table($profileTable)->where('user_id', $user->id)->first(), $user->full_name)
+            : [])]);
     }
 
     public function show(Request $request, string $type, int $id): JsonResponse

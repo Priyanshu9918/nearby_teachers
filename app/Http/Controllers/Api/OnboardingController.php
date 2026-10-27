@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Reporting\BusinessActivityRecorder;
 use App\Services\OnboardingState;
+use App\Services\TeacherPublicPages;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -198,6 +199,7 @@ class OnboardingController extends Controller
                     }
                 }
                 DB::table('teacher_profiles')->where('user_id', $user->id)->update($profileUpdates);
+                app(TeacherPublicPages::class)->publish((int) $user->id);
             } elseif ($accountType === 'institute') {
                 $this->ensureProviderProfile('institute_profiles', $user->id);
                 $profileUpdates = ['updated_at' => $now];
@@ -277,7 +279,7 @@ class OnboardingController extends Controller
             $teacher = DB::table('teacher_profiles as p')
                 ->leftJoin('subjects as s', 's.id', '=', 'p.primary_subject_id')
                 ->where('p.user_id', $user->id)
-                ->select('p.city', 'p.primary_subject_id', 's.name as primary_subject_name')
+                ->select('p.user_id', 'p.slug', 'p.seo_slug', 'p.public_profile_slug', 'p.city', 'p.primary_subject_id', 's.name as primary_subject_name')
                 ->first();
         } elseif ($accountType === 'institute') {
             $institute = DB::table('institute_profiles')->select('city', 'contact_person')->where('user_id', $user->id)->first();
@@ -314,6 +316,8 @@ class OnboardingController extends Controller
             'blockers' => $mobileVerified ? [] : ['mobile_not_verified'],
             'missingFields' => $missing,
             'savedAt' => $user->updated_at ?? null,
+            ...($teacher !== null && $profileCompleted && $user->suspended_at === null
+                ? TeacherPublicPages::urls($teacher, $user->full_name) : []),
             ...app(OnboardingState::class)->forUser($user),
             'draft' => $draft,
             'user' => $user,

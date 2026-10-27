@@ -13,6 +13,7 @@
         @if ($report === 'users')<a class="btn btn-small" href="{{ route('admin.reports.user', $record->id) }}">User report</a>
         @elseif ($report === 'conversations')<a class="btn btn-small" href="{{ route('admin.reports.conversation', $record->id) }}">Read messages</a>
         @elseif ($report === 'messages')<a class="btn btn-small" href="{{ route('admin.reports.conversation', $record->conversation_id) }}">Conversation</a>
+        @elseif ($report === 'teacher-profiles' && ($record->seo_slug ?? $record->slug))<a class="btn btn-small" href="{{ route('website.teacher', ['slug' => $record->seo_slug ?? $record->slug]) }}" target="_blank" rel="noopener noreferrer">Open SEO page <x-admin-icon name="arrow" /></a>
         @else — @endif
     </td>
     @foreach ($columns as $column)
