@@ -7,10 +7,10 @@ This replaces the former two-page teacher SEO design. There is now **one canonic
 Default origin:
 
 ```text
-https://teachers.britishschooloflanguages.com
+http://157.245.125.79/nearby_teachers/public
 ```
 
-Configure `SEO_PUBLIC_URL` with this origin. Public teacher/listing requests on another origin redirect to it; it must point to this Laravel application with valid HTTPS. The main application homepage remains unchanged. The SEO hostname's homepage redirects to `/directory`.
+Configure `SEO_PUBLIC_URL` with this origin for the current server. Public teacher/listing requests on another origin redirect to it. When the live domain is ready, change this setting to `https://teachers.britishschooloflanguages.com`. The SEO origin's homepage redirects to `/directory`.
 
 | Page | Route | Example |
 |---|---|---|
@@ -84,8 +84,8 @@ Eligibility requires current teacher account type, completed registration, verif
 
 ```json
 {
-  "teacherSeoUrl": "https://teachers.britishschooloflanguages.com/teacher/asha-sharma-kanpur",
-  "teacherProfileUrl": "https://teachers.britishschooloflanguages.com/teacher/asha-sharma-kanpur"
+  "teacherSeoUrl": "http://157.245.125.79/nearby_teachers/public/teacher/asha-sharma-kanpur",
+  "teacherProfileUrl": "http://157.245.125.79/nearby_teachers/public/teacher/asha-sharma-kanpur"
 }
 ```
 
@@ -149,10 +149,10 @@ Teacher views use `page_views.page_type = teacher`, target `profile:<id>`. Listi
 ## Deployment
 
 ```dotenv
-SEO_PUBLIC_URL=https://teachers.britishschooloflanguages.com
+SEO_PUBLIC_URL=http://157.245.125.79/nearby_teachers/public
 ```
 
-1. Point this hostname to the Laravel application's web server, configure a host entry/document root using `public/`, and provide valid TLS. A code/config change cannot create DNS or a certificate.
+1. For now, use `http://157.245.125.79/nearby_teachers/public`. When the live domain is ready, point it to the Laravel application, configure HTTPS, and change `SEO_PUBLIC_URL` to `https://teachers.britishschooloflanguages.com`.
 2. Deploy the code with the new nullable metadata migration:
 
 ```bash
