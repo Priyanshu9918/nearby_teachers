@@ -1,5 +1,11 @@
 # Reporting architecture
 
+Institute address/GPS APIs emit version 1 `institute.address_updated` and
+`institute.location_updated` events with changed field names and status flags,
+never exact address snapshots or credentials. The institute profile report
+explicitly registers current private address/enrichment columns. See
+[institute address coverage](INSTITUTE_REGISTRATION_ADDRESS.md).
+
 Version 1 `teacher.address_updated` records changed field names only, within
 the source address transaction. Current teacher address columns are explicitly
 registered in the teacher-profile report; exact past values are not archived.

@@ -330,3 +330,5 @@ ONBOARDING_TEST_DATABASE=nearby_onboarding_test php artisan test
 ```
 
 Teacher registration and profile edits accept optional paired `latitude` / `longitude`, with private Google reverse-geocoding enrichment when enabled. See [TEACHER_LOCATION_GEOCODING.md](TEACHER_LOCATION_GEOCODING.md) for setup, responses, migration and village/thana limitations.
+
+Institute registration supports the same address/GPS fields without a subject-selection field. See [institute registration address](INSTITUTE_REGISTRATION_ADDRESS.md).

@@ -122,8 +122,8 @@ return [
     ],
     'institute-profiles' => [
         'title' => 'Institute profiles', 'table' => 'institute_profiles', 'timestamp' => 'created_at',
-        'columns' => ['id', 'user_id', 'description', 'starting_rate', 'currency', 'lesson_modes', 'latitude', 'longitude', 'address_text', 'city', 'state', 'country', 'country_code', 'instructors_text', 'slug', 'website_url', 'is_verified', 'verified_at', 'trial_days', 'institute_type', 'is_bsl_official', 'bsl_official_since', 'rating_avg', 'rating_count', 'created_at', 'updated_at'],
-        'participants' => ['user_id'], 'search' => ['city', 'description'],
+        'columns' => ['id', 'user_id', 'description', 'starting_rate', 'currency', 'lesson_modes', 'latitude', 'longitude', 'address_text', 'city', 'state', 'country', 'country_code', 'instructors_text', 'district', 'sub_district', 'locality', 'locality_type', 'postal_code', 'location_details', 'slug', 'website_url', 'is_verified', 'verified_at', 'trial_days', 'institute_type', 'is_bsl_official', 'bsl_official_since', 'rating_avg', 'rating_count', 'created_at', 'updated_at'],
+        'participants' => ['user_id'], 'search' => ['city', 'description', 'district', 'sub_district', 'locality', 'postal_code', 'location_details'],
     ],
     'profile-subjects' => [
         'title' => 'Profile subjects', 'table' => 'profile_subjects', 'timestamp' => null,

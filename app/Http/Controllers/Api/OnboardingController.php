@@ -39,7 +39,7 @@ class OnboardingController extends Controller
         }
 
         $data = $this->validatedDraft($request, false);
-        $location = ($data['accountType'] ?? $user->account_type) === 'teacher'
+        $location = in_array($data['accountType'] ?? $user->account_type, ['teacher', 'institute'], true)
             ? app(TeacherLocation::class)->prepare($data) : null;
         $this->persistDraft($user, $data, false, $location);
 
@@ -60,7 +60,7 @@ class OnboardingController extends Controller
         if (($request->exists('latitude') || $request->exists('longitude'))
             && ! app(OnboardingState::class)->registrationSubmitted($user)) {
             $preparedData = $this->validatedDraft($request, true, $user);
-            if ($preparedData['accountType'] === 'teacher') {
+            if (in_array($preparedData['accountType'], ['teacher', 'institute'], true)) {
                 // Resolve before holding registration/profile row locks.
                 $location = app(TeacherLocation::class)->prepare($preparedData);
             }
@@ -137,6 +137,10 @@ class OnboardingController extends Controller
             $rules['contactPerson'] = ['required_if:accountType,institute', 'nullable', 'string', 'max:160'];
             $rules['termsAccepted'] = ['required', 'accepted'];
             $rules['acknowledgeTeachersNotBackgroundChecked'] = ['required', 'accepted'];
+        }
+
+        if (($request->input('accountType') ?? $request->attributes->get('authenticated_user')?->account_type ?? null) === 'institute') {
+            $rules['primarySubjects'] = ['prohibited'];
         }
 
         $data = $request->validate($rules + TeacherAddress::rules());
@@ -238,6 +242,8 @@ class OnboardingController extends Controller
                     $profileUpdates['contact_person'] = $this->nullableString($data['contactPerson']);
                 }
                 DB::table('institute_profiles')->where('user_id', $user->id)->update($profileUpdates);
+                app(TeacherLocation::class)->store((int) $user->id, $location, 'institute');
+                app(TeacherAddress::class)->store((int) $user->id, $data, 'institute');
             }
         });
     }
@@ -309,9 +315,10 @@ class OnboardingController extends Controller
                     ...array_map(fn ($column) => 'p.'.$column, array_values(TeacherAddress::FIELDS)))
                 ->first();
         } elseif ($accountType === 'institute') {
-            $institute = DB::table('institute_profiles')->select('city', 'contact_person')->where('user_id', $user->id)->first();
+            $institute = DB::table('institute_profiles')->select('city', 'contact_person', 'latitude', 'longitude', 'location_details', ...array_values(TeacherAddress::FIELDS))->where('user_id', $user->id)->first();
         }
 
+        $provider = $teacher ?? $institute;
         $draft = [
             'accountType' => $accountType,
             'role' => $accountType === 'learner' ? 'student' : $accountType,
@@ -319,12 +326,12 @@ class OnboardingController extends Controller
             'email' => $user->email,
             'phone' => $user->phone,
             'city' => $teacher->city ?? $institute->city ?? null,
-            ...($accountType === 'teacher' ? TeacherAddress::draft($teacher) : []),
-            'latitude' => isset($teacher->latitude) ? (float) $teacher->latitude : null,
-            'longitude' => isset($teacher->longitude) ? (float) $teacher->longitude : null,
-            'locationDetails' => isset($teacher->location_details) ? json_decode($teacher->location_details, true, flags: JSON_THROW_ON_ERROR) : null,
-            'primarySubjects' => $teacher === null ? [] : DB::table('profile_subjects')->where('profile_type', 'teacher')
-                ->where('profile_id', $user->id)->orderBy('id')->pluck('subject_id')->map(fn ($id) => (int) $id)->all(),
+            ...(in_array($accountType, ['teacher', 'institute'], true) ? TeacherAddress::draft($provider) : []),
+            'latitude' => isset($provider->latitude) ? (float) $provider->latitude : null,
+            'longitude' => isset($provider->longitude) ? (float) $provider->longitude : null,
+            'locationDetails' => isset($provider->location_details) ? json_decode($provider->location_details, true, flags: JSON_THROW_ON_ERROR) : null,
+            ...($accountType === 'institute' ? [] : ['primarySubjects' => $teacher === null ? [] : DB::table('profile_subjects')->where('profile_type', 'teacher')
+                ->where('profile_id', $user->id)->orderBy('id')->pluck('subject_id')->map(fn ($id) => (int) $id)->all()]),
             'contactPerson' => $institute->contact_person ?? null,
             'passwordSet' => $passwordSet,
             'termsAccepted' => $user->terms_accepted_at !== null,

@@ -60,8 +60,8 @@ class ProfilesController extends Controller
             $subjectsField => $isTeacher ? ['sometimes', 'array', 'min:1', 'max:5'] : ['sometimes', 'array', 'max:5'],
             $subjectsField.'.*' => ['required', 'integer', 'distinct', 'exists:subjects,id'],
         ];
+        $rules += TeacherAddress::rules();
         if ($isTeacher) {
-            $rules += TeacherAddress::rules();
             $rules['subjectIds'] = ['prohibited'];
             $rules['primarySubjectId'] = ['prohibited'];
             $rules['linkedinUrl'] = ['sometimes', 'nullable', 'url:http,https', 'max:2048'];
@@ -85,7 +85,7 @@ class ProfilesController extends Controller
             throw ValidationException::withMessages(['currency' => 'Currency cannot be empty']);
         }
 
-        $location = $isTeacher ? app(TeacherLocation::class)->prepare($data) : null;
+        $location = app(TeacherLocation::class)->prepare($data);
         $profileTable = $isTeacher ? 'teacher_profiles' : 'institute_profiles';
         $updateParts = [];
         $bindings = [];
@@ -93,10 +93,6 @@ class ProfilesController extends Controller
         $this->appendField($updateParts, $bindings, $data, $rateField, $isTeacher ? 'rate_per_hour' : 'starting_rate');
         $this->appendField($updateParts, $bindings, $data, 'addressText', 'address_text');
         $this->appendField($updateParts, $bindings, $data, 'city', 'city');
-        if (! $isTeacher) {
-            $this->appendField($updateParts, $bindings, $data, 'state', 'state');
-            $this->appendField($updateParts, $bindings, $data, 'country', 'country');
-        }
         $this->appendField($updateParts, $bindings, $data, 'countryCode', 'country_code', true);
         $this->appendField($updateParts, $bindings, $data, 'trialDays', 'trial_days');
 
@@ -118,12 +114,6 @@ class ProfilesController extends Controller
         if (array_key_exists('lessonModes', $data)) {
             $updateParts[] = 'lesson_modes = ?';
             $bindings[] = json_encode($data['lessonModes'], JSON_THROW_ON_ERROR);
-        }
-        if (array_key_exists('latitude', $data) && ! $isTeacher) {
-            $updateParts[] = 'latitude = ?';
-            $bindings[] = $data['latitude'] === null ? null : (float) $data['latitude'];
-            $updateParts[] = 'longitude = ?';
-            $bindings[] = $data['longitude'] === null ? null : (float) $data['longitude'];
         }
         $updateParts[] = 'updated_at = now()';
 
@@ -156,9 +146,9 @@ class ProfilesController extends Controller
             }
 
             $this->ensureSlug($profileTable, $user->id, $user->full_name);
+            app(TeacherLocation::class)->store((int) $user->id, $location, $type);
+            app(TeacherAddress::class)->store((int) $user->id, $data, $type);
             if ($type === 'teacher') {
-                app(TeacherLocation::class)->store((int) $user->id, $location);
-                app(TeacherAddress::class)->store((int) $user->id, $data);
                 app(TeacherPublicPages::class)->publish((int) $user->id, (int) $user->id);
             }
         });
@@ -169,6 +159,11 @@ class ProfilesController extends Controller
                 ->select('user_id', 'slug', 'seo_slug', 'public_profile_slug', 'location_details')->first();
             $teacherResponse = [...TeacherPublicPages::urls($profile, $user->full_name),
                 'locationDetails' => $profile->location_details === null ? null : json_decode($profile->location_details, true, flags: JSON_THROW_ON_ERROR)];
+        }
+
+        if (! $isTeacher) {
+            $details = DB::table($profileTable)->where('user_id', $user->id)->value('location_details');
+            $teacherResponse['locationDetails'] = $details === null ? null : json_decode($details, true, flags: JSON_THROW_ON_ERROR);
         }
 
         return response()->json(['ok' => true, ...$teacherResponse]);

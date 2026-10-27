@@ -743,3 +743,5 @@ There is no refresh/media-upload/read-receipt/message-idempotency endpoint here,
 and OS push delivery requires separate integration.
 
 Teacher registration and profile edits accept optional paired `latitude` / `longitude`, with private Google reverse-geocoding enrichment when enabled. See [TEACHER_LOCATION_GEOCODING.md](TEACHER_LOCATION_GEOCODING.md) for setup, responses, migration and village/thana limitations.
+
+Institute registration and edits accept address and GPS fields: [Institute address API](INSTITUTE_REGISTRATION_ADDRESS.md). Institute registration requests omit subjects.

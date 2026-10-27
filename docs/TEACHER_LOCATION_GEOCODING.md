@@ -31,7 +31,7 @@ Use existing subject IDs. Registration still requires the teacher's own city; re
 
 `latitude` is -90..90; `longitude` is -180..180. Zero coordinates are valid. Send both or omit both. Send both as `null` on update to clear GPS and enrichment. Invalid/mixed/partial pairs return `422` without calling Google. An update without coordinates leaves existing GPS/details unchanged and does not call Google.
 
-Only teacher requests invoke the new service; institute enrichment is not added by this feature. The existing standalone OpenStreetMap lookup page is separate and unchanged.
+Institute registration and edits now use the same geocoding mapper and configuration, storing data in `institute_profiles.location_details`; see [institute details](INSTITUTE_REGISTRATION_ADDRESS.md). The existing standalone OpenStreetMap lookup page is separate and unchanged.
 
 Profile update example:
 

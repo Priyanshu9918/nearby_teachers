@@ -1148,3 +1148,5 @@ and revocation use `broadcasts`. Run persistent workers as documented in
 [PERFORMANCE.md](PERFORMANCE.md). Live chat setup is in [CHAT_SOCKET_IO.md](CHAT_SOCKET_IO.md).
 No refresh, media upload, read-receipt or message-idempotency API exists here;
 OS push delivery/registration is separate.
+
+Institute address and GPS enrichment support is described in [INSTITUTE_REGISTRATION_ADDRESS.md](INSTITUTE_REGISTRATION_ADDRESS.md). No subject selection is required or accepted in institute registration.
