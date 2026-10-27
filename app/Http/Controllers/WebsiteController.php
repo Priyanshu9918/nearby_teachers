@@ -144,7 +144,7 @@ class WebsiteController extends Controller
         $urls = TeacherPublicPages::urls($teacher, $teacher->full_name);
         $expected = $full ? ($teacher->public_profile_slug ?? TeacherPublicPages::profileSlug($teacher->full_name, (int) $teacher->user_id))
             : ($teacher->seo_slug ?? $teacher->slug);
-        if ($slug !== $expected) {
+        if ($slug !== $expected || $request->routeIs('website.teacher-legacy', 'website.teacher-profile-legacy')) {
             return redirect()->to($urls[$full ? 'teacherProfileUrl' : 'teacherSeoUrl'], 301);
         }
         $subjects = TeacherPublicPages::subjects((int) $teacher->user_id);
@@ -298,7 +298,7 @@ class WebsiteController extends Controller
 
     public function robots(): Response
     {
-        $content = "User-agent: *\nAllow: /site/\nAllow: /download\nAllow: /location-lookup\nDisallow: /admin\nSitemap: ".rtrim(config('app.url'), '/')."/sitemap.xml\n";
+        $content = "User-agent: *\nAllow: /site/\nAllow: /teachers/\nAllow: /download\nAllow: /location-lookup\nDisallow: /admin\nSitemap: ".rtrim(config('app.url'), '/')."/sitemap.xml\n";
 
         return response($content, 200, ['Content-Type' => 'text/plain; charset=UTF-8']);
     }
