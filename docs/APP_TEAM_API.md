@@ -741,3 +741,5 @@ Reverse lookup sends coordinates to Nominatim and is throttled; health HTML
 compatibility-only; Socket.IO integration uses chat socket authorization.
 There is no refresh/media-upload/read-receipt/message-idempotency endpoint here,
 and OS push delivery requires separate integration.
+
+Teacher registration and profile edits accept optional paired `latitude` / `longitude`, with private Google reverse-geocoding enrichment when enabled. See [TEACHER_LOCATION_GEOCODING.md](TEACHER_LOCATION_GEOCODING.md) for setup, responses, migration and village/thana limitations.

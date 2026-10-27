@@ -1,5 +1,9 @@
 # Teacher SEO and full profile pages
 
+Teacher registration/profile updates also support optional GPS reverse geocoding.
+The detailed address JSON remains private and does not alter public SEO location
+fields. See [TEACHER_LOCATION_GEOCODING.md](TEACHER_LOCATION_GEOCODING.md).
+
 ## Scope / flow
 
 Har teacher ke do public pages hain:

@@ -363,6 +363,8 @@ class DeveloperController extends Controller
                     $body['city'] = 'New Delhi';
                     if ($role === 'teacher') {
                         $body['primarySubjects'] = [1];
+                        $body['latitude'] = 28.6139;
+                        $body['longitude'] = 77.2090;
                     } else {
                         $body['contactPerson'] = 'Anita Sharma';
                     }
