@@ -177,9 +177,9 @@ class OnboardingPersistenceTest extends TestCase
         ]))->assertOk()->assertJsonMissingPath('draft.primarySubjectId')
             ->assertJsonPath('draft.primarySubjects', $ids)->json();
         $this->assertSame(5, DB::table('profile_subjects')->where('profile_type', 'teacher')->where('profile_id', $this->userId)->count());
-        $this->assertStringContainsString('chemistry-english-hindi-maths-physics', $result['teacherSeoUrl']);
+        $this->assertStringContainsString('/teacher/anita-sharma-jaipur', $result['teacherSeoUrl']);
         $this->getJson('/auth/onboarding')->assertOk()->assertJsonPath('draft.primarySubjects', $ids);
-        $event = DB::table('business_activity')->where('event', 'teacher.pages_published')->where('entity_id', $this->userId)->first();
+        $event = DB::table('business_activity')->where('event', 'teacher.seo_state_changed')->where('entity_id', $this->userId)->first();
         $recorded = json_decode($event->after_data, true)['subject_ids'];
         sort($ids);
         sort($recorded);
@@ -326,6 +326,7 @@ class OnboardingPersistenceTest extends TestCase
         return [
             'accountType' => 'student',
             'fullName' => 'Anita Sharma',
+            'country' => 'India',
             'email' => 'anita@example.com',
             'password' => 'a-secure-password',
             'termsAccepted' => true,

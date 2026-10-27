@@ -84,7 +84,7 @@ class TeacherGeocodingTest extends TestCase
     {
         return $this->postJson('/auth/register', array_replace([
             'accountType' => 'teacher', 'fullName' => 'Asha Sharma', 'email' => 'asha-geocoding@example.test',
-            'password' => 'a-secure-password', 'city' => 'Delhi', 'primarySubjects' => [$this->subjectId],
+            'password' => 'a-secure-password', 'city' => 'Delhi', 'country' => 'India', 'primarySubjects' => [$this->subjectId],
             'termsAccepted' => true, 'acknowledgeTeachersNotBackgroundChecked' => true,
             'latitude' => 28.4595, 'longitude' => 77.0266,
         ], $extra));

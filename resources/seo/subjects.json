@@ -1,0 +1,101 @@
+{
+  "maths": {
+    "aliases": [
+      "math",
+      "maths",
+      "mathematics"
+    ],
+    "en": "Maths",
+    "hi": "गणित",
+    "es": "Matemáticas",
+    "ar": "الرياضيات",
+    "ru": "Математика",
+    "zh": "数学",
+    "ja": "数学",
+    "bn": "গণিত",
+    "ur": "ریاضی",
+    "fr": "Mathématiques",
+    "pt": "Matemática"
+  },
+  "physics": {
+    "aliases": [
+      "physics"
+    ],
+    "en": "Physics",
+    "hi": "भौतिक विज्ञान",
+    "es": "Física",
+    "ar": "الفيزياء",
+    "ru": "Физика",
+    "zh": "物理",
+    "ja": "物理",
+    "bn": "পদার্থবিদ্যা",
+    "ur": "طبیعیات",
+    "fr": "Physique",
+    "pt": "Física"
+  },
+  "chemistry": {
+    "aliases": [
+      "chemistry"
+    ],
+    "en": "Chemistry",
+    "hi": "रसायन विज्ञान",
+    "es": "Química",
+    "ar": "الكيمياء",
+    "ru": "Химия",
+    "zh": "化学",
+    "ja": "化学",
+    "bn": "রসায়ন",
+    "ur": "کیمیا",
+    "fr": "Chimie",
+    "pt": "Química"
+  },
+  "english": {
+    "aliases": [
+      "english"
+    ],
+    "en": "English",
+    "hi": "अंग्रेज़ी",
+    "es": "Inglés",
+    "ar": "اللغة الإنجليزية",
+    "ru": "Английский язык",
+    "zh": "英语",
+    "ja": "英語",
+    "bn": "ইংরেজি",
+    "ur": "انگریزی",
+    "fr": "Anglais",
+    "pt": "Inglês"
+  },
+  "hindi": {
+    "aliases": [
+      "hindi"
+    ],
+    "en": "Hindi",
+    "hi": "हिन्दी",
+    "es": "Hindi",
+    "ar": "اللغة الهندية",
+    "ru": "Хинди",
+    "zh": "印地语",
+    "ja": "ヒンディー語",
+    "bn": "হিন্দি",
+    "ur": "ہندی",
+    "fr": "Hindi",
+    "pt": "Hindi"
+  },
+  "ielts": {
+    "aliases": [
+      "ielts",
+      "ielts-english-test-for-study-work-abroad"
+    ],
+    "en": "IELTS",
+    "hi": "IELTS",
+    "es": "IELTS",
+    "ar": "IELTS",
+    "ru": "IELTS",
+    "zh": "IELTS",
+    "ja": "IELTS",
+    "bn": "IELTS",
+    "ur": "IELTS",
+    "fr": "IELTS",
+    "pt": "IELTS"
+  }
+}

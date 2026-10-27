@@ -16,35 +16,65 @@ final class TeacherPublicPages
         if (DB::transactionLevel() < 1) {
             throw new LogicException('Publish teacher pages inside the profile transaction.');
         }
-
         $profile = DB::table('teacher_profiles')->where('user_id', $userId)->lockForUpdate()->first();
         $user = DB::table('users')->where('id', $userId)->first();
-        if ($profile === null || $user === null
-            || $user->account_type !== 'teacher' || $user->profile_completed_at === null
-            || $user->suspended_at !== null || trim($user->full_name) === ''
-            || trim($profile->city ?? '') === '') {
+        if ($profile === null || $user === null) {
             return;
         }
-
+        $country = SeoDirectory::country($profile);
         $subjects = self::subjects($userId);
-        if ($subjects->isEmpty()) {
-            return;
+        $eligible = $user->account_type === 'teacher' && $user->profile_completed_at !== null
+            && $user->phone_verified_at !== null && $user->suspended_at === null
+            && trim($user->full_name) !== '' && trim($profile->city ?? '') !== '' && $country !== null && $subjects->isNotEmpty();
+        $citySlug = $eligible ? SeoDirectory::citySlug($profile->city) : null;
+        $slug = $profile->public_page_slug;
+        if ($eligible) {
+            $base = self::seoSlug($user->full_name, $profile->city);
+            $candidate = $base;
+            $attempt = 0;
+            while (! SeoDirectory::claim('/teacher/'.$candidate, 'teacher', $userId)) {
+                $candidate = $base.'-'.$userId.($attempt++ > 0 ? '-'.$attempt : '');
+                if ($attempt > 5) {
+                    throw new LogicException('Unable to reserve a unique teacher page URL.');
+                }
+            }
+            $slug = $candidate;
+            foreach (array_filter([
+                '/site/teacher/'.($profile->slug ?? ''),
+                $profile->seo_slug ? '/teachers/'.$profile->seo_slug : null,
+                $profile->seo_slug ? '/site/teacher/'.$profile->seo_slug : null,
+                $profile->public_profile_slug ? '/teachers/'.$profile->public_profile_slug.'/profile' : null,
+                $profile->public_profile_slug ? '/site/teacher-profile/'.$profile->public_profile_slug : null,
+            ]) as $legacyPath) {
+                if ($legacyPath !== '/site/teacher/') {
+                    SeoDirectory::claim($legacyPath, 'teacher', $userId);
+                }
+            }
         }
-
-        $seoSlug = self::seoSlug($user, $profile, $subjects->pluck('name')->all());
-        $fullSlug = $profile->public_profile_slug ?? self::profileSlug($user->full_name, $userId);
-        if ($profile->seo_slug === $seoSlug) {
-            return;
+        $ids = $subjects->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $state = ['status' => $eligible ? 'published' : 'ineligible', 'public_page_slug' => $slug,
+            'country' => $eligible ? $country : null, 'city_slug' => $citySlug,
+            'language' => $eligible ? SeoDirectory::language($country) : null, 'subject_ids' => $ids,
+            'online' => in_array('online', (json_decode($profile->lesson_modes ?: '[]', true) ?: []), true)];
+        $hash = hash('sha256', json_encode($state, JSON_THROW_ON_ERROR));
+        if ($profile->seo_state_hash !== $hash) {
+            DB::table('teacher_profiles')->where('user_id', $userId)->update([
+                'public_page_slug' => $slug, 'seo_country' => $state['country'], 'seo_city_slug' => $citySlug,
+                'seo_state_hash' => $hash, 'slug' => $profile->slug ?? ($eligible ? $slug : null),
+            ]);
+            app(BusinessActivityRecorder::class)->record('teacher.seo_state_changed', $userId, $actorUserId,
+                before: ['public_page_slug' => $profile->public_page_slug, 'country' => $profile->seo_country, 'city_slug' => $profile->seo_city_slug],
+                after: $state);
         }
-        DB::table('teacher_profiles')->where('user_id', $userId)->update([
-            'seo_slug' => $seoSlug, 'public_profile_slug' => $fullSlug,
-            'slug' => $profile->slug ?? $fullSlug,
-        ]);
-        app(BusinessActivityRecorder::class)->record($profile->seo_slug === null ? 'teacher.pages_published' : 'teacher.pages_updated', $userId, $actorUserId,
-            before: $profile->seo_slug === null ? [] : ['seo_slug' => $profile->seo_slug],
-            after: ['seo_slug' => $seoSlug, 'public_profile_slug' => $fullSlug,
-                'subject_ids' => $subjects->pluck('id')->map(fn ($id) => (int) $id)->all(),
-                'city' => $profile->city, 'state' => $profile->state, 'country' => $profile->country]);
+        if ($eligible) {
+            $directory = app(SeoDirectory::class);
+            foreach ($subjects as $subject) {
+                $directory->seedRoutes($subject, $country);
+            }
+            $profile->seo_country = $country;
+            $profile->seo_city_slug = $citySlug;
+            $directory->ensurePages($profile, $ids);
+        }
     }
 
     public static function subjects(int $userId): Collection
@@ -54,16 +84,9 @@ final class TeacherPublicPages
             ->select('s.id', 's.name')->orderBy('s.name')->orderBy('s.id')->get();
     }
 
-    public static function seoSlug(object $user, object $profile, array $subjects): string
+    public static function seoSlug(string $name, string $city): string
     {
-        $parts = [$user->full_name, ...$subjects, $profile->city, $profile->state, $profile->country];
-
-        return (Str::slug(implode(' ', array_filter($parts))) ?: 'teacher').'-'.$user->id;
-    }
-
-    public static function profileSlug(string $name, int $userId): string
-    {
-        return (Str::slug($name) ?: 'teacher').'-'.$userId;
+        return substr((Str::slug($name) ?: 'teacher').'-'.SeoDirectory::citySlug($city), 0, 200);
     }
 
     public static function idFromSlug(string $slug): ?int
@@ -76,16 +99,11 @@ final class TeacherPublicPages
         return RecordId::valid($suffix) ? (int) $suffix : null;
     }
 
-    public static function urls(object $profile, string $name): array
+    public static function urls(object $profile, string $name = ''): array
     {
-        if ($profile->slug === null) {
-            return ['teacherSeoUrl' => null, 'teacherProfileUrl' => null];
-        }
+        $url = isset($profile->public_page_slug) && isset($profile->seo_country)
+            ? SeoDirectory::url('/teacher/'.$profile->public_page_slug) : null;
 
-        return [
-            'teacherSeoUrl' => route('website.teacher', ['slug' => $profile->seo_slug ?? $profile->slug]),
-            'teacherProfileUrl' => route('website.teacher-profile', ['slug' => $profile->public_profile_slug
-                ?? self::profileSlug($name, (int) $profile->user_id)]),
-        ];
+        return ['teacherSeoUrl' => $url, 'teacherProfileUrl' => $url];
     }
 }

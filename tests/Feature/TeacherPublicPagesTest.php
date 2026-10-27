@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Reporting\BusinessActivityRecorder;
-use App\Services\AuthenticationService;
 use App\Services\TeacherPublicPages;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -14,9 +13,7 @@ class TeacherPublicPagesTest extends TestCase
 {
     private bool $transactionStarted = false;
 
-    private int $teacherId;
-
-    private array $subjectIds = [];
+    private array $subjects;
 
     protected function setUp(): void
     {
@@ -27,32 +24,15 @@ class TeacherPublicPagesTest extends TestCase
         }
         $this->assertStringEndsWith('_test', $database);
         config(['database.default' => 'mysql', 'database.connections.mysql.url' => null,
-            'database.connections.mysql.database' => $database]);
+            'database.connections.mysql.database' => $database, 'seo.public_url' => 'http://localhost', 'app.url' => 'http://localhost']);
+        $this->app['url']->forceRootUrl('http://localhost');
         DB::purge('mysql');
         Artisan::call('migrate', ['--force' => true]);
         DB::beginTransaction();
         $this->transactionStarted = true;
-
-        $this->teacherId = NumericTestIds::next();
-        DB::table('users')->insert([
-            'id' => $this->teacherId, 'account_type' => 'teacher', 'full_name' => 'Rahul Sharma',
-            'profile_completed_at' => now(), 'phone_verified_at' => now(),
-            'phone' => '+919811112222', 'email' => 'private@example.test',
-            'password_hash' => 'private-password-hash', 'parental_consent_token' => 'private-consent-token',
-        ]);
-        DB::table('teacher_profiles')->insert([
-            'id' => NumericTestIds::next(), 'user_id' => $this->teacherId, 'slug' => 'rahul-sharma-jaipur',
-            'bio' => 'Patient teacher helping students build confidence.', 'city' => 'Jaipur',
-            'state' => 'Rajasthan', 'country' => 'India', 'lesson_modes' => '["online","home_tuition"]',
-            'rate_per_hour' => 500, 'currency' => 'INR', 'trial_days' => 3,
-            'linkedin_url' => 'https://www.linkedin.com/in/rahul-sharma',
-            'latitude' => 26.9124, 'longitude' => 75.7873, 'address_text' => 'PRIVATE HOUSE 99',
-        ]);
-        $domain = DB::table('subject_domains')->insertGetId(['name' => 'SEO test subjects']);
-        foreach (['Maths', 'Physics', 'Chemistry', 'English', 'Hindi'] as $name) {
-            $id = DB::table('subjects')->insertGetId(['domain_id' => $domain, 'name' => $name]);
-            $this->subjectIds[] = $id;
-            DB::table('profile_subjects')->insert(['profile_type' => 'teacher', 'profile_id' => $this->teacherId, 'subject_id' => $id]);
+        $domain = DB::table('subject_domains')->insertGetId(['name' => 'International SEO test']);
+        foreach (['Maths', 'English', 'Physics', 'Chemistry', 'Hindi', 'IELTS'] as $name) {
+            $this->subjects[$name] = DB::table('subjects')->insertGetId(['domain_id' => $domain, 'name' => $name]);
         }
     }
 
@@ -64,233 +44,207 @@ class TeacherPublicPagesTest extends TestCase
         parent::tearDown();
     }
 
-    private function profile(): object
+    private function teacher(string $name = 'Asha Sharma', string $city = 'Kanpur', ?string $country = 'India', array $subjects = ['Maths'], array $modes = ['online']): object
     {
-        return DB::table('teacher_profiles')->where('user_id', $this->teacherId)->first();
-    }
-
-    private function publish(): array
-    {
-        app(TeacherPublicPages::class)->publish($this->teacherId, $this->teacherId);
-
-        return TeacherPublicPages::urls($this->profile(), 'Rahul Sharma');
-    }
-
-    public function test_two_public_pages_all_subjects_links_canonical_and_private_data(): void
-    {
-        $urls = $this->publish();
-        $this->assertStringContainsString('/teachers/', $urls['teacherSeoUrl']);
-        $this->assertStringEndsWith('/profile', $urls['teacherProfileUrl']);
-        $this->assertStringContainsString('rahul-sharma-chemistry-english-hindi-maths-physics-jaipur-rajasthan-india-'.$this->teacherId, $urls['teacherSeoUrl']);
-        $response = $this->get($urls['teacherSeoUrl'])->assertOk()
-            ->assertSee('href="'.$urls['teacherProfileUrl'].'"', false)->assertSee('View full profile');
-        $full = $this->get($urls['teacherProfileUrl'])->assertOk()
-            ->assertSee('https://www.linkedin.com/in/rahul-sharma')->assertSee('Home tuition')
-            ->assertSee('500.00 INR')->assertSee('Trial days: 3');
-        foreach ([$response, $full] as $page) {
-            $page->assertSee('<link rel="canonical" href="'.$urls['teacherProfileUrl'].'">', false);
-            foreach (['Maths', 'Physics', 'Chemistry', 'English', 'Hindi'] as $subject) {
-                $page->assertSee($subject);
-            }
-            foreach (['PRIVATE HOUSE 99', '26.9124', '75.7873', 'private@example.test', '+919811112222',
-                'private-password-hash', 'private-consent-token'] as $private) {
-                $page->assertDontSee($private);
-            }
+        $id = NumericTestIds::next();
+        DB::table('users')->insert(['id' => $id, 'account_type' => 'teacher', 'full_name' => $name,
+            'phone_verified_at' => now(), 'profile_completed_at' => now()]);
+        DB::table('teacher_profiles')->insert(['id' => NumericTestIds::next(), 'user_id' => $id,
+            'slug' => 'legacy-'.$id, 'bio' => '<b>Patient teacher</b>', 'city' => $city, 'country' => $country,
+            'lesson_modes' => json_encode($modes), 'rate_per_hour' => 500, 'currency' => 'INR',
+            'linkedin_url' => 'https://www.linkedin.com/in/asha', 'address_text' => 'PRIVATE HOUSE 99',
+            'postal_code' => 'PRIVATE-PIN', 'location_details' => '{"private":"DO NOT EXPOSE"}']);
+        foreach ($subjects as $subject) {
+            DB::table('profile_subjects')->insert(['profile_type' => 'teacher', 'profile_id' => $id, 'subject_id' => $this->subjects[$subject]]);
         }
-        $this->get('/site/teacher/rahul-sharma-jaipur')->assertStatus(301)->assertRedirect($urls['teacherSeoUrl']);
-        $this->get('/site/teacher/'.$this->profile()->seo_slug)->assertStatus(301)->assertRedirect($urls['teacherSeoUrl']);
-        $this->get('/site/teacher-profile/'.$this->profile()->public_profile_slug)->assertStatus(301)->assertRedirect($urls['teacherProfileUrl']);
-        $this->get('/site/city/Jaipur')->assertOk()->assertSee($urls['teacherSeoUrl']);
-        $this->get('/sitemap.xml')->assertOk()->assertSee($urls['teacherProfileUrl'])->assertDontSee($urls['teacherSeoUrl']);
-        $this->assertSame(1, DB::table('page_views')->where('target', 'seo:'.$this->teacherId)->count());
-        $this->assertSame(1, DB::table('page_views')->where('target', 'profile:'.$this->teacherId)->count());
+        app(TeacherPublicPages::class)->publish($id, $id);
+
+        return DB::table('teacher_profiles')->where('user_id', $id)->first();
     }
 
-    public function test_metadata_describes_the_teacher_and_structured_data_is_safe(): void
+    public function test_one_teacher_page_all_subjects_privacy_and_old_routes_redirect(): void
     {
-        $urls = $this->publish();
-        foreach ([$urls['teacherSeoUrl'], $urls['teacherProfileUrl']] as $url) {
-            $page = $this->get($url)->assertOk()
-                ->assertSee('<title>Rahul Sharma — Chemistry &amp; English Teacher in Jaipur', false)
-                ->assertSee('Download the app to message')->assertDontSee('message or book')
-                ->assertSee('aria-label="Breadcrumb"', false)
-                ->assertSee('href="'.route('website.city', ['city' => 'Jaipur']).'"', false);
-            preg_match('/<script type="application\/ld\+json">(.*?)<\/script>/s', $page->getContent(), $matches);
-            $schema = json_decode($matches[1], true, 512, JSON_THROW_ON_ERROR);
-            $this->assertSame('Person', $schema['@graph'][0]['@type']);
-            $this->assertCount(5, $schema['@graph'][0]['knowsAbout']);
-            $this->assertSame(['https://www.linkedin.com/in/rahul-sharma'], $schema['@graph'][0]['sameAs']);
-            $this->assertSame($urls['teacherProfileUrl'], $schema['@graph'][1]['url']);
-            $this->assertSame('BreadcrumbList', $schema['@graph'][2]['@type']);
+        $profile = $this->teacher(subjects: ['Maths', 'English', 'Physics', 'Chemistry', 'Hindi']);
+        $urls = TeacherPublicPages::urls($profile);
+        $this->assertSame('http://localhost/teacher/asha-sharma-kanpur', $urls['teacherSeoUrl']);
+        $this->assertSame($urls['teacherSeoUrl'], $urls['teacherProfileUrl']);
+        $this->get($urls['teacherSeoUrl'])->assertOk()->assertSee('<html lang="en"', false)
+            ->assertSee('<link rel="canonical" href="'.$urls['teacherSeoUrl'].'">', false)
+            ->assertSee('Maths')->assertSee('Physics')->assertSee('View LinkedIn')->assertSee('Download the app to message')
+            ->assertSee('&lt;b&gt;Patient teacher&lt;/b&gt;', false)->assertDontSee('PRIVATE HOUSE 99')
+            ->assertDontSee('PRIVATE-PIN')->assertDontSee('DO NOT EXPOSE')->assertDontSee('message or book');
+        foreach (['/site/teacher/'.$profile->slug, '/teachers/'.$profile->slug,
+            '/teachers/old-subject-location-'.$profile->user_id.'/profile', '/site/teacher-profile/old-'.$profile->user_id] as $old) {
+            $this->get($old)->assertStatus(301)->assertRedirect($urls['teacherProfileUrl']);
         }
-        DB::table('users')->where('id', $this->teacherId)->update(['full_name' => 'Teacher </script><script>alert(1)</script>']);
-        $this->get($urls['teacherProfileUrl'])->assertOk()->assertDontSee('</script><script>alert(1)</script>', false);
     }
 
-    public function test_profile_save_publishes_and_updates_all_subjects_with_redirects(): void
+    public function test_long_legacy_subject_urls_are_preserved_without_truncation(): void
     {
-        $user = DB::table('users')->where('id', $this->teacherId)->first();
-        $auth = \Mockery::mock(AuthenticationService::class);
-        $auth->shouldReceive('authenticate')->with('teacher-test')->andReturn($user);
-        $this->app->instance(AuthenticationService::class, $auth);
-        $headers = ['Authorization' => 'Bearer teacher-test'];
-        $first = $this->putJson('/profiles/me', ['primarySubjects' => $this->subjectIds], $headers)
-            ->assertOk()->json();
-        $this->assertNotNull($this->profile()->seo_slug);
-        $this->putJson('/profiles/me', ['subjectIds' => $this->subjectIds], $headers)
-            ->assertUnprocessable()->assertJsonValidationErrors('subjectIds');
-        $this->putJson('/profiles/me', ['primarySubjects' => []], $headers)
-            ->assertUnprocessable()->assertJsonValidationErrors('primarySubjects');
-        $second = $this->putJson('/profiles/me', ['primarySubjects' => [$this->subjectIds[0]], 'city' => 'Delhi'], $headers)
-            ->assertOk()->json();
-        $this->assertStringContainsString('rahul-sharma-maths-delhi-rajasthan-india-', $second['teacherSeoUrl']);
-        $this->assertSame($first['teacherProfileUrl'], $second['teacherProfileUrl']);
-        $this->get($first['teacherSeoUrl'])->assertStatus(301)->assertRedirect($second['teacherSeoUrl']);
-        $this->get($second['teacherSeoUrl'])->assertOk()->assertSee('Maths')->assertDontSee('Physics');
-        $this->assertSame(1, DB::table('business_activity')->where('event', 'teacher.pages_published')->where('entity_id', $this->teacherId)->count());
-        $this->assertSame(1, DB::table('business_activity')->where('event', 'teacher.pages_updated')->where('entity_id', $this->teacherId)->count());
+        $teacher = $this->teacher();
+        $old = str_repeat('long-subject-', 100).$teacher->user_id;
+        DB::table('teacher_profiles')->where('user_id', $teacher->user_id)->update(['seo_slug' => $old]);
+        app(TeacherPublicPages::class)->publish($teacher->user_id);
+        $this->assertSame('/teachers/'.$old, DB::table('seo_urls')->where('path_hash', hash('sha256', '/teachers/'.$old))->value('path'));
+        $this->get('/teachers/'.$old)->assertStatus(301)->assertRedirect('http://localhost/teacher/asha-sharma-kanpur');
     }
 
-    public function test_admin_teacher_edits_refresh_seo_url_with_correct_history_actor(): void
+    public function test_listing_languages_have_reciprocal_hreflang_and_self_canonicals(): void
     {
-        $original = $this->publish();
-        $this->withSession(['admin_authenticated' => true])->put('/admin/teachers/'.$this->teacherId, [
-            'full_name' => 'Asha Sharma', 'email' => 'private@example.test', 'phone' => '+919811112222',
-            'city' => 'Delhi', 'state' => 'Delhi', 'country' => 'India', 'currency' => 'INR',
-        ])->assertRedirect('/admin/teachers');
-        $urls = TeacherPublicPages::urls($this->profile(), 'Asha Sharma');
-        $this->assertStringContainsString('asha-sharma-chemistry-english-hindi-maths-physics-delhi', $urls['teacherSeoUrl']);
-        $this->assertSame($original['teacherProfileUrl'], $urls['teacherProfileUrl']);
-        $this->get($original['teacherSeoUrl'])->assertStatus(301)->assertRedirect($urls['teacherSeoUrl']);
-        $event = DB::table('business_activity')->where('event', 'teacher.pages_updated')->where('entity_id', $this->teacherId)->first();
-        $this->assertNotNull($event);
-        $this->assertNull($event->actor_user_id);
-        $this->assertSame(5, count(json_decode($event->after_data, true)['subject_ids']));
-    }
-
-    public function test_suspended_incomplete_and_missing_teachers_are_not_public(): void
-    {
-        $urls = $this->publish();
-        foreach ([['suspended_at' => now()], ['suspended_at' => null, 'profile_completed_at' => null],
-            ['profile_completed_at' => now(), 'account_type' => 'learner']] as $changes) {
-            DB::table('users')->where('id', $this->teacherId)->update($changes);
-            $this->get($urls['teacherSeoUrl'])->assertNotFound();
-            $this->get($urls['teacherProfileUrl'])->assertNotFound();
-            $this->get('/sitemap.xml')->assertOk()->assertDontSee($urls['teacherProfileUrl']);
+        $this->teacher();
+        $english = $this->get('/in/kanpur/maths-tuition')->assertOk()->assertSee('Maths teachers in Kanpur');
+        $hindi = $this->get('/in/hi/kanpur/maths-tuition')->assertOk()->assertSee('<html lang="hi"', false)->assertSee('गणित');
+        foreach ([$english, $hindi] as $response) {
+            $response->assertSee('hreflang="en-IN"', false)->assertSee('hreflang="hi-IN"', false)
+                ->assertSee('http://localhost/in/kanpur/maths-tuition', false)->assertSee('http://localhost/in/hi/kanpur/maths-tuition', false);
         }
-        $this->get('/site/teacher-profile/missing')->assertNotFound();
-        $this->get('/site/teacher/missing-9007199254740992')->assertNotFound();
+        $hindi->assertSee('<link rel="canonical" href="http://localhost/in/hi/kanpur/maths-tuition">', false);
+        $this->get('/in/en/kanpur/maths-tuition')->assertStatus(301)->assertRedirect('http://localhost/in/kanpur/maths-tuition');
+        $this->get('/in/ja/kanpur/maths-tuition')->assertNotFound();
+        $this->get('/in/unknown/maths-tuition')->assertNotFound();
     }
 
-    public function test_publication_rolls_back_if_history_cannot_be_recorded(): void
+    public function test_country_slug_wording_and_native_page_language(): void
     {
-        $recorder = new class
+        foreach ([['United Kingdom', 'London', '/gb/london/maths-tutor', 'en'],
+            ['United States', 'Houston', '/us/houston/math-tutoring', 'en'],
+            ['Spain', 'Madrid', '/es/madrid/clases-particulares-de-matematicas', 'es'],
+            ['United Arab Emirates', 'Dubai', '/ae/dubai/maths-tutor', 'ar'],
+            ['Japan', 'Tokyo', '/jp/tokyo/maths-tutor', 'ja'],
+            ['Russia', 'Moscow', '/ru/moscow/maths-tutor', 'ru'],
+            ['Bangladesh', 'Dhaka', '/bd/dhaka/maths-tuition', 'bn'],
+            ['Pakistan', 'Lahore', '/pk/lahore/maths-tuition', 'ur'],
+            ['China', 'Beijing', '/cn/beijing/maths-tutor', 'zh']] as [$country, $city, $path, $language]) {
+            $teacher = $this->teacher('Teacher '.$city, $city, $country);
+            $this->get($path)->assertOk()->assertSee('<html lang="'.$language.'"', false);
+            $this->get('/teacher/'.$teacher->public_page_slug)->assertOk()->assertSee('<html lang="'.$language.'"', false);
+        }
+        $this->get('/ae/dubai/maths-tutor')->assertOk()->assertSee('dir="rtl"', false);
+    }
+
+    public function test_online_results_use_country_and_online_mode(): void
+    {
+        $this->teacher('India Online', subjects: ['IELTS']);
+        $this->teacher('India Offline', subjects: ['IELTS'], modes: ['in_person']);
+        $this->teacher('USA Online', 'Houston', 'United States', ['IELTS']);
+        $this->get('/in/online/ielts-coaching')->assertOk()->assertSee('India Online')->assertDontSee('India Offline')->assertDontSee('USA Online');
+        $this->get('/us/online/ielts-prep')->assertOk()->assertSee('USA Online')->assertDontSee('India Online');
+        $this->get('/in/kanpur/ielts-tuition')->assertOk()->assertSee('India Offline');
+    }
+
+    public function test_duplicate_names_and_edits_keep_url_ownership_and_aliases(): void
+    {
+        $first = $this->teacher();
+        $second = $this->teacher();
+        $this->assertSame('asha-sharma-kanpur', $first->public_page_slug);
+        $this->assertSame('asha-sharma-kanpur-'.$second->user_id, $second->public_page_slug);
+        DB::table('users')->where('id', $first->user_id)->update(['full_name' => 'Asha Verma']);
+        DB::table('teacher_profiles')->where('user_id', $first->user_id)->update(['city' => 'Delhi']);
+        app(TeacherPublicPages::class)->publish($first->user_id, $first->user_id);
+        $this->get('/teacher/asha-sharma-kanpur')->assertStatus(301)->assertRedirect('http://localhost/teacher/asha-verma-delhi');
+        $this->get('/in/delhi/maths-tuition')->assertOk()->assertSee('Asha Verma');
+        $this->get('/in/kanpur/maths-tuition')->assertOk()->assertDontSee('Asha Verma');
+    }
+
+    public function test_missing_country_and_ineligible_teachers_do_not_publish_empty_pages(): void
+    {
+        $missing = $this->teacher(country: null);
+        $this->assertNull(TeacherPublicPages::urls($missing)['teacherSeoUrl']);
+        $valid = $this->teacher();
+        DB::table('users')->where('id', $valid->user_id)->update(['suspended_at' => now()]);
+        $this->get('/teacher/'.$valid->public_page_slug)->assertNotFound();
+        $this->get('/in/kanpur/maths-tuition')->assertNotFound();
+        $this->get('/in/online/maths-tuition')->assertNotFound();
+        $xml = $this->get('/sitemap.xml')->assertOk()->streamedContent();
+        $this->assertStringNotContainsString('/sitemaps/teachers-', $xml);
+    }
+
+    public function test_explicit_country_edit_overrides_an_old_country_code(): void
+    {
+        $teacher = $this->teacher();
+        DB::table('teacher_profiles')->where('user_id', $teacher->user_id)->update(['country_code' => 'IN', 'country' => 'Spain']);
+        app(TeacherPublicPages::class)->publish($teacher->user_id);
+        $this->assertSame('es', DB::table('teacher_profiles')->where('user_id', $teacher->user_id)->value('seo_country'));
+        $this->get('/in/kanpur/maths-tuition')->assertNotFound();
+        $this->get('/es/kanpur/clases-particulares-de-matematicas')->assertOk()->assertSee('<html lang="es"', false);
+    }
+
+    public function test_untranslated_subjects_wait_for_admin_localized_wording(): void
+    {
+        $domain = DB::table('subjects')->where('id', $this->subjects['Maths'])->value('domain_id');
+        $this->subjects['Guitar'] = DB::table('subjects')->insertGetId(['domain_id' => $domain, 'name' => 'Guitar']);
+        $this->teacher(subjects: ['Guitar']);
+        $this->get('/in/kanpur/guitar-tuition')->assertOk();
+        $this->get('/in/hi/kanpur/guitar-tuition')->assertNotFound();
+        $this->withSession(['admin_authenticated' => true])->post('/admin/seo/subjects', [
+            'subject_id' => $this->subjects['Guitar'], 'country' => 'in', 'language' => 'hi',
+            'display_name' => 'गिटार', 'city_slug' => 'guitar-tuition', 'online_slug' => 'guitar-tuition', 'enabled' => true,
+        ])->assertRedirect();
+        $this->get('/in/hi/kanpur/guitar-tuition')->assertOk()->assertSee('गिटार');
+    }
+
+    public function test_admin_mapping_edits_redirect_old_listing_paths_and_export_logged_reports(): void
+    {
+        $this->teacher();
+        $this->get('/admin/seo/subjects')->assertRedirect('/admin/login');
+        $this->post('/admin/seo/sync')->assertRedirect('/admin/login');
+        $route = DB::table('seo_subject_routes')->where('country', 'in')->where('language', 'en')->first();
+        $body = ['id' => $route->id, 'subject_id' => $route->subject_id, 'country' => 'in', 'language' => 'en',
+            'display_name' => 'Mathematics', 'city_slug' => 'mathematics-tuition', 'online_slug' => 'maths-tuition', 'enabled' => true];
+        $this->withSession(['admin_authenticated' => true])->post('/admin/seo/subjects', $body)->assertRedirect();
+        $this->get('/in/kanpur/maths-tuition')->assertStatus(301)->assertRedirect('http://localhost/in/kanpur/mathematics-tuition');
+        $this->get('/in/kanpur/mathematics-tuition')->assertOk()->assertSee('Mathematics');
+        $this->post('/admin/seo/subjects', [
+            'subject_id' => $this->subjects['English'], 'country' => 'in', 'language' => 'en',
+            'display_name' => 'English', 'city_slug' => 'maths-tuition', 'online_slug' => 'english-tuition', 'enabled' => true,
+        ])->assertSessionHasErrors('city_slug');
+        $this->get('/admin/reports/seo-pages?q=mathematics-tuition')->assertOk()->assertSee('Open page')->assertSee('Published');
+        $csv = $this->get('/admin/reports/seo-pages?q=mathematics-tuition&export=1')->assertOk()->streamedContent();
+        $this->assertStringContainsString('/in/kanpur/mathematics-tuition', $csv);
+        $this->assertStringContainsString('eligible_teachers', $csv);
+        $this->assertGreaterThanOrEqual(3, DB::table('admin_report_access_log')->count());
+        $this->post('/admin/seo/subjects', [...$body, 'enabled' => false])->assertRedirect();
+        $this->get('/in/kanpur/mathematics-tuition')->assertNotFound();
+        $this->get('/admin/reports/seo-pages?q=mathematics-tuition')->assertOk()->assertSee('Disabled');
+    }
+
+    public function test_listing_pagination_and_streamed_sitemaps_use_new_canonical_urls(): void
+    {
+        foreach (range(1, 21) as $index) {
+            $this->teacher('Teacher '.$index, modes: ['in_person']);
+        }
+        $this->get('/in/kanpur/maths-tuition?page=2')->assertOk()
+            ->assertSee('<link rel="canonical" href="http://localhost/in/kanpur/maths-tuition?page=2">', false);
+        $this->get('/in/kanpur/maths-tuition?page=999')->assertNotFound();
+        $index = $this->get('/sitemap.xml')->assertOk()->streamedContent();
+        $this->assertStringContainsString('/sitemaps/teachers-1.xml', $index);
+        $xml = $this->get('/sitemaps/directory-1.xml')->assertOk()->streamedContent();
+        $this->assertStringContainsString('hreflang="hi-IN"', $xml);
+        $this->assertStringContainsString('/in/kanpur/maths-tuition', $xml);
+        $this->assertStringNotContainsString('/teachers/', $xml);
+        $this->get('/sitemaps/directory-999.xml')->assertNotFound();
+    }
+
+    public function test_publication_rolls_back_source_state_url_registry_and_history_together(): void
+    {
+        $teacher = $this->teacher();
+        $this->app->instance(BusinessActivityRecorder::class, new class
         {
             public function record(...$arguments): never
             {
                 throw new \RuntimeException('History unavailable');
             }
-        };
-        $this->app->instance(BusinessActivityRecorder::class, $recorder);
+        });
         try {
-            DB::transaction(function (): void {
-                DB::table('teacher_profiles')->where('user_id', $this->teacherId)->update(['city' => 'Delhi']);
-                app(TeacherPublicPages::class)->publish($this->teacherId);
+            DB::transaction(function () use ($teacher): void {
+                DB::table('teacher_profiles')->where('user_id', $teacher->user_id)->update(['city' => 'Delhi']);
+                app(TeacherPublicPages::class)->publish($teacher->user_id);
             });
-            $this->fail('Publication should fail when history fails.');
-        } catch (\RuntimeException $exception) {
-            $this->assertSame('History unavailable', $exception->getMessage());
+            $this->fail('Expected publication failure.');
+        } catch (\RuntimeException $error) {
+            $this->assertSame('History unavailable', $error->getMessage());
         }
-        $this->assertNull($this->profile()->seo_slug);
-        $this->assertSame('Jaipur', $this->profile()->city);
-    }
-
-    public function test_optional_links_are_safe_and_text_is_escaped(): void
-    {
-        DB::table('teacher_profiles')->where('user_id', $this->teacherId)->update([
-            'linkedin_url' => 'javascript:alert(1)', 'bio' => '<script>alert(2)</script>',
-        ]);
-        $urls = $this->publish();
-        $this->get($urls['teacherProfileUrl'])->assertOk()
-            ->assertDontSee('javascript:alert(1)', false)->assertDontSee('<script>alert(2)</script>', false)
-            ->assertSee('&lt;script&gt;alert(2)&lt;/script&gt;', false);
-    }
-
-    public function test_long_subject_names_are_not_truncated_and_missing_subjects_hide_pages(): void
-    {
-        foreach ($this->subjectIds as $index => $id) {
-            DB::table('subjects')->where('id', $id)->update(['name' => str_repeat('subject', 20).$index]);
-        }
-        $urls = $this->publish();
-        $this->assertGreaterThan(255, strlen($this->profile()->seo_slug));
-        foreach (range(0, 4) as $index) {
-            $this->assertStringContainsString(str_repeat('subject', 20).$index, $urls['teacherSeoUrl']);
-        }
-        $this->get($urls['teacherSeoUrl'])->assertOk();
-        DB::table('profile_subjects')->where('profile_type', 'teacher')->where('profile_id', $this->teacherId)->delete();
-        $this->get($urls['teacherSeoUrl'])->assertNotFound();
-        $this->get($urls['teacherProfileUrl'])->assertNotFound();
-        $this->get('/sitemap.xml')->assertOk()->assertDontSee($urls['teacherProfileUrl']);
-    }
-
-    public function test_teacher_registration_publishes_primary_subject_page_and_returns_urls(): void
-    {
-        DB::table('users')->where('id', $this->teacherId)->update([
-            'profile_completed_at' => null, 'account_type' => 'learner', 'password_hash' => null,
-        ]);
-        DB::table('teacher_profiles')->where('user_id', $this->teacherId)->update(['slug' => null]);
-        DB::table('profile_subjects')->where('profile_type', 'teacher')->where('profile_id', $this->teacherId)->delete();
-        $authentication = \Mockery::mock(AuthenticationService::class);
-        $authentication->shouldReceive('authenticate')->with('registration-test')
-            ->andReturn(DB::table('users')->where('id', $this->teacherId)->first());
-        $this->app->instance(AuthenticationService::class, $authentication);
-        $result = $this->postJson('/auth/register', [
-            'accountType' => 'teacher', 'fullName' => 'Rahul Sharma', 'email' => 'teacher@example.test',
-            'password' => 'test-secure-password', 'city' => 'Jaipur', 'primarySubjects' => [$this->subjectIds[0]],
-            'termsAccepted' => true, 'acknowledgeTeachersNotBackgroundChecked' => true,
-        ], ['Authorization' => 'Bearer registration-test'])->assertOk()->assertJsonPath('registrationCompleted', true)->json();
-        $this->assertStringContainsString('rahul-sharma-maths-jaipur-', $result['teacherSeoUrl']);
-        $this->get($result['teacherProfileUrl'])->assertOk()->assertSee('Maths');
-    }
-
-    public function test_full_profile_reviews_are_real_escaped_and_bounded(): void
-    {
-        $learner = NumericTestIds::next();
-        DB::table('users')->insert(['id' => $learner, 'account_type' => 'learner', 'full_name' => 'Private Learner']);
-        foreach (range(0, 10) as $index) {
-            $booking = NumericTestIds::next();
-            DB::table('bookings')->insert([
-                'id' => $booking, 'learner_id' => $learner, 'provider_id' => $this->teacherId,
-                'mode' => 'online', 'requested_time' => now(), 'status' => 'completed',
-            ]);
-            DB::table('reviews')->insert([
-                'id' => NumericTestIds::next(), 'booking_id' => $booking, 'learner_id' => $learner,
-                'provider_id' => $this->teacherId, 'rating' => 5,
-                'comment' => $index === 0 ? 'Oldest review' : '<b>Helpful lesson '.$index.'</b>',
-                'created_at' => now()->addSeconds($index),
-            ]);
-        }
-        $urls = $this->publish();
-        $this->get($urls['teacherProfileUrl'])->assertOk()->assertSee('Helpful lesson 10')
-            ->assertSee('&lt;b&gt;', false)->assertDontSee('<b>Helpful', false)
-            ->assertDontSee('Oldest review')->assertDontSee('Private Learner')->assertSee('Next');
-        $this->get($urls['teacherProfileUrl'].'?page=2')->assertOk()->assertSee('Oldest review')
-            ->assertDontSee('Helpful lesson 10')->assertSee('Previous');
-    }
-
-    public function test_reports_filter_and_export_new_columns_and_history_with_admin_logging(): void
-    {
-        $this->publish();
-        $this->get('/admin/reports/teacher-profiles?export=1')->assertRedirect('/admin/login');
-        $this->withSession(['admin_authenticated' => true])
-            ->get('/admin/reports/teacher-profiles?q='.$this->profile()->seo_slug)
-            ->assertOk()->assertSee($this->profile()->seo_slug)->assertSee('Open SEO page')
-            ->assertSee('href="'.route('website.teacher', ['slug' => $this->profile()->seo_slug]).'"', false);
-        $csv = $this->get('/admin/reports/teacher-profiles?export=1&q='.$this->profile()->seo_slug)
-            ->assertOk()->streamedContent();
-        $this->assertStringContainsString('public_profile_slug', $csv);
-        $this->assertStringContainsString($this->profile()->seo_slug, $csv);
-        $this->get('/admin/reports/activity?q=teacher.pages_published')->assertOk()->assertSee('teacher.pages_published');
-        $this->assertGreaterThanOrEqual(3, DB::table('admin_report_access_log')->count());
+        $this->assertSame('Kanpur', DB::table('teacher_profiles')->where('user_id', $teacher->user_id)->value('city'));
+        $this->assertFalse(DB::table('seo_urls')->where('path', '/teacher/asha-sharma-delhi')->exists());
     }
 }

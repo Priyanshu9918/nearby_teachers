@@ -1,7 +1,26 @@
 <?php
 
+use App\Services\SeoDirectory;
+
 // Explicit report contracts: new database columns are never exposed automatically.
 return [
+    'seo-pages' => [
+        'title' => 'SEO pages', 'table' => 'seo_directory_pages', 'timestamp' => 'created_at',
+        'columns' => ['id', 'route_id', 'subject_id', 'country', 'language', 'kind', 'city', 'city_slug', 'path', 'created_at', 'updated_at'],
+        'participants' => [], 'search' => ['country', 'language', 'kind', 'city', 'path'],
+        'computed' => ['eligible_teachers' => SeoDirectory::COUNT_SQL,
+            'route_enabled' => '(SELECT enabled FROM seo_subject_routes sr WHERE sr.id = r.route_id)'],
+    ],
+    'seo-subject-routes' => [
+        'title' => 'SEO subject wording', 'table' => 'seo_subject_routes', 'timestamp' => 'updated_at',
+        'columns' => ['id', 'subject_id', 'country', 'language', 'display_name', 'city_slug', 'online_slug', 'enabled', 'created_at', 'updated_at'],
+        'participants' => [], 'search' => ['country', 'language', 'display_name', 'city_slug', 'online_slug'],
+    ],
+    'seo-url-history' => [
+        'title' => 'SEO URL ownership and redirects', 'table' => 'seo_urls', 'timestamp' => 'created_at',
+        'columns' => ['id', 'path', 'target_type', 'target_id', 'created_at'],
+        'participants' => [], 'search' => ['path', 'target_type', 'target_id'],
+    ],
     'franchise-enquiries' => [
         'title' => 'BSL franchise enquiries', 'table' => 'franchise_enquiries', 'timestamp' => 'created_at',
         'columns' => ['id', 'user_id', 'name', 'phone', 'location', 'status', 'created_at'],
@@ -117,8 +136,9 @@ return [
     ],
     'teacher-profiles' => [
         'title' => 'Teacher profiles', 'table' => 'teacher_profiles', 'timestamp' => 'created_at',
-        'columns' => ['id', 'user_id', 'bio', 'rate_per_hour', 'currency', 'lesson_modes', 'latitude', 'longitude', 'address_text', 'city', 'state', 'country', 'country_code', 'linkedin_url', 'location_details', 'district', 'sub_district', 'locality', 'locality_type', 'postal_code', 'slug', 'seo_slug', 'public_profile_slug', 'is_verified', 'verified_at', 'trial_days', 'rating_avg', 'rating_count', 'created_at', 'updated_at'],
-        'participants' => ['user_id'], 'search' => ['city', 'bio', 'seo_slug', 'public_profile_slug', 'location_details', 'district', 'sub_district', 'locality', 'postal_code'],
+        'columns' => ['id', 'user_id', 'bio', 'rate_per_hour', 'currency', 'lesson_modes', 'latitude', 'longitude', 'address_text', 'city', 'state', 'country', 'country_code', 'linkedin_url', 'public_page_slug', 'seo_country', 'seo_city_slug', 'location_details', 'district', 'sub_district', 'locality', 'locality_type', 'postal_code', 'slug', 'is_verified', 'verified_at', 'trial_days', 'rating_avg', 'rating_count', 'created_at', 'updated_at'],
+        'participants' => ['user_id'], 'search' => ['city', 'bio', 'public_page_slug', 'seo_country', 'seo_city_slug', 'location_details', 'district', 'sub_district', 'locality', 'postal_code'],
+        'computed' => ['seo_public' => "CASE WHEN r.public_page_slug IS NOT NULL AND r.seo_country IS NOT NULL AND EXISTS (SELECT 1 FROM users pu WHERE pu.id = r.user_id AND pu.account_type = 'teacher' AND pu.suspended_at IS NULL AND pu.phone_verified_at IS NOT NULL AND pu.profile_completed_at IS NOT NULL) AND EXISTS (SELECT 1 FROM profile_subjects ps WHERE ps.profile_id = r.user_id AND ps.profile_type = 'teacher') THEN 1 ELSE 0 END"],
     ],
     'institute-profiles' => [
         'title' => 'Institute profiles', 'table' => 'institute_profiles', 'timestamp' => 'created_at',

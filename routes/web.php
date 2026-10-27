@@ -2,7 +2,9 @@
 
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminReportController;
+use App\Http\Controllers\AdminSeoController;
 use App\Http\Controllers\DeveloperController;
+use App\Http\Controllers\InternationalSeoController;
 use App\Http\Controllers\LocationLookupController;
 use App\Http\Controllers\ParentalConsentController;
 use App\Http\Controllers\WebsiteController;
@@ -22,10 +24,11 @@ Route::get('/health', fn () => response()->json(['ok' => true]));
 Route::get('/', [WebsiteController::class, 'home'])->name('website.home');
 Route::get('/site', [WebsiteController::class, 'directory'])->name('website.directory');
 Route::get('/site/institute/{slug}', [WebsiteController::class, 'institute'])->name('website.institute');
-Route::get('/teachers/{slug}', [WebsiteController::class, 'teacher'])->name('website.teacher');
-Route::get('/teachers/{slug}/profile', [WebsiteController::class, 'teacherProfile'])->name('website.teacher-profile');
-Route::get('/site/teacher/{slug}', [WebsiteController::class, 'teacher'])->name('website.teacher-legacy');
-Route::get('/site/teacher-profile/{slug}', [WebsiteController::class, 'teacherProfile'])->name('website.teacher-profile-legacy');
+Route::get('/teacher/{slug}', [InternationalSeoController::class, 'teacher'])->name('website.teacher');
+Route::get('/teachers/{slug}', [InternationalSeoController::class, 'teacher'])->name('website.teacher-old-overview');
+Route::get('/teachers/{slug}/profile', [InternationalSeoController::class, 'teacher'])->name('website.teacher-profile');
+Route::get('/site/teacher/{slug}', [InternationalSeoController::class, 'teacher'])->name('website.teacher-legacy');
+Route::get('/site/teacher-profile/{slug}', [InternationalSeoController::class, 'teacher'])->name('website.teacher-profile-legacy');
 Route::get('/site/feed/{city}', [WebsiteController::class, 'feed'])->name('website.feed');
 Route::get('/site/city/{city}', [WebsiteController::class, 'city'])->name('website.city');
 Route::get('/location-lookup', [WebsiteController::class, 'locationLookup'])->name('website.location-lookup');
@@ -33,8 +36,10 @@ Route::post('/location-lookup/reverse', [LocationLookupController::class, 'rever
     ->middleware(ThrottleRequests::class.':30,1')
     ->name('website.location-lookup.reverse');
 Route::get('/download', [WebsiteController::class, 'download'])->name('download');
-Route::get('/sitemap.xml', [WebsiteController::class, 'sitemap'])->name('website.sitemap');
-Route::get('/robots.txt', [WebsiteController::class, 'robots'])->name('website.robots');
+Route::get('/sitemap.xml', [InternationalSeoController::class, 'sitemap'])->name('website.sitemap');
+Route::get('/directory', [InternationalSeoController::class, 'hub'])->name('seo.hub');
+Route::get('/sitemaps/{kind}-{number}.xml', [InternationalSeoController::class, 'sitemapPart'])->whereIn('kind', ['teachers', 'directory'])->where('number', '[1-9][0-9]{0,6}')->name('seo.sitemap-part');
+Route::get('/robots.txt', [InternationalSeoController::class, 'robots'])->name('website.robots');
 
 Route::get('/admin/login', [AdminController::class, 'login'])->name('admin.login');
 Route::post('/admin/login', [AdminController::class, 'authenticate'])
@@ -60,6 +65,10 @@ Route::middleware(RequireAdminSession::class)->prefix('admin')->name('admin.')->
     Route::post('/logout', [AdminController::class, 'logout'])->name('logout');
     Route::get('/', [AdminController::class, 'home'])->name('home');
 
+    Route::get('/seo/subjects/{id?}', [AdminSeoController::class, 'index'])->where('id', RecordId::ROUTE_PATTERN)->name('seo.edit');
+    Route::post('/seo/subjects', [AdminSeoController::class, 'save'])->name('seo.save');
+    Route::post('/seo/sync', [AdminSeoController::class, 'sync'])->name('seo.sync');
+
     Route::get('/dashboard', [AdminReportController::class, 'dashboard'])->name('dashboard');
     Route::get('/reports/users/{id}', [AdminReportController::class, 'user'])->where('id', RecordId::ROUTE_PATTERN)->name('reports.user');
     Route::get('/reports/conversations/{id}', [AdminReportController::class, 'conversation'])->where('id', RecordId::ROUTE_PATTERN)->name('reports.conversation');
@@ -72,3 +81,6 @@ Route::middleware(RequireAdminSession::class)->prefix('admin')->name('admin.')->
     Route::delete('/{section}/{id}', [AdminController::class, 'destroy'])->where('id', RecordId::ROUTE_PATTERN)->name('destroy');
     Route::get('/{section}', [AdminController::class, 'index'])->name('index');
 });
+
+Route::get('/{country}/{language}/{city}/{slug}', [InternationalSeoController::class, 'localizedListing'])->where('country', '[a-z]{2}')->where('language', '[a-z]{2}')->name('seo.localized');
+Route::get('/{country}/{city}/{slug}', [InternationalSeoController::class, 'listing'])->where('country', '[a-z]{2}')->name('seo.listing');
