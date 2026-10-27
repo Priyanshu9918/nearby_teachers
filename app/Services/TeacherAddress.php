@@ -35,16 +35,21 @@ final class TeacherAddress
         return $result;
     }
 
-    public function store(int $userId, array $data): void
+    public function store(int $userId, array $data, string $type = 'teacher'): void
     {
+        $table = match ($type) {
+            'teacher' => 'teacher_profiles',
+            'institute' => 'institute_profiles',
+            default => throw new \InvalidArgumentException('Unsupported provider type.'),
+        };
         if (array_intersect(array_keys($data), array_keys(self::FIELDS)) === []) {
             return;
         }
         if (DB::transactionLevel() < 1) {
-            throw new LogicException('Store teacher address inside its source transaction.');
+            throw new LogicException('Store provider address inside its source transaction.');
         }
-        $profile = DB::table('teacher_profiles')->where('user_id', $userId)->lockForUpdate()->first();
-        abort_if($profile === null, 404, 'Teacher profile not found');
+        $profile = DB::table($table)->where('user_id', $userId)->lockForUpdate()->first();
+        abort_if($profile === null, 404, 'Provider profile not found');
         $changes = [];
         foreach (self::FIELDS as $input => $column) {
             if (array_key_exists($input, $data)) {
@@ -56,8 +61,8 @@ final class TeacherAddress
             }
         }
         if ($changes !== []) {
-            DB::table('teacher_profiles')->where('user_id', $userId)->update($changes);
-            app(BusinessActivityRecorder::class)->record('teacher.address_updated', $userId, $userId,
+            DB::table($table)->where('user_id', $userId)->update($changes);
+            app(BusinessActivityRecorder::class)->record($type.'.address_updated', $userId, $userId,
                 after: ['changed_fields' => array_keys($changes)]);
         }
     }

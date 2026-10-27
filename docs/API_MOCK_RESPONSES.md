@@ -2567,7 +2567,16 @@ Request body:
   "termsAccepted": true,
   "acknowledgeTeachersNotBackgroundChecked": true,
   "city": "{{city}}",
-  "contactPerson": "Asha Sharma"
+  "contactPerson": "Asha Sharma",
+  "district": "New Delhi",
+  "subDistrict": "Chanakyapuri",
+  "locality": "Ward 1",
+  "localityType": "ward",
+  "state": "Delhi",
+  "country": "India",
+  "postalCode": "110001",
+  "latitude": 28.6139,
+  "longitude": 77.209
 }
 ```
 
@@ -2608,10 +2617,16 @@ Content-Type: `application/json`
     "termsAccepted": true,
     "teachersNotBackgroundCheckedAcknowledged": true,
     "acknowledgeTeachersNotBackgroundChecked": true,
-    "primarySubjects": [],
     "latitude": null,
     "longitude": null,
-    "locationDetails": null
+    "locationDetails": null,
+    "district": null,
+    "subDistrict": null,
+    "locality": null,
+    "localityType": null,
+    "state": null,
+    "country": null,
+    "postalCode": null
   },
   "user": {
     "id": "20000000-0000-4000-8000-000000000001",

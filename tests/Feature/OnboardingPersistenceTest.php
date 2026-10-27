@@ -333,6 +333,74 @@ class OnboardingPersistenceTest extends TestCase
         ];
     }
 
+    public function test_institute_registration_stores_address_and_geocoding_without_subjects(): void
+    {
+        config(['services.google_geocoding.enabled' => true, 'services.google_geocoding.key' => 'private-institute-test-key']);
+        Http::fake(['maps.googleapis.com/*' => Http::response(['status' => 'OK', 'results' => [[
+            'place_id' => 'institute-place', 'formatted_address' => 'Private Institute Lane', 'types' => ['street_address'],
+            'address_components' => [['long_name' => '001234', 'short_name' => '001234', 'types' => ['postal_code']]],
+        ]]])]);
+        $data = ['accountType' => 'institute', 'city' => 'Delhi', 'contactPerson' => 'Institute Contact',
+            'district' => 'New Delhi', 'subDistrict' => 'Sample Tehsil', 'locality' => 'Ward 4', 'localityType' => 'ward',
+            'state' => 'Delhi', 'country' => 'India', 'postalCode' => '001234', 'latitude' => 28.61, 'longitude' => 77.20];
+        $result = $this->postJson('/auth/register', array_replace($this->sharedFields(), $data))->assertOk()
+            ->assertJsonMissingPath('draft.primarySubjects')->assertJsonPath('draft.locationDetails.status', 'ok')
+            ->assertJsonPath('draft.postalCode', '001234')->assertJsonPath('draft.latitude', 28.61);
+        $this->assertDatabaseHas('institute_profiles', ['user_id' => $this->userId, 'district' => 'New Delhi',
+            'sub_district' => 'Sample Tehsil', 'postal_code' => '001234']);
+        $this->assertSame(0, DB::table('profile_subjects')->where('profile_id', $this->userId)->count());
+        $this->assertDatabaseHas('business_activity', ['event' => 'institute.address_updated', 'entity_id' => $this->userId]);
+        $this->assertDatabaseHas('business_activity', ['event' => 'institute.location_updated', 'entity_id' => $this->userId]);
+        Http::assertSentCount(1);
+        $this->putJson('/profiles/me', ['postalCode' => 'A1B 2C3', 'state' => 'Updated State'])->assertOk()
+            ->assertJsonPath('locationDetails.place_id', 'institute-place');
+        Http::assertSentCount(1);
+        $this->patchJson('/auth/onboarding', ['locality' => 'Sample Village', 'localityType' => 'village',
+            'latitude' => null, 'longitude' => null])->assertOk()->assertJsonPath('draft.locationDetails', null)
+            ->assertJsonPath('draft.postalCode', 'A1B 2C3')->assertJsonPath('draft.localityType', 'village');
+        $this->withoutHeader('Authorization')->getJson('/profiles/institute/'.$this->userId)->assertOk()
+            ->assertJsonMissingPath('profile.location_details')->assertJsonMissingPath('profile.postal_code')
+            ->assertJsonMissingPath('profile.locality');
+        $report = '/admin/reports/institute-profiles?user='.$this->userId.'&q=A1B';
+        $this->get($report)->assertRedirect('/admin/login');
+        $this->withSession(['admin_authenticated' => true])->get($report)->assertOk()->assertSee('A1B 2C3');
+        $csv = $this->get($report.'&export=1')->assertOk()->streamedContent();
+        $this->assertStringContainsString('sub_district', $csv);
+        $this->assertStringContainsString('A1B 2C3', $csv);
+    }
+
+    public function test_institute_registration_alias_requires_agreements_and_valid_pairs_but_no_subjects(): void
+    {
+        Http::fake();
+        $base = array_replace($this->sharedFields(), ['accountType' => 'institute', 'city' => 'Delhi', 'contactPerson' => 'Institute Contact']);
+        foreach ([['primarySubjects', [1]], ['termsAccepted', false], ['acknowledgeTeachersNotBackgroundChecked', false],
+            ['latitude', 28.61], ['postalCode', 12345]] as [$field, $value]) {
+            $this->postJson('/auth/onboarding/complete', [...$base, $field => $value])->assertUnprocessable()
+                ->assertJsonValidationErrors($field === 'latitude' ? 'location' : $field);
+        }
+        $this->postJson('/auth/onboarding/complete', $base)->assertOk()->assertJsonPath('registrationCompleted', true)
+            ->assertJsonMissingPath('draft.primarySubjects');
+        Http::assertNothingSent();
+    }
+
+    public function test_institute_location_outage_and_history_failure_do_not_corrupt_existing_details(): void
+    {
+        config(['services.google_geocoding.enabled' => false]);
+        $this->postJson('/auth/register', array_replace($this->sharedFields(), ['accountType' => 'institute',
+            'city' => 'Delhi', 'contactPerson' => 'Institute Contact', 'district' => 'Original District',
+            'latitude' => 28.61, 'longitude' => 77.20]))->assertOk()->assertJsonPath('draft.locationDetails.status', 'not_configured');
+        $this->app->instance(BusinessActivityRecorder::class, new class
+        {
+            public function record(...$arguments): never
+            {
+                throw new \RuntimeException('History unavailable');
+            }
+        });
+        $this->putJson('/profiles/me', ['district' => 'Changed', 'latitude' => 0, 'longitude' => 0])->assertStatus(500);
+        $this->assertDatabaseHas('institute_profiles', ['user_id' => $this->userId, 'district' => 'Original District',
+            'latitude' => 28.61, 'longitude' => 77.20]);
+    }
+
     public function test_teacher_address_fields_are_saved_returned_and_editable_without_exposing_precise_details(): void
     {
         $subjects = $this->teachingSubjects();

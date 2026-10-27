@@ -370,6 +370,9 @@ class DeveloperController extends Controller
                             'country' => 'India', 'postalCode' => '110001'];
                     } else {
                         $body['contactPerson'] = 'Anita Sharma';
+                        $body += ['district' => 'New Delhi', 'subDistrict' => 'Chanakyapuri',
+                            'locality' => 'Ward 1', 'localityType' => 'ward', 'state' => 'Delhi',
+                            'country' => 'India', 'postalCode' => '110001', 'latitude' => 28.6139, 'longitude' => 77.2090];
                     }
                 }
                 $guide = $role === 'student'

@@ -10,6 +10,8 @@ final class BusinessActivityRecorder
 {
     // Each event explicitly owns its snapshot contract. No raw request/user arrays.
     private const EVENTS = [
+        'institute.address_updated' => ['institute_profile', ['changed_fields']],
+        'institute.location_updated' => ['institute_profile', ['has_coordinates', 'geocoding_status']],
         'teacher.address_updated' => ['teacher_profile', ['changed_fields']],
         'teacher.location_updated' => ['teacher_profile', ['has_coordinates', 'geocoding_status']],
         'teacher.pages_published' => ['teacher_profile', ['seo_slug', 'public_profile_slug', 'subject_ids', 'city', 'state', 'country']],

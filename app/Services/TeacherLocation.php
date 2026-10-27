@@ -30,22 +30,27 @@ final class TeacherLocation
             'details' => $latitude === null ? null : app(GoogleReverseGeocoder::class)->lookup($latitude, $longitude)];
     }
 
-    public function store(int $userId, ?array $prepared): void
+    public function store(int $userId, ?array $prepared, string $type = 'teacher'): void
     {
         if ($prepared === null) {
             return;
         }
+        $table = match ($type) {
+            'teacher' => 'teacher_profiles',
+            'institute' => 'institute_profiles',
+            default => throw new \InvalidArgumentException('Unsupported provider type.'),
+        };
         if (DB::transactionLevel() < 1) {
-            throw new LogicException('Store teacher location in the source transaction.');
+            throw new LogicException('Store provider location in the source transaction.');
         }
-        $before = DB::table('teacher_profiles')->where('user_id', $userId)->lockForUpdate()->first();
-        abort_if($before === null, 404, 'Teacher profile not found');
+        $before = DB::table($table)->where('user_id', $userId)->lockForUpdate()->first();
+        abort_if($before === null, 404, 'Provider profile not found');
         $old = $before->location_details === null ? null : json_decode($before->location_details, true, flags: JSON_THROW_ON_ERROR);
-        DB::table('teacher_profiles')->where('user_id', $userId)->update([
+        DB::table($table)->where('user_id', $userId)->update([
             'latitude' => $prepared['latitude'], 'longitude' => $prepared['longitude'],
             'location_details' => $prepared['details'] === null ? null : json_encode($prepared['details'], JSON_THROW_ON_ERROR),
         ]);
-        app(BusinessActivityRecorder::class)->record('teacher.location_updated', $userId, $userId,
+        app(BusinessActivityRecorder::class)->record($type.'.location_updated', $userId, $userId,
             before: ['has_coordinates' => $before->latitude !== null && $before->longitude !== null,
                 'geocoding_status' => $old['status'] ?? null],
             after: ['has_coordinates' => $prepared['latitude'] !== null, 'geocoding_status' => $prepared['details']['status'] ?? 'cleared']);
