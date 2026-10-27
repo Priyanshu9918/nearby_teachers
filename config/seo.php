@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'public_url' => env('SEO_PUBLIC_URL', 'https://teachers.britishschooloflanguages.com'),
+    'public_url' => env('SEO_PUBLIC_URL', 'http://157.245.125.79/nearby_teachers/public'),
     'city_slugs' => [
         'कानपुर' => 'kanpur', 'नई दिल्ली' => 'new-delhi', 'दिल्ली' => 'delhi',
         '東京' => 'tokyo', '大阪' => 'osaka', '北京' => 'beijing', '上海' => 'shanghai',
