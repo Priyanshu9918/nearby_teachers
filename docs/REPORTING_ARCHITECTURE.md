@@ -1,5 +1,11 @@
 # Reporting architecture
 
+Version 1 `teacher.address_updated` records changed field names only, within
+the source address transaction. Current teacher address columns are explicitly
+registered in the teacher-profile report; exact past values are not archived.
+See [teacher address coverage](TEACHER_REGISTRATION_ADDRESS.md).
+
+
 Teacher GPS enrichment adds version 1 `teacher.location_updated` history with
 only coordinate-presence flags and normalized geocoding status. Exact address
 details are current private profile state, not append-only history. The existing

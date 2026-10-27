@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\CountryCurrency;
 use App\Services\OnboardingState;
+use App\Services\TeacherAddress;
 use App\Services\TeacherLocation;
 use App\Services\TeacherPublicPages;
 use Illuminate\Http\JsonResponse;
@@ -60,6 +61,7 @@ class ProfilesController extends Controller
             $subjectsField.'.*' => ['required', 'integer', 'distinct', 'exists:subjects,id'],
         ];
         if ($isTeacher) {
+            $rules += TeacherAddress::rules();
             $rules['subjectIds'] = ['prohibited'];
             $rules['primarySubjectId'] = ['prohibited'];
             $rules['linkedinUrl'] = ['sometimes', 'nullable', 'url:http,https', 'max:2048'];
@@ -91,8 +93,10 @@ class ProfilesController extends Controller
         $this->appendField($updateParts, $bindings, $data, $rateField, $isTeacher ? 'rate_per_hour' : 'starting_rate');
         $this->appendField($updateParts, $bindings, $data, 'addressText', 'address_text');
         $this->appendField($updateParts, $bindings, $data, 'city', 'city');
-        $this->appendField($updateParts, $bindings, $data, 'state', 'state');
-        $this->appendField($updateParts, $bindings, $data, 'country', 'country');
+        if (! $isTeacher) {
+            $this->appendField($updateParts, $bindings, $data, 'state', 'state');
+            $this->appendField($updateParts, $bindings, $data, 'country', 'country');
+        }
         $this->appendField($updateParts, $bindings, $data, 'countryCode', 'country_code', true);
         $this->appendField($updateParts, $bindings, $data, 'trialDays', 'trial_days');
 
@@ -154,6 +158,7 @@ class ProfilesController extends Controller
             $this->ensureSlug($profileTable, $user->id, $user->full_name);
             if ($type === 'teacher') {
                 app(TeacherLocation::class)->store((int) $user->id, $location);
+                app(TeacherAddress::class)->store((int) $user->id, $data);
                 app(TeacherPublicPages::class)->publish((int) $user->id, (int) $user->id);
             }
         });
@@ -198,6 +203,7 @@ class ProfilesController extends Controller
         }
         // Enrichment belongs to the owner onboarding response and admin reports only.
         unset($profile->location_details);
+        unset($profile->district, $profile->sub_district, $profile->locality, $profile->locality_type, $profile->postal_code);
 
         $phoneQuota = null;
         $viewer = $request->attributes->get('authenticated_user');

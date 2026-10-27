@@ -365,6 +365,9 @@ class DeveloperController extends Controller
                         $body['primarySubjects'] = [1];
                         $body['latitude'] = 28.6139;
                         $body['longitude'] = 77.2090;
+                        $body += ['district' => 'New Delhi', 'subDistrict' => 'Chanakyapuri',
+                            'locality' => 'Ward 1', 'localityType' => 'ward', 'state' => 'Delhi',
+                            'country' => 'India', 'postalCode' => '110001'];
                     } else {
                         $body['contactPerson'] = 'Anita Sharma';
                     }

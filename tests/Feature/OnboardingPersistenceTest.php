@@ -333,6 +333,69 @@ class OnboardingPersistenceTest extends TestCase
         ];
     }
 
+    public function test_teacher_address_fields_are_saved_returned_and_editable_without_exposing_precise_details(): void
+    {
+        $subjects = $this->teachingSubjects();
+        $address = ['district' => 'Sample District', 'subDistrict' => 'Sample Tehsil',
+            'locality' => 'Private Sector 7', 'localityType' => 'sector', 'state' => 'Delhi',
+            'country' => 'India', 'postalCode' => '001234'];
+        $result = $this->postJson('/auth/register', array_replace($this->sharedFields(), [
+            'accountType' => 'teacher', 'city' => 'Delhi', 'primarySubjects' => [$subjects[0]], ...$address,
+        ]))->assertOk()->assertJsonPath('draft.termsAccepted', true)
+            ->assertJsonPath('draft.acknowledgeTeachersNotBackgroundChecked', true);
+        foreach ($address as $field => $value) {
+            $result->assertJsonPath('draft.'.$field, $value);
+        }
+        $this->assertDatabaseHas('teacher_profiles', ['user_id' => $this->userId,
+            'district' => 'Sample District', 'sub_district' => 'Sample Tehsil', 'postal_code' => '001234']);
+        $event = DB::table('business_activity')->where('event', 'teacher.address_updated')->where('entity_id', $this->userId)->first();
+        $this->assertContains('postal_code', json_decode($event->after_data, true)['changed_fields']);
+        $this->assertStringNotContainsString('001234', $event->after_data);
+        $this->putJson('/profiles/me', ['locality' => 'Sample Village', 'localityType' => 'village', 'postalCode' => 'A1B 2C3'])->assertOk();
+        $this->getJson('/auth/onboarding')->assertOk()->assertJsonPath('draft.postalCode', 'A1B 2C3')->assertJsonPath('draft.localityType', 'village');
+        $this->patchJson('/auth/onboarding', ['subDistrict' => null])->assertOk()
+            ->assertJsonPath('draft.subDistrict', null)->assertJsonPath('draft.district', 'Sample District');
+        $this->withoutHeader('Authorization')->getJson('/profiles/teacher/'.$this->userId)
+            ->assertOk()->assertJsonMissingPath('profile.postal_code')->assertJsonMissingPath('profile.locality');
+        $report = '/admin/reports/teacher-profiles?user='.$this->userId.'&q=A1B';
+        $this->get($report)->assertRedirect('/admin/login');
+        $this->withSession(['admin_authenticated' => true])->get($report)->assertOk()->assertSee('A1B 2C3');
+        $csv = $this->get($report.'&export=1')->assertOk()->streamedContent();
+        $this->assertStringContainsString('sub_district', $csv);
+        $this->assertStringContainsString('A1B 2C3', $csv);
+    }
+
+    public function test_teacher_registration_requires_both_agreements_and_valid_address_fields(): void
+    {
+        $subjects = $this->teachingSubjects();
+        foreach ([
+            ['termsAccepted', false], ['acknowledgeTeachersNotBackgroundChecked', false],
+            ['postalCode', 12345], ['district', str_repeat('x', 121)], ['localityType', 'unknown'],
+        ] as [$field, $value]) {
+            $this->postJson('/auth/register', array_replace($this->sharedFields(), [
+                'accountType' => 'teacher', 'city' => 'Delhi', 'primarySubjects' => [$subjects[0]], $field => $value,
+            ]))->assertUnprocessable()->assertJsonValidationErrors($field);
+        }
+        $this->assertNull(DB::table('users')->where('id', $this->userId)->value('profile_completed_at'));
+    }
+
+    public function test_teacher_address_update_rolls_back_when_its_history_fails(): void
+    {
+        $subjects = $this->teachingSubjects();
+        $this->postJson('/auth/register', array_replace($this->sharedFields(), [
+            'accountType' => 'teacher', 'city' => 'Delhi', 'primarySubjects' => [$subjects[0]], 'district' => 'Original District',
+        ]))->assertOk();
+        $this->app->instance(BusinessActivityRecorder::class, new class
+        {
+            public function record(...$arguments): never
+            {
+                throw new \RuntimeException('History unavailable');
+            }
+        });
+        $this->putJson('/profiles/me', ['district' => 'Changed District', 'city' => 'Changed City'])->assertStatus(500);
+        $this->assertDatabaseHas('teacher_profiles', ['user_id' => $this->userId, 'district' => 'Original District', 'city' => 'Delhi']);
+    }
+
     private function captureOtp(): void
     {
         $real = app(OtpDelivery::class);

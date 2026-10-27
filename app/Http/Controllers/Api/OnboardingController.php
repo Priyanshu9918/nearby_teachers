@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Reporting\BusinessActivityRecorder;
 use App\Services\OnboardingState;
+use App\Services\TeacherAddress;
 use App\Services\TeacherLocation;
 use App\Services\TeacherPublicPages;
 use Illuminate\Http\JsonResponse;
@@ -138,7 +139,7 @@ class OnboardingController extends Controller
             $rules['acknowledgeTeachersNotBackgroundChecked'] = ['required', 'accepted'];
         }
 
-        $data = $request->validate($rules);
+        $data = $request->validate($rules + TeacherAddress::rules());
         TeacherLocation::validatePair($data);
         if (isset($data['primarySubjects'])) {
             $data['primarySubjects'] = array_values(array_map('intval', $data['primarySubjects']));
@@ -225,6 +226,7 @@ class OnboardingController extends Controller
                 }
                 DB::table('teacher_profiles')->where('user_id', $user->id)->update($profileUpdates);
                 app(TeacherLocation::class)->store((int) $user->id, $location);
+                app(TeacherAddress::class)->store((int) $user->id, $data);
                 app(TeacherPublicPages::class)->publish((int) $user->id, (int) $user->id);
             } elseif ($accountType === 'institute') {
                 $this->ensureProviderProfile('institute_profiles', $user->id);
@@ -303,7 +305,8 @@ class OnboardingController extends Controller
         if ($accountType === 'teacher') {
             $teacher = DB::table('teacher_profiles as p')
                 ->where('p.user_id', $user->id)
-                ->select('p.user_id', 'p.slug', 'p.seo_slug', 'p.public_profile_slug', 'p.city', 'p.primary_subject_id', 'p.latitude', 'p.longitude', 'p.location_details')
+                ->select('p.user_id', 'p.slug', 'p.seo_slug', 'p.public_profile_slug', 'p.city', 'p.primary_subject_id', 'p.latitude', 'p.longitude', 'p.location_details',
+                    ...array_map(fn ($column) => 'p.'.$column, array_values(TeacherAddress::FIELDS)))
                 ->first();
         } elseif ($accountType === 'institute') {
             $institute = DB::table('institute_profiles')->select('city', 'contact_person')->where('user_id', $user->id)->first();
@@ -316,6 +319,7 @@ class OnboardingController extends Controller
             'email' => $user->email,
             'phone' => $user->phone,
             'city' => $teacher->city ?? $institute->city ?? null,
+            ...($accountType === 'teacher' ? TeacherAddress::draft($teacher) : []),
             'latitude' => isset($teacher->latitude) ? (float) $teacher->latitude : null,
             'longitude' => isset($teacher->longitude) ? (float) $teacher->longitude : null,
             'locationDetails' => isset($teacher->location_details) ? json_decode($teacher->location_details, true, flags: JSON_THROW_ON_ERROR) : null,
