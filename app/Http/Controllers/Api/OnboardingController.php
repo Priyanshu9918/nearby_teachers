@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Reporting\BusinessActivityRecorder;
 use App\Services\OnboardingState;
+use App\Services\TeacherLocation;
 use App\Services\TeacherPublicPages;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,7 +38,9 @@ class OnboardingController extends Controller
         }
 
         $data = $this->validatedDraft($request, false);
-        $this->persistDraft($user, $data, false);
+        $location = ($data['accountType'] ?? $user->account_type) === 'teacher'
+            ? app(TeacherLocation::class)->prepare($data) : null;
+        $this->persistDraft($user, $data, false, $location);
 
         return response()->json($this->payload(
             DB::table('users')->where('id', $user->id)->first()
@@ -51,7 +54,18 @@ class OnboardingController extends Controller
             return $this->mobileNotVerifiedResponse();
         }
 
-        DB::transaction(function () use ($request, $user): void {
+        $preparedData = null;
+        $location = null;
+        if (($request->exists('latitude') || $request->exists('longitude'))
+            && ! app(OnboardingState::class)->registrationSubmitted($user)) {
+            $preparedData = $this->validatedDraft($request, true, $user);
+            if ($preparedData['accountType'] === 'teacher') {
+                // Resolve before holding registration/profile row locks.
+                $location = app(TeacherLocation::class)->prepare($preparedData);
+            }
+        }
+
+        DB::transaction(function () use ($request, $user, $preparedData, $location): void {
             $saved = DB::table('users')->where('id', $user->id)->lockForUpdate()->first();
             abort_if($saved === null, 403, 'Invalid or expired token');
             $state = app(OnboardingState::class);
@@ -66,14 +80,14 @@ class OnboardingController extends Controller
                 return;
             }
 
-            $data = $this->validatedDraft($request, true, $saved);
+            $data = $preparedData ?? $this->validatedDraft($request, true, $saved);
             $accountType = $this->normalizeAccountType($data['accountType']);
             $errors = $this->completionErrors($saved, $data, $accountType);
             if ($errors !== []) {
                 throw ValidationException::withMessages($errors);
             }
 
-            $this->persistDraft($saved, $data, true);
+            $this->persistDraft($saved, $data, true, $location);
             $fresh = DB::table('users')->where('id', $saved->id)->first();
             app(BusinessActivityRecorder::class)->record('registration.submitted', $saved->id, $saved->id,
                 before: ['account_type' => $saved->account_type, 'registration_submitted_at' => $saved->registration_submitted_at ?? null],
@@ -102,6 +116,8 @@ class OnboardingController extends Controller
             'phoneVerifiedAt' => ['prohibited'],
             'mobileVerified' => ['prohibited'],
             'city' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'latitude' => ['sometimes', 'nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['sometimes', 'nullable', 'numeric', 'between:-180,180'],
             'primarySubjectId' => ['prohibited'],
             'subjectIds' => ['prohibited'],
             'primarySubjects' => ['sometimes', 'array', 'min:1', 'max:5'],
@@ -123,6 +139,7 @@ class OnboardingController extends Controller
         }
 
         $data = $request->validate($rules);
+        TeacherLocation::validatePair($data);
         if (isset($data['primarySubjects'])) {
             $data['primarySubjects'] = array_values(array_map('intval', $data['primarySubjects']));
         }
@@ -130,10 +147,10 @@ class OnboardingController extends Controller
         return $data;
     }
 
-    private function persistDraft(object $user, array $data, bool $completing): void
+    private function persistDraft(object $user, array $data, bool $completing, ?array $location = null): void
     {
         $now = now();
-        DB::transaction(function () use ($user, $data, $completing, $now): void {
+        DB::transaction(function () use ($user, $data, $completing, $now, $location): void {
             $user = DB::table('users')->where('id', $user->id)->lockForUpdate()->first();
             abort_if($user === null, 403, 'Invalid or expired token');
             $accountType = $this->normalizeAccountType($data['accountType'] ?? $user->account_type);
@@ -207,6 +224,7 @@ class OnboardingController extends Controller
                     }
                 }
                 DB::table('teacher_profiles')->where('user_id', $user->id)->update($profileUpdates);
+                app(TeacherLocation::class)->store((int) $user->id, $location);
                 app(TeacherPublicPages::class)->publish((int) $user->id, (int) $user->id);
             } elseif ($accountType === 'institute') {
                 $this->ensureProviderProfile('institute_profiles', $user->id);
@@ -285,7 +303,7 @@ class OnboardingController extends Controller
         if ($accountType === 'teacher') {
             $teacher = DB::table('teacher_profiles as p')
                 ->where('p.user_id', $user->id)
-                ->select('p.user_id', 'p.slug', 'p.seo_slug', 'p.public_profile_slug', 'p.city', 'p.primary_subject_id')
+                ->select('p.user_id', 'p.slug', 'p.seo_slug', 'p.public_profile_slug', 'p.city', 'p.primary_subject_id', 'p.latitude', 'p.longitude', 'p.location_details')
                 ->first();
         } elseif ($accountType === 'institute') {
             $institute = DB::table('institute_profiles')->select('city', 'contact_person')->where('user_id', $user->id)->first();
@@ -298,6 +316,9 @@ class OnboardingController extends Controller
             'email' => $user->email,
             'phone' => $user->phone,
             'city' => $teacher->city ?? $institute->city ?? null,
+            'latitude' => isset($teacher->latitude) ? (float) $teacher->latitude : null,
+            'longitude' => isset($teacher->longitude) ? (float) $teacher->longitude : null,
+            'locationDetails' => isset($teacher->location_details) ? json_decode($teacher->location_details, true, flags: JSON_THROW_ON_ERROR) : null,
             'primarySubjects' => $teacher === null ? [] : DB::table('profile_subjects')->where('profile_type', 'teacher')
                 ->where('profile_id', $user->id)->orderBy('id')->pluck('subject_id')->map(fn ($id) => (int) $id)->all(),
             'contactPerson' => $institute->contact_person ?? null,

@@ -1,6 +1,10 @@
 <?php
 
 return [
+    'google_geocoding' => [
+        'enabled' => env('GOOGLE_GEOCODING_ENABLED', false),
+        'key' => env('GOOGLE_GEOCODING_API_KEY'),
+    ],
 
     /*
     |--------------------------------------------------------------------------

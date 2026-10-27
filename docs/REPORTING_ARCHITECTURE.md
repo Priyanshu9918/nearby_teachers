@@ -1,5 +1,13 @@
 # Reporting architecture
 
+Teacher GPS enrichment adds version 1 `teacher.location_updated` history with
+only coordinate-presence flags and normalized geocoding status. Exact address
+details are current private profile state, not append-only history. The existing
+teacher-profile report explicitly exposes/searches `location_details` with its
+normal admin access logging and CSV behavior. See
+[TEACHER_LOCATION_GEOCODING.md](TEACHER_LOCATION_GEOCODING.md) for data contracts,
+Google retention/reuse limitations, privacy and coverage gaps.
+
 Teacher public page publication and URL changes now emit version 1
 `teacher.pages_published` / `teacher.pages_updated` events inside their source
 transactions. The teacher profile report explicitly includes both page slugs.

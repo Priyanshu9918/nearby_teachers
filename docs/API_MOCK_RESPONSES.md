@@ -1602,7 +1602,10 @@ Content-Type: `application/json`
     "termsAccepted": false,
     "teachersNotBackgroundCheckedAcknowledged": false,
     "acknowledgeTeachersNotBackgroundChecked": false,
-    "primarySubjects": []
+    "primarySubjects": [],
+    "latitude": null,
+    "longitude": null,
+    "locationDetails": null
   },
   "user": {
     "id": "10000000-0000-4000-8000-000000000001",
@@ -1683,7 +1686,10 @@ Content-Type: `application/json`
     "termsAccepted": false,
     "teachersNotBackgroundCheckedAcknowledged": false,
     "acknowledgeTeachersNotBackgroundChecked": false,
-    "primarySubjects": []
+    "primarySubjects": [],
+    "latitude": null,
+    "longitude": null,
+    "locationDetails": null
   },
   "user": {
     "id": "10000000-0000-4000-8000-000000000001",
@@ -1758,7 +1764,10 @@ Content-Type: `application/json`
     "termsAccepted": true,
     "teachersNotBackgroundCheckedAcknowledged": true,
     "acknowledgeTeachersNotBackgroundChecked": true,
-    "primarySubjects": []
+    "primarySubjects": [],
+    "latitude": null,
+    "longitude": null,
+    "locationDetails": null
   },
   "user": {
     "id": "10000000-0000-4000-8000-000000000001",
@@ -1833,7 +1842,10 @@ Content-Type: `application/json`
     "termsAccepted": true,
     "teachersNotBackgroundCheckedAcknowledged": true,
     "acknowledgeTeachersNotBackgroundChecked": true,
-    "primarySubjects": []
+    "primarySubjects": [],
+    "latitude": null,
+    "longitude": null,
+    "locationDetails": null
   },
   "user": {
     "id": "10000000-0000-4000-8000-000000000001",
@@ -1949,7 +1961,10 @@ Content-Type: `application/json`
     "termsAccepted": true,
     "teachersNotBackgroundCheckedAcknowledged": true,
     "acknowledgeTeachersNotBackgroundChecked": true,
-    "primarySubjects": []
+    "primarySubjects": [],
+    "latitude": null,
+    "longitude": null,
+    "locationDetails": null
   },
   "user": {
     "id": "10000000-0000-4000-8000-000000000001",
@@ -2024,7 +2039,10 @@ Content-Type: `application/json`
     "termsAccepted": true,
     "teachersNotBackgroundCheckedAcknowledged": true,
     "acknowledgeTeachersNotBackgroundChecked": true,
-    "primarySubjects": []
+    "primarySubjects": [],
+    "latitude": null,
+    "longitude": null,
+    "locationDetails": null
   },
   "user": {
     "id": "10000000-0000-4000-8000-000000000001",
@@ -2099,7 +2117,10 @@ Content-Type: `application/json`
     "termsAccepted": true,
     "teachersNotBackgroundCheckedAcknowledged": true,
     "acknowledgeTeachersNotBackgroundChecked": true,
-    "primarySubjects": []
+    "primarySubjects": [],
+    "latitude": null,
+    "longitude": null,
+    "locationDetails": null
   },
   "user": {
     "id": "10000000-0000-4000-8000-000000000001",
@@ -2265,7 +2286,10 @@ Content-Type: `application/json`
     "termsAccepted": true,
     "teachersNotBackgroundCheckedAcknowledged": true,
     "acknowledgeTeachersNotBackgroundChecked": true,
-    "primarySubjects": []
+    "primarySubjects": [],
+    "latitude": null,
+    "longitude": null,
+    "locationDetails": null
   },
   "user": {
     "id": "10000000-0000-4000-8000-000000000001",
@@ -2352,7 +2376,9 @@ Request body:
   "city": "{{city}}",
   "primarySubjects": [
     "{{subjectId}}"
-  ]
+  ],
+  "latitude": 28.6139,
+  "longitude": 77.209
 }
 ```
 
@@ -2395,7 +2421,10 @@ Content-Type: `application/json`
     "acknowledgeTeachersNotBackgroundChecked": true,
     "primarySubjects": [
       1
-    ]
+    ],
+    "latitude": null,
+    "longitude": null,
+    "locationDetails": null
   },
   "user": {
     "id": "20000000-0000-4000-8000-000000000001",
@@ -2565,7 +2594,10 @@ Content-Type: `application/json`
     "termsAccepted": true,
     "teachersNotBackgroundCheckedAcknowledged": true,
     "acknowledgeTeachersNotBackgroundChecked": true,
-    "primarySubjects": []
+    "primarySubjects": [],
+    "latitude": null,
+    "longitude": null,
+    "locationDetails": null
   },
   "user": {
     "id": "20000000-0000-4000-8000-000000000001",
@@ -2733,7 +2765,10 @@ Content-Type: `application/json`
     "termsAccepted": true,
     "teachersNotBackgroundCheckedAcknowledged": true,
     "acknowledgeTeachersNotBackgroundChecked": true,
-    "primarySubjects": []
+    "primarySubjects": [],
+    "latitude": null,
+    "longitude": null,
+    "locationDetails": null
   },
   "user": {
     "id": "10000000-0000-4000-8000-000000000001",
@@ -2808,7 +2843,10 @@ Content-Type: `application/json`
     "termsAccepted": true,
     "teachersNotBackgroundCheckedAcknowledged": true,
     "acknowledgeTeachersNotBackgroundChecked": true,
-    "primarySubjects": []
+    "primarySubjects": [],
+    "latitude": null,
+    "longitude": null,
+    "locationDetails": null
   },
   "user": {
     "id": "10000000-0000-4000-8000-000000000001",
@@ -2883,7 +2921,10 @@ Content-Type: `application/json`
     "termsAccepted": true,
     "teachersNotBackgroundCheckedAcknowledged": true,
     "acknowledgeTeachersNotBackgroundChecked": true,
-    "primarySubjects": []
+    "primarySubjects": [],
+    "latitude": null,
+    "longitude": null,
+    "locationDetails": null
   },
   "user": {
     "id": "10000000-0000-4000-8000-000000000001",
@@ -3046,7 +3087,10 @@ Content-Type: `application/json`
     "termsAccepted": true,
     "teachersNotBackgroundCheckedAcknowledged": true,
     "acknowledgeTeachersNotBackgroundChecked": true,
-    "primarySubjects": []
+    "primarySubjects": [],
+    "latitude": null,
+    "longitude": null,
+    "locationDetails": null
   },
   "user": {
     "id": "10000000-0000-4000-8000-000000000001",

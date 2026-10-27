@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\CountryCurrency;
 use App\Services\OnboardingState;
+use App\Services\TeacherLocation;
 use App\Services\TeacherPublicPages;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -82,6 +83,7 @@ class ProfilesController extends Controller
             throw ValidationException::withMessages(['currency' => 'Currency cannot be empty']);
         }
 
+        $location = $isTeacher ? app(TeacherLocation::class)->prepare($data) : null;
         $profileTable = $isTeacher ? 'teacher_profiles' : 'institute_profiles';
         $updateParts = [];
         $bindings = [];
@@ -113,7 +115,7 @@ class ProfilesController extends Controller
             $updateParts[] = 'lesson_modes = ?';
             $bindings[] = json_encode($data['lessonModes'], JSON_THROW_ON_ERROR);
         }
-        if (array_key_exists('latitude', $data)) {
+        if (array_key_exists('latitude', $data) && ! $isTeacher) {
             $updateParts[] = 'latitude = ?';
             $bindings[] = $data['latitude'] === null ? null : (float) $data['latitude'];
             $updateParts[] = 'longitude = ?';
@@ -121,7 +123,7 @@ class ProfilesController extends Controller
         }
         $updateParts[] = 'updated_at = now()';
 
-        DB::transaction(function () use ($data, $subjectsField, $user, $type, $profileTable, $updateParts, $bindings): void {
+        DB::transaction(function () use ($data, $subjectsField, $user, $type, $profileTable, $updateParts, $bindings, $location): void {
             if (DB::table($profileTable)->where('user_id', $user->id)->lockForUpdate()->first() === null) {
                 abort(404, 'Profile not found');
             }
@@ -151,13 +153,20 @@ class ProfilesController extends Controller
 
             $this->ensureSlug($profileTable, $user->id, $user->full_name);
             if ($type === 'teacher') {
+                app(TeacherLocation::class)->store((int) $user->id, $location);
                 app(TeacherPublicPages::class)->publish((int) $user->id, (int) $user->id);
             }
         });
 
-        return response()->json(['ok' => true, ...($isTeacher
-            ? TeacherPublicPages::urls(DB::table($profileTable)->where('user_id', $user->id)->first(), $user->full_name)
-            : [])]);
+        $teacherResponse = [];
+        if ($isTeacher) {
+            $profile = DB::table($profileTable)->where('user_id', $user->id)
+                ->select('user_id', 'slug', 'seo_slug', 'public_profile_slug', 'location_details')->first();
+            $teacherResponse = [...TeacherPublicPages::urls($profile, $user->full_name),
+                'locationDetails' => $profile->location_details === null ? null : json_decode($profile->location_details, true, flags: JSON_THROW_ON_ERROR)];
+        }
+
+        return response()->json(['ok' => true, ...$teacherResponse]);
     }
 
     public function show(Request $request, string $type, int $id): JsonResponse
@@ -187,6 +196,8 @@ class ProfilesController extends Controller
         if ($profile === null) {
             return response()->json(['error' => 'Not found'], 404);
         }
+        // Enrichment belongs to the owner onboarding response and admin reports only.
+        unset($profile->location_details);
 
         $phoneQuota = null;
         $viewer = $request->attributes->get('authenticated_user');

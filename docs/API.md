@@ -113,6 +113,7 @@ student submits it on the separate Learner DOB API/page.
 | `acknowledgeTeachersNotBackgroundChecked` | `true` | `true` | `true` |
 | `city` | — | Required, max 120 | Required, max 120 |
 | `primarySubjects` | — | Required array of 1–5 distinct existing subject IDs; no separate primary subject | — |
+| `latitude`, `longitude` | — | Optional paired GPS coordinates; private reverse-geocoding enrichment when configured | — |
 | `contactPerson` | — | — | Required, max 160 |
 
 Omit optional Google email/password to preserve the verified Google email and
@@ -508,6 +509,8 @@ feed reading, likes, comments and replies.
 | `POST` | `/feed/{postId}/comments` | Verified bearer | `body`; optional `parentCommentId` | Adds a comment or reply. |
 | `GET` | `/broadcasting/auth` | Verified bearer, conversation participant | Same inputs as query parameters | Legacy broadcasting compatibility; not new mobile chat setup. |
 | `POST` | `/broadcasting/auth` | Verified bearer, conversation participant | `channel_name`; `socket_id` as required by configured broadcaster | Legacy channel authorization; Socket.IO clients use the events below. |
+
+Teacher GPS inputs also populate the private `location_details` JSON column when Google Geocoding is configured. See [teacher geocoding setup, privacy and storage scope](TEACHER_LOCATION_GEOCODING.md).
 
 ### Teacher listing example and field rules
 
