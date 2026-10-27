@@ -79,6 +79,8 @@ class TeacherPublicPagesTest extends TestCase
     public function test_two_public_pages_all_subjects_links_canonical_and_private_data(): void
     {
         $urls = $this->publish();
+        $this->assertStringContainsString('/teachers/', $urls['teacherSeoUrl']);
+        $this->assertStringEndsWith('/profile', $urls['teacherProfileUrl']);
         $this->assertStringContainsString('rahul-sharma-chemistry-english-hindi-maths-physics-jaipur-rajasthan-india-'.$this->teacherId, $urls['teacherSeoUrl']);
         $response = $this->get($urls['teacherSeoUrl'])->assertOk()
             ->assertSee('href="'.$urls['teacherProfileUrl'].'"', false)->assertSee('View full profile');
@@ -96,10 +98,33 @@ class TeacherPublicPagesTest extends TestCase
             }
         }
         $this->get('/site/teacher/rahul-sharma-jaipur')->assertStatus(301)->assertRedirect($urls['teacherSeoUrl']);
+        $this->get('/site/teacher/'.$this->profile()->seo_slug)->assertStatus(301)->assertRedirect($urls['teacherSeoUrl']);
+        $this->get('/site/teacher-profile/'.$this->profile()->public_profile_slug)->assertStatus(301)->assertRedirect($urls['teacherProfileUrl']);
         $this->get('/site/city/Jaipur')->assertOk()->assertSee($urls['teacherSeoUrl']);
         $this->get('/sitemap.xml')->assertOk()->assertSee($urls['teacherProfileUrl'])->assertDontSee($urls['teacherSeoUrl']);
         $this->assertSame(1, DB::table('page_views')->where('target', 'seo:'.$this->teacherId)->count());
         $this->assertSame(1, DB::table('page_views')->where('target', 'profile:'.$this->teacherId)->count());
+    }
+
+    public function test_metadata_describes_the_teacher_and_structured_data_is_safe(): void
+    {
+        $urls = $this->publish();
+        foreach ([$urls['teacherSeoUrl'], $urls['teacherProfileUrl']] as $url) {
+            $page = $this->get($url)->assertOk()
+                ->assertSee('<title>Rahul Sharma — Chemistry &amp; English Teacher in Jaipur', false)
+                ->assertSee('Download the app to message')->assertDontSee('message or book')
+                ->assertSee('aria-label="Breadcrumb"', false)
+                ->assertSee('href="'.route('website.city', ['city' => 'Jaipur']).'"', false);
+            preg_match('/<script type="application\/ld\+json">(.*?)<\/script>/s', $page->getContent(), $matches);
+            $schema = json_decode($matches[1], true, 512, JSON_THROW_ON_ERROR);
+            $this->assertSame('Person', $schema['@graph'][0]['@type']);
+            $this->assertCount(5, $schema['@graph'][0]['knowsAbout']);
+            $this->assertSame(['https://www.linkedin.com/in/rahul-sharma'], $schema['@graph'][0]['sameAs']);
+            $this->assertSame($urls['teacherProfileUrl'], $schema['@graph'][1]['url']);
+            $this->assertSame('BreadcrumbList', $schema['@graph'][2]['@type']);
+        }
+        DB::table('users')->where('id', $this->teacherId)->update(['full_name' => 'Teacher </script><script>alert(1)</script>']);
+        $this->get($urls['teacherProfileUrl'])->assertOk()->assertDontSee('</script><script>alert(1)</script>', false);
     }
 
     public function test_profile_save_publishes_and_updates_all_subjects_with_redirects(): void

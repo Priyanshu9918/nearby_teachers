@@ -23,6 +23,10 @@ Publication requires a completed registration, current teacher account type, non
 
 The public read path also requires city and at least one subject. Clearing those, suspending the account, clearing registration completion or changing the account away from teacher makes both pages return `404` and excludes the teacher from the sitemap and city teacher list. Restoring eligibility restores access; this feature does not fabricate a historical unpublish event.
 
+## Cleaner URL routes
+
+Current overview: `/teachers/{seo_slug}`. Full profile: `/teachers/{public_profile_slug}/profile`. This shortens the route prefix while keeping the requested name, all subjects, location and unique ID in the overview slug. The stored slugs and app deep-link identifier are unchanged; only route generation changes. No database migration or bulk rewrite is needed for this route/template update. Existing URL publication/update events keep their original timestamps; this code-level route change does not invent business events.
+
 ## URL examples
 
 Example domain: `https://example.com`. IDs below are illustrative user IDs; use the IDs returned by your API.
@@ -32,8 +36,8 @@ Example domain: `https://example.com`. IDs below are illustrative user IDs; use 
 Teacher: Rahul Sharma; subject: Maths; city: Jaipur.
 
 ```text
-https://example.com/site/teacher/rahul-sharma-maths-jaipur-42
-https://example.com/site/teacher-profile/rahul-sharma-42
+https://example.com/teachers/rahul-sharma-maths-jaipur-42
+https://example.com/teachers/rahul-sharma-42/profile
 ```
 
 ### All five subjects and complete supported location
@@ -41,8 +45,8 @@ https://example.com/site/teacher-profile/rahul-sharma-42
 Teacher: Rahul Sharma; subjects: Maths, Physics, Chemistry, English, Hindi; city: Jaipur; state: Rajasthan; country: India.
 
 ```text
-https://example.com/site/teacher/rahul-sharma-chemistry-english-hindi-maths-physics-jaipur-rajasthan-india-42
-https://example.com/site/teacher-profile/rahul-sharma-42
+https://example.com/teachers/rahul-sharma-chemistry-english-hindi-maths-physics-jaipur-rajasthan-india-42
+https://example.com/teachers/rahul-sharma-42/profile
 ```
 
 ### Two subjects
@@ -50,8 +54,8 @@ https://example.com/site/teacher-profile/rahul-sharma-42
 Teacher: Anita Verma; subjects: English, Hindi; city: Delhi; state/country omitted.
 
 ```text
-/site/teacher/anita-verma-english-hindi-delhi-84
-/site/teacher-profile/anita-verma-84
+/teachers/anita-verma-english-hindi-delhi-84
+/teachers/anita-verma-84/profile
 ```
 
 ### Same name, subjects and location
@@ -59,8 +63,8 @@ Teacher: Anita Verma; subjects: English, Hindi; city: Delhi; state/country omitt
 Two Rahul Sharma teachers have different user IDs, so URLs do not collide:
 
 ```text
-/site/teacher/rahul-sharma-maths-jaipur-42
-/site/teacher/rahul-sharma-maths-jaipur-43
+/teachers/rahul-sharma-maths-jaipur-42
+/teachers/rahul-sharma-maths-jaipur-43
 ```
 
 ### Update, old link and app compatibility
@@ -68,16 +72,16 @@ Two Rahul Sharma teachers have different user IDs, so URLs do not collide:
 Rahul switches from Maths in Jaipur to Physics in Delhi:
 
 ```text
-GET /site/teacher/rahul-sharma-maths-jaipur-42
-301 Location: https://example.com/site/teacher/rahul-sharma-physics-delhi-42
+GET /teachers/rahul-sharma-maths-jaipur-42
+301 Location: https://example.com/teachers/rahul-sharma-physics-delhi-42
 
-GET /site/teacher-profile/rahul-sharma-42
+GET /teachers/rahul-sharma-42/profile
 200 (current subjects and location)
 ```
 
 Update state/country along with city when moving; the application uses the provided values rather than inferring them. Name changes refresh the SEO URL on the next supported onboarding/profile save but preserve the stored full profile slug.
 
-The existing `teacher_profiles.slug` remains the app/deep-link identifier. A legacy link such as `/site/teacher/rahul-sharma-jaipur` redirects to the stored SEO URL once published. App download links continue passing the legacy slug, not the longer SEO slug. Old SEO URLs resolve through their numeric ID suffix and redirect to the current URL; an alternate prefix with a valid published teacher ID also redirects rather than producing duplicate content. IDs outside the application's numeric range are rejected.
+The existing `teacher_profiles.slug` remains the app/deep-link identifier. A legacy link such as `/site/teacher/rahul-sharma-jaipur` redirects to the current `/teachers/...` SEO URL once published. Existing `/site/teacher/{seo_slug}` and `/site/teacher-profile/{public_profile_slug}` links also redirect with HTTP `301` to the new routes, even when their stored slug already matches. The redirect goes directly to the current destination. App download links continue passing the legacy slug, not the longer SEO slug. Old SEO URLs resolve through their numeric ID suffix and redirect to the current URL; an alternate prefix with a valid published teacher ID also redirects rather than producing duplicate content. IDs outside the application's numeric range are rejected.
 
 ### Location and non-Latin names
 
@@ -96,8 +100,8 @@ Names and subject labels are normalized with Laravel `Str::slug`; empty/non-tran
 | Hourly rate and currency | When supplied; zero displays Free | Same |
 | Genuine rating aggregate | When rating count is positive | Same |
 | Completed lessons count | Yes | Yes |
-| Teaching modes | — | In person, home tuition, online, when selected |
-| Trial | — | Exact saved trial days, when positive |
+| Teaching modes | In person, home tuition, online, when selected | Same |
+| Trial | Exact saved trial days, when positive | Same |
 | LinkedIn | — | When valid HTTP/HTTPS URL supplied |
 | Review comments, rating and date | — | Newest first, 10 per page with previous/next links |
 | App download button for messaging | Yes | Yes |
@@ -110,7 +114,7 @@ LinkedIn opens in a new tab with `noopener noreferrer nofollow ugc`. Existing un
 
 **Current data limits:** teacher qualifications, years of experience, teaching languages, calendar availability, website, YouTube and other social links do not have dedicated teacher profile fields in this project. They are not invented or added as part of this feature. LinkedIn is the supported professional link. Existing bio limits still apply.
 
-English and Hindi have new page-label translations; other supported locales fall back to English for new labels and retain their existing translated common labels.
+The redesigned teacher pages use English labels and messaging-only calls to action, with HTML language `en` and left-to-right direction regardless of language query parameters. Other website pages retain their own language settings.
 
 ## API examples
 
@@ -140,8 +144,8 @@ Assuming IDs 1–5 correspond to the five example subjects, the response is:
 ```json
 {
   "ok": true,
-  "teacherSeoUrl": "https://example.com/site/teacher/rahul-sharma-chemistry-english-hindi-maths-physics-jaipur-rajasthan-india-42",
-  "teacherProfileUrl": "https://example.com/site/teacher-profile/rahul-sharma-42"
+  "teacherSeoUrl": "https://example.com/teachers/rahul-sharma-chemistry-english-hindi-maths-physics-jaipur-rajasthan-india-42",
+  "teacherProfileUrl": "https://example.com/teachers/rahul-sharma-42/profile"
 }
 ```
 
@@ -149,9 +153,9 @@ Teacher onboarding responses also include these URL fields when the completed te
 
 ## SEO behavior
 
-Both pages include a title, description, share metadata and a canonical link pointing to the full profile. The full profile is the preferred search result; **the long subject/location URL is not a separately targeted canonical search result**. This implements the agreed consolidation of the two overlapping pages and does not guarantee rankings or indexing of the long URL.
+Both pages include a subject/location title, contextual description, Open Graph and Twitter share metadata and a canonical link pointing to the full profile. The title uses the first two alphabetically ordered subjects plus name/city to keep it readable; all subjects remain in the overview URL and visible page content. Descriptions use the teacher name, all subjects, public location, teaching modes and available bio, limited to 160 characters. The full profile is the preferred search result; **the long subject/location URL is not a separately targeted canonical search result**. This implements the agreed consolidation of the two overlapping pages and does not guarantee rankings or indexing of the long URL.
 
-Only eligible full profile URLs are listed in `/sitemap.xml`, not both versions. Existing city teacher cards link to the SEO overview. Approved avatars are used in share metadata; unapproved avatars are omitted. Canonical and share URLs omit language, pagination and tracking parameters. Reviews use bounded pagination rather than loading the entire history.
+Only eligible full profile URLs are listed in `/sitemap.xml`, not both versions. Existing city teacher cards link to the SEO overview. Approved avatars are used in share metadata; unapproved avatars are omitted. Canonical and share URLs omit language, pagination and tracking parameters. Reviews use bounded pagination rather than loading the entire history. Both pages include escaped JSON-LD for Person, WebPage and BreadcrumbList, with actual subjects and valid public links. No fabricated qualifications, review stars or rich-result guarantees are added. Breadcrumbs and the footer link back to the city directory. The responsive layout groups bio, subjects and reviews into separate sections with a visible messaging panel; the panel is sticky on desktop and in normal flow on mobile, so it does not cover profile content.
 
 ## Reporting and history
 
@@ -190,3 +194,7 @@ REPORTING_TEST_DATABASE=nearby_teachers_seo_test \
 The suite covers selected subjects, both pages, private-field exclusion, legacy redirects, URL refresh, stable full profile URLs, visibility gates, sitemap/city links, safe external links, escaped text, transaction rollback, report filters/CSV/admin access and page-view distinction.
 
 Implementation verification on 27 October 2026: the targeted migration above was applied successfully to the application database. Integration tests ran separately against `nearby_teachers_seo_test`: teacher pages, admin reporting and onboarding persistence passed **30 tests / 505 assertions**. Unit, onboarding validation and numeric route tests passed **24 tests / 193 assertions**. Laravel Pint and `git diff --check` passed.
+
+Follow-up verification: improved routes, legacy redirects, metadata/JSON-LD escaping, privacy, reporting and registration passed 31 integration tests / 540 assertions against `nearby_teachers_seo_test`. This follow-up requires no additional application migration.
+
+Final shared-layout verification passed 46 tests / 436 assertions with `DB_DATABASE=nearby_teachers_seo_test` and `REPORTING_TEST_DATABASE=nearby_teachers_seo_test`. Fictional-data previews were visually checked in headless Chrome at desktop (1440 px) and mobile (390 px) widths.
