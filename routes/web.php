@@ -23,6 +23,7 @@ Route::get('/', [WebsiteController::class, 'home'])->name('website.home');
 Route::get('/site', [WebsiteController::class, 'directory'])->name('website.directory');
 Route::get('/site/institute/{slug}', [WebsiteController::class, 'institute'])->name('website.institute');
 Route::get('/site/teacher/{slug}', [WebsiteController::class, 'teacher'])->name('website.teacher');
+Route::get('/site/teacher-profile/{slug}', [WebsiteController::class, 'teacherProfile'])->name('website.teacher-profile');
 Route::get('/site/feed/{city}', [WebsiteController::class, 'feed'])->name('website.feed');
 Route::get('/site/city/{city}', [WebsiteController::class, 'city'])->name('website.city');
 Route::get('/location-lookup', [WebsiteController::class, 'locationLookup'])->name('website.location-lookup');

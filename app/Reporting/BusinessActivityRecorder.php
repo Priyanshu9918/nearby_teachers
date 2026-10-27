@@ -10,6 +10,8 @@ final class BusinessActivityRecorder
 {
     // Each event explicitly owns its snapshot contract. No raw request/user arrays.
     private const EVENTS = [
+        'teacher.pages_published' => ['teacher_profile', ['seo_slug', 'public_profile_slug', 'subject_ids', 'city', 'state', 'country']],
+        'teacher.pages_updated' => ['teacher_profile', ['seo_slug', 'public_profile_slug', 'subject_ids', 'city', 'state', 'country']],
         'auth.logged_out' => ['user', ['auth_version', 'scope']],
         'user.blocked' => ['user', ['blocked']],
         'user.unblocked' => ['user', ['blocked']],

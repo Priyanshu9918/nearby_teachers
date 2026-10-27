@@ -1,5 +1,12 @@
 # Reporting architecture
 
+Teacher public page publication and URL changes now emit version 1
+`teacher.pages_published` / `teacher.pages_updated` events inside their source
+transactions. The teacher profile report explicitly includes both page slugs.
+Teacher page views use `teacher` with `seo:<user_id>` / `profile:<user_id>`
+targets. Coverage, examples and gaps are documented in
+[TEACHER_SEO_PAGES.md](TEACHER_SEO_PAGES.md#reporting-and-history).
+
 The owner may need new reports as the product grows. Reporting is therefore a
 shared module with explicit data contracts and a business history stream.
 This enables new reports on recorded data; it cannot reconstruct events or

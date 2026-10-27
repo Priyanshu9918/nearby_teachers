@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\TeacherPublicPages;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -91,49 +93,84 @@ class WebsiteController extends Controller
 
     public function teacher(Request $request, string $slug): Response
     {
-        $teacher = DB::table('teacher_profiles as p')
-            ->join('users as u', 'u.id', '=', 'p.user_id')
-            ->where('p.slug', $slug)
-            ->select('p.*', 'u.full_name')
-            ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
-            ->selectSub(
-                DB::table('bookings')
-                    ->selectRaw('count(*)')
-                    ->whereColumn('provider_id', 'p.user_id')
-                    ->where('status', 'completed'),
-                'lessons_completed'
-            )
-            ->first();
+        return $this->teacherPage($request, $slug, false);
+    }
 
+    public function teacherProfile(Request $request, string $slug): Response
+    {
+        return $this->teacherPage($request, $slug, true);
+    }
+
+    private function publicTeachers(): Builder
+    {
+        return DB::table('teacher_profiles as p')->join('users as u', 'u.id', '=', 'p.user_id')
+            ->where('u.account_type', 'teacher')->whereNull('u.suspended_at')
+            ->whereNotNull('u.profile_completed_at')->whereNotNull('p.slug')
+            ->whereNotNull('p.city')->where('p.city', '!=', '')
+            ->whereExists(function (Builder $query): void {
+                $query->selectRaw('1')->from('profile_subjects as ps')
+                    ->whereColumn('ps.profile_id', 'p.user_id')->where('ps.profile_type', 'teacher');
+            });
+    }
+
+    private function teacherPage(Request $request, string $slug, bool $full): Response
+    {
+        $query = $this->publicTeachers();
+        $id = TeacherPublicPages::idFromSlug($slug);
+        if ($full) {
+            if ($id === null) {
+                return $this->renderWebsite($request, 'site.not-found', ['message' => 'This teacher page could not be found.'], 404);
+            }
+            $query->where('p.user_id', $id);
+        } else {
+            // Existing app/deep-link slugs remain valid; prior SEO slugs resolve by immutable ID.
+            $query->where(function (Builder $query) use ($slug, $id): void {
+                $query->where('p.slug', $slug);
+                if ($id !== null) {
+                    $query->orWhere('p.user_id', $id);
+                }
+            })->orderByRaw('CASE WHEN p.slug = ? THEN 0 ELSE 1 END', [$slug]);
+        }
+        $teacher = $query->select('p.user_id', 'p.slug', 'p.seo_slug', 'p.public_profile_slug',
+            'p.bio', 'p.city', 'p.state', 'p.country', 'p.linkedin_url', 'p.rate_per_hour', 'p.currency',
+            'p.lesson_modes', 'p.trial_days', 'p.rating_avg', 'p.rating_count', 'u.full_name')
+            ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
+            ->selectSub(DB::table('bookings')->selectRaw('count(*)')
+                ->whereColumn('provider_id', 'p.user_id')->where('status', 'completed'), 'lessons_completed')->first();
         if ($teacher === null) {
             return $this->renderWebsite($request, 'site.not-found', ['message' => 'This teacher page could not be found.'], 404);
         }
 
-        $subjects = DB::table('profile_subjects as ps')
-            ->join('subjects as s', 's.id', '=', 'ps.subject_id')
-            ->where('ps.profile_type', 'teacher')
-            ->where('ps.profile_id', $teacher->user_id)
-            ->select('s.name')
-            ->orderBy('s.name')
-            ->get();
+        $urls = TeacherPublicPages::urls($teacher, $teacher->full_name);
+        $expected = $full ? ($teacher->public_profile_slug ?? TeacherPublicPages::profileSlug($teacher->full_name, (int) $teacher->user_id))
+            : ($teacher->seo_slug ?? $teacher->slug);
+        if ($slug !== $expected) {
+            return redirect()->to($urls[$full ? 'teacherProfileUrl' : 'teacherSeoUrl'], 301);
+        }
+        $subjects = TeacherPublicPages::subjects((int) $teacher->user_id);
+        $reviews = $full ? DB::table('reviews')->where('provider_id', $teacher->user_id)
+            ->select('rating', 'comment', 'created_at')->orderByDesc('created_at')->orderByDesc('id')
+            ->simplePaginate(10)->withQueryString() : null;
+        $linkedin = $teacher->linkedin_url;
+        if (! is_string($linkedin) || ! filter_var($linkedin, FILTER_VALIDATE_URL)
+            || ! in_array(strtolower((string) parse_url($linkedin, PHP_URL_SCHEME)), ['http', 'https'], true)) {
+            $teacher->linkedin_url = null;
+        }
+        $this->logPageView($request, 'teacher', ($full ? 'profile:' : 'seo:').$teacher->user_id);
 
-        $this->logPageView($request, 'teacher', $slug);
-
-        return $this->renderWebsite($request, 'site.provider', [
-            'provider' => $teacher,
-            'providerType' => 'teacher',
-            'subjects' => $subjects,
+        return $this->renderWebsite($request, 'site.teacher', [
+            'teacher' => $teacher, 'subjects' => $subjects, 'fullProfile' => $full, 'reviews' => $reviews,
+            'seoUrl' => $urls['teacherSeoUrl'], 'profileUrl' => $urls['teacherProfileUrl'],
             'downloadHref' => route('download', ['type' => 'teacher', 'slug' => $teacher->slug]),
         ]);
     }
 
     public function city(Request $request, string $city): Response
     {
-        $teachers = DB::table('teacher_profiles as p')
-            ->join('users as u', 'u.id', '=', 'p.user_id')
+        $teachers = $this->publicTeachers()
             ->whereRaw('lower(p.city) = lower(?)', [$city])
             ->whereNotNull('p.slug')
-            ->select('p.slug', 'p.rating_avg', 'p.rating_count', 'u.full_name')
+            ->selectRaw('COALESCE(p.seo_slug, p.slug) AS slug')->addSelect('p.rating_avg', 'p.rating_count', 'u.full_name')
             ->orderByDesc('p.rating_avg')
             ->get();
         $institutes = DB::table('institute_profiles as p')
@@ -247,10 +284,11 @@ class WebsiteController extends Controller
             $urls[] = $baseUrl.'/site/feed/'.$encodedCity;
         }
 
-        foreach (['teacher_profiles' => 'teacher', 'institute_profiles' => 'institute'] as $table => $type) {
-            foreach (DB::table($table)->whereNotNull('slug')->pluck('slug') as $slug) {
-                $urls[] = $baseUrl.'/site/'.$type.'/'.rawurlencode($slug);
-            }
+        foreach ($this->publicTeachers()->select('p.user_id', 'p.slug', 'p.seo_slug', 'p.public_profile_slug', 'u.full_name')->cursor() as $teacher) {
+            $urls[] = TeacherPublicPages::urls($teacher, $teacher->full_name)['teacherProfileUrl'];
+        }
+        foreach (DB::table('institute_profiles')->whereNotNull('slug')->pluck('slug') as $slug) {
+            $urls[] = $baseUrl.'/site/institute/'.rawurlencode($slug);
         }
 
         return response()->view('site.sitemap', ['urls' => array_values(array_unique($urls))], 200, [
