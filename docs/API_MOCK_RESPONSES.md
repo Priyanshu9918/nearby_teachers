@@ -2378,7 +2378,14 @@ Request body:
     "{{subjectId}}"
   ],
   "latitude": 28.6139,
-  "longitude": 77.209
+  "longitude": 77.209,
+  "district": "New Delhi",
+  "subDistrict": "Chanakyapuri",
+  "locality": "Ward 1",
+  "localityType": "ward",
+  "state": "Delhi",
+  "country": "India",
+  "postalCode": "110001"
 }
 ```
 
@@ -2424,7 +2431,14 @@ Content-Type: `application/json`
     ],
     "latitude": null,
     "longitude": null,
-    "locationDetails": null
+    "locationDetails": null,
+    "district": null,
+    "subDistrict": null,
+    "locality": null,
+    "localityType": null,
+    "state": null,
+    "country": null,
+    "postalCode": null
   },
   "user": {
     "id": "20000000-0000-4000-8000-000000000001",

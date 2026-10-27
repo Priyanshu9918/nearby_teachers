@@ -117,8 +117,8 @@ return [
     ],
     'teacher-profiles' => [
         'title' => 'Teacher profiles', 'table' => 'teacher_profiles', 'timestamp' => 'created_at',
-        'columns' => ['id', 'user_id', 'bio', 'rate_per_hour', 'currency', 'lesson_modes', 'latitude', 'longitude', 'address_text', 'city', 'state', 'country', 'country_code', 'linkedin_url', 'location_details', 'slug', 'seo_slug', 'public_profile_slug', 'is_verified', 'verified_at', 'trial_days', 'rating_avg', 'rating_count', 'created_at', 'updated_at'],
-        'participants' => ['user_id'], 'search' => ['city', 'bio', 'seo_slug', 'public_profile_slug', 'location_details'],
+        'columns' => ['id', 'user_id', 'bio', 'rate_per_hour', 'currency', 'lesson_modes', 'latitude', 'longitude', 'address_text', 'city', 'state', 'country', 'country_code', 'linkedin_url', 'location_details', 'district', 'sub_district', 'locality', 'locality_type', 'postal_code', 'slug', 'seo_slug', 'public_profile_slug', 'is_verified', 'verified_at', 'trial_days', 'rating_avg', 'rating_count', 'created_at', 'updated_at'],
+        'participants' => ['user_id'], 'search' => ['city', 'bio', 'seo_slug', 'public_profile_slug', 'location_details', 'district', 'sub_district', 'locality', 'postal_code'],
     ],
     'institute-profiles' => [
         'title' => 'Institute profiles', 'table' => 'institute_profiles', 'timestamp' => 'created_at',

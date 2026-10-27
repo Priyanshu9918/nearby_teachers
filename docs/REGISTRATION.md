@@ -1,5 +1,9 @@
 # Registration API: run and integration guide
 
+Teacher address fields and required agreement labels are documented in
+[TEACHER_REGISTRATION_ADDRESS.md](TEACHER_REGISTRATION_ADDRESS.md).
+
+
 This detailed signup guide supplements the five-part
 [API reference](API.md) and [app integration guide](APP_TEAM_API.md): Auth,
 Learner, Teacher, Institute and Common. The deployed base URL is

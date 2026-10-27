@@ -113,6 +113,7 @@ student submits it on the separate Learner DOB API/page.
 | `acknowledgeTeachersNotBackgroundChecked` | `true` | `true` | `true` |
 | `city` | — | Required, max 120 | Required, max 120 |
 | `primarySubjects` | — | Required array of 1–5 distinct existing subject IDs; no separate primary subject | — |
+| `district`, `subDistrict`, `locality`, `localityType`, `state`, `country`, `postalCode` | — | Optional manual address fields; see [contract and agreement labels](TEACHER_REGISTRATION_ADDRESS.md) | — |
 | `latitude`, `longitude` | — | Optional paired GPS coordinates; private reverse-geocoding enrichment when configured | — |
 | `contactPerson` | — | — | Required, max 160 |
 
