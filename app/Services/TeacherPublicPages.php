@@ -11,7 +11,7 @@ use LogicException;
 
 final class TeacherPublicPages
 {
-    public function publish(int $userId): void
+    public function publish(int $userId, ?int $actorUserId = null): void
     {
         if (DB::transactionLevel() < 1) {
             throw new LogicException('Publish teacher pages inside the profile transaction.');
@@ -40,7 +40,7 @@ final class TeacherPublicPages
             'seo_slug' => $seoSlug, 'public_profile_slug' => $fullSlug,
             'slug' => $profile->slug ?? $fullSlug,
         ]);
-        app(BusinessActivityRecorder::class)->record($profile->seo_slug === null ? 'teacher.pages_published' : 'teacher.pages_updated', $userId, $userId,
+        app(BusinessActivityRecorder::class)->record($profile->seo_slug === null ? 'teacher.pages_published' : 'teacher.pages_updated', $userId, $actorUserId,
             before: $profile->seo_slug === null ? [] : ['seo_slug' => $profile->seo_slug],
             after: ['seo_slug' => $seoSlug, 'public_profile_slug' => $fullSlug,
                 'subject_ids' => $subjects->pluck('id')->map(fn ($id) => (int) $id)->all(),

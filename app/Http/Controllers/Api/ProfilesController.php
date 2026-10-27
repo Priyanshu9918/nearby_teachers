@@ -38,6 +38,7 @@ class ProfilesController extends Controller
         }
 
         $isTeacher = $type === 'teacher';
+        $subjectsField = $isTeacher ? 'primarySubjects' : 'subjectIds';
         $descriptionField = $isTeacher ? 'bio' : 'description';
         $rateField = $isTeacher ? 'ratePerHour' : 'startingRate';
         $rules = [
@@ -54,10 +55,12 @@ class ProfilesController extends Controller
             'country' => ['sometimes', 'nullable', 'string', 'max:120'],
             'countryCode' => ['sometimes', 'nullable', 'string', 'size:2'],
             'trialDays' => ['sometimes', 'integer', 'between:0,7'],
-            'subjectIds' => ['sometimes', 'array', 'max:5'],
-            'subjectIds.*' => ['integer', 'distinct', 'exists:subjects,id'],
+            $subjectsField => $isTeacher ? ['sometimes', 'array', 'min:1', 'max:5'] : ['sometimes', 'array', 'max:5'],
+            $subjectsField.'.*' => ['required', 'integer', 'distinct', 'exists:subjects,id'],
         ];
         if ($isTeacher) {
+            $rules['subjectIds'] = ['prohibited'];
+            $rules['primarySubjectId'] = ['prohibited'];
             $rules['linkedinUrl'] = ['sometimes', 'nullable', 'url:http,https', 'max:2048'];
         } else {
             $rules['instructorsText'] = ['sometimes', 'nullable', 'string', 'max:2000'];
@@ -118,7 +121,7 @@ class ProfilesController extends Controller
         }
         $updateParts[] = 'updated_at = now()';
 
-        DB::transaction(function () use ($request, $user, $type, $profileTable, $updateParts, $bindings): void {
+        DB::transaction(function () use ($data, $subjectsField, $user, $type, $profileTable, $updateParts, $bindings): void {
             if (DB::table($profileTable)->where('user_id', $user->id)->lockForUpdate()->first() === null) {
                 abort(404, 'Profile not found');
             }
@@ -128,13 +131,16 @@ class ProfilesController extends Controller
                 [...$bindings, $user->id]
             );
 
-            if (array_key_exists('subjectIds', $request->all())) {
+            if (array_key_exists($subjectsField, $data)) {
+                if ($type === 'teacher') {
+                    DB::table($profileTable)->where('user_id', $user->id)->update(['primary_subject_id' => null]);
+                }
                 DB::table('profile_subjects')
                     ->where('profile_type', $type)
                     ->where('profile_id', $user->id)
                     ->delete();
 
-                foreach ($request->input('subjectIds') as $subjectId) {
+                foreach ($data[$subjectsField] as $subjectId) {
                     DB::table('profile_subjects')->insert([
                         'profile_type' => $type,
                         'profile_id' => $user->id,
@@ -145,7 +151,7 @@ class ProfilesController extends Controller
 
             $this->ensureSlug($profileTable, $user->id, $user->full_name);
             if ($type === 'teacher') {
-                app(TeacherPublicPages::class)->publish((int) $user->id);
+                app(TeacherPublicPages::class)->publish((int) $user->id, (int) $user->id);
             }
         });
 

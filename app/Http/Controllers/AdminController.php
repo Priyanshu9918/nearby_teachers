@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\TeacherPublicPages;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -172,6 +173,9 @@ class AdminController extends Controller
                 DB::table($this->profileTable($section))
                     ->where('user_id', $id)
                     ->update($this->profileData($data, $section) + ['updated_at' => now()]);
+                if ($section === 'teachers') {
+                    app(TeacherPublicPages::class)->publish($id);
+                }
             }
         });
 

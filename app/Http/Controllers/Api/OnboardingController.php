@@ -102,7 +102,10 @@ class OnboardingController extends Controller
             'phoneVerifiedAt' => ['prohibited'],
             'mobileVerified' => ['prohibited'],
             'city' => ['sometimes', 'nullable', 'string', 'max:120'],
-            'primarySubjectId' => ['sometimes', 'nullable', 'integer', 'exists:subjects,id'],
+            'primarySubjectId' => ['prohibited'],
+            'subjectIds' => ['prohibited'],
+            'primarySubjects' => ['sometimes', 'array', 'min:1', 'max:5'],
+            'primarySubjects.*' => ['required', 'integer', 'distinct', 'exists:subjects,id'],
             'contactPerson' => ['sometimes', 'nullable', 'string', 'max:160'],
             'termsAccepted' => ['sometimes', 'boolean'],
             'acknowledgeTeachersNotBackgroundChecked' => ['sometimes', 'boolean'],
@@ -113,13 +116,18 @@ class OnboardingController extends Controller
                 $rules['password'] = ['required', 'string', 'min:8', 'max:72'];
             }
             $rules['city'] = ['required_if:accountType,teacher,institute', 'nullable', 'string', 'max:120'];
-            $rules['primarySubjectId'] = ['required_if:accountType,teacher', 'nullable', 'integer', 'exists:subjects,id'];
+            $rules['primarySubjects'] = ['required_if:accountType,teacher', 'array', 'min:1', 'max:5'];
             $rules['contactPerson'] = ['required_if:accountType,institute', 'nullable', 'string', 'max:160'];
             $rules['termsAccepted'] = ['required', 'accepted'];
             $rules['acknowledgeTeachersNotBackgroundChecked'] = ['required', 'accepted'];
         }
 
-        return $request->validate($rules);
+        $data = $request->validate($rules);
+        if (isset($data['primarySubjects'])) {
+            $data['primarySubjects'] = array_values(array_map('intval', $data['primarySubjects']));
+        }
+
+        return $data;
     }
 
     private function persistDraft(object $user, array $data, bool $completing): void
@@ -188,18 +196,18 @@ class OnboardingController extends Controller
                 if (array_key_exists('city', $data)) {
                     $profileUpdates['city'] = $this->nullableString($data['city']);
                 }
-                if (array_key_exists('primarySubjectId', $data)) {
-                    $profileUpdates['primary_subject_id'] = $data['primarySubjectId'];
-                    if ($data['primarySubjectId'] !== null) {
-                        DB::table('profile_subjects')->insertOrIgnore([
-                            'profile_type' => 'teacher',
-                            'profile_id' => $user->id,
-                            'subject_id' => $data['primarySubjectId'],
+                if (array_key_exists('primarySubjects', $data)) {
+                    // All selected subjects are peers; do not designate a single primary.
+                    $profileUpdates['primary_subject_id'] = null;
+                    DB::table('profile_subjects')->where('profile_type', 'teacher')->where('profile_id', $user->id)->delete();
+                    foreach ($data['primarySubjects'] as $subjectId) {
+                        DB::table('profile_subjects')->insert([
+                            'profile_type' => 'teacher', 'profile_id' => $user->id, 'subject_id' => $subjectId,
                         ]);
                     }
                 }
                 DB::table('teacher_profiles')->where('user_id', $user->id)->update($profileUpdates);
-                app(TeacherPublicPages::class)->publish((int) $user->id);
+                app(TeacherPublicPages::class)->publish((int) $user->id, (int) $user->id);
             } elseif ($accountType === 'institute') {
                 $this->ensureProviderProfile('institute_profiles', $user->id);
                 $profileUpdates = ['updated_at' => $now];
@@ -240,9 +248,8 @@ class OnboardingController extends Controller
             if ($city === null) {
                 $errors['city'] = 'Enter your city / location.';
             }
-            $subjectId = array_key_exists('primarySubjectId', $data) ? $data['primarySubjectId'] : $profile?->primary_subject_id;
-            if ($subjectId === null) {
-                $errors['primarySubjectId'] = 'Choose a primary teaching subject.';
+            if (empty($data['primarySubjects'])) {
+                $errors['primarySubjects'] = 'Choose between one and five teaching subjects.';
             }
         }
 
@@ -277,9 +284,8 @@ class OnboardingController extends Controller
         $institute = null;
         if ($accountType === 'teacher') {
             $teacher = DB::table('teacher_profiles as p')
-                ->leftJoin('subjects as s', 's.id', '=', 'p.primary_subject_id')
                 ->where('p.user_id', $user->id)
-                ->select('p.user_id', 'p.slug', 'p.seo_slug', 'p.public_profile_slug', 'p.city', 'p.primary_subject_id', 's.name as primary_subject_name')
+                ->select('p.user_id', 'p.slug', 'p.seo_slug', 'p.public_profile_slug', 'p.city', 'p.primary_subject_id')
                 ->first();
         } elseif ($accountType === 'institute') {
             $institute = DB::table('institute_profiles')->select('city', 'contact_person')->where('user_id', $user->id)->first();
@@ -292,16 +298,18 @@ class OnboardingController extends Controller
             'email' => $user->email,
             'phone' => $user->phone,
             'city' => $teacher->city ?? $institute->city ?? null,
-            'primarySubjectId' => isset($teacher->primary_subject_id) && $teacher->primary_subject_id !== null
-                ? (int) $teacher->primary_subject_id
-                : null,
-            'primarySubjectName' => $teacher->primary_subject_name ?? null,
+            'primarySubjects' => $teacher === null ? [] : DB::table('profile_subjects')->where('profile_type', 'teacher')
+                ->where('profile_id', $user->id)->orderBy('id')->pluck('subject_id')->map(fn ($id) => (int) $id)->all(),
             'contactPerson' => $institute->contact_person ?? null,
             'passwordSet' => $passwordSet,
             'termsAccepted' => $user->terms_accepted_at !== null,
             'teachersNotBackgroundCheckedAcknowledged' => $user->safety_disclaimer_acknowledged_at !== null,
             'acknowledgeTeachersNotBackgroundChecked' => $user->safety_disclaimer_acknowledged_at !== null,
         ];
+
+        if ($teacher !== null && $draft['primarySubjects'] === [] && $teacher->primary_subject_id !== null) {
+            $draft['primarySubjects'] = [(int) $teacher->primary_subject_id];
+        }
 
         $missing = $this->missingDraftFields($user, $accountType, $draft);
         $state = app(OnboardingState::class);
@@ -347,8 +355,8 @@ class OnboardingController extends Controller
             if ($draft['city'] === null || $draft['city'] === '') {
                 $missing[] = 'city';
             }
-            if ($draft['primarySubjectId'] === null) {
-                $missing[] = 'primarySubjectId';
+            if ($draft['primarySubjects'] === []) {
+                $missing[] = 'primarySubjects';
             }
         }
         if ($accountType === 'institute') {

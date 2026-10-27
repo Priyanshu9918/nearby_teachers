@@ -181,11 +181,13 @@ using public `GET /subjects` first:
   "email": "anita@example.com",
   "password": "a-secure-password",
   "city": "Jaipur",
-  "primarySubjectId": 1,
+  "primarySubjects": [1, 2, 3, 4, 5],
   "termsAccepted": true,
   "acknowledgeTeachersNotBackgroundChecked": true
 }
 ```
+
+`primarySubjects` accepts 1–5 distinct existing IDs. All selected subjects are equal; none is designated as the primary subject. The response includes `draft.primarySubjects`. Registration/onboarding reject the retired `primarySubjectId` and `subjectIds` inputs. Invalid/empty/duplicate selections or more than five IDs return `422`. Teacher `PUT /profiles/me` also uses `primarySubjects`; institutes retain `subjectIds`.
 
 Institute uses the same endpoint with this full body:
 

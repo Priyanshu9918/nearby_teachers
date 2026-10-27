@@ -93,7 +93,7 @@ class ApiCatalogTest extends TestCase
             $this->assertArrayNotHasKey('dateOfBirth', $normal);
             $this->assertArrayNotHasKey('dateOfBirth', $google);
         }
-        $this->assertArrayHasKey('primarySubjectId', $entries['POST /auth/register::teacher']['bodyExample']);
+        $this->assertArrayHasKey('primarySubjects', $entries['POST /auth/register::teacher']['bodyExample']);
         $this->assertArrayHasKey('contactPerson', $entries['POST /auth/register::institute']['bodyExample']);
         $teacher = $entries['PUT /profiles/me::teacher']['bodyExample'];
         $institute = $entries['PUT /profiles/me::institute']['bodyExample'];

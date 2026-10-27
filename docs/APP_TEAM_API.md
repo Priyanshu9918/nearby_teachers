@@ -103,7 +103,7 @@ continue without a password. Supplied fields still validate.
 | Role | `accountType` | Additional required fields |
 |---|---|---|
 | Student | `student` or `learner` | — |
-| Teacher | `teacher` | `city`, `primarySubjectId` from Common subjects |
+| Teacher | `teacher` | `city`, `primarySubjects` (1–5 distinct existing IDs) from Common subjects |
 | Institute | `institute` | `city`, `contactPerson`; fullName is institute name |
 
 Do not put phone, mobileVerified or DOB in the registration form. The bearer
@@ -136,7 +136,7 @@ flags true and routes home. Their DOB is not required.
 
 Call `GET /auth/onboarding` using an OTP/Google signup bearer. Prefill `draft`
 from saved DB details only: accountType/role, fullName/email/phone, city,
-primarySubjectId/name, contactPerson, passwordSet and saved acceptance flags.
+primarySubjects (saved subject IDs), contactPerson, passwordSet and saved acceptance flags.
 Passwords are never returned. No new autosave is added; unsaved input remains
 on the device. PATCH onboarding requires completed registration, so it is `409`
 while a student is waiting for DOB. After completion, partial field updates
@@ -351,7 +351,7 @@ PUT is partial. Example:
   "country":"India",
   "countryCode":"IN",
   "trialDays":1,
-  "subjectIds":[1]
+  "primarySubjects":[1]
 }
 ```
 
