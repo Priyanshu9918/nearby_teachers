@@ -13,13 +13,13 @@ Pages are rendered by Laravel, without login or JavaScript. No per-teacher HTML 
 
 ## Creation and updates
 
-`POST /auth/register` and `POST /auth/onboarding/complete` already use `OnboardingController`. Successful teacher registration publishes the two page slugs within the registration transaction, using the selected primary subject and city.
+`POST /auth/register` and `POST /auth/onboarding/complete` already use `OnboardingController`. Successful teacher registration publishes the two page slugs within the registration transaction, using all selected subjects and city.
 
-`PUT /profiles/me` supplies up to five `subjectIds` plus profile details. Every teacher profile save checks the saved subjects and location and refreshes the SEO slug when necessary. `PATCH /auth/onboarding` does the same for name/city changes.
+`PUT /profiles/me` supplies 1–5 `primarySubjects` for teachers plus profile details. Every teacher profile save checks the saved subjects and location and refreshes the SEO slug when necessary. `PATCH /auth/onboarding` does the same for name/city/subject changes. Admin teacher edits also refresh the SEO URL within the admin update transaction, preserving all saved subjects. Admin name/location edits do not add or remove subjects; change the selection through the teacher update APIs. API-driven events use the teacher user ID as actor; session-admin URL events use a null actor rather than falsely attributing the edit to the teacher.
 
 Publication requires a completed registration, current teacher account type, non-suspended user, nonblank name/city and at least one subject. Creating an empty teacher record alone does not publish a page.
 
-**Important:** registration currently accepts one primary subject. A teacher who later selects five subjects gets an updated SEO URL containing all five; the earlier URL redirects with HTTP `301`. The full profile URL remains stable after its first publication. Updates to bio, rates or LinkedIn alone do not change URLs. Subject names are ordered alphabetically, then by subject ID; selection order does not create different URLs.
+**Registration supports 1–5 equal subjects:** send `primarySubjects: [1, 2, 3, 4, 5]`. No subject is designated as primary. Registration and onboarding reject the retired `primarySubjectId` and `subjectIds` inputs. `draft.primarySubjects` returns the saved IDs. An explicit array replaces the saved selection on onboarding updates. Duplicate/nonexistent IDs, an empty array and more than five subjects return `422`. A later subject/location change updates the SEO URL; the earlier URL redirects with HTTP `301`. The full profile URL remains stable after its first publication. Updates to bio, rates or LinkedIn alone do not change URLs. Subject names are ordered alphabetically, then by subject ID; selection order does not create different URLs.
 
 The public read path also requires city and at least one subject. Clearing those, suspending the account, clearing registration completion or changing the account away from teacher makes both pages return `404` and excludes the teacher from the sitemap and city teacher list. Restoring eligibility restores access; this feature does not fabricate a historical unpublish event.
 
@@ -116,6 +116,25 @@ LinkedIn opens in a new tab with `noopener noreferrer nofollow ugc`. Existing un
 
 The redesigned teacher pages use English labels and messaging-only calls to action, with HTML language `en` and left-to-right direction regardless of language query parameters. Other website pages retain their own language settings.
 
+## Registration example (up to five subjects)
+
+Use verified-phone bearer authentication with `POST /auth/register` or its alias `POST /auth/onboarding/complete`. Replace IDs below with existing IDs from `GET /subjects`:
+
+```json
+{
+  "accountType": "teacher",
+  "fullName": "Asha Sharma",
+  "email": "asha@example.com",
+  "password": "a-secure-password",
+  "termsAccepted": true,
+  "acknowledgeTeachersNotBackgroundChecked": true,
+  "city": "Jaipur",
+  "primarySubjects": [1, 2, 3, 4, 5]
+}
+```
+
+`primarySubjects` is the only subject-selection field for registration/onboarding. All selected subjects are equal; no first subject is promoted. The nullable legacy database column `primary_subject_id` is kept for compatibility but cleared when a new selection is saved. Existing old pointers can be read as a one-element selection when pivot rows are absent; no historical records are rewritten. Registration, subject writes, SEO URL publication and existing version 1 publication/registration history commit atomically. Publication history captures all selected subject IDs. No new database migration is required. Teacher `PUT /profiles/me` also uses `primarySubjects`; institute updates retain `subjectIds`.
+
 ## API examples
 
 Authenticated teacher profile update (subject IDs must exist):
@@ -127,7 +146,7 @@ Content-Type: application/json
 
 {
   "bio": "Patient teacher helping students build confidence.",
-  "subjectIds": [1, 2, 3, 4, 5],
+  "primarySubjects": [1, 2, 3, 4, 5],
   "city": "Jaipur",
   "state": "Rajasthan",
   "country": "India",
@@ -172,7 +191,7 @@ The entity ID is the teacher's **user ID**. Snapshots allowlist SEO/full profile
 
 Both page types reuse `page_views.page_type = teacher`, with bounded targets `seo:<user_id>` and `profile:<user_id>`, distinguishing the two without storing a potentially long URL in `target`. Existing `page-views` reports can search by these targets. Legacy page-view rows are unchanged. Redirects are not counted as rendered teacher-page views. Page-view logging remains best effort.
 
-Coverage gaps: no invented publication dates for existing records, no separate history of every bio/rate/LinkedIn edit, subject rename at catalog level, direct SQL/admin mutations or eligibility/suspension transition. No new external event delivery is introduced. Reports show publication/update history separately from current teacher profile state.
+Coverage gaps: no invented publication dates for existing records, no separate history of every bio/rate/LinkedIn edit, subject rename at catalog level, direct SQL mutations or eligibility/suspension transition. No new external event delivery is introduced. Reports show publication/update history separately from current teacher profile state.
 
 ## Deployment and verification
 

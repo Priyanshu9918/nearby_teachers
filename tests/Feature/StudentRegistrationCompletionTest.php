@@ -167,7 +167,7 @@ class StudentRegistrationCompletionTest extends TestCase
         $form = [...$this->form(), 'accountType' => $role, 'city' => 'Jaipur', 'contactPerson' => 'Contact'];
         if ($role === 'teacher') {
             $domain = DB::table('subject_domains')->insertGetId(['name' => 'DOB test subjects']);
-            $form['primarySubjectId'] = DB::table('subjects')->insertGetId(['domain_id' => $domain, 'name' => 'Mathematics']);
+            $form['primarySubjects'] = [DB::table('subjects')->insertGetId(['domain_id' => $domain, 'name' => 'Mathematics'])];
         }
         $this->postJson('/auth/register', $form)->assertOk()->assertJsonPath('registrationCompleted', true)
             ->assertJsonPath('ageVerificationRequired', false)->assertJsonPath('nextScreen', 'home');

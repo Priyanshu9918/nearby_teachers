@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Reporting\BusinessActivityRecorder;
 use App\Services\AuthenticationService;
 use App\Services\OtpDelivery;
 use Illuminate\Support\Facades\Artisan;
@@ -103,7 +104,7 @@ class OnboardingPersistenceTest extends TestCase
             ->assertJsonPath('registrationCompleted', false)->assertJsonPath('autosaveEnabled', false)
             ->assertJsonPath('draft.role', 'teacher')->assertJsonPath('draft.fullName', 'Saved Teacher')
             ->assertJsonPath('draft.email', 'saved@example.test')->assertJsonPath('draft.city', 'Jaipur')
-            ->assertJsonPath('draft.primarySubjectId', $subject)->assertJsonPath('draft.primarySubjectName', 'Saved Mathematics');
+            ->assertJsonPath('draft.primarySubjects', [$subject])->assertJsonMissingPath('draft.primarySubjectId');
         $this->patchJson('/auth/onboarding', ['city' => 'Delhi'])->assertStatus(409);
         $this->assertSame('Jaipur', DB::table('teacher_profiles')->where('user_id', $this->userId)->value('city'));
     }
@@ -113,7 +114,7 @@ class OnboardingPersistenceTest extends TestCase
         $domain = DB::table('subject_domains')->insertGetId(['name' => 'Test subjects']);
         $subject = DB::table('subjects')->insertGetId(['domain_id' => $domain, 'name' => 'Mathematics']);
         $this->postJson('/auth/register', array_replace($this->sharedFields(), [
-            'accountType' => 'teacher', 'city' => 'Jaipur', 'primarySubjectId' => $subject,
+            'accountType' => 'teacher', 'city' => 'Jaipur', 'primarySubjects' => [$subject],
         ]))->assertOk()->assertJsonPath('nextStep', 'home');
         $this->assertDatabaseHas('profile_subjects', [
             'profile_type' => 'teacher', 'profile_id' => $this->userId, 'subject_id' => $subject,
@@ -122,7 +123,7 @@ class OnboardingPersistenceTest extends TestCase
             'accountType' => 'institute', 'city' => 'Delhi', 'contactPerson' => 'Anita Sharma',
         ])->assertOk()->assertJsonPath('draft.contactPerson', 'Anita Sharma');
         $this->patchJson('/auth/onboarding', ['accountType' => 'teacher'])
-            ->assertOk()->assertJsonPath('draft.city', 'Jaipur')->assertJsonPath('draft.primarySubjectId', $subject);
+            ->assertOk()->assertJsonPath('draft.city', 'Jaipur')->assertJsonPath('draft.primarySubjects', [$subject]);
         $this->patchJson('/auth/onboarding', ['accountType' => 'institute'])
             ->assertOk()->assertJsonPath('draft.city', 'Delhi');
     }
@@ -153,11 +154,100 @@ class OnboardingPersistenceTest extends TestCase
         ]))->assertUnprocessable()->assertJsonValidationErrors(['phone', 'mobileVerified']);
     }
 
-    public function test_teacher_cannot_register_without_primary_subject(): void
+    public function test_teacher_cannot_register_without_subjects(): void
     {
         $this->postJson('/auth/register', array_replace($this->sharedFields(), [
             'accountType' => 'teacher', 'city' => 'Jaipur',
-        ]))->assertUnprocessable()->assertJsonValidationErrors('primarySubjectId');
+        ]))->assertUnprocessable()->assertJsonValidationErrors('primarySubjects');
+    }
+
+    private function teachingSubjects(): array
+    {
+        $domain = DB::table('subject_domains')->insertGetId(['name' => 'Registration subjects']);
+
+        return array_map(fn ($name) => DB::table('subjects')->insertGetId(['domain_id' => $domain, 'name' => $name]),
+            ['Maths', 'Physics', 'Chemistry', 'English', 'Hindi', 'Biology']);
+    }
+
+    public function test_registration_accepts_five_subjects_without_a_single_primary(): void
+    {
+        $ids = array_slice($this->teachingSubjects(), 0, 5);
+        $result = $this->postJson('/auth/register', array_replace($this->sharedFields(), [
+            'accountType' => 'teacher', 'city' => 'Jaipur', 'primarySubjects' => $ids,
+        ]))->assertOk()->assertJsonMissingPath('draft.primarySubjectId')
+            ->assertJsonPath('draft.primarySubjects', $ids)->json();
+        $this->assertSame(5, DB::table('profile_subjects')->where('profile_type', 'teacher')->where('profile_id', $this->userId)->count());
+        $this->assertStringContainsString('chemistry-english-hindi-maths-physics', $result['teacherSeoUrl']);
+        $this->getJson('/auth/onboarding')->assertOk()->assertJsonPath('draft.primarySubjects', $ids);
+        $event = DB::table('business_activity')->where('event', 'teacher.pages_published')->where('entity_id', $this->userId)->first();
+        $recorded = json_decode($event->after_data, true)['subject_ids'];
+        sort($ids);
+        sort($recorded);
+        $this->assertSame($ids, $recorded);
+    }
+
+    public function test_registration_alias_accepts_equal_subjects_and_subject_replacement(): void
+    {
+        $ids = array_slice($this->teachingSubjects(), 0, 5);
+        $this->postJson('/auth/onboarding/complete', array_replace($this->sharedFields(), [
+            'accountType' => 'teacher', 'city' => 'Jaipur', 'primarySubjects' => $ids,
+        ]))->assertOk()->assertJsonMissingPath('draft.primarySubjectId');
+        $this->assertNull(DB::table('teacher_profiles')->where('user_id', $this->userId)->value('primary_subject_id'));
+        $this->patchJson('/auth/onboarding', ['primarySubjects' => [$ids[3], $ids[4]]])
+            ->assertOk()->assertJsonMissingPath('draft.primarySubjectId')
+            ->assertJsonPath('draft.primarySubjects', [$ids[3], $ids[4]]);
+        $this->assertSame(2, DB::table('profile_subjects')->where('profile_type', 'teacher')->where('profile_id', $this->userId)->count());
+    }
+
+    public function test_registration_rejects_invalid_subject_selections_without_saving(): void
+    {
+        $ids = $this->teachingSubjects();
+        foreach ([
+            [['primarySubjects' => $ids], 'primarySubjects'],
+            [['primarySubjects' => []], 'primarySubjects'],
+            [['primarySubjects' => [$ids[0], $ids[0]]], 'primarySubjects.0'],
+            [['primarySubjects' => [0]], 'primarySubjects.0'],
+            [['primarySubjects' => [$ids[0]], 'primarySubjectId' => $ids[1]], 'primarySubjectId'],
+            [['primarySubjects' => '1,2'], 'primarySubjects'],
+            [['primarySubjects' => [$ids[0]], 'subjectIds' => [$ids[0]]], 'subjectIds'],
+        ] as [$selection, $error]) {
+            $this->postJson('/auth/register', array_replace($this->sharedFields(), [
+                'accountType' => 'teacher', 'city' => 'Jaipur', ...$selection,
+            ]))->assertUnprocessable()->assertJsonValidationErrors($error);
+            $this->assertNull(DB::table('users')->where('id', $this->userId)->value('registration_submitted_at'));
+            $this->assertSame(0, DB::table('profile_subjects')->where('profile_id', $this->userId)->count());
+        }
+    }
+
+    public function test_retired_primary_field_is_rejected_without_mutating_saved_subjects(): void
+    {
+        $ids = $this->teachingSubjects();
+        $selected = array_slice($ids, 0, 5);
+        $this->postJson('/auth/register', array_replace($this->sharedFields(), [
+            'accountType' => 'teacher', 'city' => 'Jaipur', 'primarySubjects' => $selected,
+        ]))->assertOk();
+        $this->patchJson('/auth/onboarding', ['primarySubjectId' => $ids[5], 'city' => 'Delhi'])
+            ->assertUnprocessable()->assertJsonValidationErrors('primarySubjectId');
+        $this->assertSame('Jaipur', DB::table('teacher_profiles')->where('user_id', $this->userId)->value('city'));
+        $this->getJson('/auth/onboarding')->assertOk()->assertJsonPath('draft.primarySubjects', $selected);
+    }
+
+    public function test_registration_subjects_and_completion_roll_back_when_publication_history_fails(): void
+    {
+        $ids = array_slice($this->teachingSubjects(), 0, 5);
+        $this->app->instance(BusinessActivityRecorder::class, new class
+        {
+            public function record(...$arguments): never
+            {
+                throw new \RuntimeException('Publication history unavailable');
+            }
+        });
+        $this->postJson('/auth/register', array_replace($this->sharedFields(), [
+            'accountType' => 'teacher', 'city' => 'Jaipur', 'primarySubjects' => $ids,
+        ]))->assertStatus(500);
+        $this->assertNull(DB::table('users')->where('id', $this->userId)->value('profile_completed_at'));
+        $this->assertFalse(DB::table('teacher_profiles')->where('user_id', $this->userId)->exists());
+        $this->assertSame(0, DB::table('profile_subjects')->where('profile_id', $this->userId)->count());
     }
 
     public function test_otp_verification_does_not_save_form_and_registration_uses_returned_token(): void

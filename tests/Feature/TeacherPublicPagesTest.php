@@ -71,7 +71,7 @@ class TeacherPublicPagesTest extends TestCase
 
     private function publish(): array
     {
-        app(TeacherPublicPages::class)->publish($this->teacherId);
+        app(TeacherPublicPages::class)->publish($this->teacherId, $this->teacherId);
 
         return TeacherPublicPages::urls($this->profile(), 'Rahul Sharma');
     }
@@ -134,10 +134,14 @@ class TeacherPublicPagesTest extends TestCase
         $auth->shouldReceive('authenticate')->with('teacher-test')->andReturn($user);
         $this->app->instance(AuthenticationService::class, $auth);
         $headers = ['Authorization' => 'Bearer teacher-test'];
-        $first = $this->putJson('/profiles/me', ['subjectIds' => $this->subjectIds], $headers)
+        $first = $this->putJson('/profiles/me', ['primarySubjects' => $this->subjectIds], $headers)
             ->assertOk()->json();
         $this->assertNotNull($this->profile()->seo_slug);
-        $second = $this->putJson('/profiles/me', ['subjectIds' => [$this->subjectIds[0]], 'city' => 'Delhi'], $headers)
+        $this->putJson('/profiles/me', ['subjectIds' => $this->subjectIds], $headers)
+            ->assertUnprocessable()->assertJsonValidationErrors('subjectIds');
+        $this->putJson('/profiles/me', ['primarySubjects' => []], $headers)
+            ->assertUnprocessable()->assertJsonValidationErrors('primarySubjects');
+        $second = $this->putJson('/profiles/me', ['primarySubjects' => [$this->subjectIds[0]], 'city' => 'Delhi'], $headers)
             ->assertOk()->json();
         $this->assertStringContainsString('rahul-sharma-maths-delhi-rajasthan-india-', $second['teacherSeoUrl']);
         $this->assertSame($first['teacherProfileUrl'], $second['teacherProfileUrl']);
@@ -145,6 +149,23 @@ class TeacherPublicPagesTest extends TestCase
         $this->get($second['teacherSeoUrl'])->assertOk()->assertSee('Maths')->assertDontSee('Physics');
         $this->assertSame(1, DB::table('business_activity')->where('event', 'teacher.pages_published')->where('entity_id', $this->teacherId)->count());
         $this->assertSame(1, DB::table('business_activity')->where('event', 'teacher.pages_updated')->where('entity_id', $this->teacherId)->count());
+    }
+
+    public function test_admin_teacher_edits_refresh_seo_url_with_correct_history_actor(): void
+    {
+        $original = $this->publish();
+        $this->withSession(['admin_authenticated' => true])->put('/admin/teachers/'.$this->teacherId, [
+            'full_name' => 'Asha Sharma', 'email' => 'private@example.test', 'phone' => '+919811112222',
+            'city' => 'Delhi', 'state' => 'Delhi', 'country' => 'India', 'currency' => 'INR',
+        ])->assertRedirect('/admin/teachers');
+        $urls = TeacherPublicPages::urls($this->profile(), 'Asha Sharma');
+        $this->assertStringContainsString('asha-sharma-chemistry-english-hindi-maths-physics-delhi', $urls['teacherSeoUrl']);
+        $this->assertSame($original['teacherProfileUrl'], $urls['teacherProfileUrl']);
+        $this->get($original['teacherSeoUrl'])->assertStatus(301)->assertRedirect($urls['teacherSeoUrl']);
+        $event = DB::table('business_activity')->where('event', 'teacher.pages_updated')->where('entity_id', $this->teacherId)->first();
+        $this->assertNotNull($event);
+        $this->assertNull($event->actor_user_id);
+        $this->assertSame(5, count(json_decode($event->after_data, true)['subject_ids']));
     }
 
     public function test_suspended_incomplete_and_missing_teachers_are_not_public(): void
@@ -225,7 +246,7 @@ class TeacherPublicPagesTest extends TestCase
         $this->app->instance(AuthenticationService::class, $authentication);
         $result = $this->postJson('/auth/register', [
             'accountType' => 'teacher', 'fullName' => 'Rahul Sharma', 'email' => 'teacher@example.test',
-            'password' => 'test-secure-password', 'city' => 'Jaipur', 'primarySubjectId' => $this->subjectIds[0],
+            'password' => 'test-secure-password', 'city' => 'Jaipur', 'primarySubjects' => [$this->subjectIds[0]],
             'termsAccepted' => true, 'acknowledgeTeachersNotBackgroundChecked' => true,
         ], ['Authorization' => 'Bearer registration-test'])->assertOk()->assertJsonPath('registrationCompleted', true)->json();
         $this->assertStringContainsString('rahul-sharma-maths-jaipur-', $result['teacherSeoUrl']);

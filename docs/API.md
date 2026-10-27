@@ -112,7 +112,7 @@ student submits it on the separate Learner DOB API/page.
 | `termsAccepted` | `true` | `true` | `true` |
 | `acknowledgeTeachersNotBackgroundChecked` | `true` | `true` | `true` |
 | `city` | — | Required, max 120 | Required, max 120 |
-| `primarySubjectId` | — | Required existing numeric subject ID | — |
+| `primarySubjects` | — | Required array of 1–5 distinct existing subject IDs; no separate primary subject | — |
 | `contactPerson` | — | — | Required, max 160 |
 
 Omit optional Google email/password to preserve the verified Google email and
@@ -141,7 +141,7 @@ Teacher example:
   "email":"teacher@example.com",
   "password":"ExamplePass123!",
   "city":"Delhi",
-  "primarySubjectId":1,
+  "primarySubjects":[1],
   "termsAccepted":true,
   "acknowledgeTeachersNotBackgroundChecked":true
 }
@@ -524,14 +524,14 @@ feed reading, likes, comments and replies.
   "country":"India",
   "countryCode":"IN",
   "trialDays":1,
-  "subjectIds":[1],
+  "primarySubjects":[1],
   "linkedinUrl":"https://example.com/teacher"
 }
 ```
 
 PUT is partial and returns `{ok:true}`. The account must be teacher/institute
 and registration must be complete. Subject assignment uses existing numeric IDs
-and replaces the set when supplied; `[]` clears it. Registration itself does
+and replaces the set when supplied. Teachers send `primarySubjects` with 1–5 IDs; institutes retain `subjectIds` and can clear their set using `[]`. Registration itself does
 not populate listing rates, modes or coordinates. Nearby publication needs
 valid coordinates and the normal publication checks in Learner discovery.
 
@@ -544,7 +544,8 @@ valid coordinates and the normal publication checks in Learner discovery.
 | `latitude`, `longitude` | Supply together, both null or both set; valid ranges |
 | `addressText`, `city`, `state`, `country` | Nullable, max 1000/120/120/120 |
 | `countryCode`, `currency` | 2/3 characters; stored uppercase; supplied currency non-null |
-| `trialDays`, `subjectIds` | 0–7 days; up to 5 distinct existing subject IDs |
+| `trialDays` | 0–7 days |
+| `primarySubjects` (teacher), `subjectIds` (institute) | Teacher: 1–5 distinct existing subject IDs; institute: up to 5 |
 | `POST` | `/chat/events/send` | chat:send · Send message |
 | `POST` | `/chat/events/delivered` | chat:delivered · Confirm delivery |
 | `POST` | `/chat/events/read` | chat:read · Mark message read |

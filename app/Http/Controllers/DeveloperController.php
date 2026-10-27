@@ -362,7 +362,7 @@ class DeveloperController extends Controller
                 if ($role !== 'student') {
                     $body['city'] = 'New Delhi';
                     if ($role === 'teacher') {
-                        $body['primarySubjectId'] = 1;
+                        $body['primarySubjects'] = [1];
                     } else {
                         $body['contactPerson'] = 'Anita Sharma';
                     }
@@ -403,6 +403,8 @@ class DeveloperController extends Controller
         if ($key === 'PUT /profiles/me' && $isProvider) {
             $body = $example['bodyExample'];
             if ($category === 'Institute') {
+                $body['subjectIds'] = $body['primarySubjects'];
+                unset($body['primarySubjects']);
                 unset($body['bio'], $body['ratePerHour']);
                 $body['description'] = 'Sign language institute offering beginner classes';
                 $body['startingRate'] = 500;
@@ -547,7 +549,7 @@ class DeveloperController extends Controller
                 'guide' => 'Reverse-geocode coordinates using OpenStreetMap. Limited to one lookup per second and 30 requests per minute per IP.',
             ],
             'PUT /profiles/me' => [
-                'body' => ['bio' => 'Experienced teacher offering online lessons', 'ratePerHour' => 500, 'currency' => 'INR', 'lessonModes' => ['online'], 'city' => 'New Delhi', 'country' => 'India', 'countryCode' => 'IN', 'subjectIds' => [1]],
+                'body' => ['bio' => 'Experienced teacher offering online lessons', 'ratePerHour' => 500, 'currency' => 'INR', 'lessonModes' => ['online'], 'city' => 'New Delhi', 'country' => 'India', 'countryCode' => 'IN', 'primarySubjects' => [1]],
                 'guide' => 'Teacher example. For an institute account, replace bio/ratePerHour with description/startingRate.',
             ],
             'PATCH /profiles/{type}/{id}/verify' => ['body' => ['verified' => true], 'pathDefaults' => ['type' => 'teacher', 'id' => 1]],

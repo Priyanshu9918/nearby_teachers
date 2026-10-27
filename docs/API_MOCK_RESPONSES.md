@@ -1597,13 +1597,12 @@ Content-Type: `application/json`
     "email": null,
     "phone": "+919876543210",
     "city": null,
-    "primarySubjectId": null,
-    "primarySubjectName": null,
     "contactPerson": null,
     "passwordSet": false,
     "termsAccepted": false,
     "teachersNotBackgroundCheckedAcknowledged": false,
-    "acknowledgeTeachersNotBackgroundChecked": false
+    "acknowledgeTeachersNotBackgroundChecked": false,
+    "primarySubjects": []
   },
   "user": {
     "id": "10000000-0000-4000-8000-000000000001",
@@ -1679,13 +1678,12 @@ Content-Type: `application/json`
     "email": "student@example.com",
     "phone": null,
     "city": null,
-    "primarySubjectId": null,
-    "primarySubjectName": null,
     "contactPerson": null,
     "passwordSet": false,
     "termsAccepted": false,
     "teachersNotBackgroundCheckedAcknowledged": false,
-    "acknowledgeTeachersNotBackgroundChecked": false
+    "acknowledgeTeachersNotBackgroundChecked": false,
+    "primarySubjects": []
   },
   "user": {
     "id": "10000000-0000-4000-8000-000000000001",
@@ -1755,13 +1753,12 @@ Content-Type: `application/json`
     "email": "student@example.com",
     "phone": "+919876543210",
     "city": null,
-    "primarySubjectId": null,
-    "primarySubjectName": null,
     "contactPerson": null,
     "passwordSet": true,
     "termsAccepted": true,
     "teachersNotBackgroundCheckedAcknowledged": true,
-    "acknowledgeTeachersNotBackgroundChecked": true
+    "acknowledgeTeachersNotBackgroundChecked": true,
+    "primarySubjects": []
   },
   "user": {
     "id": "10000000-0000-4000-8000-000000000001",
@@ -1831,13 +1828,12 @@ Content-Type: `application/json`
     "email": "student@example.com",
     "phone": "+919876543210",
     "city": null,
-    "primarySubjectId": null,
-    "primarySubjectName": null,
     "contactPerson": null,
     "passwordSet": true,
     "termsAccepted": true,
     "teachersNotBackgroundCheckedAcknowledged": true,
-    "acknowledgeTeachersNotBackgroundChecked": true
+    "acknowledgeTeachersNotBackgroundChecked": true,
+    "primarySubjects": []
   },
   "user": {
     "id": "10000000-0000-4000-8000-000000000001",
@@ -1948,13 +1944,12 @@ Content-Type: `application/json`
     "email": "student@example.com",
     "phone": "+919876543210",
     "city": null,
-    "primarySubjectId": null,
-    "primarySubjectName": null,
     "contactPerson": null,
     "passwordSet": true,
     "termsAccepted": true,
     "teachersNotBackgroundCheckedAcknowledged": true,
-    "acknowledgeTeachersNotBackgroundChecked": true
+    "acknowledgeTeachersNotBackgroundChecked": true,
+    "primarySubjects": []
   },
   "user": {
     "id": "10000000-0000-4000-8000-000000000001",
@@ -2024,13 +2019,12 @@ Content-Type: `application/json`
     "email": "student@example.com",
     "phone": "+919876543210",
     "city": null,
-    "primarySubjectId": null,
-    "primarySubjectName": null,
     "contactPerson": null,
     "passwordSet": true,
     "termsAccepted": true,
     "teachersNotBackgroundCheckedAcknowledged": true,
-    "acknowledgeTeachersNotBackgroundChecked": true
+    "acknowledgeTeachersNotBackgroundChecked": true,
+    "primarySubjects": []
   },
   "user": {
     "id": "10000000-0000-4000-8000-000000000001",
@@ -2100,13 +2094,12 @@ Content-Type: `application/json`
     "email": "student@example.com",
     "phone": "+919876543210",
     "city": null,
-    "primarySubjectId": null,
-    "primarySubjectName": null,
     "contactPerson": null,
     "passwordSet": false,
     "termsAccepted": true,
     "teachersNotBackgroundCheckedAcknowledged": true,
-    "acknowledgeTeachersNotBackgroundChecked": true
+    "acknowledgeTeachersNotBackgroundChecked": true,
+    "primarySubjects": []
   },
   "user": {
     "id": "10000000-0000-4000-8000-000000000001",
@@ -2267,13 +2260,12 @@ Content-Type: `application/json`
     "email": "student@example.com",
     "phone": "+919876543210",
     "city": null,
-    "primarySubjectId": null,
-    "primarySubjectName": null,
     "contactPerson": null,
     "passwordSet": false,
     "termsAccepted": true,
     "teachersNotBackgroundCheckedAcknowledged": true,
-    "acknowledgeTeachersNotBackgroundChecked": true
+    "acknowledgeTeachersNotBackgroundChecked": true,
+    "primarySubjects": []
   },
   "user": {
     "id": "10000000-0000-4000-8000-000000000001",
@@ -2358,7 +2350,9 @@ Request body:
   "termsAccepted": true,
   "acknowledgeTeachersNotBackgroundChecked": true,
   "city": "{{city}}",
-  "primarySubjectId": "{{subjectId}}"
+  "primarySubjects": [
+    "{{subjectId}}"
+  ]
 }
 ```
 
@@ -2394,13 +2388,14 @@ Content-Type: `application/json`
     "email": "teacher@example.com",
     "phone": "+919876543210",
     "city": "Delhi",
-    "primarySubjectId": 1,
-    "primarySubjectName": "Mathematics",
     "contactPerson": null,
     "passwordSet": true,
     "termsAccepted": true,
     "teachersNotBackgroundCheckedAcknowledged": true,
-    "acknowledgeTeachersNotBackgroundChecked": true
+    "acknowledgeTeachersNotBackgroundChecked": true,
+    "primarySubjects": [
+      1
+    ]
   },
   "user": {
     "id": "20000000-0000-4000-8000-000000000001",
@@ -2565,13 +2560,12 @@ Content-Type: `application/json`
     "email": "institute@example.com",
     "phone": "+919876543210",
     "city": "Delhi",
-    "primarySubjectId": null,
-    "primarySubjectName": null,
     "contactPerson": "Example Contact",
     "passwordSet": true,
     "termsAccepted": true,
     "teachersNotBackgroundCheckedAcknowledged": true,
-    "acknowledgeTeachersNotBackgroundChecked": true
+    "acknowledgeTeachersNotBackgroundChecked": true,
+    "primarySubjects": []
   },
   "user": {
     "id": "20000000-0000-4000-8000-000000000001",
@@ -2734,13 +2728,12 @@ Content-Type: `application/json`
     "email": "student@example.com",
     "phone": "+919876543210",
     "city": null,
-    "primarySubjectId": null,
-    "primarySubjectName": null,
     "contactPerson": null,
     "passwordSet": true,
     "termsAccepted": true,
     "teachersNotBackgroundCheckedAcknowledged": true,
-    "acknowledgeTeachersNotBackgroundChecked": true
+    "acknowledgeTeachersNotBackgroundChecked": true,
+    "primarySubjects": []
   },
   "user": {
     "id": "10000000-0000-4000-8000-000000000001",
@@ -2810,13 +2803,12 @@ Content-Type: `application/json`
     "email": "student@example.com",
     "phone": "+919876543210",
     "city": null,
-    "primarySubjectId": null,
-    "primarySubjectName": null,
     "contactPerson": null,
     "passwordSet": true,
     "termsAccepted": true,
     "teachersNotBackgroundCheckedAcknowledged": true,
-    "acknowledgeTeachersNotBackgroundChecked": true
+    "acknowledgeTeachersNotBackgroundChecked": true,
+    "primarySubjects": []
   },
   "user": {
     "id": "10000000-0000-4000-8000-000000000001",
@@ -2886,13 +2878,12 @@ Content-Type: `application/json`
     "email": "student@example.com",
     "phone": "+919876543210",
     "city": null,
-    "primarySubjectId": null,
-    "primarySubjectName": null,
     "contactPerson": null,
     "passwordSet": false,
     "termsAccepted": true,
     "teachersNotBackgroundCheckedAcknowledged": true,
-    "acknowledgeTeachersNotBackgroundChecked": true
+    "acknowledgeTeachersNotBackgroundChecked": true,
+    "primarySubjects": []
   },
   "user": {
     "id": "10000000-0000-4000-8000-000000000001",
@@ -3050,13 +3041,12 @@ Content-Type: `application/json`
     "email": "student@example.com",
     "phone": "+919876543210",
     "city": null,
-    "primarySubjectId": null,
-    "primarySubjectName": null,
     "contactPerson": null,
     "passwordSet": true,
     "termsAccepted": true,
     "teachersNotBackgroundCheckedAcknowledged": true,
-    "acknowledgeTeachersNotBackgroundChecked": true
+    "acknowledgeTeachersNotBackgroundChecked": true,
+    "primarySubjects": []
   },
   "user": {
     "id": "10000000-0000-4000-8000-000000000001",
@@ -5649,12 +5639,12 @@ Request body:
   "country": "{{country}}",
   "countryCode": "IN",
   "currency": "INR",
-  "subjectIds": [
-    "{{subjectId}}"
-  ],
   "trialDays": 1,
   "bio": "Maths lessons for school students",
-  "ratePerHour": 500
+  "ratePerHour": 500,
+  "primarySubjects": [
+    "{{subjectId}}"
+  ]
 }
 ```
 
