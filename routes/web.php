@@ -38,8 +38,21 @@ Route::post('/location-lookup/reverse', [LocationLookupController::class, 'rever
 Route::get('/download', [WebsiteController::class, 'download'])->name('download');
 Route::get('/sitemap.xml', [InternationalSeoController::class, 'sitemap'])->name('website.sitemap');
 Route::get('/directory', [InternationalSeoController::class, 'hub'])->name('seo.hub');
-Route::get('/sitemaps/{kind}-{number}.xml', [InternationalSeoController::class, 'sitemapPart'])->whereIn('kind', ['teachers', 'directory'])->where('number', '[1-9][0-9]{0,6}')->name('seo.sitemap-part');
+Route::get('/sitemaps/{kind}-{number}.xml', [InternationalSeoController::class, 'sitemapPart'])->whereIn('kind', ['teachers', 'directory', 'locations'])->where('number', '[1-9][0-9]{0,6}')->name('seo.sitemap-part');
 Route::get('/robots.txt', [InternationalSeoController::class, 'robots'])->name('website.robots');
+
+// Hierarchical location pages must be checked before the legacy country/city/subject routes.
+Route::get('/{country}/{first}/{second}/{third}', [InternationalSeoController::class, 'geoLevelFour'])
+    ->where('country', '[a-z]{2}')->where('first', '[a-z0-9][a-z0-9-]{0,179}')
+    ->where('second', '[a-z0-9][a-z0-9-]{0,179}')->where('third', '[a-z0-9][a-z0-9-]{0,229}')
+    ->name('seo.location.subject');
+Route::get('/{country}/{district}/{village}', [InternationalSeoController::class, 'geoLevelThree'])
+    ->where('country', '[a-z]{2}')->where('district', '[a-z0-9][a-z0-9-]{0,179}')
+    ->where('village', '[a-z0-9][a-z0-9-]{0,179}')->name('seo.location.village');
+Route::get('/{country}/{segment}', [InternationalSeoController::class, 'geoLevelTwo'])
+    ->where('country', '[a-z]{2}')->where('segment', '[a-z0-9][a-z0-9-]{0,179}')->name('seo.location.district');
+Route::get('/{country}', [InternationalSeoController::class, 'geoCountry'])
+    ->where('country', '[a-z]{2}')->name('seo.location.country');
 
 Route::get('/admin/login', [AdminController::class, 'login'])->name('admin.login');
 Route::post('/admin/login', [AdminController::class, 'authenticate'])

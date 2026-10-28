@@ -63,9 +63,8 @@ class AdminSeoController extends Controller
                 app(BusinessActivityRecorder::class)->record('seo.route_configured', (int) $id, null,
                     before: $old ? ['city_slug' => $old->city_slug, 'online_slug' => $old->online_slug, 'enabled' => (bool) $old->enabled] : [],
                     after: $values);
-                $directory = app(SeoDirectory::class);
                 foreach (DB::table('teacher_profiles')->where('is_profile_complete', true)->where('seo_country', $data['country'])->orderBy('user_id')->lazyById(100, 'user_id') as $profile) {
-                    $directory->ensurePages($profile, TeacherPublicPages::subjects((int) $profile->user_id)->pluck('id')->all());
+                    app(TeacherPublicPages::class)->publish((int) $profile->user_id);
                 }
 
                 return (int) $id;

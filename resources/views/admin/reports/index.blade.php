@@ -17,6 +17,8 @@
         @elseif ($report === 'teacher-profiles')<span>Needs eligible profile and country</span>
         @elseif ($report === 'seo-pages')
             @if ($record->eligible_teachers > 0 && $record->route_enabled)<a class="btn btn-small" href="{{ \App\Services\SeoDirectory::url($record->path) }}" target="_blank" rel="noopener noreferrer">Open page</a><span>Published</span>@else<span>{{ $record->route_enabled ? 'No matching teachers' : 'Disabled' }}</span>@endif
+        @elseif ($report === 'seo-location-pages')
+            @if ($record->eligible_teachers > 0)<a class="btn btn-small" href="{{ \App\Services\SeoDirectory::url($record->path) }}" target="_blank" rel="noopener noreferrer">Open page</a><span>Published</span>@else<span>No matching teachers</span>@endif
         @elseif ($report === 'seo-subject-routes')<a class="btn btn-small" href="{{ route('admin.seo.edit', ['id' => $record->id]) }}">Edit wording</a>
         @else — @endif
     </td>

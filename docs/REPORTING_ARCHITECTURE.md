@@ -221,6 +221,13 @@ payload. Results measure submission acknowledgement, not actual delivery. Histor
 requests before this feature and receipt webhooks are not covered. See
 [OTP delivery](OTP_DELIVERY.md) for partial failure and external-send limitations.
 
+SEO location pages are registered in `seo-location-pages` and recorded with the
+allowlisted `seo.location_page_registered` event in the same transaction as the
+page row. History contains only path, country, language, page kind and optional
+subject ID. Counts are computed from currently eligible teacher profiles; they
+are not historical snapshots. Older location pages are not reconstructed into
+business history.
+
 Message blocking uses the existing `blocks` report for current relationships and
 the `activity` report for append-only block/unblock history. Each real block or
 unblock is recorded in the same transaction as its relationship change; retries
