@@ -56,6 +56,10 @@ return [
 
         'PUT /profiles/me' => ['Teacher', 'Institute'],
         'GET /profiles/me/stats' => ['Teacher', 'Institute'],
+        'GET /teacher/profile' => ['Teacher'],
+        'PATCH /teacher/profile/steps/{step}' => ['Teacher'],
+        'POST /teacher/profile/photo' => ['Teacher'],
+        'POST /teacher/profile/publish' => ['Teacher'],
         'GET /bookings/incoming' => ['Teacher', 'Institute'],
 
         'GET /auth/safety-disclaimer' => ['Learner', 'Teacher', 'Institute', 'Common'],

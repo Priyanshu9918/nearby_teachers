@@ -23,13 +23,15 @@ final class TeacherPublicPages
         }
         $country = SeoDirectory::country($profile);
         $subjects = self::subjects($userId);
-        $eligible = $user->account_type === 'teacher' && $user->profile_completed_at !== null
+        $eligible = $user->account_type === 'teacher' && (bool) $profile->is_profile_complete
+            && $user->profile_completed_at !== null
             && $user->phone_verified_at !== null && $user->suspended_at === null
             && trim($user->full_name) !== '' && trim($profile->city ?? '') !== '' && $country !== null && $subjects->isNotEmpty();
         $citySlug = $eligible ? SeoDirectory::citySlug($profile->city) : null;
         $slug = $profile->public_page_slug;
         if ($eligible) {
-            $base = self::seoSlug($user->full_name, $profile->city);
+            $displayName = trim((string) ($profile->listing_name ?? '')) ?: $user->full_name;
+            $base = self::seoSlug($displayName, $profile->city);
             $candidate = $base;
             $attempt = 0;
             while (! SeoDirectory::claim('/teacher/'.$candidate, 'teacher', $userId)) {
@@ -104,6 +106,6 @@ final class TeacherPublicPages
         $url = isset($profile->public_page_slug) && isset($profile->seo_country)
             ? SeoDirectory::url('/teacher/'.$profile->public_page_slug) : null;
 
-        return ['teacherSeoUrl' => $url, 'teacherProfileUrl' => $url];
+        return ['teacherSeoUrl' => $url, 'teacherProfileUrl' => $url, 'webPageUrl' => $url];
     }
 }

@@ -177,13 +177,11 @@ class OnboardingPersistenceTest extends TestCase
         ]))->assertOk()->assertJsonMissingPath('draft.primarySubjectId')
             ->assertJsonPath('draft.primarySubjects', $ids)->json();
         $this->assertSame(5, DB::table('profile_subjects')->where('profile_type', 'teacher')->where('profile_id', $this->userId)->count());
-        $this->assertStringContainsString('/teacher/anita-sharma-jaipur', $result['teacherSeoUrl']);
+        $this->assertNull($result['teacherSeoUrl']);
+        $this->assertDatabaseHas('teacher_profiles', ['user_id' => $this->userId, 'is_profile_complete' => false]);
         $this->getJson('/auth/onboarding')->assertOk()->assertJsonPath('draft.primarySubjects', $ids);
         $event = DB::table('business_activity')->where('event', 'teacher.seo_state_changed')->where('entity_id', $this->userId)->first();
-        $recorded = json_decode($event->after_data, true)['subject_ids'];
-        sort($ids);
-        sort($recorded);
-        $this->assertSame($ids, $recorded);
+        $this->assertNull($event);
     }
 
     public function test_registration_alias_accepts_equal_subjects_and_subject_replacement(): void

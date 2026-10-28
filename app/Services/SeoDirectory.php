@@ -9,7 +9,7 @@ use Illuminate\Support\Str;
 
 final class SeoDirectory
 {
-    public const COUNT_SQL = "(SELECT count(*) FROM teacher_profiles sp JOIN users su ON su.id = sp.user_id WHERE su.account_type = 'teacher' AND su.suspended_at IS NULL AND su.phone_verified_at IS NOT NULL AND su.profile_completed_at IS NOT NULL AND sp.public_page_slug IS NOT NULL AND sp.seo_country = r.country AND ((r.kind = 'city' AND sp.seo_city_slug = r.city_slug) OR (r.kind = 'online' AND JSON_CONTAINS(sp.lesson_modes, JSON_QUOTE('online')) = 1)) AND EXISTS (SELECT 1 FROM profile_subjects sx WHERE sx.profile_type = 'teacher' AND sx.profile_id = sp.user_id AND sx.subject_id = r.subject_id))";
+    public const COUNT_SQL = "(SELECT count(*) FROM teacher_profiles sp JOIN users su ON su.id = sp.user_id WHERE su.account_type = 'teacher' AND su.suspended_at IS NULL AND su.phone_verified_at IS NOT NULL AND su.profile_completed_at IS NOT NULL AND sp.is_profile_complete = 1 AND sp.public_page_slug IS NOT NULL AND sp.seo_country = r.country AND ((r.kind = 'city' AND sp.seo_city_slug = r.city_slug) OR (r.kind = 'online' AND JSON_CONTAINS(sp.lesson_modes, JSON_QUOTE('online')) = 1)) AND EXISTS (SELECT 1 FROM profile_subjects sx WHERE sx.profile_type = 'teacher' AND sx.profile_id = sp.user_id AND sx.subject_id = r.subject_id))";
 
     public static function url(string $path): string
     {
@@ -67,7 +67,7 @@ final class SeoDirectory
         return DB::table('teacher_profiles as p')->join('users as u', 'u.id', '=', 'p.user_id')
             ->where('u.account_type', 'teacher')->whereNull('u.suspended_at')
             ->whereNotNull('u.phone_verified_at')->whereNotNull('u.profile_completed_at')
-            ->whereNotNull('p.public_page_slug')->whereNotNull('p.seo_country')->whereNotNull('p.seo_city_slug')
+            ->where('p.is_profile_complete', true)->whereNotNull('p.public_page_slug')->whereNotNull('p.seo_country')->whereNotNull('p.seo_city_slug')
             ->whereExists(fn (Builder $query) => $query->selectRaw('1')->from('profile_subjects as ps')
                 ->where('ps.profile_type', 'teacher')->whereColumn('ps.profile_id', 'p.user_id'));
     }

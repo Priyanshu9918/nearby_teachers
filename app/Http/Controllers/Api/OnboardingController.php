@@ -231,7 +231,6 @@ class OnboardingController extends Controller
                 DB::table('teacher_profiles')->where('user_id', $user->id)->update($profileUpdates);
                 app(TeacherLocation::class)->store((int) $user->id, $location);
                 app(TeacherAddress::class)->store((int) $user->id, $data);
-                app(TeacherPublicPages::class)->publish((int) $user->id, (int) $user->id);
             } elseif ($accountType === 'institute') {
                 $this->ensureProviderProfile('institute_profiles', $user->id);
                 $profileUpdates = ['updated_at' => $now];

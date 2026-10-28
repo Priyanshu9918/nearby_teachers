@@ -54,7 +54,8 @@ class InternationalSeoController extends Controller
         }
         $teacher = $query->select('p.user_id', 'p.slug', 'p.public_page_slug', 'p.seo_country', 'p.seo_city_slug',
             'p.bio', 'p.city', 'p.state', 'p.country', 'p.linkedin_url', 'p.rate_per_hour', 'p.currency',
-            'p.lesson_modes', 'p.trial_days', 'p.rating_avg', 'p.rating_count', 'u.full_name')
+            'p.lesson_modes', 'p.trial_days', 'p.rating_avg', 'p.rating_count')
+            ->selectRaw('COALESCE(NULLIF(p.listing_name, \'\'), u.full_name) AS full_name')
             ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
             ->selectSub(DB::table('bookings')->selectRaw('count(*)')->whereColumn('provider_id', 'p.user_id')
                 ->where('status', 'completed'), 'lessons_completed')->first();
@@ -111,7 +112,8 @@ class InternationalSeoController extends Controller
         }
         $request->validate(['page' => ['sometimes', 'integer', 'min:1']]);
         $teachers = $this->directory->matching($page)->select('p.user_id', 'p.public_page_slug', 'p.city',
-            'p.rate_per_hour', 'p.currency', 'p.rating_avg', 'p.rating_count', 'p.lesson_modes', 'u.full_name')
+            'p.rate_per_hour', 'p.currency', 'p.rating_avg', 'p.rating_count', 'p.lesson_modes')
+            ->selectRaw('COALESCE(NULLIF(p.listing_name, \'\'), u.full_name) AS full_name')
             ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
             ->orderByDesc('p.rating_count')->orderByDesc('p.rating_avg')->orderBy('p.user_id')
             ->paginate(20)->withQueryString();

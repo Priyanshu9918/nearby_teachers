@@ -117,7 +117,7 @@ class TeacherGeocodingTest extends TestCase
         Http::assertSentCount(1);
         $this->withoutHeader('Authorization')->getJson('/profiles/teacher/'.$this->userId)
             ->assertOk()->assertJsonMissingPath('profile.location_details')->assertDontSee('House 7');
-        $this->get($result['teacherProfileUrl'])->assertOk()->assertDontSee('House 7')->assertDontSee('Ward Four');
+        $this->assertNull($result['teacherProfileUrl'], 'SEO profile pages are created after the teacher completes the six-step profile.');
     }
 
     public function test_profile_and_onboarding_updates_replace_then_clear_location_without_stale_addresses(): void

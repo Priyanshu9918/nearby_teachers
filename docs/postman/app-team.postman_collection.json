@@ -10914,6 +10914,52 @@
       "name": "Teacher",
       "item": [
         {
+          "name": "Profile",
+          "item": [
+            {
+              "name": "GET /teacher/profile — view my complete profile",
+              "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}], "url": {"raw": "{{baseUrl}}/teacher/profile", "host": ["{{baseUrl}}"], "path": ["teacher", "profile"]}},
+              "response": []
+            },
+            {
+              "name": "PATCH /teacher/profile/steps/1 — basics (email is read-only)",
+              "request": {"method": "PATCH", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"fullName\": \"Ravi Kumar\",\n  \"listingName\": \"Ravi Kumar\"\n}", "options": {"raw": {"language": "json"}}}, "url": {"raw": "{{baseUrl}}/teacher/profile/steps/1", "host": ["{{baseUrl}}"], "path": ["teacher", "profile", "steps", "1"]}, "description": "Saves fullName and listingName. Email is returned by GET /teacher/profile and is display-only; it cannot be changed here."},
+              "response": []
+            },
+            {
+              "name": "PATCH /teacher/profile/steps/2 — subjects",
+              "request": {"method": "PATCH", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"primarySubjects\": [\"{{subjectId}}\"]\n}", "options": {"raw": {"language": "json"}}}, "url": {"raw": "{{baseUrl}}/teacher/profile/steps/2", "host": ["{{baseUrl}}"], "path": ["teacher", "profile", "steps", "2"]}},
+              "response": []
+            },
+            {
+              "name": "PATCH /teacher/profile/steps/3 — teaching modes and location",
+              "request": {"method": "PATCH", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"lessonModes\": [\"home_tuition\", \"online\"],\n  \"city\": \"{{city}}\",\n  \"state\": \"{{state}}\",\n  \"country\": \"{{country}}\",\n  \"countryCode\": \"IN\",\n  \"latitude\": 28.6139,\n  \"longitude\": 77.209\n}", "options": {"raw": {"language": "json"}}}, "url": {"raw": "{{baseUrl}}/teacher/profile/steps/3", "host": ["{{baseUrl}}"], "path": ["teacher", "profile", "steps", "3"]}},
+              "response": []
+            },
+            {
+              "name": "PATCH /teacher/profile/steps/4 — rates and trial",
+              "request": {"method": "PATCH", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"ratePerHour\": 500,\n  \"currency\": \"INR\",\n  \"trialDays\": 3\n}", "options": {"raw": {"language": "json"}}}, "url": {"raw": "{{baseUrl}}/teacher/profile/steps/4", "host": ["{{baseUrl}}"], "path": ["teacher", "profile", "steps", "4"]}},
+              "response": []
+            },
+            {
+              "name": "PATCH /teacher/profile/steps/5 — story",
+              "request": {"method": "PATCH", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"bio\": \"Write at least 100 words about your teaching experience, approach and student outcomes.\",\n  \"linkedinUrl\": \"https://www.linkedin.com/in/example\"\n}", "options": {"raw": {"language": "json"}}}, "url": {"raw": "{{baseUrl}}/teacher/profile/steps/5", "host": ["{{baseUrl}}"], "path": ["teacher", "profile", "steps", "5"]}},
+              "response": []
+            },
+            {
+              "name": "POST /teacher/profile/photo — upload photo",
+              "request": {"method": "POST", "header": [{"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "image", "type": "file", "src": ""}]}, "url": {"raw": "{{baseUrl}}/teacher/profile/photo", "host": ["{{baseUrl}}"], "path": ["teacher", "profile", "photo"]}},
+              "response": []
+            },
+            {
+              "name": "POST /teacher/profile/publish — review and publish",
+              "request": {"method": "POST", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"agreeToTerms\": true\n}", "options": {"raw": {"language": "json"}}}, "url": {"raw": "{{baseUrl}}/teacher/profile/publish", "host": ["{{baseUrl}}"], "path": ["teacher", "profile", "publish"]}},
+              "response": []
+            }
+          ],
+          "description": "Teacher profile editor: six steps, photo upload is a separate multipart request. Requests require a registered teacher bearer."
+        },
+        {
           "name": "PUT /profiles/me — teacher",
           "request": {
             "method": "PUT",

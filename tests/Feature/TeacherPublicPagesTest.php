@@ -44,12 +44,13 @@ class TeacherPublicPagesTest extends TestCase
         parent::tearDown();
     }
 
-    private function teacher(string $name = 'Asha Sharma', string $city = 'Kanpur', ?string $country = 'India', array $subjects = ['Maths'], array $modes = ['online']): object
+    private function teacher(string $name = 'Asha Sharma', string $city = 'Kanpur', ?string $country = 'India', array $subjects = ['Maths'], array $modes = ['online'], bool $complete = true): object
     {
         $id = NumericTestIds::next();
         DB::table('users')->insert(['id' => $id, 'account_type' => 'teacher', 'full_name' => $name,
             'phone_verified_at' => now(), 'profile_completed_at' => now()]);
         DB::table('teacher_profiles')->insert(['id' => NumericTestIds::next(), 'user_id' => $id,
+            'is_profile_complete' => $complete,
             'slug' => 'legacy-'.$id, 'bio' => '<b>Patient teacher</b>', 'city' => $city, 'country' => $country,
             'lesson_modes' => json_encode($modes), 'rate_per_hour' => 500, 'currency' => 'INR',
             'linkedin_url' => 'https://www.linkedin.com/in/asha', 'address_text' => 'PRIVATE HOUSE 99',
@@ -60,6 +61,21 @@ class TeacherPublicPagesTest extends TestCase
         app(TeacherPublicPages::class)->publish($id, $id);
 
         return DB::table('teacher_profiles')->where('user_id', $id)->first();
+    }
+
+    public function test_seo_pages_are_created_only_after_profile_completion(): void
+    {
+        $teacher = $this->teacher(complete: false);
+        $this->assertNull($teacher->public_page_slug);
+        $this->assertFalse((bool) $teacher->is_profile_complete);
+        $this->get('/in/kanpur/maths-tuition')->assertNotFound();
+
+        DB::table('teacher_profiles')->where('user_id', $teacher->user_id)->update(['is_profile_complete' => true]);
+        app(TeacherPublicPages::class)->publish($teacher->user_id, $teacher->user_id);
+        $published = DB::table('teacher_profiles')->where('user_id', $teacher->user_id)->first();
+        $this->assertSame('asha-sharma-kanpur', $published->public_page_slug);
+        $this->get('/in/kanpur/maths-tuition')->assertOk()->assertSee('Asha Sharma');
+        $this->assertSame('http://localhost/teacher/asha-sharma-kanpur', TeacherPublicPages::urls($published)['webPageUrl']);
     }
 
     public function test_one_teacher_page_all_subjects_privacy_and_old_routes_redirect(): void

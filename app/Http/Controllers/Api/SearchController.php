@@ -340,6 +340,22 @@ class SearchController extends Controller
     private function providerResponse(array $data): JsonResponse
     {
         $data['results'] = app(UserPresence::class)->decorate($data['results']);
+        $teacherIds = [];
+        foreach ($data['results'] as $row) {
+            if (($row->profile_type ?? null) === 'teacher' && isset($row->user_id)) {
+                $teacherIds[] = $row->user_id;
+            }
+        }
+        if ($teacherIds !== []) {
+            $names = DB::table('teacher_profiles')->whereIn('user_id', array_unique($teacherIds))
+                ->pluck('listing_name', 'user_id');
+            foreach ($data['results'] as $row) {
+                if (($row->profile_type ?? null) === 'teacher') {
+                    $row->listing_name = $names[$row->user_id] ?? null;
+                    $row->full_name = $row->listing_name ?: $row->full_name;
+                }
+            }
+        }
 
         return response()->json($data)->header('Cache-Control', 'no-store');
     }

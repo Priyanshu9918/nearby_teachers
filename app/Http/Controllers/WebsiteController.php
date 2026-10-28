@@ -105,7 +105,8 @@ class WebsiteController extends Controller
         $teachers = $this->publicTeachers()
             ->whereRaw('lower(p.city) = lower(?)', [$city])
             ->whereNotNull('p.slug')
-            ->selectRaw('p.public_page_slug AS slug')->addSelect('p.rating_avg', 'p.rating_count', 'u.full_name')
+            ->selectRaw('p.public_page_slug AS slug')->addSelect('p.rating_avg', 'p.rating_count')
+            ->selectRaw('COALESCE(NULLIF(p.listing_name, \'\'), u.full_name) AS full_name')
             ->orderByDesc('p.rating_avg')
             ->get();
         $institutes = DB::table('institute_profiles as p')
