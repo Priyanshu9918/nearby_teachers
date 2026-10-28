@@ -10,6 +10,7 @@ use Illuminate\Support\Str;
 final class SeoDirectory
 {
     public const COUNT_SQL = "(SELECT count(*) FROM teacher_profiles sp JOIN users su ON su.id = sp.user_id WHERE su.account_type = 'teacher' AND su.suspended_at IS NULL AND su.phone_verified_at IS NOT NULL AND su.profile_completed_at IS NOT NULL AND sp.is_profile_complete = 1 AND sp.public_page_slug IS NOT NULL AND sp.seo_country = r.country AND ((r.kind = 'city' AND sp.seo_city_slug = r.city_slug) OR (r.kind = 'online' AND JSON_CONTAINS(sp.lesson_modes, JSON_QUOTE('online')) = 1)) AND EXISTS (SELECT 1 FROM profile_subjects sx WHERE sx.profile_type = 'teacher' AND sx.profile_id = sp.user_id AND sx.subject_id = r.subject_id))";
+    public const LOCATION_COUNT_SQL = "(SELECT count(*) FROM teacher_profiles p JOIN users u ON u.id = p.user_id WHERE u.account_type = 'teacher' AND u.suspended_at IS NULL AND u.phone_verified_at IS NOT NULL AND u.profile_completed_at IS NOT NULL AND p.is_profile_complete = 1 AND p.public_page_slug IS NOT NULL AND p.seo_country = lp.country AND (lp.kind = 'country' OR p.district = lp.district) AND (lp.kind IN ('country', 'district') OR COALESCE(NULLIF(p.locality, ''), p.city) = lp.village) AND (lp.subject_id IS NULL OR EXISTS (SELECT 1 FROM profile_subjects ps WHERE ps.profile_type = 'teacher' AND ps.profile_id = p.user_id AND ps.subject_id = lp.subject_id)))";
 
     public static function url(string $path): string
     {
@@ -43,6 +44,13 @@ final class SeoDirectory
     public static function labels(string $language): array
     {
         return json_decode(file_get_contents(resource_path('seo/'.$language.'.json')), true, flags: JSON_THROW_ON_ERROR);
+    }
+
+    public static function locationCopy(string $language): array
+    {
+        $catalog = json_decode(file_get_contents(resource_path('seo/location.json')), true, flags: JSON_THROW_ON_ERROR);
+
+        return $catalog[$language] ?? $catalog['en'];
     }
 
     public static function text(array $labels, string $key, array $values = []): string
@@ -205,6 +213,119 @@ final class SeoDirectory
                 }
             }
         }
+    }
+
+    /** Create country → district → village/area → subject pages after profile publish. */
+    public function ensureLocationPages(object $profile, array $subjects): void
+    {
+        $country = (string) ($profile->seo_country ?? '');
+        $countryConfig = config('seo.countries.'.$country);
+        if ($countryConfig === null) {
+            return;
+        }
+
+        $languages = array_values(array_filter($countryConfig['languages'], fn (string $language): bool => is_file(resource_path('seo/'.$language.'.json'))));
+        foreach ($languages as $language) {
+            $this->registerLocationPage(['kind' => 'country', 'country' => $country, 'language' => $language]);
+        }
+
+        $district = trim((string) ($profile->district ?? ''));
+        if ($district === '') {
+            return;
+        }
+        $districtSlug = substr(Str::slug($district), 0, 180);
+        if ($districtSlug === '') {
+            return;
+        }
+        foreach ($languages as $language) {
+            $this->registerLocationPage(['kind' => 'district', 'country' => $country, 'language' => $language,
+                'district' => $district, 'district_slug' => $districtSlug]);
+        }
+
+        $village = trim((string) ($profile->locality ?? '')) ?: trim((string) ($profile->city ?? ''));
+        $villageSlug = substr(Str::slug($village), 0, 180);
+        if ($village === '' || $villageSlug === '') {
+            return;
+        }
+        foreach ($languages as $language) {
+            $this->registerLocationPage(['kind' => 'village', 'country' => $country, 'language' => $language,
+                'district' => $district, 'district_slug' => $districtSlug, 'village' => $village, 'village_slug' => $villageSlug]);
+
+            $routes = DB::table('seo_subject_routes')->where('country', $country)->where('language', $language)
+                ->where('enabled', true)->whereIn('subject_id', $subjects)->orderBy('subject_id')->get();
+            foreach ($routes as $route) {
+                $this->registerLocationPage(['kind' => 'subject_village', 'country' => $country, 'language' => $language,
+                    'district' => $district, 'district_slug' => $districtSlug, 'village' => $village,
+                    'village_slug' => $villageSlug, 'subject_id' => (int) $route->subject_id, 'subject_slug' => $route->city_slug]);
+            }
+        }
+    }
+
+    private function registerLocationPage(array $values): void
+    {
+        $path = self::locationPath($values);
+        $existing = DB::table('seo_location_pages')->where('path', $path)->first();
+        $inserted = false;
+        if ($existing === null) {
+            $inserted = DB::table('seo_location_pages')->insertOrIgnore($values + ['path' => $path, 'created_at' => now(), 'updated_at' => now()]) === 1;
+            $existing = DB::table('seo_location_pages')->where('path', $path)->first();
+        }
+        if ($existing === null || ! self::claim($path, 'location', (int) $existing->id)) {
+            throw new \LogicException('SEO URL is already owned.');
+        }
+        if ($inserted) {
+            app(BusinessActivityRecorder::class)->record('seo.location_page_registered', (int) $existing->id, null,
+                after: ['path' => $path, 'country' => $values['country'], 'language' => $values['language'],
+                    'kind' => $values['kind'], 'subject_id' => $values['subject_id'] ?? null]);
+        }
+    }
+
+    public static function locationPath(array|object $page): string
+    {
+        $get = static fn (string $key): mixed => is_array($page) ? ($page[$key] ?? null) : ($page->$key ?? null);
+        $country = (string) $get('country');
+        $language = (string) $get('language');
+        $segments = [$country];
+        if ($language !== self::language($country)) {
+            $segments[] = $language;
+        }
+        if (in_array($get('kind'), ['district', 'village', 'subject_village'], true)) {
+            $segments[] = (string) $get('district_slug');
+        }
+        if (in_array($get('kind'), ['village', 'subject_village'], true)) {
+            $segments[] = (string) $get('village_slug');
+        }
+        if ($get('kind') === 'subject_village') {
+            $segments[] = (string) $get('subject_slug');
+        }
+
+        return '/'.implode('/', $segments);
+    }
+
+    public function locationPages(): Builder
+    {
+        return DB::table('seo_location_pages as lp')->select('lp.*')
+            ->selectRaw(self::LOCATION_COUNT_SQL.' AS eligible_teachers')->whereRaw(self::LOCATION_COUNT_SQL.' > 0');
+    }
+
+    public function locationTeachers(object $page): Builder
+    {
+        $query = DB::table('teacher_profiles as p')->join('users as u', 'u.id', '=', 'p.user_id')
+            ->where('u.account_type', 'teacher')->whereNull('u.suspended_at')->whereNotNull('u.phone_verified_at')
+            ->whereNotNull('u.profile_completed_at')->where('p.is_profile_complete', true)
+            ->whereNotNull('p.public_page_slug')->where('p.seo_country', $page->country);
+        if ($page->kind !== 'country') {
+            $query->where('p.district', $page->district);
+        }
+        if (in_array($page->kind, ['village', 'subject_village'], true)) {
+            $query->whereRaw("COALESCE(NULLIF(p.locality, ''), p.city) = ?", [$page->village]);
+        }
+        if ($page->subject_id !== null) {
+            $query->whereExists(fn (Builder $subjects) => $subjects->selectRaw('1')->from('profile_subjects as ps')
+                ->where('ps.profile_type', 'teacher')->whereColumn('ps.profile_id', 'p.user_id')->where('ps.subject_id', $page->subject_id));
+        }
+
+        return $query;
     }
 
     public function sync(): int

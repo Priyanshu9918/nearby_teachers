@@ -18,6 +18,10 @@ Configure `SEO_PUBLIC_URL` with this origin for the current server. Public teach
 | Country online, default language | `/{country}/online/{subject-slug}` | `/in/online/ielts-coaching` |
 | Extra language | `/{country}/{language}/{city}/{subject-slug}` | `/in/hi/kanpur/maths-tuition` |
 | Extra-language online | `/{country}/{language}/online/{subject-slug}` | `/in/hi/online/ielts-coaching` |
+| Country directory | `/{country}` | `/in` |
+| District directory | `/{country}/{district}` | `/in/kanpur-nagar` |
+| Village/area directory | `/{country}/{district}/{village}` | `/in/kanpur-nagar/bithoor` |
+| Subject in village/area | `/{country}/{district}/{village}/{subject-slug}` | `/in/kanpur-nagar/bithoor/maths-tuition` |
 | Teacher, country default language | `/teacher/{name-city}` | `/teacher/asha-sharma-kanpur` |
 | Browse real published listings | `/directory` | `/directory` |
 
@@ -34,6 +38,15 @@ Client examples are supported by the starter Maths/IELTS mappings:
 /in/hi/kanpur/maths-tuition
 /teacher/asha-sharma-kanpur
 ```
+
+Location pages are created when an eligible teacher publishes or when SEO sync
+processes that teacher. District comes from the saved teacher profile's explicit
+`district`; the area uses `locality`, falling back to `city`. Subject-area pages
+use the enabled subject URL mapping for that country and language. Pages with no
+currently eligible teachers return 404 and are omitted from the location sitemap.
+They show matching teacher profiles, referral-point ordering, location/subject
+links, pagination and language alternates. Country, district, village and subject
+pages use their own SEO title/description and canonical URLs.
 
 Teacher subjects are **not concatenated into the profile URL**. All selected subjects remain visible in the profile and determine listing membership.
 
@@ -139,6 +152,7 @@ Version 1 events in `BusinessActivityRecorder`:
 - `teacher.seo_state_changed`: publication/ineligibility state, current public slug, public country/city slug, language, selected subject IDs and online flag. It also records changes that affect listing membership without a teacher URL change.
 - `seo.route_configured`: curated country/language wording, slugs and enabled flag, for initial mappings and later admin edits.
 - `seo.page_registered` / `seo.page_updated`: new shared listing identity/path and later URL changes.
+- `seo.location_page_registered`: country, district, village/area and subject-area URL registration.
 
 Metadata/URL ownership and their events are written inside the source transaction. Failure rolls back source edits, page metadata and history together. Snapshot fields are allowlisted; no raw requests, user objects, exact private addresses, OTPs or credentials are recorded. Historical legacy events remain append-only under their old contracts.
 
@@ -153,10 +167,11 @@ SEO_PUBLIC_URL=http://157.245.125.79/nearby_teachers/public
 ```
 
 1. For now, use `http://157.245.125.79/nearby_teachers/public`. When the live domain is ready, point it to the Laravel application, configure HTTPS, and change `SEO_PUBLIC_URL` to `https://teachers.britishschooloflanguages.com`.
-2. Deploy the code with the new nullable metadata migration:
+2. Deploy the code with the SEO metadata migrations:
 
 ```bash
 php artisan migrate --force --path=database/migrations/2026_10_27_000042_create_international_seo_directory.php
+php artisan migrate --force --path=database/migrations/2026_10_28_000003_create_seo_location_pages.php
 php artisan seo:sync
 ```
 

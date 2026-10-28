@@ -11,6 +11,12 @@ return [
         'computed' => ['eligible_teachers' => SeoDirectory::COUNT_SQL,
             'route_enabled' => '(SELECT enabled FROM seo_subject_routes sr WHERE sr.id = r.route_id)'],
     ],
+    'seo-location-pages' => [
+        'title' => 'SEO location pages', 'table' => 'seo_location_pages', 'timestamp' => 'created_at',
+        'columns' => ['id', 'kind', 'country', 'language', 'district', 'district_slug', 'village', 'village_slug', 'subject_id', 'subject_slug', 'path', 'created_at', 'updated_at'],
+        'participants' => [], 'search' => ['kind', 'country', 'language', 'district', 'village', 'path'],
+        'computed' => ['eligible_teachers' => str_replace('lp.', 'r.', SeoDirectory::LOCATION_COUNT_SQL)],
+    ],
     'seo-subject-routes' => [
         'title' => 'SEO subject wording', 'table' => 'seo_subject_routes', 'timestamp' => 'updated_at',
         'columns' => ['id', 'subject_id', 'country', 'language', 'display_name', 'city_slug', 'online_slug', 'enabled', 'created_at', 'updated_at'],

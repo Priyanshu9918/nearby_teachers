@@ -76,6 +76,7 @@ final class TeacherPublicPages
             $profile->seo_country = $country;
             $profile->seo_city_slug = $citySlug;
             $directory->ensurePages($profile, $ids);
+            $directory->ensureLocationPages($profile, $ids);
         }
     }
 

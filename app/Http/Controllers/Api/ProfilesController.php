@@ -259,6 +259,7 @@ class ProfilesController extends Controller
         $missing = [];
         if ($subjects->isEmpty()) $missing[] = 'primarySubjects';
         if (trim((string) $profile->city) === '') $missing[] = 'city';
+        if (trim((string) $profile->district) === '') $missing[] = 'district';
         if (\App\Services\SeoDirectory::country($profile) === null) $missing[] = 'countryCode';
         if (trim((string) $profile->bio) === '' || $this->wordCount(trim((string) $profile->bio)) < 100) $missing[] = 'bio';
         if (json_decode($profile->lesson_modes ?: '[]', true) === []) $missing[] = 'lessonModes';
