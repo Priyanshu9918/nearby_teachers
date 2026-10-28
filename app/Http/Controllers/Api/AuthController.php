@@ -274,23 +274,16 @@ class AuthController extends Controller
 
         $registered = (bool) ($onboarding['registrationCompleted'] ?? false);
         $profileComplete = match ($accountType) {
-            'teacher' => (bool) ($profile->is_profile_complete ?? false),
-            'institute' => $registered && ($onboarding['missingFields'] ?? []) === [],
+            'teacher', 'institute' => (bool) ($profile->is_profile_complete ?? false),
             default => $registered,
         };
         $completionMissing = $onboarding['missingFields'] ?? [];
-        if ($accountType === 'teacher' && ! $profileComplete) {
+        if (in_array($accountType, ['teacher', 'institute'], true) && ! $profileComplete) {
             if ($profile === null) {
-                $completionMissing[] = 'teacherProfile';
+                $completionMissing[] = $accountType === 'teacher' ? 'teacherProfile' : 'instituteProfile';
             } else {
-                if ($subjects === []) $completionMissing[] = 'primarySubjects';
-                if (trim((string) ($profile->city ?? '')) === '') $completionMissing[] = 'city';
-                if (trim((string) ($profile->district ?? '')) === '') $completionMissing[] = 'district';
-                if (\App\Services\SeoDirectory::country($profile) === null) $completionMissing[] = 'countryCode';
-                preg_match_all('/[\pL\pN]+(?:[\'’][\pL\pN]+)*/u', trim((string) ($profile->bio ?? '')), $wordMatches);
-                if (count($wordMatches[0] ?? []) < 100) $completionMissing[] = 'bio';
-                if (($profile->lesson_modes ?? []) === []) $completionMissing[] = 'lessonModes';
-                if (! $profileComplete) $completionMissing[] = 'publishProfile';
+                $completionMissing = [...$completionMissing, ...\App\Services\ProfileEditor::missingFields($profile, $accountType, $subjects !== [])];
+                $completionMissing[] = 'publishProfile';
             }
         }
         $completionMissing = array_values(array_unique($completionMissing));
@@ -306,16 +299,8 @@ class AuthController extends Controller
         ]);
         $safeUser->password_set = (bool) ($user->password_set ?? false);
         $sessionProfile = $profile ?? $safeUser;
-        $profileLinks = match ($accountType) {
-            'teacher' => TeacherPublicPages::urls($profile ?? (object) []),
-            'institute' => [
-                'instituteProfileUrl' => filled($profile->slug ?? null)
-                    ? route('website.institute', ['slug' => $profile->slug]) : null,
-                'webPageUrl' => filled($profile->slug ?? null)
-                    ? route('website.institute', ['slug' => $profile->slug]) : null,
-            ],
-            default => [],
-        };
+        $profileLinks = in_array($accountType, ['teacher', 'institute'], true)
+            ? \App\Services\ProfileEditor::urls($profile, $accountType) : [];
 
         return response()->json([
             'ok' => true,
@@ -327,9 +312,9 @@ class AuthController extends Controller
             ...$profileLinks,
             // profileCompleted remains registration completion for existing clients.
             'profileComplete' => $profileComplete,
-            'publicProfilePublished' => $accountType === 'teacher' && filled($profile->public_page_slug ?? null),
+            'publicProfilePublished' => in_array($accountType, ['teacher', 'institute'], true) && $profileComplete && filled($profileLinks['webPageUrl'] ?? null),
             'profileCompletion' => ['isComplete' => $profileComplete, 'missingFields' => $completionMissing],
-            ...($accountType === 'teacher' ? ['profileDraft' => \App\Services\TeacherProfileDraft::forProfile($profile)] : []),
+            ...(in_array($accountType, ['teacher', 'institute'], true) ? ['profileDraft' => \App\Services\ProfileDraft::forOwner($profile, $safeUser, $accountType, array_column($subjects, 'id'))] : []),
         ]);
     }
 

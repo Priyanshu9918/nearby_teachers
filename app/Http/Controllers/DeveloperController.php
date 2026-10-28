@@ -336,6 +336,23 @@ class DeveloperController extends Controller
     private function requestVariants(string $method, string $path, string $category): array
     {
         $key = $method.' '.$path;
+        if ($key === 'PATCH /profiles/me/steps/{step}') {
+            $variants = $this->requestVariants('PATCH', '/teacher/profile/steps/{step}', 'Teacher');
+            if ($category === 'Institute') {
+                $variants[0]['bodyExample'] = ['fullName' => 'Example Academy', 'listingName' => 'Example Academy', 'contactPerson' => 'Asha Sharma'];
+                $variants[1]['bodyExample'] = ['subjectIds' => [1]];
+                $variants[3]['bodyExample'] = ['startingRate' => 500, 'currency' => 'INR', 'trialDays' => 3];
+                $variants[4]['label'] = 'Step 5 · institute description';
+                $variants[4]['bodyExample'] = ['description' => str_repeat('Our instructors help students build confidence through regular practice and feedback. ', 10),
+                    'websiteUrl' => 'https://example.test', 'instructorsText' => 'Experienced teaching team'];
+                foreach ($variants as &$variant) {
+                    $variant['guide'] = 'Save this institute section. Draft progress is returned in profileDraft; GET /profiles/me restores saved data and nextStep. A supplied description requires at least 100 words. Email and verification badges are read-only.';
+                }
+                unset($variant);
+            }
+
+            return $variants;
+        }
         if ($key === 'PATCH /teacher/profile/steps/{step}') {
             $bio = 'Ravi Kumar is an experienced mathematics teacher who helps learners understand concepts with clarity and confidence. His lessons combine careful explanations, guided practice, and real examples from everyday life. He adapts each class to a student\'s current level, learning pace, and academic goals. Before introducing a new topic, he checks what the learner already knows and identifies the ideas that need more support. Students receive clear feedback, useful practice questions, and a practical plan for continued improvement. Ravi teaches school mathematics, exam preparation, and foundational problem solving through home tuition and online classes. He encourages learners to ask questions, review mistakes without fear, and build consistent study habits. Parents receive regular updates about progress and next steps. His goal is to help every student become an independent, motivated, and successful learner.';
 
@@ -486,6 +503,9 @@ class DeveloperController extends Controller
         }
 
         $examples = [
+            'GET /profiles/me' => ['guide' => 'Shared teacher/institute profile read. The bearer selects the account type. Restore saved fields and open profileDraft.nextStep.'],
+            'POST /profiles/me/photo' => ['guide' => 'Multipart image, JPEG/PNG/WebP up to 5 MB. Submitted for moderation; does not advance draft progress.'],
+            'POST /profiles/me/publish' => ['body' => ['agreeToTerms' => true], 'guide' => 'Step 6: validate required provider fields, accept terms and publish. Institutes require contactPerson and a 100-word description.'],
             'GET /teacher/profile' => [
                 'guide' => 'Returns the signed-in teacher account, all profile fields, subjects, profileComplete and teacher web page URL fields.',
             ],
@@ -496,10 +516,10 @@ class DeveloperController extends Controller
                 'body' => ['agreeToTerms' => true],
                 'guide' => 'Publish after completing the required profile fields. Saves profile completion and returns the teacher page links.',
             ],
-            'GET /geo/countries' => ['query' => 'search=ind'],
-            'GET /geo/countries/{countryCode}/states' => ['pathDefaults' => ['countryCode' => 'IN'], 'query' => 'search=utt'],
+            'GET /geo/countries' => ['query' => '', 'guide' => 'Returns the complete stored country list. Optional search narrows results.'],
+            'GET /geo/countries/{countryCode}/states' => ['pathDefaults' => ['countryCode' => 'IN'], 'query' => '', 'guide' => 'Returns all states for the selected country.'],
             'GET /geo/countries/{countryCode}/cities' => [
-                'pathDefaults' => ['countryCode' => 'IN'], 'query' => 'stateCode=UP&search=varanasi&perPage=50&page=1',
+                'pathDefaults' => ['countryCode' => 'IN'], 'query' => 'stateCode=UP&perPage=50&page=1', 'guide' => 'stateCode is required and must belong to countryCode. Returns cities only in that state; use pagination to load more.',
             ],
             'POST /auth/google' => [
                 'body' => ['firebaseIdToken' => 'PASTE_FIREBASE_GOOGLE_ID_TOKEN'],

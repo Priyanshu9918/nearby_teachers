@@ -262,3 +262,32 @@ photo uploads and GET/session reads do not emit draft progress. Final publicatio
 continues to use `teacher.profile_published`; existing completed profiles report
 all six steps complete. Section-save history records step metadata, not exact
 past names, bio, address or contact values.
+
+Shared teacher/institute profile editor (six-step rollout): institute current
+state is explicitly allowlisted in `institute-profiles` with `listing_name`,
+`contact_person`, `is_profile_complete`, `completed_profile_steps` and
+`profile_draft_saved_at`. Existing report search, participant/date filters,
+admin session/access logs, bounded pages and streamed CSV exports apply.
+`created_at` remains the report timestamp; activity timestamps describe saves.
+
+Version 1 `institute.profile_step_updated` records step and changed field names;
+`institute.profile_draft_saved` records step/completed steps/next step;
+`institute.profile_published` records status, terms-accepted and completion flags;
+`institute.avatar_submitted` records moderation status only. Each event is recorded
+inside the source mutation transaction. No names, exact locations, story text,
+contacts, image URLs, requests or credentials are snapshotted. Teacher event names
+and payloads stay unchanged. Shared GET/session reads emit no business mutation
+history. Generic PUT and photo uploads do not advance editor progress.
+
+The migration preserves existing institute pages with a nonempty slug as complete
+for compatibility; this does not attest to historical terms acceptance or
+reconstruct step history. No business events or draft timestamps are backfilled.
+New profiles default to incomplete and their website pages stay hidden until
+publish. Draft data has no expiry. Shared publication validates while holding the
+profile lock; failed validation/history rolls back terms and completion together.
+
+Owner-only draft responses additionally project current profile/account/subject
+values into six explicitly allowlisted `steps[].data` objects for form prefilling.
+This is a response projection, not a new business mutation or historical snapshot.
+Business-activity events continue to contain progress metadata only. No draft
+field values, credentials or complete user objects are added to history.

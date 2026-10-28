@@ -491,6 +491,10 @@ feed reading, likes, comments and replies.
 
 | Method | Path | Access | Request / query | Result / notes |
 |---|---|---|---|---|
+| `GET` | `/profiles/me` | Verified teacher/institute bearer | — | Shared profile read with saved account, profile, subjects, `profileComplete`, `profileDraft` and provider page URLs. |
+| `PATCH` | `/profiles/me/steps/{step}` | Verified teacher/institute bearer, completed registration | Steps 1–5; account-specific fields below | Saves a section and draft progress atomically. Account type comes from the bearer, never the payload. |
+| `POST` | `/profiles/me/photo` | Verified teacher/institute bearer | Multipart `image`, JPEG/PNG/WebP up to 5 MB | Submits photo for moderation; no step progress change. |
+| `POST` | `/profiles/me/publish` | Verified teacher/institute bearer, completed registration | `agreeToTerms:true` | Step 6: validates required fields, records terms and completion, returns provider page links. |
 | `PUT` | `/profiles/me` | Verified provider bearer, completed registration | Provider fields described below | Updates the signed-in teacher/institute listing and its subject assignments. |
 | `GET` | `/profiles/me/stats` | Verified bearer | Optional `days` (default 30, maximum 365) | Provider listing views and new booking-request counts. |
 | `GET` | `/bookings/incoming` | Verified bearer | `perPage`, `cursor` | Provider's incoming bookings. |
@@ -622,6 +626,10 @@ feed reading, likes, comments and replies.
 
 | Method | Path | Access | Request / query | Result / notes |
 |---|---|---|---|---|
+| `GET` | `/profiles/me` | Verified teacher/institute bearer | — | Shared profile read with saved account, profile, subjects, `profileComplete`, `profileDraft` and provider page URLs. |
+| `PATCH` | `/profiles/me/steps/{step}` | Verified teacher/institute bearer, completed registration | Steps 1–5; account-specific fields below | Saves a section and draft progress atomically. Account type comes from the bearer, never the payload. |
+| `POST` | `/profiles/me/photo` | Verified teacher/institute bearer | Multipart `image`, JPEG/PNG/WebP up to 5 MB | Submits photo for moderation; no step progress change. |
+| `POST` | `/profiles/me/publish` | Verified teacher/institute bearer, completed registration | `agreeToTerms:true` | Step 6: validates required fields, records terms and completion, returns provider page links. |
 | `PUT` | `/profiles/me` | Verified provider bearer, completed registration | Provider fields described below | Updates the signed-in teacher/institute listing and its subject assignments. |
 | `GET` | `/profiles/me/stats` | Verified bearer | Optional `days` (default 30, maximum 365) | Provider listing views and new booking-request counts. |
 | `GET` | `/bookings/incoming` | Verified bearer | `perPage`, `cursor` | Provider's incoming bookings. |
@@ -730,7 +738,7 @@ shown in this shared documentation category.
 | `GET` | `/auth/safety-disclaimer` | Public | — | Returns the disclaimer text. |
 | `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging or booking. |
 | `GET` | `/subjects` | Public | — | Subject domains with their subjects and BSL catalog data. |
-| `GET` | `/geo/countries`, `/geo/countries/{countryCode}/states`, `/geo/countries/{countryCode}/cities` | Public | Optional `search`; city also accepts `stateCode`, `page`, `perPage` | Country/state/city lookups for registration; city search is paginated. See [Geography API and dataset import](GEOGRAPHY_API.md). |
+| `GET` | `/geo/countries`, `/geo/countries/{countryCode}/states`, `/geo/countries/{countryCode}/cities` | Public | Optional `search`; cities require `stateCode` and accept `page`, `perPage` | Full country list, country-scoped states and state-scoped paginated cities. See [Geography API and dataset import](GEOGRAPHY_API.md). |
 | `GET` | `/i18n/languages` | Public | — | Supported language metadata. |
 | `GET` | `/i18n/{lang}` | Public | Language code in path | Returns translations; unsupported language codes serve English and identify the requested/served language. |
 | `PATCH` | `/bookings/{id}/status` | Verified bearer, participant | `status`: `accepted`, `declined`, `cancelled`, or `completed` | Updates a booking in which the caller participates. |

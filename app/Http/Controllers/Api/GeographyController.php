@@ -37,26 +37,32 @@ class GeographyController
         $countryCode = strtoupper($countryCode);
         abort_unless(DB::table('countries')->where('code', $countryCode)->exists(), 404);
         $data = $request->validate([
-            'stateCode' => ['sometimes', 'string', 'max:32'],
+            'stateCode' => ['required', 'string', 'max:32'],
             'search' => ['sometimes', 'string', 'min:2', 'max:100'],
             'page' => ['sometimes', 'integer', 'min:1'],
             'perPage' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ]);
+        $stateCode = strtoupper($data['stateCode']);
+        $state = DB::table('states')->where('country_code', $countryCode)->where('code', $stateCode)->first(['id']);
+        abort_if($state === null, 404, 'State not found for this country.');
+
         $query = DB::table('cities as c')->leftJoin('states as s', 's.id', '=', 'c.state_id')
             ->where('c.country_code', $countryCode)
-            ->when($data['stateCode'] ?? null, fn (Builder $query, string $code) => $query->where('s.code', $code))
+            ->where('c.state_id', $state->id)
+            ->where('s.country_code', $countryCode)
             ->when($data['search'] ?? null, function (Builder $query, string $term): void {
                 $pattern = '%'.$this->escapeLike($term).'%';
                 $query->where(fn (Builder $nested) => $nested->where('c.name', 'like', $pattern)->orWhere('c.ascii_name', 'like', $pattern));
             });
         $perPage = (int) ($data['perPage'] ?? 50);
-        $cities = $query->orderByDesc('c.population')->orderBy('c.name')->paginate($perPage, [
+        $cities = $query->orderByDesc('c.population')->orderBy('c.name')->orderBy('c.geoname_id')->paginate($perPage, [
             'c.geoname_id as id', 'c.name', 'c.ascii_name as asciiName', 's.code as stateCode',
             's.name as stateName', 'c.latitude', 'c.longitude', 'c.population',
         ], 'page', (int) ($data['page'] ?? 1));
 
         return response()->json([
             'countryCode' => $countryCode,
+            'stateCode' => $stateCode,
             'cities' => $cities->items(),
             'pagination' => ['page' => $cities->currentPage(), 'perPage' => $cities->perPage(), 'total' => $cities->total(), 'lastPage' => $cities->lastPage()],
             'source' => 'GeoNames',

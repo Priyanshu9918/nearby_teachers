@@ -38,6 +38,7 @@ class WebsiteController extends Controller
             ->selectRaw('count(*) as listing_count')
             ->groupBy('city');
         $instituteCities = DB::table('institute_profiles')
+            ->where('is_profile_complete', true)
             ->whereNotNull('city')
             ->whereNotNull('slug')
             ->select('city')
@@ -62,7 +63,9 @@ class WebsiteController extends Controller
         $institute = DB::table('institute_profiles as p')
             ->join('users as u', 'u.id', '=', 'p.user_id')
             ->where('p.slug', $slug)
-            ->select('p.*', 'u.full_name')
+            ->where('p.is_profile_complete', true)
+            ->select('p.*')
+            ->selectRaw("COALESCE(NULLIF(p.listing_name, ''), u.full_name) AS full_name")
             ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
             ->selectSub(
                 DB::table('bookings')
@@ -110,10 +113,12 @@ class WebsiteController extends Controller
             ->orderByDesc('p.rating_avg')
             ->get();
         $institutes = DB::table('institute_profiles as p')
+            ->where('p.is_profile_complete', true)
             ->join('users as u', 'u.id', '=', 'p.user_id')
             ->whereRaw('lower(p.city) = lower(?)', [$city])
             ->whereNotNull('p.slug')
-            ->select('p.slug', 'p.rating_avg', 'p.rating_count', 'p.is_bsl_official', 'u.full_name')
+            ->select('p.slug', 'p.rating_avg', 'p.rating_count', 'p.is_bsl_official')
+            ->selectRaw("COALESCE(NULLIF(p.listing_name, ''), u.full_name) AS full_name")
             ->orderByDesc('p.is_bsl_official')
             ->orderByDesc('p.rating_avg')
             ->get();
@@ -123,7 +128,7 @@ class WebsiteController extends Controller
                 $join->on('tp.user_id', '=', 'ps.profile_id')->where('ps.profile_type', '=', 'teacher');
             })
             ->leftJoin('institute_profiles as ip', function ($join): void {
-                $join->on('ip.user_id', '=', 'ps.profile_id')->where('ps.profile_type', '=', 'institute');
+                $join->on('ip.user_id', '=', 'ps.profile_id')->where('ps.profile_type', '=', 'institute')->where('ip.is_profile_complete', true);
             })
             ->where(function ($query) use ($city): void {
                 $query->whereRaw('lower(tp.city) = lower(?)', [$city])

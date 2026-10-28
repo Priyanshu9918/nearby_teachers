@@ -59,7 +59,8 @@ class SessionProfileLinksTest extends TestCase
             'published teacher' => ['teacher', ['is_profile_complete' => true, 'public_page_slug' => 'ravi-123', 'seo_country' => 'in'], '/teacher/ravi-123'],
             'unpublished teacher' => ['teacher', ['is_profile_complete' => true], null],
             'missing teacher' => ['teacher', null, null],
-            'institute with slug' => ['institute', ['slug' => 'academy-123'], '/site/institute/academy-123'],
+            'institute with slug' => ['institute', ['slug' => 'academy-123', 'is_profile_complete' => true], '/site/institute/academy-123'],
+            'draft institute with slug' => ['institute', ['slug' => 'draft-123', 'is_profile_complete' => false], null],
             'institute without slug' => ['institute', ['slug' => ''], null],
             'missing institute' => ['institute', null, null],
         ];
