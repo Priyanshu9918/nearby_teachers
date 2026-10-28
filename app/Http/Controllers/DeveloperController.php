@@ -336,6 +336,27 @@ class DeveloperController extends Controller
     private function requestVariants(string $method, string $path, string $category): array
     {
         $key = $method.' '.$path;
+        if ($key === 'PATCH /teacher/profile/steps/{step}') {
+            $bio = 'Ravi Kumar is an experienced mathematics teacher who helps learners understand concepts with clarity and confidence. His lessons combine careful explanations, guided practice, and real examples from everyday life. He adapts each class to a student\'s current level, learning pace, and academic goals. Before introducing a new topic, he checks what the learner already knows and identifies the ideas that need more support. Students receive clear feedback, useful practice questions, and a practical plan for continued improvement. Ravi teaches school mathematics, exam preparation, and foundational problem solving through home tuition and online classes. He encourages learners to ask questions, review mistakes without fear, and build consistent study habits. Parents receive regular updates about progress and next steps. His goal is to help every student become an independent, motivated, and successful learner.';
+
+            return [
+                ['suffix' => '::step-1', 'label' => 'Step 1 · basics', 'pathDefaults' => ['step' => 1],
+                    'bodyExample' => ['fullName' => 'Ravi Kumar', 'listingName' => 'Ravi Kumar'],
+                    'guide' => 'Save the account name and public listing name. Email is read-only.'],
+                ['suffix' => '::step-2', 'label' => 'Step 2 · subjects', 'pathDefaults' => ['step' => 2],
+                    'bodyExample' => ['primarySubjects' => [1]], 'guide' => 'Save one to five subject IDs from GET /subjects.'],
+                ['suffix' => '::step-3', 'label' => 'Step 3 · teaching modes and location', 'pathDefaults' => ['step' => 3],
+                    'bodyExample' => ['lessonModes' => ['home_tuition', 'online'], 'city' => 'Varanasi', 'state' => 'Uttar Pradesh',
+                        'country' => 'India', 'countryCode' => 'IN', 'district' => 'Varanasi', 'locality' => 'Sigra', 'localityType' => 'area'],
+                    'guide' => 'Save teaching modes and location. Coordinates are optional but must be supplied together.'],
+                ['suffix' => '::step-4', 'label' => 'Step 4 · rates and trial', 'pathDefaults' => ['step' => 4],
+                    'bodyExample' => ['ratePerHour' => 500, 'currency' => 'INR', 'trialDays' => 3],
+                    'guide' => 'Save hourly rate, ISO currency and a trial duration from zero to seven days.'],
+                ['suffix' => '::step-5', 'label' => 'Step 5 · story and LinkedIn', 'pathDefaults' => ['step' => 5],
+                    'bodyExample' => ['bio' => $bio, 'linkedinUrl' => 'https://www.linkedin.com/in/example'],
+                    'guide' => 'Save the teacher story and optional LinkedIn URL. A supplied bio must contain at least 100 words.'],
+            ];
+        }
         if (in_array($key, ['POST /auth/otp/request', 'POST /auth/otp/verify'], true)) {
             $body = $this->requestExample($method, $path)['bodyExample'];
 
@@ -465,6 +486,21 @@ class DeveloperController extends Controller
         }
 
         $examples = [
+            'GET /teacher/profile' => [
+                'guide' => 'Returns the signed-in teacher account, all profile fields, subjects, profileComplete and teacher web page URL fields.',
+            ],
+            'POST /teacher/profile/photo' => [
+                'guide' => 'Upload multipart/form-data using key image (JPEG, PNG or WebP, maximum 5 MB). The mock response shows the photo submitted for moderation.',
+            ],
+            'POST /teacher/profile/publish' => [
+                'body' => ['agreeToTerms' => true],
+                'guide' => 'Publish after completing the required profile fields. Saves profile completion and returns the teacher page links.',
+            ],
+            'GET /geo/countries' => ['query' => 'search=ind'],
+            'GET /geo/countries/{countryCode}/states' => ['pathDefaults' => ['countryCode' => 'IN'], 'query' => 'search=utt'],
+            'GET /geo/countries/{countryCode}/cities' => [
+                'pathDefaults' => ['countryCode' => 'IN'], 'query' => 'stateCode=UP&search=varanasi&perPage=50&page=1',
+            ],
             'POST /auth/google' => [
                 'body' => ['firebaseIdToken' => 'PASTE_FIREBASE_GOOGLE_ID_TOKEN'],
                 'guide' => 'Step 1 · Google sign-in. Replace the token with a verified Firebase Google ID token. Learners aged 13–17 receive status=pending/reject/approve for parent consent; use nextScreen for routing.',

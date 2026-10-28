@@ -2,7 +2,7 @@
 
 return [
     // Workflow groups describe intended use; middleware and controllers enforce access.
-    'groups' => ['Auth', 'Learner', 'Teacher', 'Institute', 'Common'],
+    'groups' => ['Auth', 'Learner', 'Teacher Profile', 'Teacher', 'Institute', 'Common'],
 
     // Keep method/path pairs explicit so documentation coverage can be checked against routes.
     // Shared capabilities appear in each applicable role and in Common for reference.
@@ -54,12 +54,12 @@ return [
         'POST /reviews' => ['Learner'],
         'GET /reviews/for/{providerId}' => ['Learner'],
 
-        'PUT /profiles/me' => ['Teacher', 'Institute'],
-        'GET /profiles/me/stats' => ['Teacher', 'Institute'],
-        'GET /teacher/profile' => ['Teacher'],
-        'PATCH /teacher/profile/steps/{step}' => ['Teacher'],
-        'POST /teacher/profile/photo' => ['Teacher'],
-        'POST /teacher/profile/publish' => ['Teacher'],
+        'PUT /profiles/me' => ['Teacher Profile', 'Teacher', 'Institute'],
+        'GET /profiles/me/stats' => ['Teacher Profile', 'Teacher', 'Institute'],
+        'GET /teacher/profile' => ['Teacher Profile'],
+        'PATCH /teacher/profile/steps/{step}' => ['Teacher Profile'],
+        'POST /teacher/profile/photo' => ['Teacher Profile'],
+        'POST /teacher/profile/publish' => ['Teacher Profile'],
         'GET /bookings/incoming' => ['Teacher', 'Institute'],
 
         'GET /auth/safety-disclaimer' => ['Learner', 'Teacher', 'Institute', 'Common'],
@@ -69,6 +69,9 @@ return [
         'GET /i18n/languages' => ['Common'],
         'GET /i18n/{lang}' => ['Common'],
         'GET /subjects' => ['Common'],
+        'GET /geo/countries' => ['Common'],
+        'GET /geo/countries/{countryCode}/states' => ['Common'],
+        'GET /geo/countries/{countryCode}/cities' => ['Common'],
         'POST /analytics/page-view' => ['Common'],
         'PATCH /bookings/{id}/status' => ['Learner', 'Teacher', 'Institute', 'Common'],
         'GET /messages' => ['Learner', 'Teacher', 'Institute', 'Common'],
