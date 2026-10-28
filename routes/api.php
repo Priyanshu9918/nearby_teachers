@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\OperationsController;
 use App\Http\Controllers\Api\PasswordRecoveryController;
 use App\Http\Controllers\Api\PresenceController;
 use App\Http\Controllers\Api\ProfilesController;
+use App\Http\Controllers\Api\StudentProfilesController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SocketIoController;
 use App\Http\Controllers\Api\SubjectsController;
@@ -80,6 +81,9 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
     Route::get('/auth/parental-consent/status', [AuthController::class, 'parentalConsentStatus'])->middleware('throttle:60,1');
     Route::post('/auth/guardian-details', [AuthController::class, 'setGuardianDetails'])->middleware('throttle:10,1');
     Route::post('/auth/acknowledge-safety-disclaimer', [AuthController::class, 'acknowledgeSafetyDisclaimer']);
+    Route::get('/student/profile', [StudentProfilesController::class, 'show']);
+    Route::patch('/student/profile', [StudentProfilesController::class, 'update']);
+    Route::post('/student/profile/photo', [StudentProfilesController::class, 'uploadPhoto'])->middleware('throttle:10,1');
     Route::put('/profiles/me', [ProfilesController::class, 'updateMine']);
     Route::prefix('teacher/profile')->group(function (): void {
         Route::get('/', [ProfilesController::class, 'showMine']);

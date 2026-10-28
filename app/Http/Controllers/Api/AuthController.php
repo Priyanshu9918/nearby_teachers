@@ -296,7 +296,7 @@ class AuthController extends Controller
 
         // Session responses intentionally omit credentials, auth internals, and consent tokens.
         $safeUser = DB::table('users')->where('id', $user->id)->first([
-            'id', 'account_type', 'full_name', 'email', 'phone', 'avatar_url', 'avatar_status',
+            'id', 'account_type', 'full_name', 'email', 'phone', 'phone_pin', 'avatar_url', 'avatar_status',
             'is_admin', 'suspended_reason',
             'date_of_birth', 'is_minor', 'guardian_name', 'guardian_contact', 'parental_consent_confirmed_at',
             'parental_consent_rejected_at', 'parental_consent_expires_at', 'safety_disclaimer_acknowledged_at',

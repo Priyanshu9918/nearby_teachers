@@ -1,0 +1,82 @@
+{
+  "info": {
+    "_postman_id": "a409e1b3-533d-46aa-9d73-6d86d9745ce1",
+    "name": "Nearby Teacher — Student Profile APIs",
+    "description": "Student profile read/update, photo upload, DOB and verified phone workflows. Saved responses are fictional contract examples.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Student",
+      "item": [
+        {
+          "name": "GET /student/profile — View my profile",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/student/profile", "host": ["{{baseUrl}}"], "path": ["student", "profile"]},
+            "description": "Verified student bearer required. Returns the signed-in student's name, email, DOB, phone, phone_pin, profile image and completion state."
+          },
+          "response": [{
+            "name": "Fictional example — 200 OK",
+            "originalRequest": {"method": "GET", "header": [], "url": {"raw": "{{baseUrl}}/student/profile", "host": ["{{baseUrl}}"], "path": ["student", "profile"]}},
+            "status": "OK", "code": 200, "_postman_previewlanguage": "json",
+            "header": [{"key": "Content-Type", "value": "application/json"}], "cookie": [],
+            "body": "{\n  \"profile\": {\n    \"userId\": \"10000000-0000-4000-8000-000000000001\",\n    \"name\": \"Asha Sharma\",\n    \"email\": \"asha@example.com\",\n    \"emailVerifiedAt\": \"2026-10-22T10:00:00.000000Z\",\n    \"dob\": \"2005-04-12\",\n    \"isMinor\": false,\n    \"phone\": \"+919876543210\",\n    \"phoneVerifiedAt\": \"2026-10-22T10:00:00.000000Z\",\n    \"phone_pin\": \"226010\",\n    \"profileImage\": \"https://example.test/storage/student-photos/asha.jpg\",\n    \"profileImageStatus\": \"approved\",\n    \"createdAt\": \"2026-10-22T10:00:00.000000Z\",\n    \"updatedAt\": \"2026-10-22T10:00:00.000000Z\"\n  },\n  \"profileComplete\": true\n}"
+          }]
+        },
+        {
+          "name": "PATCH /student/profile — Update profile fields",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"name\": \"Asha Sharma\",\n  \"email\": \"asha@example.com\",\n  \"phone\": \"+919876543211\",\n  \"phone_pin\": \"226010\"\n}", "options": {"raw": {"language": "json"}}},
+            "url": {"raw": "{{baseUrl}}/student/profile", "host": ["{{baseUrl}}"], "path": ["student", "profile"]},
+            "description": "Verified student bearer required. phone_pin is a regular profile field; no OTP is checked in this profile API. A changed phone is marked unverified. Email changes require email verification. Update DOB through POST /auth/date-of-birth."
+          },
+          "response": [{
+            "name": "Fictional example — 200 Updated",
+            "originalRequest": {"method": "PATCH", "header": [], "url": {"raw": "{{baseUrl}}/student/profile", "host": ["{{baseUrl}}"], "path": ["student", "profile"]}},
+            "status": "OK", "code": 200, "_postman_previewlanguage": "json",
+            "header": [{"key": "Content-Type", "value": "application/json"}], "cookie": [],
+            "body": "{\n  \"profile\": {\n    \"userId\": \"10000000-0000-4000-8000-000000000001\",\n    \"name\": \"Asha Sharma\",\n    \"email\": \"asha@example.com\",\n    \"emailVerifiedAt\": \"2026-10-22T10:00:00.000000Z\",\n    \"dob\": \"2005-04-12\",\n    \"isMinor\": false,\n    \"phone\": \"+919876543211\",\n    \"phoneVerifiedAt\": null,\n    \"phone_pin\": \"226010\",\n    \"profileImage\": \"https://example.test/storage/student-photos/asha.jpg\",\n    \"profileImageStatus\": \"approved\",\n    \"createdAt\": \"2026-10-22T10:00:00.000000Z\",\n    \"updatedAt\": \"2026-10-28T10:00:00.000000Z\"\n  },\n  \"profileComplete\": true\n}"
+          }]
+        },
+        {
+          "name": "POST /student/profile/photo — Upload profile image",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "body": {"mode": "formdata", "formdata": [{"key": "profile_image", "type": "file", "src": ""}]},
+            "url": {"raw": "{{baseUrl}}/student/profile/photo", "host": ["{{baseUrl}}"], "path": ["student", "profile", "photo"]},
+            "description": "Verified student bearer required. Multipart image or profile_image field, JPEG/PNG/WebP, maximum 5 MB. The saved photo enters moderation."
+          },
+          "response": [{
+            "name": "Fictional example — 201 Uploaded",
+            "originalRequest": {"method": "POST", "header": [], "url": {"raw": "{{baseUrl}}/student/profile/photo", "host": ["{{baseUrl}}"], "path": ["student", "profile", "photo"]}},
+            "status": "Created", "code": 201, "_postman_previewlanguage": "json",
+            "header": [{"key": "Content-Type", "value": "application/json"}], "cookie": [],
+            "body": "{\n  \"profileImage\": \"https://example.test/storage/student-photos/asha.jpg\",\n  \"profileImageStatus\": \"pending\",\n  \"message\": \"Photo uploaded; it will appear on your profile after review.\"\n}"
+          }]
+        },
+        {
+          "name": "POST /auth/date-of-birth — Set DOB",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\n  \"dateOfBirth\": \"2005-04-12\"\n}", "options": {"raw": {"language": "json"}}},
+            "url": {"raw": "{{baseUrl}}/auth/date-of-birth", "host": ["{{baseUrl}}"], "path": ["auth", "date-of-birth"]},
+            "description": "Verified student bearer required. DOB is write-once here; ages under 13 are rejected and minors must complete guardian consent."
+          },
+          "response": [{
+            "name": "Fictional example — 200 DOB saved",
+            "originalRequest": {"method": "POST", "header": [], "url": {"raw": "{{baseUrl}}/auth/date-of-birth", "host": ["{{baseUrl}}"], "path": ["auth", "date-of-birth"]}},
+            "status": "OK", "code": 200, "_postman_previewlanguage": "json",
+            "header": [{"key": "Content-Type", "value": "application/json"}], "cookie": [],
+            "body": "{\n  \"isMinor\": false,\n  \"registrationCompleted\": true,\n  \"profileCompleted\": true\n}"
+          }]
+        }
+      ]
+    }
+  ]
+}

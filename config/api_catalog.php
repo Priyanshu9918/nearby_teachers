@@ -2,7 +2,7 @@
 
 return [
     // Workflow groups describe intended use; middleware and controllers enforce access.
-    'groups' => ['Auth', 'Learner', 'Teacher Profile', 'Teacher', 'Institute', 'Common'],
+    'groups' => ['Auth', 'Learner', 'Student', 'Teacher Profile', 'Teacher', 'Institute', 'Common'],
 
     // Keep method/path pairs explicit so documentation coverage can be checked against routes.
     // Shared capabilities appear in each applicable role and in Common for reference.
@@ -38,9 +38,12 @@ return [
         'PATCH /auth/link-phone' => ['Auth'],
         'PATCH /auth/link-google' => ['Auth'],
 
-        'POST /auth/date-of-birth' => ['Learner'],
+        'POST /auth/date-of-birth' => ['Learner', 'Student'],
         'POST /auth/guardian-details' => ['Learner'],
         'GET /auth/parental-consent/status' => ['Learner'],
+        'GET /student/profile' => ['Student'],
+        'PATCH /student/profile' => ['Student'],
+        'POST /student/profile/photo' => ['Student'],
         'POST /auth/parental-consent/confirm' => ['Learner'],
         'GET /search/dashboard' => ['Learner'],
         'GET /search/counts' => ['Learner'],

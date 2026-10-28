@@ -109,6 +109,8 @@ Current event coverage starts when migration `000029` is deployed:
 | `teacher.profile_step_updated` | Teacher profile step number and changed field names; values such as name, bio, and location are not copied into the event |
 | `teacher.profile_published` | Published status, terms acceptance and profile-completion flag, in the same transaction as page creation |
 | `teacher.avatar_submitted` | Pending moderation status only; image URL/content is not copied into history |
+| `learner.profile_updated` | Changed profile field names only; no name, email, DOB, phone or `phone_pin` values are copied into history |
+| `learner.avatar_submitted` | Pending moderation status only; image URL/content is not copied into history |
 | `onboarding.age_verified` | Previous/new age-verified and minor flags; no raw DOB, guardian contact or consent token snapshot |
 | `booking.created` | Initial status, lesson mode, requested time and price |
 | `booking.status_changed` | Previous/new status; repeated same-status requests add no change event |
