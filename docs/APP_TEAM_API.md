@@ -201,6 +201,8 @@ See [email recovery](EMAIL_AUTH.md) for code requirements.
 | `POST` | `/messages/start` | Verified bearer, learner | `providerId`; optional `body` | Starts/reuses a provider conversation and optionally sends the first message. Safety and guardian-consent gates apply. |
 | `POST` | `/reviews` | Verified bearer | `bookingId`, `rating` (1–5); optional `comment` | Adds a review for a booking belonging to the caller. |
 | `GET` | `/reviews/for/{providerId}` | Public | `perPage`, `cursor` | Provider reviews. |
+| `POST` | `/franchise/enquiries` | Verified bearer; learner and teacher supported (institute also currently accepted) | `name`, `phone`, `location` | Submits a franchise enquiry for admin review; the signed-in account is linked automatically. |
+| `POST` | `/jobs/applications` | Verified bearer; learner and teacher supported (institute also currently accepted) | `name`, `phone`, `expectedSalary`, `courseIds` (1–5 BSL course IDs) | Submits a teaching job application for admin review; the signed-in account is linked automatically. |
 | `GET` | `/search/dashboard` | Public | Required `lat`, `lng`; optional `radiusKm` (default 7, maximum 500) | `{center,radiusKm,teacherCount,instituteCount,totalCount,results}`; all eligible nearby providers. |
 | `GET` | `/auth/safety-disclaimer` | Public | — | Returns the disclaimer text. |
 | `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging or booking. |
@@ -314,6 +316,8 @@ in that same subsection.
 | `GET` | `/profiles/me/stats` | Verified bearer | Optional `days` (default 30, maximum 365) | Provider listing views and new booking-request counts. |
 | `GET` | `/bookings/incoming` | Verified bearer | `perPage`, `cursor` | Provider's incoming bookings. |
 | `GET` | `/profiles/{type}/{id}` | Public, optional bearer | `type`: `teacher` or `institute`; optional auth affects phone quota | Public listing profile. Suspended or not-yet-phone-verified optional tokens are treated as anonymous. |
+| `POST` | `/franchise/enquiries` | Verified bearer; learner and teacher supported (institute also currently accepted) | `name`, `phone`, `location` | Submits a franchise enquiry for admin review; the signed-in account is linked automatically. |
+| `POST` | `/jobs/applications` | Verified bearer; learner and teacher supported (institute also currently accepted) | `name`, `phone`, `expectedSalary`, `courseIds` (1–5 BSL course IDs) | Submits a teaching job application for admin review; the signed-in account is linked automatically. |
 | `GET` | `/auth/safety-disclaimer` | Public | — | Returns the disclaimer text. |
 | `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging or booking. |
 | `PATCH` | `/bookings/{id}/status` | Verified bearer, participant | `status`: `accepted`, `declined`, `cancelled`, or `completed` | Updates a booking in which the caller participates. |

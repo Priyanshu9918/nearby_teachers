@@ -53,6 +53,8 @@ return [
         'POST /messages/start' => ['Learner', 'Teacher', 'Institute', 'Common'],
         'POST /reviews' => ['Learner'],
         'GET /reviews/for/{providerId}' => ['Learner'],
+        'POST /franchise/enquiries' => ['Learner', 'Teacher', 'Common'],
+        'POST /jobs/applications' => ['Learner', 'Teacher', 'Common'],
 
         'PUT /profiles/me' => ['Teacher Profile', 'Teacher', 'Institute'],
         'GET /profiles/me/stats' => ['Teacher Profile', 'Teacher', 'Institute'],
@@ -89,8 +91,6 @@ return [
         'DELETE /safety/blocks/{userId}' => ['Common'],
         'POST /suggestions' => ['Common'],
         'POST /support' => ['Common'],
-        'POST /franchise/enquiries' => ['Common'],
-        'POST /jobs/applications' => ['Common'],
         'GET /support/mine' => ['Common'],
         'GET /referrals/mine' => ['Common'],
         'POST /referrals/redeem' => ['Common'],

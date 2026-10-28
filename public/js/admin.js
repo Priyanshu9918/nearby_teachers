@@ -41,6 +41,14 @@
         if (mobile.matches && event.target.closest('a[href]')) toggleNav(false);
     });
     const navSearch = document.getElementById('admin-nav-search');
+    const quickSearch = document.querySelector('.admin-quick-search');
+    const quickSearchInput = document.getElementById('admin-quick-user-search');
+    quickSearch?.addEventListener('submit', (event) => {
+        if (window.matchMedia('(max-width: 520px)').matches && !quickSearchInput?.value.trim()) {
+            event.preventDefault();
+            quickSearchInput?.focus();
+        }
+    });
     const originalOpen = new Map();
     const groups = [...document.querySelectorAll('[data-nav-group]')];
     navSearch?.addEventListener('input', () => {
