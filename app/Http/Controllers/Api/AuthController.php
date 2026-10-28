@@ -9,6 +9,7 @@ use App\Services\AuthenticationService;
 use App\Services\OnboardingState;
 use App\Services\OtpDelivery;
 use App\Services\ParentalConsent;
+use App\Services\TeacherPublicPages;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -305,6 +306,16 @@ class AuthController extends Controller
         ]);
         $safeUser->password_set = (bool) ($user->password_set ?? false);
         $sessionProfile = $profile ?? $safeUser;
+        $profileLinks = match ($accountType) {
+            'teacher' => TeacherPublicPages::urls($profile ?? (object) []),
+            'institute' => [
+                'instituteProfileUrl' => filled($profile->slug ?? null)
+                    ? route('website.institute', ['slug' => $profile->slug]) : null,
+                'webPageUrl' => filled($profile->slug ?? null)
+                    ? route('website.institute', ['slug' => $profile->slug]) : null,
+            ],
+            default => [],
+        };
 
         return response()->json([
             'ok' => true,
@@ -313,6 +324,7 @@ class AuthController extends Controller
             'profile' => $sessionProfile,
             'subjects' => $subjects,
             'accountType' => $accountType,
+            ...$profileLinks,
             // profileCompleted remains registration completion for existing clients.
             'profileComplete' => $profileComplete,
             'publicProfilePublished' => $accountType === 'teacher' && filled($profile->public_page_slug ?? null),

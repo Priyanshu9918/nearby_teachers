@@ -2,9 +2,15 @@
   "info": {
     "_postman_id": "a409e1b3-533d-46aa-9d73-6d86d9745ce1",
     "name": "Nearby Teacher — Student Profile APIs",
-    "description": "Student profile read/update, photo upload, DOB and verified phone workflows. Saved responses are fictional contract examples.",
+    "description": "Student profile read/update, photo upload and teacher/institute public profile lookup. Set baseUrl, studentToken, teacherId and instituteId before using provider requests. Saved responses are fictional contract examples.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "variable": [
+    {"key": "baseUrl", "value": "http://localhost:8000", "type": "string"},
+    {"key": "studentToken", "value": "", "type": "string"},
+    {"key": "teacherId", "value": "", "type": "string", "description": "Target teacher user ID, not the teacher profile row ID."},
+    {"key": "instituteId", "value": "", "type": "string", "description": "Target institute user ID, not the institute profile row ID."}
+  ],
   "item": [
     {
       "name": "Student",
@@ -58,23 +64,33 @@
             "header": [{"key": "Content-Type", "value": "application/json"}], "cookie": [],
             "body": "{\n  \"profileImage\": \"https://example.test/storage/student-photos/asha.jpg\",\n  \"profileImageStatus\": \"pending\",\n  \"message\": \"Photo uploaded; it will appear on your profile after review.\"\n}"
           }]
+        }
+      ]
+    },
+    {
+      "name": "Teacher and Institute Profiles",
+      "item": [
+        {
+          "name": "GET /profiles/teacher/{{teacherId}} — View teacher profile",
+          "request": {
+            "method": "GET",
+            "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{studentToken}}", "type": "string"}]},
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/profiles/teacher/{{teacherId}}", "host": ["{{baseUrl}}"], "path": ["profiles", "teacher", "{{teacherId}}"]},
+            "description": "Set teacherId to the teacher's user ID. Returns public profile and subjects, not complete private account data. Learners can access this API. With a valid phone-verified studentToken, profile.phone is returned while the daily phone-reveal quota permits it (five distinct providers per day). Check phoneLimitReached and phoneRevealsRemainingToday. Select No Auth for public access without phone."
+          },
+          "response": []
         },
         {
-          "name": "POST /auth/date-of-birth — Set DOB",
+          "name": "GET /profiles/institute/{{instituteId}} — View institute profile",
           "request": {
-            "method": "POST",
-            "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}],
-            "body": {"mode": "raw", "raw": "{\n  \"dateOfBirth\": \"2005-04-12\"\n}", "options": {"raw": {"language": "json"}}},
-            "url": {"raw": "{{baseUrl}}/auth/date-of-birth", "host": ["{{baseUrl}}"], "path": ["auth", "date-of-birth"]},
-            "description": "Verified student bearer required. DOB is write-once here; ages under 13 are rejected and minors must complete guardian consent."
+            "method": "GET",
+            "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{studentToken}}", "type": "string"}]},
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/profiles/institute/{{instituteId}}", "host": ["{{baseUrl}}"], "path": ["profiles", "institute", "{{instituteId}}"]},
+            "description": "Set instituteId to the institute's user ID. Returns public profile and subjects, not complete private account data. Learners can access this API. With a valid phone-verified studentToken, profile.phone is returned while the daily phone-reveal quota permits it (five distinct providers per day, shared with teacher lookups). Check phoneLimitReached and phoneRevealsRemainingToday. Select No Auth for public access without phone."
           },
-          "response": [{
-            "name": "Fictional example — 200 DOB saved",
-            "originalRequest": {"method": "POST", "header": [], "url": {"raw": "{{baseUrl}}/auth/date-of-birth", "host": ["{{baseUrl}}"], "path": ["auth", "date-of-birth"]}},
-            "status": "OK", "code": 200, "_postman_previewlanguage": "json",
-            "header": [{"key": "Content-Type", "value": "application/json"}], "cookie": [],
-            "body": "{\n  \"isMinor\": false,\n  \"registrationCompleted\": true,\n  \"profileCompleted\": true\n}"
-          }]
+          "response": []
         }
       ]
     }
