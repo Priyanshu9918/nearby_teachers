@@ -9,9 +9,14 @@ class DeveloperResponseExamples
 
     public function __construct()
     {
-        $collection = json_decode(file_get_contents(base_path('docs/postman/app-team.postman_collection.json')), true, flags: JSON_THROW_ON_ERROR);
-        foreach ($collection['item'] as $folder) {
-            $this->collect($folder['item'], $folder['name']);
+        foreach ([
+            'docs/postman/app-team.postman_collection.json',
+            'docs/postman/teacher-profile-geography.postman_collection.json',
+        ] as $file) {
+            $collection = json_decode(file_get_contents(base_path($file)), true, flags: JSON_THROW_ON_ERROR);
+            foreach ($collection['item'] as $folder) {
+                $this->collect($folder['item'], $folder['name']);
+            }
         }
     }
 
@@ -26,7 +31,7 @@ class DeveloperResponseExamples
             $request = $item['request'];
             $path = explode('?', $request['url']['raw'])[0];
             $path = substr($path, strlen('{{baseUrl}}'));
-            $signature = $request['method'].' '.preg_replace('/\{\{[^}]+\}\}/', '{}', $path);
+            $signature = $this->signature($request['method'], preg_replace('/\{\{[^}]+\}\}/', '{}', $path));
             $this->requests[$category][$signature][] = $item;
         }
     }
@@ -35,9 +40,13 @@ class DeveloperResponseExamples
     {
         // Both routes invoke the same registration completion action.
         $path = $endpoint['path'] === '/auth/onboarding/complete' ? '/auth/register' : $endpoint['path'];
-        $signature = $endpoint['method'].' '.preg_replace('/\{[^}]+\}/', '{}', $path);
+        $signature = $this->signature($endpoint['method'], $path);
         // Conversation start returns the same shape for every account type.
-        $category = $signature === 'POST /messages/start' ? 'Learner' : $endpoint['category'];
+        $category = match (true) {
+            $signature === 'POST /messages/start' => 'Learner',
+            $endpoint['category'] === 'Teacher Profile' => 'Teacher',
+            default => $endpoint['category'],
+        };
         $candidates = $this->requests[$category][$signature] ?? [];
         $best = null;
         $bestScore = PHP_INT_MIN;
@@ -56,6 +65,14 @@ class DeveloperResponseExamples
                     $score++;
                     if (isset($body[$key], $expected[$key]) && $body[$key] === $expected[$key]) {
                         $score++;
+                    }
+                }
+            }
+            foreach (array_keys($expected) as $key) {
+                if (array_key_exists($key, $body)) {
+                    $score += 10;
+                    if (($body[$key] ?? null) === $expected[$key]) {
+                        $score += 2;
                     }
                 }
             }
@@ -81,6 +98,14 @@ class DeveloperResponseExamples
         }
 
         return ['status' => $best['code'], 'contentType' => $contentType, 'body' => $body];
+    }
+
+    private function signature(string $method, string $path): string
+    {
+        $path = preg_replace('/\{[^}]+\}/', '{}', $path);
+        $path = preg_replace('#^(/teacher/profile/steps/)\d+$#', '$1{}', $path);
+
+        return $method.' '.$path;
     }
 
     private function numericExamples(mixed $value, string $key = ''): mixed

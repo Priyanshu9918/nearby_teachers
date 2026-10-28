@@ -10914,51 +10914,669 @@
       "name": "Teacher",
       "item": [
         {
-          "name": "Profile",
-          "item": [
+  "name": "Profile",
+  "item": [
+    {
+      "name": "GET /teacher/profile — view my complete profile",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/teacher/profile",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "teacher",
+            "profile"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
             {
-              "name": "GET /teacher/profile — view my complete profile",
-              "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}], "url": {"raw": "{{baseUrl}}/teacher/profile", "host": ["{{baseUrl}}"], "path": ["teacher", "profile"]}},
-              "response": []
-            },
-            {
-              "name": "PATCH /teacher/profile/steps/1 — basics (email is read-only)",
-              "request": {"method": "PATCH", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"fullName\": \"Ravi Kumar\",\n  \"listingName\": \"Ravi Kumar\"\n}", "options": {"raw": {"language": "json"}}}, "url": {"raw": "{{baseUrl}}/teacher/profile/steps/1", "host": ["{{baseUrl}}"], "path": ["teacher", "profile", "steps", "1"]}, "description": "Saves fullName and listingName. Email is returned by GET /teacher/profile and is display-only; it cannot be changed here."},
-              "response": []
-            },
-            {
-              "name": "PATCH /teacher/profile/steps/2 — subjects",
-              "request": {"method": "PATCH", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"primarySubjects\": [\"{{subjectId}}\"]\n}", "options": {"raw": {"language": "json"}}}, "url": {"raw": "{{baseUrl}}/teacher/profile/steps/2", "host": ["{{baseUrl}}"], "path": ["teacher", "profile", "steps", "2"]}},
-              "response": []
-            },
-            {
-              "name": "PATCH /teacher/profile/steps/3 — teaching modes and location",
-              "request": {"method": "PATCH", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"lessonModes\": [\"home_tuition\", \"online\"],\n  \"city\": \"{{city}}\",\n  \"state\": \"{{state}}\",\n  \"country\": \"{{country}}\",\n  \"countryCode\": \"IN\",\n  \"latitude\": 28.6139,\n  \"longitude\": 77.209\n}", "options": {"raw": {"language": "json"}}}, "url": {"raw": "{{baseUrl}}/teacher/profile/steps/3", "host": ["{{baseUrl}}"], "path": ["teacher", "profile", "steps", "3"]}},
-              "response": []
-            },
-            {
-              "name": "PATCH /teacher/profile/steps/4 — rates and trial",
-              "request": {"method": "PATCH", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"ratePerHour\": 500,\n  \"currency\": \"INR\",\n  \"trialDays\": 3\n}", "options": {"raw": {"language": "json"}}}, "url": {"raw": "{{baseUrl}}/teacher/profile/steps/4", "host": ["{{baseUrl}}"], "path": ["teacher", "profile", "steps", "4"]}},
-              "response": []
-            },
-            {
-              "name": "PATCH /teacher/profile/steps/5 — story",
-              "request": {"method": "PATCH", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"bio\": \"Write at least 100 words about your teaching experience, approach and student outcomes.\",\n  \"linkedinUrl\": \"https://www.linkedin.com/in/example\"\n}", "options": {"raw": {"language": "json"}}}, "url": {"raw": "{{baseUrl}}/teacher/profile/steps/5", "host": ["{{baseUrl}}"], "path": ["teacher", "profile", "steps", "5"]}},
-              "response": []
-            },
-            {
-              "name": "POST /teacher/profile/photo — upload photo",
-              "request": {"method": "POST", "header": [{"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "image", "type": "file", "src": ""}]}, "url": {"raw": "{{baseUrl}}/teacher/profile/photo", "host": ["{{baseUrl}}"], "path": ["teacher", "profile", "photo"]}},
-              "response": []
-            },
-            {
-              "name": "POST /teacher/profile/publish — review and publish",
-              "request": {"method": "POST", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"agreeToTerms\": true\n}", "options": {"raw": {"language": "json"}}}, "url": {"raw": "{{baseUrl}}/teacher/profile/publish", "host": ["{{baseUrl}}"], "path": ["teacher", "profile", "publish"]}},
-              "response": []
+              "key": "Content-Type",
+              "value": "application/json"
             }
           ],
-          "description": "Teacher profile editor: six steps, photo upload is a separate multipart request. Requests require a registered teacher bearer."
+          "cookie": [],
+          "body": "{\n  \"user\": {\n    \"id\": \"10000000-0000-4000-8000-000000000001\",\n    \"full_name\": \"Ravi Kumar\",\n    \"email\": \"ravi@example.com\",\n    \"phone\": \"+919876543210\",\n    \"avatar_url\": \"https://example.test/storage/teacher-photos/ravi.jpg\",\n    \"avatar_status\": \"approved\",\n    \"phone_verified_at\": \"2026-10-22 10:00:00\",\n    \"profile_completed_at\": \"2026-10-22 10:00:00\"\n  },\n  \"profile\": {\n    \"id\": \"20000000-0000-4000-8000-000000000001\",\n    \"user_id\": \"10000000-0000-4000-8000-000000000001\",\n    \"primary_subject_id\": 12,\n    \"listing_name\": \"Ravi Kumar\",\n    \"is_profile_complete\": true,\n    \"bio\": \"Ravi Kumar is an experienced mathematics teacher who helps learners understand concepts with clarity and confidence. His lessons combine careful explanations, guided practice, and real examples from everyday life. He adapts each class to a student's current level, learning pace, and academic goals. Before introducing a new topic, he checks what the learner already knows and identifies the ideas that need more support. Students receive clear feedback, useful practice questions, and a practical plan for continued improvement. Ravi teaches school mathematics, exam preparation, and foundational problem solving through home tuition and online classes. He encourages learners to ask questions, review mistakes without fear, and build consistent study habits. Parents receive regular updates about progress and next steps. His goal is to help every student become an independent, motivated, and successful learner.\",\n    \"rate_per_hour\": \"500.00\",\n    \"currency\": \"INR\",\n    \"lesson_modes\": [\n      \"home_tuition\",\n      \"online\"\n    ],\n    \"latitude\": 26.467,\n    \"longitude\": 80.35,\n    \"address_text\": \"Bithoor, Kanpur Nagar\",\n    \"city\": \"Bithoor\",\n    \"state\": \"Uttar Pradesh\",\n    \"country\": \"India\",\n    \"country_code\": \"IN\",\n    \"linkedin_url\": \"https://www.linkedin.com/in/ravi-kumar\",\n    \"slug\": \"ravi-kumar-bithoor\",\n    \"is_verified\": false,\n    \"verified_at\": null,\n    \"trial_days\": 3,\n    \"rating_avg\": \"4.80\",\n    \"rating_count\": 12,\n    \"district\": \"Kanpur Nagar\",\n    \"sub_district\": \"Bilhaur\",\n    \"locality\": \"Bithoor\",\n    \"locality_type\": \"village\",\n    \"postal_code\": \"209201\",\n    \"location_details\": {\n      \"country\": \"India\",\n      \"state\": \"Uttar Pradesh\",\n      \"district\": \"Kanpur Nagar\",\n      \"city\": \"Bithoor\"\n    },\n    \"public_page_slug\": \"ravi-kumar-bithoor\",\n    \"public_profile_slug\": \"ravi-kumar-bithoor\",\n    \"seo_slug\": \"ravi-kumar-bithoor\",\n    \"seo_country\": \"in\",\n    \"seo_city_slug\": \"bithoor\",\n    \"subjects\": [\n      {\n        \"id\": 12,\n        \"name\": \"Maths\"\n      }\n    ]\n  },\n  \"profileComplete\": true,\n  \"teacherSeoUrl\": \"https://teachers.example.test/teacher/ravi-kumar-bithoor\",\n  \"teacherProfileUrl\": \"https://teachers.example.test/teacher/ravi-kumar-bithoor\",\n  \"webPageUrl\": \"https://teachers.example.test/teacher/ravi-kumar-bithoor\",\n  \"subjects\": [\n    {\n      \"id\": 12,\n      \"name\": \"Maths\"\n    }\n  ]\n}",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/teacher/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teacher",
+                "profile"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "PATCH /teacher/profile/steps/1 — basics (email is read-only)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Ravi Kumar\",\n  \"listingName\": \"Ravi Kumar\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
         },
+        "url": {
+          "raw": "{{baseUrl}}/teacher/profile/steps/1",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "teacher",
+            "profile",
+            "steps",
+            "1"
+          ]
+        },
+        "description": "Saves fullName and listingName. Email is returned by GET /teacher/profile and is display-only; it cannot be changed here."
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"ok\": true,\n  \"step\": 1,\n  \"fullName\": \"Ravi Kumar\",\n  \"email\": \"ravi@example.com\",\n  \"listingName\": \"Ravi Kumar\"\n}",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Ravi Kumar\",\n  \"listingName\": \"Ravi Kumar\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/teacher/profile/steps/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teacher",
+                "profile",
+                "steps",
+                "1"
+              ]
+            },
+            "description": "Saves fullName and listingName. Email is returned by GET /teacher/profile and is display-only; it cannot be changed here."
+          }
+        }
+      ]
+    },
+    {
+      "name": "PATCH /teacher/profile/steps/2 — subjects",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"primarySubjects\": [\"{{subjectId}}\"]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/teacher/profile/steps/2",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "teacher",
+            "profile",
+            "steps",
+            "2"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"ok\": true,\n  \"teacherSeoUrl\": \"https://teachers.example.test/teacher/ravi-kumar-bithoor\",\n  \"teacherProfileUrl\": \"https://teachers.example.test/teacher/ravi-kumar-bithoor\",\n  \"webPageUrl\": \"https://teachers.example.test/teacher/ravi-kumar-bithoor\",\n  \"locationDetails\": {\n    \"country\": \"India\",\n    \"state\": \"Uttar Pradesh\",\n    \"district\": \"Kanpur Nagar\",\n    \"city\": \"Bithoor\"\n  },\n  \"step\": 2\n}",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"primarySubjects\": [\"{{subjectId}}\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/teacher/profile/steps/2",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teacher",
+                "profile",
+                "steps",
+                "2"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "PATCH /teacher/profile/steps/3 — teaching modes and location",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"lessonModes\": [\"home_tuition\", \"online\"],\n  \"city\": \"{{city}}\",\n  \"state\": \"{{state}}\",\n  \"country\": \"{{country}}\",\n  \"countryCode\": \"IN\",\n  \"latitude\": 28.6139,\n  \"longitude\": 77.209\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/teacher/profile/steps/3",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "teacher",
+            "profile",
+            "steps",
+            "3"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"ok\": true,\n  \"teacherSeoUrl\": \"https://teachers.example.test/teacher/ravi-kumar-bithoor\",\n  \"teacherProfileUrl\": \"https://teachers.example.test/teacher/ravi-kumar-bithoor\",\n  \"webPageUrl\": \"https://teachers.example.test/teacher/ravi-kumar-bithoor\",\n  \"locationDetails\": {\n    \"country\": \"India\",\n    \"state\": \"Uttar Pradesh\",\n    \"district\": \"Kanpur Nagar\",\n    \"city\": \"Bithoor\"\n  },\n  \"step\": 3\n}",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lessonModes\": [\"home_tuition\", \"online\"],\n  \"city\": \"{{city}}\",\n  \"state\": \"{{state}}\",\n  \"country\": \"{{country}}\",\n  \"countryCode\": \"IN\",\n  \"latitude\": 28.6139,\n  \"longitude\": 77.209\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/teacher/profile/steps/3",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teacher",
+                "profile",
+                "steps",
+                "3"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "PATCH /teacher/profile/steps/4 — rates and trial",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"ratePerHour\": 500,\n  \"currency\": \"INR\",\n  \"trialDays\": 3\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/teacher/profile/steps/4",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "teacher",
+            "profile",
+            "steps",
+            "4"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"ok\": true,\n  \"teacherSeoUrl\": \"https://teachers.example.test/teacher/ravi-kumar-bithoor\",\n  \"teacherProfileUrl\": \"https://teachers.example.test/teacher/ravi-kumar-bithoor\",\n  \"webPageUrl\": \"https://teachers.example.test/teacher/ravi-kumar-bithoor\",\n  \"locationDetails\": {\n    \"country\": \"India\",\n    \"state\": \"Uttar Pradesh\",\n    \"district\": \"Kanpur Nagar\",\n    \"city\": \"Bithoor\"\n  },\n  \"step\": 4\n}",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ratePerHour\": 500,\n  \"currency\": \"INR\",\n  \"trialDays\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/teacher/profile/steps/4",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teacher",
+                "profile",
+                "steps",
+                "4"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "PATCH /teacher/profile/steps/5 — story",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"bio\": \"Write at least 100 words about your teaching experience, approach and student outcomes.\",\n  \"linkedinUrl\": \"https://www.linkedin.com/in/example\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/teacher/profile/steps/5",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "teacher",
+            "profile",
+            "steps",
+            "5"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"ok\": true,\n  \"teacherSeoUrl\": \"https://teachers.example.test/teacher/ravi-kumar-bithoor\",\n  \"teacherProfileUrl\": \"https://teachers.example.test/teacher/ravi-kumar-bithoor\",\n  \"webPageUrl\": \"https://teachers.example.test/teacher/ravi-kumar-bithoor\",\n  \"locationDetails\": {\n    \"country\": \"India\",\n    \"state\": \"Uttar Pradesh\",\n    \"district\": \"Kanpur Nagar\",\n    \"city\": \"Bithoor\"\n  },\n  \"step\": 5\n}",
+          "originalRequest": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bio\": \"Write at least 100 words about your teaching experience, approach and student outcomes.\",\n  \"linkedinUrl\": \"https://www.linkedin.com/in/example\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/teacher/profile/steps/5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teacher",
+                "profile",
+                "steps",
+                "5"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "POST /teacher/profile/photo — upload photo",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "image",
+              "type": "file",
+              "src": ""
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/teacher/profile/photo",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "teacher",
+            "profile",
+            "photo"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "201 Created",
+          "status": "Created",
+          "code": 201,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"user\": {\n    \"id\": \"10000000-0000-4000-8000-000000000001\",\n    \"avatar_url\": \"https://example.test/storage/teacher-photos/ravi.jpg\",\n    \"avatar_status\": \"pending\"\n  },\n  \"message\": \"Photo uploaded; it will appear on your public profile after review.\"\n}",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/teacher/profile/photo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teacher",
+                "profile",
+                "photo"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "POST /teacher/profile/publish — review and publish",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"agreeToTerms\": true\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/teacher/profile/publish",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "teacher",
+            "profile",
+            "publish"
+          ]
+        }
+      },
+      "response": [
+        {
+          "name": "200 OK",
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"ok\": true,\n  \"published\": true,\n  \"profileComplete\": true,\n  \"teacherSeoUrl\": \"https://teachers.example.test/teacher/ravi-kumar-bithoor\",\n  \"teacherProfileUrl\": \"https://teachers.example.test/teacher/ravi-kumar-bithoor\",\n  \"webPageUrl\": \"https://teachers.example.test/teacher/ravi-kumar-bithoor\"\n}",
+          "originalRequest": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agreeToTerms\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/teacher/profile/publish",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teacher",
+                "profile",
+                "publish"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "description": "Teacher profile editor: six steps, photo upload is a separate multipart request. Requests require a registered teacher bearer."
+},
         {
           "name": "PUT /profiles/me — teacher",
           "request": {
