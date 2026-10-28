@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\BookingsController;
 use App\Http\Controllers\Api\ChatEventsController;
 use App\Http\Controllers\Api\CommunityController;
 use App\Http\Controllers\Api\EnquiriesController;
+use App\Http\Controllers\Api\GeographyController;
 use App\Http\Controllers\Api\I18nController;
 use App\Http\Controllers\Api\MessagesController;
 use App\Http\Controllers\Api\ModerationController;
@@ -38,6 +39,11 @@ Route::get('/auth/safety-disclaimer', [AuthController::class, 'safetyDisclaimer'
 Route::get('/i18n/languages', [I18nController::class, 'languages']);
 Route::get('/i18n/{lang}', [I18nController::class, 'translations']);
 Route::get('/subjects', SubjectsController::class);
+Route::prefix('geo')->middleware('throttle:60,1')->group(function (): void {
+    Route::get('/countries', [GeographyController::class, 'countries']);
+    Route::get('/countries/{countryCode}/states', [GeographyController::class, 'states'])->where('countryCode', '[A-Za-z]{2}');
+    Route::get('/countries/{countryCode}/cities', [GeographyController::class, 'cities'])->where('countryCode', '[A-Za-z]{2}');
+});
 Route::post('/analytics/page-view', [OperationsController::class, 'recordPageView'])->middleware('throttle:120,1');
 Route::get('/reviews/for/{providerId}', [CommunityController::class, 'providerReviews'])->where('providerId', RecordId::ROUTE_PATTERN);
 Route::get('/feed/{postId}/comments', [CommunityController::class, 'comments'])->where('postId', RecordId::ROUTE_PATTERN);
