@@ -106,6 +106,9 @@ Current event coverage starts when migration `000029` is deployed:
 | `auth.logged_out` | Previous/new auth version and `scope:all_sessions`; token revocation and history commit together |
 | `registration.submitted` | Previous/new account type and `registration_submitted_at`; the full form saved before learner DOB completion |
 | `registration.completed` | Previous/new account type and completion timestamp |
+| `teacher.profile_step_updated` | Teacher profile step number and changed field names; values such as name, bio, and location are not copied into the event |
+| `teacher.profile_published` | Published status, terms acceptance and profile-completion flag, in the same transaction as page creation |
+| `teacher.avatar_submitted` | Pending moderation status only; image URL/content is not copied into history |
 | `onboarding.age_verified` | Previous/new age-verified and minor flags; no raw DOB, guardian contact or consent token snapshot |
 | `booking.created` | Initial status, lesson mode, requested time and price |
 | `booking.status_changed` | Previous/new status; repeated same-status requests add no change event |

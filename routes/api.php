@@ -81,6 +81,12 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
     Route::post('/auth/guardian-details', [AuthController::class, 'setGuardianDetails'])->middleware('throttle:10,1');
     Route::post('/auth/acknowledge-safety-disclaimer', [AuthController::class, 'acknowledgeSafetyDisclaimer']);
     Route::put('/profiles/me', [ProfilesController::class, 'updateMine']);
+    Route::prefix('teacher/profile')->group(function (): void {
+        Route::get('/', [ProfilesController::class, 'showMine']);
+        Route::patch('/steps/{step}', [ProfilesController::class, 'updateTeacherStep'])->whereIn('step', ['1', '2', '3', '4', '5']);
+        Route::post('/publish', [ProfilesController::class, 'publishTeacherProfile']);
+        Route::post('/photo', [ProfilesController::class, 'uploadTeacherPhoto'])->middleware('throttle:10,1');
+    });
     Route::get('/profiles/me/stats', [ProfilesController::class, 'stats']);
 
     Route::post('/bookings', [BookingsController::class, 'create']);

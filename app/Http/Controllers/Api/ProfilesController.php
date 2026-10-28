@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Reporting\BusinessActivityRecorder;
 use App\Services\CountryCurrency;
 use App\Services\OnboardingState;
 use App\Services\TeacherAddress;
@@ -12,6 +13,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -71,9 +73,6 @@ class ProfilesController extends Controller
         }
 
         $data = $request->validate($rules);
-        if (isset($data[$descriptionField]) && str_word_count(trim($data[$descriptionField])) > 14) {
-            throw ValidationException::withMessages([$descriptionField => 'Bio must be 14 words or fewer']);
-        }
         if ($request->exists('latitude') !== $request->exists('longitude')) {
             throw ValidationException::withMessages(['location' => 'Latitude and longitude must be provided together']);
         }
@@ -169,6 +168,157 @@ class ProfilesController extends Controller
         return response()->json(['ok' => true, ...$teacherResponse]);
     }
 
+    /** Save one section of the teacher's six-step profile editor. */
+    public function updateTeacherStep(Request $request, string $step): JsonResponse
+    {
+        $user = $request->attributes->get('authenticated_user');
+        abort_unless($user->account_type === 'teacher', 403, 'Teacher account required.');
+        if (! app(OnboardingState::class)->registrationCompleted($user)) {
+            return response()->json(['error' => 'Complete registration before updating your profile.', 'registrationRequired' => true], 409);
+        }
+
+        $allowed = match ($step) {
+            '1' => ['fullName', 'listingName'],
+            '2' => ['primarySubjects'],
+            '3' => ['lessonModes', 'latitude', 'longitude', 'addressText', 'city', 'state', 'country', 'countryCode', 'district', 'subDistrict', 'locality', 'localityType', 'postalCode'],
+            '4' => ['ratePerHour', 'currency', 'trialDays'],
+            '5' => ['bio', 'linkedinUrl'],
+            default => abort(404),
+        };
+
+        $payload = $request->only($allowed);
+        abort_if($payload === [], 422, 'Provide at least one field for this profile step.');
+
+        if ($step === '1') {
+            $data = validator($payload, [
+                'fullName' => ['sometimes', 'required', 'string', 'min:2', 'max:160'],
+                'listingName' => ['sometimes', 'nullable', 'string', 'min:2', 'max:160'],
+            ])->validate();
+            DB::transaction(function () use ($user, $data): void {
+                abort_if(DB::table('teacher_profiles')->where('user_id', $user->id)->lockForUpdate()->first() === null, 404, 'Teacher profile not found.');
+                $updates = ['updated_at' => now()];
+                $changedFields = [];
+                if (isset($data['fullName'])) {
+                    $updates['full_name'] = trim($data['fullName']);
+                    $changedFields[] = 'full_name';
+                }
+                if (array_key_exists('listingName', $data)) {
+                    $updates['listing_name'] = $data['listingName'] === null ? null : trim($data['listingName']);
+                    $changedFields[] = 'listing_name';
+                }
+                DB::table('users')->where('id', $user->id)->update(array_intersect_key($updates, ['full_name' => true, 'updated_at' => true]));
+                if (array_key_exists('listing_name', $updates)) {
+                    DB::table('teacher_profiles')->where('user_id', $user->id)->update(['listing_name' => $updates['listing_name'], 'updated_at' => now()]);
+                }
+                app(BusinessActivityRecorder::class)->record('teacher.profile_step_updated', (int) $user->id, (int) $user->id,
+                    after: ['step' => 1, 'changed_fields' => $changedFields]);
+                app(TeacherPublicPages::class)->publish((int) $user->id, (int) $user->id);
+            });
+
+            $saved = DB::table('users as u')->join('teacher_profiles as p', 'p.user_id', '=', 'u.id')
+                ->where('u.id', $user->id)->first(['u.full_name', 'u.email', 'p.listing_name']);
+
+            return response()->json(['ok' => true, 'step' => 1, 'fullName' => $saved->full_name,
+                'email' => $saved->email, 'listingName' => $saved->listing_name ?? $saved->full_name]);
+        }
+
+        $stepFields = match ($step) {
+            '2' => ['primarySubjects' => $payload['primarySubjects'] ?? null],
+            '3' => $payload,
+            '4' => $payload,
+            '5' => $payload,
+        };
+        if ($step === '5' && array_key_exists('bio', $stepFields) && $stepFields['bio'] !== null
+            && $this->wordCount(trim($stepFields['bio'])) < 100) {
+            throw ValidationException::withMessages(['bio' => 'Write at least 100 words about yourself.']);
+        }
+
+        $request->replace($stepFields);
+        $body = DB::transaction(function () use ($request, $step, $stepFields, $user): array {
+            $body = $this->updateMine($request)->getData(true);
+            app(BusinessActivityRecorder::class)->record('teacher.profile_step_updated', (int) $user->id, (int) $user->id,
+                after: ['step' => (int) $step, 'changed_fields' => array_keys($stepFields)]);
+
+            return $body;
+        });
+
+        return response()->json([...$body, 'step' => (int) $step]);
+    }
+
+    public function publishTeacherProfile(Request $request): JsonResponse
+    {
+        $user = $request->attributes->get('authenticated_user');
+        abort_unless($user->account_type === 'teacher', 403, 'Teacher account required.');
+        if (! app(OnboardingState::class)->registrationCompleted($user)) {
+            return response()->json(['error' => 'Complete registration before publishing your profile.', 'registrationRequired' => true], 409);
+        }
+        $request->validate(['agreeToTerms' => ['required', 'accepted']]);
+        $profile = DB::table('teacher_profiles')->where('user_id', $user->id)->first();
+        abort_if($profile === null, 404, 'Teacher profile not found.');
+        $subjects = TeacherPublicPages::subjects((int) $user->id);
+        $missing = [];
+        if ($subjects->isEmpty()) $missing[] = 'primarySubjects';
+        if (trim((string) $profile->city) === '') $missing[] = 'city';
+        if (\App\Services\SeoDirectory::country($profile) === null) $missing[] = 'countryCode';
+        if (trim((string) $profile->bio) === '' || $this->wordCount(trim((string) $profile->bio)) < 100) $missing[] = 'bio';
+        if (json_decode($profile->lesson_modes ?: '[]', true) === []) $missing[] = 'lessonModes';
+        if ($missing !== []) {
+            return response()->json(['error' => 'Complete the required profile sections before publishing.', 'missingFields' => $missing], 422);
+        }
+
+        DB::transaction(function () use ($user): void {
+            DB::table('users')->where('id', $user->id)->update(['terms_accepted_at' => now(), 'updated_at' => now()]);
+            DB::table('teacher_profiles')->where('user_id', $user->id)->update(['is_profile_complete' => true, 'updated_at' => now()]);
+            app(TeacherPublicPages::class)->publish((int) $user->id, (int) $user->id);
+            app(BusinessActivityRecorder::class)->record('teacher.profile_published', (int) $user->id, (int) $user->id,
+                after: ['status' => 'published', 'terms_accepted' => true, 'profile_complete' => true]);
+        });
+
+        $profile = DB::table('teacher_profiles')->where('user_id', $user->id)->first();
+        if ($profile->public_page_slug === null) {
+            return response()->json(['error' => 'Profile is saved but not eligible for a public page yet.', 'published' => false], 422);
+        }
+
+        return response()->json(['ok' => true, 'published' => true, 'profileComplete' => true,
+            ...TeacherPublicPages::urls($profile, $user->full_name)]);
+    }
+
+    public function showMine(Request $request): JsonResponse
+    {
+        $user = $request->attributes->get('authenticated_user');
+        abort_unless($user->account_type === 'teacher', 403, 'Teacher account required.');
+        $profile = DB::table('teacher_profiles')->where('user_id', $user->id)
+            ->first(['id', 'user_id', 'primary_subject_id', 'listing_name', 'is_profile_complete', 'bio', 'rate_per_hour', 'currency', 'lesson_modes', 'latitude', 'longitude', 'address_text', 'city', 'state', 'country', 'country_code', 'linkedin_url', 'slug', 'is_verified', 'verified_at', 'trial_days', 'rating_avg', 'rating_count', 'district', 'sub_district', 'locality', 'locality_type', 'postal_code', 'location_details', 'public_page_slug', 'public_profile_slug', 'seo_slug', 'seo_country', 'seo_city_slug']);
+        abort_if($profile === null, 404, 'Teacher profile not found.');
+        $profile->lesson_modes = json_decode($profile->lesson_modes ?: '[]', true, flags: JSON_THROW_ON_ERROR);
+        $profile->is_profile_complete = (bool) $profile->is_profile_complete;
+        $profile->location_details = $profile->location_details === null ? null : json_decode($profile->location_details, true, flags: JSON_THROW_ON_ERROR);
+        $userData = DB::table('users')->where('id', $user->id)->first(['id', 'full_name', 'email', 'phone', 'avatar_url', 'avatar_status', 'phone_verified_at', 'profile_completed_at']);
+        $profile->listing_name = $profile->listing_name ?: $userData->full_name;
+
+        return response()->json(['user' => $userData, 'profile' => $profile,
+            'profileComplete' => $profile->is_profile_complete,
+            ...TeacherPublicPages::urls($profile, $userData->full_name),
+            'subjects' => TeacherPublicPages::subjects((int) $user->id)]);
+    }
+
+    public function uploadTeacherPhoto(Request $request): JsonResponse
+    {
+        $user = $request->attributes->get('authenticated_user');
+        abort_unless($user->account_type === 'teacher', 403, 'Teacher account required.');
+        $data = $request->validate(['image' => ['required', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120']]);
+        $path = $data['image']->store('teacher-photos', 'public');
+        $url = url(Storage::disk('public')->url($path));
+        DB::transaction(function () use ($user, $url): void {
+            DB::table('users')->where('id', $user->id)->update(['avatar_url' => $url, 'avatar_status' => 'pending', 'updated_at' => now()]);
+            app(BusinessActivityRecorder::class)->record('teacher.avatar_submitted', (int) $user->id, (int) $user->id,
+                after: ['avatar_status' => 'pending']);
+        });
+
+        return response()->json(['user' => DB::table('users')->where('id', $user->id)->first(['id', 'avatar_url', 'avatar_status']),
+            'message' => 'Photo uploaded; it will appear on your public profile after review.'], 201);
+    }
+
     public function show(Request $request, string $type, int $id): JsonResponse
     {
         $profileTable = $type === 'teacher' ? 'teacher_profiles' : 'institute_profiles';
@@ -187,7 +337,8 @@ class ProfilesController extends Controller
                 'p.user_id'
             )
             ->where('p.user_id', $id)
-            ->select('p.*', 'u.full_name')
+            ->select('p.*')
+            ->selectRaw('COALESCE(NULLIF(p.listing_name, \'\'), u.full_name) AS full_name')
             ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
             ->addSelect('u.phone')
             ->selectRaw('COALESCE(completed_bookings.lessons_completed, 0) AS lessons_completed')
@@ -326,6 +477,11 @@ class ProfilesController extends Controller
         $parts[] = $column.' = ?';
         $value = $data[$input];
         $bindings[] = $uppercase && is_string($value) ? strtoupper($value) : $value;
+    }
+
+    private function wordCount(string $value): int
+    {
+        return preg_match_all("/[\\p{L}\\p{N}]+(?:['’][\\p{L}\\p{N}]+)*/u", $value) ?: 0;
     }
 
     private function ensureSlug(string $table, int $userId, string $fullName): void

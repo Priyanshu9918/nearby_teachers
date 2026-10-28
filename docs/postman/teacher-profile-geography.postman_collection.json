@@ -1,0 +1,78 @@
+{
+  "info": {
+    "name": "Nearby Teacher — Teacher Profile and Geography APIs",
+    "description": "New focused collection. Teacher profile editor APIs are under Teacher > Profile. Public country, state and city lookups are under Common. Set baseUrl and, for Teacher requests, a verified teacher bearer token.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "baseUrl", "value": "http://localhost/nearby_teachers/public", "type": "string"},
+    {"key": "token", "value": "", "type": "string"},
+    {"key": "subjectId", "value": "1", "type": "string"},
+    {"key": "countryCode", "value": "IN", "type": "string"},
+    {"key": "stateCode", "value": "UP", "type": "string"}
+  ],
+  "item": [
+    {
+      "name": "Teacher",
+      "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]},
+      "item": [
+        {
+          "name": "Profile",
+          "description": "Six-step editor. Steps 1–5 save profile sections, the separate photo request uploads a file, and Publish completes step 6.",
+          "item": [
+            {
+          "name": "GET /teacher/profile — View my complete profile and web page link",
+              "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}], "url": {"raw": "{{baseUrl}}/teacher/profile", "host": ["{{baseUrl}}"], "path": ["teacher", "profile"]}, "description": "Includes profileComplete and webPageUrl. webPageUrl stays null until the profile is published after step 6."}
+            },
+            {
+              "name": "PATCH /teacher/profile/steps/1 — Basics (email is read-only)",
+              "request": {"method": "PATCH", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"fullName\": \"Ravi Kumar\",\n  \"listingName\": \"Ravi Kumar\"\n}", "options": {"raw": {"language": "json"}}}, "url": {"raw": "{{baseUrl}}/teacher/profile/steps/1", "host": ["{{baseUrl}}"], "path": ["teacher", "profile", "steps", "1"]}, "description": "Saves fullName and listingName. Email is returned by GET /teacher/profile and is display-only; it cannot be changed here."}
+            },
+            {
+              "name": "PATCH /teacher/profile/steps/2 — Subjects",
+              "request": {"method": "PATCH", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"primarySubjects\": [\"{{subjectId}}\"]\n}", "options": {"raw": {"language": "json"}}}, "url": {"raw": "{{baseUrl}}/teacher/profile/steps/2", "host": ["{{baseUrl}}"], "path": ["teacher", "profile", "steps", "2"]}}
+            },
+            {
+              "name": "PATCH /teacher/profile/steps/3 — Teaching modes and location",
+              "request": {"method": "PATCH", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"lessonModes\": [\"in_person\", \"home_tuition\", \"online\"],\n  \"city\": \"Varanasi\",\n  \"state\": \"Uttar Pradesh\",\n  \"country\": \"India\",\n  \"countryCode\": \"IN\"\n}", "options": {"raw": {"language": "json"}}}, "url": {"raw": "{{baseUrl}}/teacher/profile/steps/3", "host": ["{{baseUrl}}"], "path": ["teacher", "profile", "steps", "3"]}}
+            },
+            {
+              "name": "PATCH /teacher/profile/steps/4 — Rates and trial",
+              "request": {"method": "PATCH", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"ratePerHour\": 500,\n  \"currency\": \"INR\",\n  \"trialDays\": 3\n}", "options": {"raw": {"language": "json"}}}, "url": {"raw": "{{baseUrl}}/teacher/profile/steps/4", "host": ["{{baseUrl}}"], "path": ["teacher", "profile", "steps", "4"]}}
+            },
+            {
+              "name": "PATCH /teacher/profile/steps/5 — Story and LinkedIn",
+              "request": {"method": "PATCH", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"bio\": \"Write at least 100 words about your teaching experience, approach and student outcomes.\",\n  \"linkedinUrl\": \"https://www.linkedin.com/in/example\"\n}", "options": {"raw": {"language": "json"}}}, "url": {"raw": "{{baseUrl}}/teacher/profile/steps/5", "host": ["{{baseUrl}}"], "path": ["teacher", "profile", "steps", "5"]}}
+            },
+            {
+              "name": "POST /teacher/profile/photo — Upload photo",
+              "request": {"method": "POST", "header": [{"key": "Accept", "value": "application/json"}], "body": {"mode": "formdata", "formdata": [{"key": "image", "type": "file", "src": ""}]}, "url": {"raw": "{{baseUrl}}/teacher/profile/photo", "host": ["{{baseUrl}}"], "path": ["teacher", "profile", "photo"]}}
+            },
+            {
+              "name": "POST /teacher/profile/publish — Review and publish (step 6)",
+              "request": {"method": "POST", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"agreeToTerms\": true\n}", "options": {"raw": {"language": "json"}}}, "url": {"raw": "{{baseUrl}}/teacher/profile/publish", "host": ["{{baseUrl}}"], "path": ["teacher", "profile", "publish"]}, "description": "Sets profileComplete=true and returns the teacher's webPageUrl after SEO pages are generated."}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Common",
+      "auth": {"type": "noauth"},
+      "item": [
+        {
+          "name": "GET /geo/countries — Countries",
+          "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}], "url": {"raw": "{{baseUrl}}/geo/countries?search=ind", "host": ["{{baseUrl}}"], "path": ["geo", "countries"], "query": [{"key": "search", "value": "ind"}]}}
+        },
+        {
+          "name": "GET /geo/countries/:countryCode/states — States",
+          "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}], "url": {"raw": "{{baseUrl}}/geo/countries/{{countryCode}}/states?search=utt", "host": ["{{baseUrl}}"], "path": ["geo", "countries", "{{countryCode}}", "states"], "query": [{"key": "search", "value": "utt"}]}}
+        },
+        {
+          "name": "GET /geo/countries/:countryCode/cities — Cities",
+          "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}], "url": {"raw": "{{baseUrl}}/geo/countries/{{countryCode}}/cities?stateCode={{stateCode}}&search=varanasi&perPage=50&page=1", "host": ["{{baseUrl}}"], "path": ["geo", "countries", "{{countryCode}}", "cities"], "query": [{"key": "stateCode", "value": "{{stateCode}}"}, {"key": "search", "value": "varanasi"}, {"key": "perPage", "value": "50"}, {"key": "page", "value": "1"}]}}
+        }
+      ]
+    }
+  ]
+}

@@ -307,6 +307,10 @@ in that same subsection.
 | Method | Path | Access | Request / query | Result / notes |
 |---|---|---|---|---|
 | `PUT` | `/profiles/me` | Verified provider bearer, completed registration | Provider fields described below | Updates the signed-in teacher/institute listing and its subject assignments. |
+| `GET` | `/teacher/profile` | Verified teacher bearer | — | Returns the signed-in teacher's account, profile fields, subjects, `profileComplete` flag and `webPageUrl` (null until publish). |
+| `PATCH` | `/teacher/profile/steps/{step}` | Verified teacher bearer, completed registration | Step 1 `fullName`, `listingName`; 2 subjects; 3 lesson modes/location; 4 rate/trial; 5 story/LinkedIn | Saves one allowlisted profile section. Account email is returned by `GET /teacher/profile` and is read-only. Step 5 bio must contain at least 100 words when supplied. |
+| `POST` | `/teacher/profile/photo` | Verified teacher bearer | Multipart `image`, JPEG/PNG/WebP, max 5 MB | Stores the image and submits it for moderation; returns `avatar_url` and `avatar_status`. |
+| `POST` | `/teacher/profile/publish` | Verified teacher bearer | `agreeToTerms:true` | Checks required profile sections, sets `is_profile_complete`, records acceptance and creates the teacher page plus SEO listings. Returns `profileComplete:true` and `webPageUrl`. |
 | `GET` | `/profiles/me/stats` | Verified bearer | Optional `days` (default 30, maximum 365) | Provider listing views and new booking-request counts. |
 | `GET` | `/bookings/incoming` | Verified bearer | `perPage`, `cursor` | Provider's incoming bookings. |
 | `GET` | `/profiles/{type}/{id}` | Public, optional bearer | `type`: `teacher` or `institute`; optional auth affects phone quota | Public listing profile. Suspended or not-yet-phone-verified optional tokens are treated as anonymous. |
