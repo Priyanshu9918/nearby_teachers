@@ -12,6 +12,8 @@ final class AdminNavigation
     {
         $groups = [
             'People' => ['icon' => 'users', 'reports' => ['users', 'logins', 'teacher-profiles', 'institute-profiles']],
+            'Enquiries & recruitment' => ['icon' => 'document', 'reports' => ['franchise-enquiries', 'job-applications', 'job-application-courses']],
+            'Public pages & SEO' => ['icon' => 'document', 'reports' => ['seo-pages', 'seo-location-pages', 'seo-subject-routes', 'seo-url-history']],
             'Chat & lessons' => ['icon' => 'chat', 'reports' => ['conversations', 'messages', 'bookings', 'reviews']],
             'Community & support' => ['icon' => 'shield', 'reports' => ['posts', 'comments', 'likes', 'support', 'suggestions', 'reports', 'blocks']],
             'Learning catalog' => ['icon' => 'book', 'reports' => ['subjects', 'subject-domains', 'profile-subjects']],

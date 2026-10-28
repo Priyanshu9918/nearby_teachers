@@ -16,6 +16,11 @@
         <header class="topbar">
             <div class="topbar-left"><button class="icon-button mobile-only" id="open-admin-nav" type="button" aria-label="Open navigation" aria-controls="admin-sidebar" aria-expanded="false"><x-admin-icon name="menu" /></button><div class="topbar-title"><span>Workspace</span><x-admin-icon name="chevron" /><strong>@yield('breadcrumb', 'Overview')</strong></div></div>
             <div class="top-actions">
+                <form class="admin-quick-search" method="get" action="{{ route('admin.reports.index', ['report' => 'users']) }}" role="search">
+                    <x-admin-icon name="search" />
+                    <input id="admin-quick-user-search" type="search" name="q" value="{{ request()->route('report') === 'users' ? request('q') : '' }}" placeholder="Find user by name, email, phone or ID" aria-label="Find a user by name, email, phone or ID">
+                    <button type="submit" aria-label="Search users"><x-admin-icon name="search" /></button>
+                </form>
                 <a class="topbar-reports" href="{{ route('admin.dashboard') }}#report-library"><x-admin-icon name="document" /> All reports</a><div class="admin-chip"><span class="avatar" aria-hidden="true">A</span><span>Administrator</span></div>
                 <form method="post" action="{{ route('admin.logout') }}">@csrf<button class="logout" type="submit"><x-admin-icon name="logout" /><span>Sign out</span></button></form>
             </div>

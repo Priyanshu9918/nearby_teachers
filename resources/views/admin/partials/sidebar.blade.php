@@ -13,8 +13,6 @@
             <a href="{{ route('admin.index', ['section' => $key]) }}" @class(['nav-link', 'active' => $active]) @if($active) aria-current="page" @endif data-nav-item><x-admin-icon :name="$icon" /><span>{{ $label }}</span></a>
         @endforeach
         <div class="nav-section-label">Explore reports</div>
-        <a class="nav-link" href="{{ route('admin.reports.index', ['report' => 'seo-pages']) }}" data-nav-item><x-admin-icon name="document" /><span>SEO pages</span></a>
-        <a class="nav-link" href="{{ route('admin.reports.index', ['report' => 'seo-location-pages']) }}" data-nav-item><x-admin-icon name="document" /><span>SEO location pages</span></a>
         <a class="nav-link" href="{{ route('admin.seo.edit') }}" data-nav-item><x-admin-icon name="book" /><span>SEO subject wording</span></a>
         @foreach ($navigationGroups as $label => $group)
             @php($groupActive = collect($group['items'])->contains('active', true))
