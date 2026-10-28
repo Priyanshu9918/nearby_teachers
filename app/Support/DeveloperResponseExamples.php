@@ -44,6 +44,7 @@ class DeveloperResponseExamples
         // Conversation start returns the same shape for every account type.
         $category = match (true) {
             $signature === 'POST /messages/start' => 'Learner',
+            in_array($signature, ['POST /franchise/enquiries', 'POST /jobs/applications'], true) => 'Common',
             $endpoint['category'] === 'Teacher Profile' => 'Teacher',
             default => $endpoint['category'],
         };
