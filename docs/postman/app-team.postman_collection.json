@@ -2478,7 +2478,7 @@
                 "session"
               ]
             },
-            "description": "Authenticated current user and routing flags. Route by nextScreen. registrationCompleted/profileCompleted require student DOB; registrationSubmitted only records form submission. A completed minor can still require guardian consent. This endpoint does not issue a new token. Saved examples are fictional contract illustrations, not live captures."
+            "description": "Returns safe user fields, the full account-type profile (learner fields are on user/profile; teacher and institute include their stored profile fields), subjects, profileComplete/profileCompletion, and onboarding routing flags. profileCompleted remains registration completion. Credentials, auth internals, and consent tokens are excluded. Saved examples are fictional contract illustrations, not live captures."
           },
           "response": [
             {
@@ -2501,7 +2501,7 @@
                     "session"
                   ]
                 },
-                "description": "Authenticated current user and routing flags. Route by nextScreen. registrationCompleted/profileCompleted require student DOB; registrationSubmitted only records form submission. A completed minor can still require guardian consent. This endpoint does not issue a new token. Saved examples are fictional contract illustrations, not live captures."
+                "description": "Returns safe user fields, the full account-type profile (learner fields are on user/profile; teacher and institute include their stored profile fields), subjects, profileComplete/profileCompletion, and onboarding routing flags. profileCompleted remains registration completion. Credentials, auth internals, and consent tokens are excluded. Saved examples are fictional contract illustrations, not live captures."
               },
               "status": "OK",
               "code": 200,
@@ -2535,7 +2535,7 @@
                     "session"
                   ]
                 },
-                "description": "Authenticated current user and routing flags. Route by nextScreen. registrationCompleted/profileCompleted require student DOB; registrationSubmitted only records form submission. A completed minor can still require guardian consent. This endpoint does not issue a new token. Saved examples are fictional contract illustrations, not live captures."
+                "description": "Returns safe user fields, the full account-type profile (learner fields are on user/profile; teacher and institute include their stored profile fields), subjects, profileComplete/profileCompletion, and onboarding routing flags. profileCompleted remains registration completion. Credentials, auth internals, and consent tokens are excluded. Saved examples are fictional contract illustrations, not live captures."
               },
               "status": "OK",
               "code": 200,
@@ -2569,7 +2569,7 @@
                     "session"
                   ]
                 },
-                "description": "Authenticated current user and routing flags. Route by nextScreen. registrationCompleted/profileCompleted require student DOB; registrationSubmitted only records form submission. A completed minor can still require guardian consent. This endpoint does not issue a new token. Saved examples are fictional contract illustrations, not live captures."
+                "description": "Returns safe user fields, the full account-type profile (learner fields are on user/profile; teacher and institute include their stored profile fields), subjects, profileComplete/profileCompletion, and onboarding routing flags. profileCompleted remains registration completion. Credentials, auth internals, and consent tokens are excluded. Saved examples are fictional contract illustrations, not live captures."
               },
               "status": "OK",
               "code": 200,
@@ -2603,7 +2603,7 @@
                     "session"
                   ]
                 },
-                "description": "Authenticated current user and routing flags. Route by nextScreen. registrationCompleted/profileCompleted require student DOB; registrationSubmitted only records form submission. A completed minor can still require guardian consent. This endpoint does not issue a new token. Saved examples are fictional contract illustrations, not live captures."
+                "description": "Returns safe user fields, the full account-type profile (learner fields are on user/profile; teacher and institute include their stored profile fields), subjects, profileComplete/profileCompletion, and onboarding routing flags. profileCompleted remains registration completion. Credentials, auth internals, and consent tokens are excluded. Saved examples are fictional contract illustrations, not live captures."
               },
               "status": "OK",
               "code": 200,
@@ -2637,7 +2637,7 @@
                     "session"
                   ]
                 },
-                "description": "Authenticated current user and routing flags. Route by nextScreen. registrationCompleted/profileCompleted require student DOB; registrationSubmitted only records form submission. A completed minor can still require guardian consent. This endpoint does not issue a new token. Saved examples are fictional contract illustrations, not live captures."
+                "description": "Returns safe user fields, the full account-type profile (learner fields are on user/profile; teacher and institute include their stored profile fields), subjects, profileComplete/profileCompletion, and onboarding routing flags. profileCompleted remains registration completion. Credentials, auth internals, and consent tokens are excluded. Saved examples are fictional contract illustrations, not live captures."
               },
               "status": "OK",
               "code": 200,
@@ -2671,7 +2671,7 @@
                     "session"
                   ]
                 },
-                "description": "Authenticated current user and routing flags. Route by nextScreen. registrationCompleted/profileCompleted require student DOB; registrationSubmitted only records form submission. A completed minor can still require guardian consent. This endpoint does not issue a new token. Saved examples are fictional contract illustrations, not live captures."
+                "description": "Returns safe user fields, the full account-type profile (learner fields are on user/profile; teacher and institute include their stored profile fields), subjects, profileComplete/profileCompletion, and onboarding routing flags. profileCompleted remains registration completion. Credentials, auth internals, and consent tokens are excluded. Saved examples are fictional contract illustrations, not live captures."
               },
               "status": "OK",
               "code": 200,
@@ -2705,7 +2705,7 @@
                     "session"
                   ]
                 },
-                "description": "Authenticated current user and routing flags. Route by nextScreen. registrationCompleted/profileCompleted require student DOB; registrationSubmitted only records form submission. A completed minor can still require guardian consent. This endpoint does not issue a new token. Saved examples are fictional contract illustrations, not live captures."
+                "description": "Returns safe user fields, the full account-type profile (learner fields are on user/profile; teacher and institute include their stored profile fields), subjects, profileComplete/profileCompletion, and onboarding routing flags. profileCompleted remains registration completion. Credentials, auth internals, and consent tokens are excluded. Saved examples are fictional contract illustrations, not live captures."
               },
               "status": "Forbidden",
               "code": 403,
