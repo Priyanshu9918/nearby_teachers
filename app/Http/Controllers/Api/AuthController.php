@@ -240,10 +240,83 @@ class AuthController extends Controller
     public function session(Request $request): JsonResponse
     {
         $user = $request->attributes->get('authenticated_user');
+        $onboarding = app(OnboardingController::class)->show($request)->getData(true);
+        $accountType = (string) $user->account_type;
+        $profileTable = match ($accountType) {
+            'teacher' => 'teacher_profiles',
+            'institute' => 'institute_profiles',
+            default => null,
+        };
+        $profile = $profileTable === null ? null : DB::table($profileTable)->where('user_id', $user->id)->first();
+        $subjects = in_array($accountType, ['teacher', 'institute'], true)
+            ? DB::table('profile_subjects as ps')->join('subjects as s', 's.id', '=', 'ps.subject_id')
+                ->where('ps.profile_type', $accountType)->where('ps.profile_id', $user->id)
+                ->orderBy('s.name')->get(['s.id', 's.name', 's.domain_id'])
+                ->map(fn (object $subject): array => ['id' => (int) $subject->id, 'name' => $subject->name, 'domainId' => $subject->domain_id === null ? null : (int) $subject->domain_id])->all()
+            : [];
+
+        if ($profile !== null) {
+            unset($profile->seo_state_hash);
+            if (isset($profile->lesson_modes)) {
+                $profile->lesson_modes = json_decode($profile->lesson_modes ?: '[]', true, flags: JSON_THROW_ON_ERROR);
+            }
+            if (isset($profile->location_details)) {
+                $profile->location_details = $profile->location_details === null ? null : json_decode($profile->location_details, true, flags: JSON_THROW_ON_ERROR);
+            }
+            foreach (['is_profile_complete', 'is_verified', 'is_bsl_official'] as $field) {
+                if (isset($profile->$field)) {
+                    $profile->$field = (bool) $profile->$field;
+                }
+            }
+            $profile->subjects = $subjects;
+        }
+
+        $registered = (bool) ($onboarding['registrationCompleted'] ?? false);
+        $profileComplete = match ($accountType) {
+            'teacher' => (bool) ($profile->is_profile_complete ?? false),
+            'institute' => $registered && ($onboarding['missingFields'] ?? []) === [],
+            default => $registered,
+        };
+        $completionMissing = $onboarding['missingFields'] ?? [];
+        if ($accountType === 'teacher' && ! $profileComplete) {
+            if ($profile === null) {
+                $completionMissing[] = 'teacherProfile';
+            } else {
+                if ($subjects === []) $completionMissing[] = 'primarySubjects';
+                if (trim((string) ($profile->city ?? '')) === '') $completionMissing[] = 'city';
+                if (trim((string) ($profile->district ?? '')) === '') $completionMissing[] = 'district';
+                if (\App\Services\SeoDirectory::country($profile) === null) $completionMissing[] = 'countryCode';
+                preg_match_all('/[\pL\pN]+(?:[\'’][\pL\pN]+)*/u', trim((string) ($profile->bio ?? '')), $wordMatches);
+                if (count($wordMatches[0] ?? []) < 100) $completionMissing[] = 'bio';
+                if (($profile->lesson_modes ?? []) === []) $completionMissing[] = 'lessonModes';
+                if (! $profileComplete) $completionMissing[] = 'publishProfile';
+            }
+        }
+        $completionMissing = array_values(array_unique($completionMissing));
+
+        // Session responses intentionally omit credentials, auth internals, and consent tokens.
+        $safeUser = DB::table('users')->where('id', $user->id)->first([
+            'id', 'account_type', 'full_name', 'email', 'phone', 'avatar_url', 'avatar_status',
+            'is_admin', 'suspended_reason',
+            'date_of_birth', 'is_minor', 'guardian_name', 'guardian_contact', 'parental_consent_confirmed_at',
+            'parental_consent_rejected_at', 'parental_consent_expires_at', 'safety_disclaimer_acknowledged_at',
+            'preferred_language', 'suspended_at', 'phone_verified_at', 'email_verified_at', 'referral_code',
+            'terms_accepted_at', 'registration_submitted_at', 'profile_completed_at', 'created_at', 'updated_at',
+        ]);
+        $safeUser->password_set = (bool) ($user->password_set ?? false);
+        $sessionProfile = $profile ?? $safeUser;
 
         return response()->json([
-            'user' => $user,
-            ...app(OnboardingState::class)->forUser($user),
+            'ok' => true,
+            ...$onboarding,
+            'user' => $safeUser,
+            'profile' => $sessionProfile,
+            'subjects' => $subjects,
+            'accountType' => $accountType,
+            // profileCompleted remains registration completion for existing clients.
+            'profileComplete' => $profileComplete,
+            'publicProfilePublished' => $accountType === 'teacher' && filled($profile->public_page_slug ?? null),
+            'profileCompletion' => ['isComplete' => $profileComplete, 'missingFields' => $completionMissing],
         ]);
     }
 
