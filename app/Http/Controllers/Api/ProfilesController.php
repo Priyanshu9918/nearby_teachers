@@ -210,7 +210,7 @@ class ProfilesController extends Controller
                 if (array_key_exists('listing_name', $updates)) {
                     DB::table('teacher_profiles')->where('user_id', $user->id)->update(['listing_name' => $updates['listing_name'], 'updated_at' => now()]);
                 }
-                app(BusinessActivityRecorder::class)->record('teacher.profile_step_updated', (int) $user->id, (int) $user->id,
+                app(BusinessActivityRecorder::class)->record('teacher.profile_step_updated', (string) $user->id, (string) $user->id,
                     after: ['step' => 1, 'changed_fields' => $changedFields]);
                 app(TeacherPublicPages::class)->publish((int) $user->id, (int) $user->id);
             });
@@ -236,7 +236,7 @@ class ProfilesController extends Controller
         $request->replace($stepFields);
         $body = DB::transaction(function () use ($request, $step, $stepFields, $user): array {
             $body = $this->updateMine($request)->getData(true);
-            app(BusinessActivityRecorder::class)->record('teacher.profile_step_updated', (int) $user->id, (int) $user->id,
+                app(BusinessActivityRecorder::class)->record('teacher.profile_step_updated', (string) $user->id, (string) $user->id,
                 after: ['step' => (int) $step, 'changed_fields' => array_keys($stepFields)]);
 
             return $body;
@@ -271,7 +271,7 @@ class ProfilesController extends Controller
             DB::table('users')->where('id', $user->id)->update(['terms_accepted_at' => now(), 'updated_at' => now()]);
             DB::table('teacher_profiles')->where('user_id', $user->id)->update(['is_profile_complete' => true, 'updated_at' => now()]);
             app(TeacherPublicPages::class)->publish((int) $user->id, (int) $user->id);
-            app(BusinessActivityRecorder::class)->record('teacher.profile_published', (int) $user->id, (int) $user->id,
+            app(BusinessActivityRecorder::class)->record('teacher.profile_published', (string) $user->id, (string) $user->id,
                 after: ['status' => 'published', 'terms_accepted' => true, 'profile_complete' => true]);
         });
 
@@ -312,7 +312,7 @@ class ProfilesController extends Controller
         $url = url(Storage::disk('public')->url($path));
         DB::transaction(function () use ($user, $url): void {
             DB::table('users')->where('id', $user->id)->update(['avatar_url' => $url, 'avatar_status' => 'pending', 'updated_at' => now()]);
-            app(BusinessActivityRecorder::class)->record('teacher.avatar_submitted', (int) $user->id, (int) $user->id,
+            app(BusinessActivityRecorder::class)->record('teacher.avatar_submitted', (string) $user->id, (string) $user->id,
                 after: ['avatar_status' => 'pending']);
         });
 

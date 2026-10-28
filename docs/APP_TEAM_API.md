@@ -2,12 +2,13 @@
 
 Updated: 22 October 2026. Read this with the [full endpoint reference](API.md),
 [saved response examples](API_MOCK_RESPONSES.md) and existing
-[app-team Postman collection](postman/app-team.postman_collection.json).
+[app-team Postman collection](postman/app-team.postman_collection.json) and
+[Student profile collection](postman/student-profile.postman_collection.json).
 Examples are fictional and response fragments omit unrelated fields; they are
 not live captures. Tokens are placeholders.
 
-The guide, developer explorer and collection use five parts:
-[Auth](#auth), [Learner](#learner), [Teacher](#teacher),
+The guide, developer explorer and collections use these parts:
+[Auth](#auth), [Learner](#learner), [Student profile](#student-profile), [Teacher](#teacher),
 [Institute](#institute), [Common](#common). Categories organize workflows;
 they do not grant permissions or introduce role guards. Shared chat, feed,
 comments/replies, booking status and safety APIs appear in every app role and
@@ -219,6 +220,22 @@ See [email recovery](EMAIL_AUTH.md) for code requirements.
 | `POST` | `/feed/{postId}/comments` | Verified bearer | `body`; optional `parentCommentId` | Adds a comment or reply. |
 | `GET` | `/broadcasting/auth` | Verified participant bearer | `channel_name` query; `socket_id` for broadcaster auth when applicable | Legacy broadcaster authorization; Socket.IO clients use `/chat/socket/authorize`. |
 | `POST` | `/broadcasting/auth` | Verified bearer, conversation participant | `channel_name` | Legacy channel authorization; Socket.IO clients use the events below. |
+
+### Student profile
+
+Student profile requests also appear under the dedicated **Student** category in
+the developer explorer and in `student-profile.postman_collection.json`.
+
+| Method | Path | Access | Request / query | Result / notes |
+|---|---|---|---|---|
+| `GET` | `/student/profile` | Verified student bearer | — | Returns name, email, DOB, phone, `phone_pin`, profile image/status and `profileComplete` for the signed-in student. |
+| `PATCH` | `/student/profile` | Verified student bearer | Optional `name`, `email`, `phone`, `phone_pin` | Updates the signed-in student's fields directly without OTP in this profile flow. A changed phone is marked unverified; email changes require re-verification. |
+| `POST` | `/student/profile/photo` | Verified student bearer | Multipart `image` or `profile_image`, JPEG/PNG/WebP, max 5 MB | Uploads the profile image for moderation; returns `profileImage` and `profileImageStatus`. |
+| `POST` | `/auth/date-of-birth` | Verified bearer | `dateOfBirth` (`YYYY-MM-DD`) | Sets learner DOB through age/guardian checks; DOB is read-only in profile PATCH. |
+
+The saved request and response examples for these APIs are under **Student** in
+the Postman collection. Profile images use multipart upload; base64 image data
+is not required.
 
 ### Student DOB page and guardian consent
 
@@ -672,7 +689,7 @@ registry; see [reporting architecture](REPORTING_ARCHITECTURE.md).
 
 ### Developer workbench and Postman
 
-Open `/developer/login`, then choose Auth, Learner, Teacher, Institute or Common.
+Open `/developer/login`, then choose Auth, Learner, Student, Teacher, Institute or Common.
 The explorer uses the complete deployment base path and same-origin request
 restriction. Common admin-only calls retain admin checks. Request examples
 use fictional UUIDs/codes; supply real records for manual testing.

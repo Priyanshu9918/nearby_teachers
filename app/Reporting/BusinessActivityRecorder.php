@@ -3,6 +3,7 @@
 namespace App\Reporting;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 use LogicException;
 
@@ -24,6 +25,8 @@ final class BusinessActivityRecorder
         'teacher.profile_step_updated' => ['teacher_profile', ['step', 'changed_fields']],
         'teacher.profile_published' => ['teacher_profile', ['status', 'terms_accepted', 'profile_complete']],
         'teacher.avatar_submitted' => ['user', ['avatar_status']],
+        'learner.profile_updated' => ['user', ['changed_fields']],
+        'learner.avatar_submitted' => ['user', ['avatar_status']],
         'auth.logged_out' => ['user', ['auth_version', 'scope']],
         'user.blocked' => ['user', ['blocked']],
         'user.unblocked' => ['user', ['blocked']],
@@ -51,7 +54,7 @@ final class BusinessActivityRecorder
         'message.reaction_changed' => ['message_reaction', ['conversation_id', 'message_id', 'reaction']],
     ];
 
-    public function record(string $event, int $entityId, ?int $actorUserId, ?int $relatedUserId = null, array $before = [], array $after = []): int
+    public function record(string $event, string|int $entityId, string|int|null $actorUserId, string|int|null $relatedUserId = null, array $before = [], array $after = []): string
     {
         if (! isset(self::EVENTS[$event])) {
             throw new InvalidArgumentException('Unknown business activity event.');
@@ -64,7 +67,8 @@ final class BusinessActivityRecorder
         if ($unexpected !== []) {
             throw new InvalidArgumentException('Business activity contains undeclared snapshot fields.');
         }
-        $id = DB::table('business_activity')->insertGetId(['event' => $event, 'entity_type' => $entityType, 'entity_id' => $entityId,
+        $id = (string) Str::uuid();
+        DB::table('business_activity')->insert(['id' => $id, 'event' => $event, 'entity_type' => $entityType, 'entity_id' => (string) $entityId,
             'actor_user_id' => $actorUserId, 'related_user_id' => $relatedUserId, 'version' => 1,
             'before_data' => json_encode($before, JSON_THROW_ON_ERROR),
             'after_data' => json_encode($after, JSON_THROW_ON_ERROR), 'created_at' => now(),

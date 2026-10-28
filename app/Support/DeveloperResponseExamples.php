@@ -12,6 +12,7 @@ class DeveloperResponseExamples
         foreach ([
             'docs/postman/app-team.postman_collection.json',
             'docs/postman/teacher-profile-geography.postman_collection.json',
+            'docs/postman/student-profile.postman_collection.json',
         ] as $file) {
             $collection = json_decode(file_get_contents(base_path($file)), true, flags: JSON_THROW_ON_ERROR);
             foreach ($collection['item'] as $folder) {

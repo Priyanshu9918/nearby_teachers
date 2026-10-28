@@ -55,8 +55,8 @@ return [
     ],
     'users' => [
         'title' => 'Users and registrations', 'table' => 'users', 'timestamp' => 'created_at',
-        'columns' => ['id', 'account_type', 'full_name', 'email', 'phone', 'avatar_url', 'avatar_status', 'is_admin', 'date_of_birth', 'is_minor', 'guardian_name', 'guardian_contact', 'parental_consent_confirmed_at', 'parental_consent_rejected_at', 'parental_consent_expires_at', 'safety_disclaimer_acknowledged_at', 'preferred_language', 'suspended_at', 'suspended_reason', 'suspended_by', 'phone_verified_at', 'email_verified_at', 'referral_code', 'terms_accepted_at', 'registration_submitted_at', 'profile_completed_at', 'created_at', 'updated_at'],
-        'participants' => ['id'], 'search' => ['full_name', 'email', 'phone'],
+        'columns' => ['id', 'account_type', 'full_name', 'email', 'phone', 'phone_pin', 'avatar_url', 'avatar_status', 'is_admin', 'date_of_birth', 'is_minor', 'guardian_name', 'guardian_contact', 'parental_consent_confirmed_at', 'parental_consent_rejected_at', 'parental_consent_expires_at', 'safety_disclaimer_acknowledged_at', 'preferred_language', 'suspended_at', 'suspended_reason', 'suspended_by', 'phone_verified_at', 'email_verified_at', 'referral_code', 'terms_accepted_at', 'registration_submitted_at', 'profile_completed_at', 'created_at', 'updated_at'],
+        'participants' => ['id'], 'search' => ['full_name', 'email', 'phone', 'phone_pin'],
         'computed' => ['password_set' => 'CASE WHEN r.password_hash IS NOT NULL THEN 1 ELSE 0 END', 'google_linked' => 'CASE WHEN r.google_id IS NOT NULL THEN 1 ELSE 0 END', 'registration_completed' => "CASE WHEN r.profile_completed_at IS NOT NULL AND (r.account_type <> 'learner' OR (r.date_of_birth IS NOT NULL AND (r.is_minor = 0 OR r.parental_consent_confirmed_at IS NOT NULL))) THEN 1 ELSE 0 END"],
     ],
     'conversations' => [
