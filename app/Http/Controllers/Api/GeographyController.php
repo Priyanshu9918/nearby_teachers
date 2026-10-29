@@ -12,65 +12,53 @@ class GeographyController
     public function countries(Request $request): JsonResponse
     {
         $data = $request->validate(['search' => ['sometimes', 'string', 'max:100']]);
-        $countries = DB::table('countries')->when($data['search'] ?? null, function (Builder $query, string $term): void {
-            $query->where('name', 'like', '%'.$this->escapeLike($term).'%');
-        })->orderBy('name')->get(['code', 'alpha3', 'name']);
+        $countries = $this->search(DB::table('countries'), $data)
+            ->orderBy('name')->orderBy('id')->get(['id', 'sortname', 'name', 'phonecode']);
 
         return response()->json(['countries' => $countries]);
     }
 
-    public function states(Request $request, string $countryCode): JsonResponse
+    public function states(Request $request): JsonResponse
     {
-        $countryCode = strtoupper($countryCode);
-        abort_unless(DB::table('countries')->where('code', $countryCode)->exists(), 404);
-        $data = $request->validate(['search' => ['sometimes', 'string', 'max:100']]);
-        $states = DB::table('states')->where('country_code', $countryCode)
-            ->when($data['search'] ?? null, function (Builder $query, string $term): void {
-                $query->where('name', 'like', '%'.$this->escapeLike($term).'%');
-            })->orderBy('name')->get(['id', 'code', 'name', 'type']);
+        $data = $request->validate([
+            'country_id' => ['required', 'integer', 'min:1', 'max:9007199254740991'],
+            'search' => ['sometimes', 'string', 'max:100'],
+        ]);
+        $countryId = (int) $data['country_id'];
+        abort_unless(DB::table('countries')->where('id', $countryId)->exists(), 404, 'Country not found.');
+        $states = $this->search(DB::table('states')->where('country_id', $countryId), $data)
+            ->orderBy('name')->orderBy('id')->get(['id', 'name', 'country_id']);
 
-        return response()->json(['countryCode' => $countryCode, 'states' => $states]);
+        return response()->json(['country_id' => $countryId, 'states' => $states]);
     }
 
-    public function cities(Request $request, string $countryCode): JsonResponse
+    public function cities(Request $request): JsonResponse
     {
-        $countryCode = strtoupper($countryCode);
-        abort_unless(DB::table('countries')->where('code', $countryCode)->exists(), 404);
         $data = $request->validate([
-            'stateCode' => ['required', 'string', 'max:32'],
-            'search' => ['sometimes', 'string', 'min:2', 'max:100'],
+            'state_id' => ['required', 'integer', 'min:1', 'max:9007199254740991'],
+            'search' => ['sometimes', 'string', 'max:100'],
             'page' => ['sometimes', 'integer', 'min:1'],
             'perPage' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ]);
-        $stateCode = strtoupper($data['stateCode']);
-        $state = DB::table('states')->where('country_code', $countryCode)->where('code', $stateCode)->first(['id']);
-        abort_if($state === null, 404, 'State not found for this country.');
-
-        $query = DB::table('cities as c')->leftJoin('states as s', 's.id', '=', 'c.state_id')
-            ->where('c.country_code', $countryCode)
-            ->where('c.state_id', $state->id)
-            ->where('s.country_code', $countryCode)
-            ->when($data['search'] ?? null, function (Builder $query, string $term): void {
-                $pattern = '%'.$this->escapeLike($term).'%';
-                $query->where(fn (Builder $nested) => $nested->where('c.name', 'like', $pattern)->orWhere('c.ascii_name', 'like', $pattern));
-            });
-        $perPage = (int) ($data['perPage'] ?? 50);
-        $cities = $query->orderByDesc('c.population')->orderBy('c.name')->orderBy('c.geoname_id')->paginate($perPage, [
-            'c.geoname_id as id', 'c.name', 'c.ascii_name as asciiName', 's.code as stateCode',
-            's.name as stateName', 'c.latitude', 'c.longitude', 'c.population',
-        ], 'page', (int) ($data['page'] ?? 1));
+        $stateId = (int) $data['state_id'];
+        abort_unless(DB::table('states')->where('id', $stateId)->exists(), 404, 'State not found.');
+        $cities = $this->search(DB::table('cities')->where('state_id', $stateId), $data)
+            ->orderBy('name')->orderBy('id')->paginate((int) ($data['perPage'] ?? 50),
+                ['id', 'name', 'state_id'], 'page', (int) ($data['page'] ?? 1));
 
         return response()->json([
-            'countryCode' => $countryCode,
-            'stateCode' => $stateCode,
+            'state_id' => $stateId,
             'cities' => $cities->items(),
             'pagination' => ['page' => $cities->currentPage(), 'perPage' => $cities->perPage(), 'total' => $cities->total(), 'lastPage' => $cities->lastPage()],
-            'source' => 'GeoNames',
         ]);
     }
 
-    private function escapeLike(string $value): string
+    private function search(Builder $query, array $data): Builder
     {
-        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+        // Bind an escaped pattern so user-supplied % and _ remain literal.
+        return $query->when(isset($data['search']) && $data['search'] !== '', function (Builder $query) use ($data): void {
+            $term = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $data['search']);
+            $query->where('name', 'like', '%'.$term.'%');
+        });
     }
 }

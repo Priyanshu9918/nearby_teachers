@@ -331,9 +331,9 @@ in that same subsection.
 | `POST` | `/profiles/me/publish` | Verified teacher/institute bearer, completed registration | `agreeToTerms:true` | Step 6: validates required fields, records terms and completion, returns provider page links. |
 | `PUT` | `/profiles/me` | Verified provider bearer, completed registration | Provider fields described below | Updates the signed-in teacher/institute listing and its subject assignments. |
 | `GET` | `/teacher/profile` | Verified teacher bearer | — | Returns the signed-in teacher's account, profile fields, subjects, `profileComplete` flag and `webPageUrl` (null until publish). |
-| `PATCH` | `/teacher/profile/steps/{step}` | Verified teacher bearer, completed registration | Step 1 `fullName`, `listingName`; 2 subjects; 3 lesson modes/location; 4 rate/trial; 5 story/LinkedIn | Saves one allowlisted profile section. Account email is returned by `GET /teacher/profile` and is read-only. Step 5 bio must contain at least 100 words when supplied. |
+| `PATCH` | `/teacher/profile/steps/{step}` | Verified teacher bearer, completed registration | Step 1 `fullName`, `listingName`; 2 subjects; 3 lesson modes/location; 4 rate/trial; 5 story/LinkedIn | Saves one allowlisted profile section. Account email is returned by `GET /teacher/profile` and is read-only. Step 5 bio must contain at least 100 characters when supplied. |
 | `POST` | `/teacher/profile/photo` | Verified teacher bearer | Multipart `image`, JPEG/PNG/WebP, max 5 MB | Stores the image and submits it for moderation; returns `user.avatar_url`, `user.avatar_status` and a moderation message. |
-| `POST` | `/teacher/profile/publish` | Verified teacher bearer | `agreeToTerms:true` | Requires subject, city, district, country, teaching mode and 100-word bio; sets `is_profile_complete`, records acceptance and creates the teacher page plus location/subject SEO listings. Returns `profileComplete:true` and the teacher page URL keys. |
+| `POST` | `/teacher/profile/publish` | Verified teacher bearer | `agreeToTerms:true` | Requires subject, city, district, country, teaching mode and 100-character bio; sets `is_profile_complete`, records acceptance and creates the teacher page plus location/subject SEO listings. Returns `profileComplete:true` and the teacher page URL keys. |
 | `GET` | `/profiles/me/stats` | Verified bearer | Optional `days` (default 30, maximum 365) | Provider listing views and new booking-request counts. |
 | `GET` | `/bookings/incoming` | Verified bearer | `perPage`, `cursor` | Provider's incoming bookings. |
 | `GET` | `/profiles/{type}/{id}` | Public, optional bearer | `type`: `teacher` or `institute`; optional auth affects phone quota | Public listing profile. Suspended or not-yet-phone-verified optional tokens are treated as anonymous. |
@@ -388,7 +388,7 @@ Step-save and publish responses also include the same object. After saving steps
 Open `profileDraft.nextStep` and prefill with the existing `user`, `profile` and
 `subjects` response data. `completedSteps` tracks successfully saved sections,
 not a substitute for publish validation: existing partial-section validation
-still applies (including the 100-word rule when sending a bio). Send the section
+still applies (including the 100-character rule when sending a bio). Send the section
 payload when the user taps Next. Invalid requests do not advance progress.
 Revisiting a saved step keeps later progress; out-of-order saves resume at the
 first unsaved step. Once steps 1–5 are saved, `nextStep` is 6: submit
@@ -488,10 +488,10 @@ cannot be changed through the editor.
 | 5 | `bio`, `linkedinUrl` | `description`, `websiteUrl`, `instructorsText` |
 | 6 | `agreeToTerms:true` to `/profiles/me/publish` | Same request |
 
-A supplied bio/description must contain 100 words and remain within 2,000
+A supplied bio/description must contain 100 characters and remain within 2,000
 characters. A section can be partially updated; progress records successful
 section saves. Publication separately requires subjects, city, district, country,
-teaching modes and the 100-word story; institutes also require `contactPerson`.
+teaching modes and the 100-character story; institutes also require `contactPerson`.
 Rates, trial, website, instructors and listing name remain optional.
 
 `GET /profiles/me`, `GET /auth/session`, step saves and publish return the same
@@ -908,11 +908,14 @@ Postman collections include the new step-wise response examples.
 
 | Method | Path | Access | Request / query | Result / notes |
 |---|---|---|---|---|
-| `GET` | `/geo/countries` | Public | Optional `search` | Full stored country list with names and codes, unpaginated. Omit search to load all countries. |
-| `GET` | `/geo/countries/{countryCode}/states` | Public | Country alpha-2 code; optional `search` | All states for the selected country. |
-| `GET` | `/geo/countries/{countryCode}/cities` | Public | Required `stateCode`; optional `search`, `page`, `perPage` | Cities for the selected country/state only; default 50 per page, maximum 100. Missing state is 422, invalid country/state combination is 404. |
+| `GET` | `/geo/countries` | Public | Optional `search` | All imported countries: `id`, `sortname`, `name`, `phonecode`. Unpaginated. |
+| `GET` | `/geo/states` | Public | Required `country_id`; optional `search` | All states belonging to that country: `id`, `name`, `country_id`. |
+| `GET` | `/geo/cities` | Public | Required `state_id`; optional `search`, `page`, `perPage` | Cities belonging to that state: `id`, `name`, `state_id`. Default 50 per page, maximum 100. |
 
-Example: countries → `/geo/countries/IN/states` →
-`/geo/countries/IN/cities?stateCode=UP&perPage=50&page=1`. Cities responses include
-`countryCode`, `stateCode`, `cities` and `pagination`. Clear dependent selections
-when country/state changes. See [Geography API](GEOGRAPHY_API.md).
+Example: `/geo/countries` → `/geo/states?country_id=101` →
+`/geo/cities?state_id=1&perPage=50&page=1`. Use IDs from the preceding response.
+Missing/invalid parent IDs return 422; unknown IDs return 404. Cities responses
+include `state_id`, `cities` and `pagination`. Clear dependent selections when
+country/state changes. These replace the previous country-code geography URLs.
+See [Geography API](GEOGRAPHY_API.md) and the dedicated
+[Postman collection](postman/geography.postman_collection.json).

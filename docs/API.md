@@ -738,7 +738,7 @@ shown in this shared documentation category.
 | `GET` | `/auth/safety-disclaimer` | Public | — | Returns the disclaimer text. |
 | `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging or booking. |
 | `GET` | `/subjects` | Public | — | Subject domains with their subjects and BSL catalog data. |
-| `GET` | `/geo/countries`, `/geo/countries/{countryCode}/states`, `/geo/countries/{countryCode}/cities` | Public | Optional `search`; cities require `stateCode` and accept `page`, `perPage` | Full country list, country-scoped states and state-scoped paginated cities. See [Geography API and dataset import](GEOGRAPHY_API.md). |
+| `GET` | `/geo/countries`, `/geo/states`, `/geo/cities` | Public | Optional `search`; states require `country_id`; cities require `state_id` and accept `page`, `perPage` | Imported SQL country list, country-scoped states and state-scoped paginated cities. See [Geography API](GEOGRAPHY_API.md). |
 | `GET` | `/i18n/languages` | Public | — | Supported language metadata. |
 | `GET` | `/i18n/{lang}` | Public | Language code in path | Returns translations; unsupported language codes serve English and identify the requested/served language. |
 | `PATCH` | `/bookings/{id}/status` | Verified bearer, participant | `status`: `accepted`, `declined`, `cancelled`, or `completed` | Updates a booking in which the caller participates. |

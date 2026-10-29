@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Nearby Teacher — Institute Profile APIs",
-    "description": "Dedicated institute six-step profile collection with saved fictional JSON response examples. Set baseUrl and token to a verified institute account with completed registration. Start in Institute Profile — 6 Steps; draft examples are in Draft — Save and Resume. Shared /profiles/me APIs select the institute from the bearer. Step 5 description requires 100 words when supplied. Draft completion tracks successful section saves; publish separately validates required fields. Photo uploads require moderation and do not advance step progress. Existing institute pages with a nonempty slug retain publication compatibility after the rollout migration.",
+    "description": "Dedicated institute six-step profile collection with saved fictional JSON response examples. Set baseUrl and token to a verified institute account with completed registration. Start in Institute Profile — 6 Steps; draft examples are in Draft — Save and Resume. Shared /profiles/me APIs select the institute from the bearer. Step 5 description requires 100 characters when supplied. Draft completion tracks successful section saves; publish separately validates required fields. Photo uploads require moderation and do not advance step progress. Existing institute pages with a nonempty slug retain publication compatibility after the rollout migration.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -38,6 +38,16 @@
     {
       "key": "stateCode",
       "value": "UP",
+      "type": "string"
+    },
+    {
+      "key": "country_id",
+      "value": "101",
+      "type": "string"
+    },
+    {
+      "key": "state_id",
+      "value": "1",
       "type": "string"
     }
   ],
@@ -174,7 +184,7 @@
                 "1"
               ]
             },
-            "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+            "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
           },
           "response": [
             {
@@ -212,7 +222,7 @@
                     "1"
                   ]
                 },
-                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
               },
               "status": "OK",
               "code": 200,
@@ -263,7 +273,7 @@
                 "2"
               ]
             },
-            "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+            "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
           },
           "response": [
             {
@@ -301,7 +311,7 @@
                     "2"
                   ]
                 },
-                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
               },
               "status": "OK",
               "code": 200,
@@ -352,7 +362,7 @@
                 "3"
               ]
             },
-            "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+            "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
           },
           "response": [
             {
@@ -390,7 +400,7 @@
                     "3"
                   ]
                 },
-                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
               },
               "status": "OK",
               "code": 200,
@@ -441,7 +451,7 @@
                 "4"
               ]
             },
-            "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+            "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
           },
           "response": [
             {
@@ -479,7 +489,7 @@
                     "4"
                   ]
                 },
-                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
               },
               "status": "OK",
               "code": 200,
@@ -530,7 +540,7 @@
                 "5"
               ]
             },
-            "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+            "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
           },
           "response": [
             {
@@ -568,7 +578,7 @@
                     "5"
                   ]
                 },
-                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
               },
               "status": "OK",
               "code": 200,
@@ -699,7 +709,7 @@
                 "publish"
               ]
             },
-            "description": "Step 6. Send agreeToTerms:true after required profile data is ready. Institutes require subjectIds, contactPerson, city, district, country, lessonModes and a 100-word description. Returns profileComplete:true and provider page links."
+            "description": "Step 6. Send agreeToTerms:true after required profile data is ready. Institutes require subjectIds, contactPerson, city, district, country, lessonModes and a 100-character description. Returns profileComplete:true and provider page links."
           },
           "response": [
             {
@@ -736,7 +746,7 @@
                     "publish"
                   ]
                 },
-                "description": "Step 6. Send agreeToTerms:true after required profile data is ready. Institutes require subjectIds, contactPerson, city, district, country, lessonModes and a 100-word description. Returns profileComplete:true and provider page links."
+                "description": "Step 6. Send agreeToTerms:true after required profile data is ready. Institutes require subjectIds, contactPerson, city, district, country, lessonModes and a 100-character description. Returns profileComplete:true and provider page links."
               },
               "status": "OK",
               "code": 200,
@@ -784,7 +794,7 @@
                     "publish"
                   ]
                 },
-                "description": "Step 6. Send agreeToTerms:true after required profile data is ready. Institutes require subjectIds, contactPerson, city, district, country, lessonModes and a 100-word description. Returns profileComplete:true and provider page links."
+                "description": "Step 6. Send agreeToTerms:true after required profile data is ready. Institutes require subjectIds, contactPerson, city, district, country, lessonModes and a 100-character description. Returns profileComplete:true and provider page links."
               },
               "status": "OK",
               "code": 422,
@@ -1115,7 +1125,7 @@
           ]
         },
         {
-          "name": "GET — All countries",
+          "name": "GET /geo/countries",
           "request": {
             "method": "GET",
             "header": [
@@ -1134,7 +1144,10 @@
                 "countries"
               ]
             },
-            "description": "Returns the complete stored country list with full country names, alpha-2 and alpha-3 codes. No default search filter or pagination. Optional search narrows the list. Saved mock response illustrates a subset."
+            "description": "Returns the full imported country list (id, sortname, name, phonecode). Optional search filters names. Saved response is an abbreviated fictional example.",
+            "auth": {
+              "type": "noauth"
+            }
           },
           "response": [
             {
@@ -1157,7 +1170,10 @@
                     "countries"
                   ]
                 },
-                "description": "Returns the complete stored country list with full country names, alpha-2 and alpha-3 codes. No default search filter or pagination. Optional search narrows the list. Saved mock response illustrates a subset."
+                "description": "Returns the full imported country list (id, sortname, name, phonecode). Optional search filters names. Saved response is an abbreviated fictional example.",
+                "auth": {
+                  "type": "noauth"
+                }
               },
               "status": "OK",
               "code": 200,
@@ -1169,12 +1185,12 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"countries\": [\n    {\n      \"code\": \"IN\",\n      \"alpha3\": \"IND\",\n      \"name\": \"India\"\n    },\n    {\n      \"code\": \"GB\",\n      \"alpha3\": \"GBR\",\n      \"name\": \"United Kingdom\"\n    }\n  ]\n}"
+              "body": "{\n  \"countries\": [\n    {\n      \"id\": 101,\n      \"sortname\": \"IN\",\n      \"name\": \"India\",\n      \"phonecode\": 91\n    }\n  ]\n}"
             }
           ]
         },
         {
-          "name": "GET — All states for selected country",
+          "name": "GET /geo/states",
           "request": {
             "method": "GET",
             "header": [
@@ -1184,18 +1200,25 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/geo/countries/{{countryCode}}/states",
+              "raw": "{{baseUrl}}/geo/states?country_id={{country_id}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "geo",
-                "countries",
-                "{{countryCode}}",
                 "states"
+              ],
+              "query": [
+                {
+                  "key": "country_id",
+                  "value": "{{country_id}}"
+                }
               ]
             },
-            "description": "Select countryCode from GET /geo/countries. Returns all stored states for that country. Optional search is omitted here to show the full state list. Saved mock response illustrates a subset."
+            "description": "Required country_id from GET /geo/countries. Returns all states for that country (id, name, country_id). Optional search filters names.",
+            "auth": {
+              "type": "noauth"
+            }
           },
           "response": [
             {
@@ -1209,18 +1232,25 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/geo/countries/{{countryCode}}/states",
+                  "raw": "{{baseUrl}}/geo/states?country_id={{country_id}}",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "geo",
-                    "countries",
-                    "{{countryCode}}",
                     "states"
+                  ],
+                  "query": [
+                    {
+                      "key": "country_id",
+                      "value": "{{country_id}}"
+                    }
                   ]
                 },
-                "description": "Select countryCode from GET /geo/countries. Returns all stored states for that country. Optional search is omitted here to show the full state list. Saved mock response illustrates a subset."
+                "description": "Required country_id from GET /geo/countries. Returns all states for that country (id, name, country_id). Optional search filters names.",
+                "auth": {
+                  "type": "noauth"
+                }
               },
               "status": "OK",
               "code": 200,
@@ -1232,12 +1262,12 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"countryCode\": \"IN\",\n  \"states\": [\n    {\n      \"id\": 1,\n      \"code\": \"UP\",\n      \"name\": \"Uttar Pradesh\",\n      \"type\": \"state\"\n    }\n  ]\n}"
+              "body": "{\n  \"country_id\": 101,\n  \"states\": [\n    {\n      \"id\": 1,\n      \"name\": \"Andaman and Nicobar Islands\",\n      \"country_id\": 101\n    }\n  ]\n}"
             }
           ]
         },
         {
-          "name": "GET — Cities for selected country and state",
+          "name": "GET /geo/cities",
           "request": {
             "method": "GET",
             "header": [
@@ -1247,20 +1277,18 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/geo/countries/{{countryCode}}/cities?stateCode={{stateCode}}&perPage=50&page=1",
+              "raw": "{{baseUrl}}/geo/cities?state_id={{state_id}}&perPage=50&page=1",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "geo",
-                "countries",
-                "{{countryCode}}",
                 "cities"
               ],
               "query": [
                 {
-                  "key": "stateCode",
-                  "value": "{{stateCode}}"
+                  "key": "state_id",
+                  "value": "{{state_id}}"
                 },
                 {
                   "key": "perPage",
@@ -1272,7 +1300,10 @@
                 }
               ]
             },
-            "description": "Required stateCode comes from the selected country states API. Cities are restricted to that country and state. Missing stateCode returns 422; unknown/cross-country state returns 404. Results are paginated: default 50, maximum 100 per page. Optional search narrows the state city list."
+            "description": "Required state_id from GET /geo/states. Returns cities in that state (id, name, state_id). Optional search, page and perPage; default 50, maximum 100 per page.",
+            "auth": {
+              "type": "noauth"
+            }
           },
           "response": [
             {
@@ -1286,20 +1317,18 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/geo/countries/{{countryCode}}/cities?stateCode={{stateCode}}&perPage=50&page=1",
+                  "raw": "{{baseUrl}}/geo/cities?state_id={{state_id}}&perPage=50&page=1",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "geo",
-                    "countries",
-                    "{{countryCode}}",
                     "cities"
                   ],
                   "query": [
                     {
-                      "key": "stateCode",
-                      "value": "{{stateCode}}"
+                      "key": "state_id",
+                      "value": "{{state_id}}"
                     },
                     {
                       "key": "perPage",
@@ -1311,7 +1340,10 @@
                     }
                   ]
                 },
-                "description": "Required stateCode comes from the selected country states API. Cities are restricted to that country and state. Missing stateCode returns 422; unknown/cross-country state returns 404. Results are paginated: default 50, maximum 100 per page. Optional search narrows the state city list."
+                "description": "Required state_id from GET /geo/states. Returns cities in that state (id, name, state_id). Optional search, page and perPage; default 50, maximum 100 per page.",
+                "auth": {
+                  "type": "noauth"
+                }
               },
               "status": "OK",
               "code": 200,
@@ -1323,7 +1355,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"countryCode\": \"IN\",\n  \"cities\": [\n    {\n      \"id\": 1253405,\n      \"name\": \"Varanasi\",\n      \"asciiName\": \"Varanasi\",\n      \"stateCode\": \"UP\",\n      \"stateName\": \"Uttar Pradesh\",\n      \"latitude\": 25.3167,\n      \"longitude\": 83.0104,\n      \"population\": 1164404\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"perPage\": 50,\n    \"total\": 1,\n    \"lastPage\": 1\n  },\n  \"source\": \"GeoNames\",\n  \"stateCode\": \"UP\"\n}"
+              "body": "{\n  \"state_id\": 1,\n  \"cities\": [\n    {\n      \"id\": 3,\n      \"name\": \"Port Blair\",\n      \"state_id\": 1\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"perPage\": 50,\n    \"total\": 1,\n    \"lastPage\": 1\n  }\n}"
             }
           ]
         }

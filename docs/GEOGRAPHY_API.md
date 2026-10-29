@@ -1,54 +1,76 @@
 # Country, state and city API
 
-These public lookup APIs are intended for registration and profile forms. They
-are rate limited to 60 requests per minute per IP and return only location
-catalog data.
+Public, read-only dropdown lookups use the separately imported SQL tables:
+
+| Table | Required columns |
+|---|---|
+| `countries` | `id`, `sortname`, `name`, `phonecode` |
+| `states` | `id`, `name`, `country_id` |
+| `cities` | `id`, `name`, `state_id` |
+
+Only the listed columns are exposed. No authentication is required. Requests
+are limited to 60 per minute per IP.
 
 ## Endpoints
 
-| Method and path | Purpose |
+| Method and path | Result |
 |---|---|
-| `GET /geo/countries` | Complete stored country list with full names and codes; optional `search` narrows results. |
-| `GET /geo/countries/IN/states` | All stored states/subdivisions for the selected country. |
-| `GET /geo/countries/IN/cities?stateCode=UP&perPage=50&page=1` | Cities restricted to the selected country and state. Optional `search` narrows results. |
+| `GET /geo/countries` | All imported countries, with `id`, `sortname`, `name`, `phonecode`. |
+| `GET /geo/states?country_id=101` | All states belonging to country ID 101, with `id`, `name`, `country_id`. |
+| `GET /geo/cities?state_id=1&page=1&perPage=50` | Cities belonging to state ID 1, with `id`, `name`, `state_id`, plus pagination. |
 
-Country codes use ISO alpha-2 codes. `stateCode` is required for cities and must
-be a subdivision code returned by the selected country states endpoint. Missing
-or empty `stateCode` returns 422; an unknown state or one belonging to another
-country returns 404. Country and state codes accept lowercase and normalize to
-uppercase in the response. Unknown countries return 404. City search requires at least two characters;
-results are paginated (default 50, maximum 100) and sorted by population, name and record ID for stable pagination. The cities response includes the GeoNames record ID, name, state, and
-coordinates. These endpoints read country, state and city rows already stored
-in the application database.
+All three endpoints accept optional `search` to filter names. Omit search for
+the full matching list. Results sort by name, then ID. Country and state lists
+are unpaginated. Cities default to 50 per page and allow at most 100; use
+`pagination.lastPage` to load further pages.
 
-Example:
+Missing, empty, non-integer or non-positive parent IDs return 422. Unknown
+country IDs or state IDs return 404. A known parent without children returns an
+empty array. Invalid pagination or search values return 422.
 
-```http
-GET /geo/countries/IN/cities?stateCode=UP&search=kan
-Accept: application/json
-```
+Example response for `GET /geo/cities?state_id=1` (illustrative subset):
 
 ```json
 {
-  "countryCode": "IN",
-  "stateCode": "UP",
-  "cities": [
-    {"id": 1267995, "name": "Kanpur", "asciiName": "Kanpur", "stateCode": "UP", "stateName": "Uttar Pradesh", "latitude": "26.4652300", "longitude": "80.3497500", "population": 2823249}
-  ],
-  "pagination": {"page": 1, "perPage": 50, "total": 1, "lastPage": 1},
-  "source": "GeoNames"
+  "state_id": 1,
+  "cities": [{"id": 3, "name": "Port Blair", "state_id": 1}],
+  "pagination": {"page": 1, "perPage": 50, "total": 1, "lastPage": 1}
 }
 ```
 
+Load countries first. Pass the selected country's `id` as `country_id` to states,
+then the selected state's `id` as `state_id` to cities. Clear state and city
+selections when country changes, and clear city when state changes.
 
-Dropdown flow: load `/geo/countries` without `search`, select a country, load its
-`/states`, select a state, then load `/cities?stateCode=...`. Clear selected state
-and city when country changes, and clear selected city when state changes.
-Country and state lists are unpaginated. City lists remain bounded; use
-`pagination.lastPage` to load further pages. These are read-only catalog lookups;
-no business state or historical events are mutated. No schema migration needed.
+## Schema transition and history
 
-Updated Postman requests are in the teacher/geography and institute collections,
-and under Common in the app-team collection. Default examples no longer filter
-countries to India or states to a name substring. Saved responses are abbreviated
-mock examples; the API returns all matching stored catalog entries.
+These APIs replace the legacy GeoNames country-code URLs and response fields.
+Use `/geo/states?country_id=...` and `/geo/cities?state_id=...` instead of
+`/geo/countries/{countryCode}/states` and
+`/geo/countries/{countryCode}/cities?stateCode=...`.
+
+The supplied SQL tables must already be imported. This change does not alter
+or populate application tables. Legacy GeoNames migrations and import/export
+commands target a different schema; do not use them to populate these imported
+tables. Existing profile location names and country codes are separate from
+these dropdown IDs. Ensure indexes on `states.country_id` and `cities.state_id`
+when preparing the imported dataset for large catalogues.
+
+These are read-only catalog queries; no new business state or history events
+are created. External SQL import history is not reconstructed or recorded by
+these endpoints.
+
+## Postman and verification
+
+Import [geography.postman_collection.json](postman/geography.postman_collection.json).
+Set `baseUrl`, then select `country_id` and `state_id` from returned rows. The
+app-team, teacher/geography and institute collections use the same endpoints.
+Saved responses are abbreviated fictional examples.
+
+Integration tests use only an explicitly selected disposable MySQL database
+ending in `_test`, with fixtures matching the imported schema and rolled back
+after each test. No application migrations or application data clearing run:
+
+```sh
+GEOGRAPHY_TEST_DATABASE=nearby_teachers_geography_test php artisan test tests/Feature/GeographyApiTest.php
+```

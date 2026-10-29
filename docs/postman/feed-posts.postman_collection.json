@@ -1,0 +1,195 @@
+{
+  "info": {
+    "name": "Nearby Teachers — Feed, Post, Like and Unlike",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Set baseUrl and a verified user bearer token in collection variables. All learner, teacher and institute accounts use these endpoints. Create Post accepts only city and body and saves the returned postId automatically. For an existing post, set postId manually before Like or Unlike. Unlike uses DELETE on the same /feed/{postId}/like URL. Posting is limited to once every 7 days per account."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://157.245.125.79/nearby_teachers/public",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "postId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "city",
+      "value": "Delhi",
+      "type": "string"
+    },
+    {
+      "key": "perPage",
+      "value": "50",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/feed?city={{city}}&perPage={{perPage}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "feed"
+          ],
+          "query": [
+            {
+              "key": "city",
+              "value": "{{city}}",
+              "disabled": false
+            },
+            {
+              "key": "perPage",
+              "value": "{{perPage}}",
+              "disabled": false
+            },
+            {
+              "key": "cursor",
+              "value": "{{cursor}}",
+              "disabled": true
+            }
+          ]
+        },
+        "description": "Read the shared city feed with perPage/cursor pagination. Feed visibility is shared across learner, teacher and institute accounts."
+      },
+      "name": "Feed — List posts"
+    },
+    {
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/feed",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "feed"
+          ]
+        },
+        "description": "Create a city feed post. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"city\": \"{{city}}\",\n  \"body\": \"Looking for maths lessons in Delhi.\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code >= 200 && pm.response.code < 300) {",
+              "  const data = pm.response.json();",
+              "  if (data.post && data.post.id) pm.collectionVariables.set(\"postId\", data.post && data.post.id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "name": "Post — Create"
+    },
+    {
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/feed/{{postId}}/like",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "feed",
+            "{{postId}}",
+            "like"
+          ]
+        },
+        "description": "Like a feed post as the authenticated user; repeated likes are idempotent.",
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "name": "Post — Like"
+    },
+    {
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/feed/{{postId}}/like",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "feed",
+            "{{postId}}",
+            "like"
+          ]
+        },
+        "description": "Remove the authenticated user’s like from a feed post."
+      },
+      "name": "Post — Unlike"
+    }
+  ]
+}

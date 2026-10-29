@@ -48,7 +48,7 @@ final class ProfileEditor
             $missing[] = 'countryCode';
         }
         $story = $type === 'teacher' ? 'bio' : 'description';
-        if (self::wordCount((string) ($profile->$story ?? '')) < 100) {
+        if (self::characterCount((string) ($profile->$story ?? '')) < 100) {
             $missing[] = $story;
         }
         $modes = $profile->lesson_modes ?? [];
@@ -65,9 +65,9 @@ final class ProfileEditor
         return $missing;
     }
 
-    public static function wordCount(string $value): int
+    public static function characterCount(string $value): int
     {
-        return preg_match_all("/[\\p{L}\\p{N}]+(?:['’][\\p{L}\\p{N}]+)*/u", trim($value)) ?: 0;
+        return mb_strlen(trim($value), 'UTF-8');
     }
 
     public static function urls(?object $profile, string $type): array

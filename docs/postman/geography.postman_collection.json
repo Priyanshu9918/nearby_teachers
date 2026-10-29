@@ -1,0 +1,264 @@
+{
+  "info": {
+    "name": "Nearby Teachers — Country, State and City",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Public APIs for the imported countries, states and cities SQL tables. Set country_id from a country response, then state_id from its states response. Country and state lists are complete; cities use page/perPage. Saved examples are abbreviated and fictional."
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://157.245.125.79/nearby_teachers/public",
+      "type": "string"
+    },
+    {
+      "key": "country_id",
+      "value": "101",
+      "type": "string"
+    },
+    {
+      "key": "state_id",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "GET /geo/countries",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/geo/countries",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "geo",
+            "countries"
+          ]
+        },
+        "description": "Returns the full imported country list (id, sortname, name, phonecode). Optional search filters names. Saved response is an abbreviated fictional example.",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "response": [
+        {
+          "name": "200 — Countries",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/geo/countries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "geo",
+                "countries"
+              ]
+            },
+            "description": "Returns the full imported country list (id, sortname, name, phonecode). Optional search filters names. Saved response is an abbreviated fictional example.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"countries\": [\n    {\n      \"id\": 101,\n      \"sortname\": \"IN\",\n      \"name\": \"India\",\n      \"phonecode\": 91\n    }\n  ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "GET /geo/states",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/geo/states?country_id={{country_id}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "geo",
+            "states"
+          ],
+          "query": [
+            {
+              "key": "country_id",
+              "value": "{{country_id}}"
+            }
+          ]
+        },
+        "description": "Required country_id from GET /geo/countries. Returns all states for that country (id, name, country_id). Optional search filters names.",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "response": [
+        {
+          "name": "200 — States",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/geo/states?country_id={{country_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "geo",
+                "states"
+              ],
+              "query": [
+                {
+                  "key": "country_id",
+                  "value": "{{country_id}}"
+                }
+              ]
+            },
+            "description": "Required country_id from GET /geo/countries. Returns all states for that country (id, name, country_id). Optional search filters names.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"country_id\": 101,\n  \"states\": [\n    {\n      \"id\": 1,\n      \"name\": \"Andaman and Nicobar Islands\",\n      \"country_id\": 101\n    }\n  ]\n}"
+        }
+      ]
+    },
+    {
+      "name": "GET /geo/cities",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/geo/cities?state_id={{state_id}}&perPage=50&page=1",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "geo",
+            "cities"
+          ],
+          "query": [
+            {
+              "key": "state_id",
+              "value": "{{state_id}}"
+            },
+            {
+              "key": "perPage",
+              "value": "50"
+            },
+            {
+              "key": "page",
+              "value": "1"
+            }
+          ]
+        },
+        "description": "Required state_id from GET /geo/states. Returns cities in that state (id, name, state_id). Optional search, page and perPage; default 50, maximum 100 per page.",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "response": [
+        {
+          "name": "200 — Cities with pagination",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/geo/cities?state_id={{state_id}}&perPage=50&page=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "geo",
+                "cities"
+              ],
+              "query": [
+                {
+                  "key": "state_id",
+                  "value": "{{state_id}}"
+                },
+                {
+                  "key": "perPage",
+                  "value": "50"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Required state_id from GET /geo/states. Returns cities in that state (id, name, state_id). Optional search, page and perPage; default 50, maximum 100 per page.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"state_id\": 1,\n  \"cities\": [\n    {\n      \"id\": 3,\n      \"name\": \"Port Blair\",\n      \"state_id\": 1\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"perPage\": 50,\n    \"total\": 1,\n    \"lastPage\": 1\n  }\n}"
+        }
+      ]
+    }
+  ]
+}

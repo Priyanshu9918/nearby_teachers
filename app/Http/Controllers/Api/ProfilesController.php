@@ -238,7 +238,9 @@ class ProfilesController extends Controller
                 'fullName' => ['sometimes', 'required', 'string', 'min:2', 'max:160'],
                 'listingName' => ['sometimes', 'nullable', 'string', 'min:2', 'max:160'],
             ];
-            if (! $isTeacher) $rules['contactPerson'] = ['sometimes', 'required', 'string', 'min:2', 'max:160'];
+            if (! $isTeacher) {
+                $rules['contactPerson'] = ['sometimes', 'required', 'string', 'min:2', 'max:160'];
+            }
             $data = validator($payload, $rules)->validate();
             $draft = DB::transaction(function () use ($user, $data, $type, $table): array {
                 abort_if(DB::table($table)->where('user_id', $user->id)->lockForUpdate()->first() === null, 404, 'Profile not found.');
@@ -257,12 +259,16 @@ class ProfilesController extends Controller
                 DB::table($table)->where('user_id', $user->id)->update($updates);
                 app(BusinessActivityRecorder::class)->record($type.'.profile_step_updated', $user->id, $user->id,
                     after: ['step' => 1, 'changed_fields' => $changed]);
-                if ($type === 'teacher') app(TeacherPublicPages::class)->publish((int) $user->id, (int) $user->id);
+                if ($type === 'teacher') {
+                    app(TeacherPublicPages::class)->publish((int) $user->id, (int) $user->id);
+                }
 
                 return app(ProfileDraft::class)->saveStep((int) $user->id, 1, $type);
             });
             $columns = ['u.full_name', 'u.email', 'p.listing_name'];
-            if (! $isTeacher) $columns[] = 'p.contact_person';
+            if (! $isTeacher) {
+                $columns[] = 'p.contact_person';
+            }
             $saved = DB::table('users as u')->join($table.' as p', 'p.user_id', '=', 'u.id')->where('u.id', $user->id)->first($columns);
 
             return response()->json(['ok' => true, 'step' => 1, 'fullName' => $saved->full_name,
@@ -275,10 +281,10 @@ class ProfilesController extends Controller
                 $subjects.'.*' => ['required', 'integer', 'distinct', 'exists:subjects,id']])->validate();
         }
         if ($step === '5') {
-            // Validate the type before word counting, including malformed array input.
+            // Validate the type before counting characters, including malformed array input.
             validator($payload, [$story => ['sometimes', 'nullable', 'string', 'max:2000']])->validate();
-            if (isset($payload[$story]) && ProfileEditor::wordCount($payload[$story]) < 100) {
-                throw ValidationException::withMessages([$story => 'Write at least 100 words about '.($isTeacher ? 'yourself.' : 'your institute.')]);
+            if (isset($payload[$story]) && ProfileEditor::characterCount($payload[$story]) < 100) {
+                throw ValidationException::withMessages([$story => 'Write at least 100 characters about '.($isTeacher ? 'yourself.' : 'your institute.')]);
             }
         }
         $request->replace($payload);

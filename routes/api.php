@@ -42,8 +42,8 @@ Route::get('/i18n/{lang}', [I18nController::class, 'translations']);
 Route::get('/subjects', SubjectsController::class);
 Route::prefix('geo')->middleware('throttle:60,1')->group(function (): void {
     Route::get('/countries', [GeographyController::class, 'countries']);
-    Route::get('/countries/{countryCode}/states', [GeographyController::class, 'states'])->where('countryCode', '[A-Za-z]{2}');
-    Route::get('/countries/{countryCode}/cities', [GeographyController::class, 'cities'])->where('countryCode', '[A-Za-z]{2}');
+    Route::get('/states', [GeographyController::class, 'states']);
+    Route::get('/cities', [GeographyController::class, 'cities']);
 });
 Route::post('/analytics/page-view', [OperationsController::class, 'recordPageView'])->middleware('throttle:120,1');
 Route::get('/reviews/for/{providerId}', [CommunityController::class, 'providerReviews'])->where('providerId', RecordId::ROUTE_PATTERN);

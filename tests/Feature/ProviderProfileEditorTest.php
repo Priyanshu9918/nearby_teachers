@@ -96,7 +96,7 @@ class ProviderProfileEditorTest extends TestCase
         $this->travelBack();
         $this->patchJson('/profiles/me/steps/4', [$type === 'teacher' ? 'ratePerHour' : 'startingRate' => 600, 'currency' => 'INR', 'trialDays' => 2])
             ->assertOk()->assertJsonPath('profileDraft.nextStep', 5);
-        $this->patchJson('/profiles/me/steps/5', [$type === 'teacher' ? 'bio' : 'description' => str_repeat('We help students build confidence through regular practice and feedback. ', 10)])
+        $this->patchJson('/profiles/me/steps/5', [$type === 'teacher' ? 'bio' : 'description' => str_repeat('a', 100)])
             ->assertOk()->assertJsonPath('profileDraft.nextStep', 6);
         $published = $this->postJson('/profiles/me/publish', ['agreeToTerms' => true])->assertOk()
             ->assertJsonPath('profileComplete', true)->assertJsonPath('profileDraft.status', 'published')
@@ -120,6 +120,20 @@ class ProviderProfileEditorTest extends TestCase
         } else {
             $this->getJson('/teacher/profile')->assertOk()->assertJsonPath('profileDraft.nextStep', null);
         }
+    }
+
+    #[DataProvider('providers')]
+    public function test_about_me_requires_100_characters_instead_of_100_words(string $type): void
+    {
+        if ($type === 'teacher') {
+            $this->useTeacher();
+        }
+        $story = $type === 'teacher' ? 'bio' : 'description';
+        $this->patchJson('/profiles/me/steps/5', [$story => str_repeat('é', 99)])
+            ->assertUnprocessable()->assertJsonValidationErrors($story);
+        $this->patchJson('/profiles/me/steps/5', [$story => str_repeat('é', 100)])
+            ->assertOk();
+        $this->assertDatabaseHas($type.'_profiles', ['user_id' => $this->userId, $story => str_repeat('é', 100)]);
     }
 
     public function test_invalid_fields_and_incomplete_publication_do_not_advance_or_publish(): void
