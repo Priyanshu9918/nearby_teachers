@@ -362,6 +362,45 @@ in that same subsection.
 | `POST` | `/chat/events/history` | chat:history · Fetch chat history |
 | `POST` | `/chat/events/unread_count` | chat:unread_count · Unread message count |
 
+Teacher profile drafts are saved automatically by each successful
+`PATCH /teacher/profile/steps/{step}` request; no extra draft endpoint or local
+storage is required. On the next login/app launch, use `GET /teacher/profile`
+(or `GET /auth/session`) to restore saved fields/subjects and read `profileDraft`.
+Step-save and publish responses also include the same object. After saving steps
+1–3, for example:
+
+```json
+{
+  "profileDraft": {
+    "status": "draft",
+    "totalSteps": 6,
+    "completedSteps": [1, 2, 3],
+    "nextStep": 4,
+    "lastSavedAt": "2026-10-28 10:00:00"
+  }
+}
+```
+
+Open `profileDraft.nextStep` and prefill with the existing `user`, `profile` and
+`subjects` response data. `completedSteps` tracks successfully saved sections,
+not a substitute for publish validation: existing partial-section validation
+still applies (including the 100-word rule when sending a bio). Send the section
+payload when the user taps Next. Invalid requests do not advance progress.
+Revisiting a saved step keeps later progress; out-of-order saves resume at the
+first unsaved step. Once steps 1–5 are saved, `nextStep` is 6: submit
+`POST /teacher/profile/publish` with `agreeToTerms:true`. Successful publish
+returns `status:published`, `completedSteps:[1,2,3,4,5,6]`, `nextStep:null`.
+Draft saves do not complete or publish an incomplete profile. Drafts have no
+expiry and remain tied to the authenticated account across devices/sessions.
+`lastSavedAt` is the last section-save timestamp in the application's timezone;
+GET/session reads do not change it. Photo upload is separate from step progress.
+
+Existing unpublished profiles keep their data but start with empty step tracking
+(`nextStep:1`, `lastSavedAt:null`); no historical steps or save dates are invented.
+Existing completed profiles return published progress immediately. Updating a
+completed profile preserves its existing publication behavior. Generic
+`PUT /profiles/me` updates do not advance this editor's step tracking.
+
 Successful response examples for the teacher profile read, all five editor steps,
 photo upload and publish are saved under **Teacher → Profile** in the Postman
 collection. Teacher/institute listing updates, public profile reads and stats have

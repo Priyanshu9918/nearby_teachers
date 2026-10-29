@@ -106,6 +106,7 @@ Current event coverage starts when migration `000029` is deployed:
 | `auth.logged_out` | Previous/new auth version and `scope:all_sessions`; token revocation and history commit together |
 | `registration.submitted` | Previous/new account type and `registration_submitted_at`; the full form saved before learner DOB completion |
 | `registration.completed` | Previous/new account type and completion timestamp |
+| `teacher.profile_draft_saved` | Version 1: saved step, completed step numbers and next step only; emitted with section data and progress in the same transaction. No field values or credentials. |
 | `teacher.profile_step_updated` | Teacher profile step number and changed field names; values such as name, bio, and location are not copied into the event |
 | `teacher.profile_published` | Published status, terms acceptance and profile-completion flag, in the same transaction as page creation |
 | `teacher.avatar_submitted` | Pending moderation status only; image URL/content is not copied into history |
@@ -250,3 +251,14 @@ timestamps and activity reports cover request/decision history. Token hashes
 and raw links are never reportable. Read-time expiry has no synthetic event;
 app-team SMS delivery and guardian identity verification are not captured.
 Legacy decisions are not reconstructed. See [consent contract](PARENTAL_CONSENT.md).
+
+Teacher six-step editor draft progress is current state in the teacher-profile
+report (`completed_profile_steps`, `profile_draft_saved_at`), with existing
+admin authorization, filtering and streamed CSV exports. The report timestamp
+remains profile `created_at`; use business-activity `created_at` for save history.
+`teacher.profile_draft_saved` starts at rollout; legacy unpublished profiles keep
+saved fields but have no invented completion history. Generic profile updates,
+photo uploads and GET/session reads do not emit draft progress. Final publication
+continues to use `teacher.profile_published`; existing completed profiles report
+all six steps complete. Section-save history records step metadata, not exact
+past names, bio, address or contact values.

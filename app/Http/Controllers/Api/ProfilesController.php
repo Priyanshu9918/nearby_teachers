@@ -9,6 +9,7 @@ use App\Services\OnboardingState;
 use App\Services\TeacherAddress;
 use App\Services\TeacherLocation;
 use App\Services\TeacherPublicPages;
+use App\Services\TeacherProfileDraft;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -194,7 +195,7 @@ class ProfilesController extends Controller
                 'fullName' => ['sometimes', 'required', 'string', 'min:2', 'max:160'],
                 'listingName' => ['sometimes', 'nullable', 'string', 'min:2', 'max:160'],
             ])->validate();
-            DB::transaction(function () use ($user, $data): void {
+            $draft = DB::transaction(function () use ($user, $data): array {
                 abort_if(DB::table('teacher_profiles')->where('user_id', $user->id)->lockForUpdate()->first() === null, 404, 'Teacher profile not found.');
                 $updates = ['updated_at' => now()];
                 $changedFields = [];
@@ -213,13 +214,15 @@ class ProfilesController extends Controller
                 app(BusinessActivityRecorder::class)->record('teacher.profile_step_updated', (string) $user->id, (string) $user->id,
                     after: ['step' => 1, 'changed_fields' => $changedFields]);
                 app(TeacherPublicPages::class)->publish((int) $user->id, (int) $user->id);
+
+                return app(TeacherProfileDraft::class)->saveStep((int) $user->id, 1);
             });
 
             $saved = DB::table('users as u')->join('teacher_profiles as p', 'p.user_id', '=', 'u.id')
                 ->where('u.id', $user->id)->first(['u.full_name', 'u.email', 'p.listing_name']);
 
             return response()->json(['ok' => true, 'step' => 1, 'fullName' => $saved->full_name,
-                'email' => $saved->email, 'listingName' => $saved->listing_name ?? $saved->full_name]);
+                'email' => $saved->email, 'listingName' => $saved->listing_name ?? $saved->full_name, 'profileDraft' => $draft]);
         }
 
         $stepFields = match ($step) {
@@ -236,8 +239,9 @@ class ProfilesController extends Controller
         $request->replace($stepFields);
         $body = DB::transaction(function () use ($request, $step, $stepFields, $user): array {
             $body = $this->updateMine($request)->getData(true);
-                app(BusinessActivityRecorder::class)->record('teacher.profile_step_updated', (string) $user->id, (string) $user->id,
+            app(BusinessActivityRecorder::class)->record('teacher.profile_step_updated', (string) $user->id, (string) $user->id,
                 after: ['step' => (int) $step, 'changed_fields' => array_keys($stepFields)]);
+            $body['profileDraft'] = app(TeacherProfileDraft::class)->saveStep((int) $user->id, (int) $step);
 
             return $body;
         });
@@ -281,6 +285,7 @@ class ProfilesController extends Controller
         }
 
         return response()->json(['ok' => true, 'published' => true, 'profileComplete' => true,
+            'profileDraft' => TeacherProfileDraft::forProfile($profile),
             ...TeacherPublicPages::urls($profile, $user->full_name)]);
     }
 
@@ -289,7 +294,7 @@ class ProfilesController extends Controller
         $user = $request->attributes->get('authenticated_user');
         abort_unless($user->account_type === 'teacher', 403, 'Teacher account required.');
         $profile = DB::table('teacher_profiles')->where('user_id', $user->id)
-            ->first(['id', 'user_id', 'primary_subject_id', 'listing_name', 'is_profile_complete', 'bio', 'rate_per_hour', 'currency', 'lesson_modes', 'latitude', 'longitude', 'address_text', 'city', 'state', 'country', 'country_code', 'linkedin_url', 'slug', 'is_verified', 'verified_at', 'trial_days', 'rating_avg', 'rating_count', 'district', 'sub_district', 'locality', 'locality_type', 'postal_code', 'location_details', 'public_page_slug', 'public_profile_slug', 'seo_slug', 'seo_country', 'seo_city_slug']);
+            ->first(['id', 'user_id', 'primary_subject_id', 'listing_name', 'is_profile_complete', 'completed_profile_steps', 'profile_draft_saved_at', 'bio', 'rate_per_hour', 'currency', 'lesson_modes', 'latitude', 'longitude', 'address_text', 'city', 'state', 'country', 'country_code', 'linkedin_url', 'slug', 'is_verified', 'verified_at', 'trial_days', 'rating_avg', 'rating_count', 'district', 'sub_district', 'locality', 'locality_type', 'postal_code', 'location_details', 'public_page_slug', 'public_profile_slug', 'seo_slug', 'seo_country', 'seo_city_slug']);
         abort_if($profile === null, 404, 'Teacher profile not found.');
         $profile->lesson_modes = json_decode($profile->lesson_modes ?: '[]', true, flags: JSON_THROW_ON_ERROR);
         $profile->is_profile_complete = (bool) $profile->is_profile_complete;
@@ -299,6 +304,7 @@ class ProfilesController extends Controller
 
         return response()->json(['user' => $userData, 'profile' => $profile,
             'profileComplete' => $profile->is_profile_complete,
+            'profileDraft' => TeacherProfileDraft::forProfile($profile),
             ...TeacherPublicPages::urls($profile, $userData->full_name),
             'subjects' => TeacherPublicPages::subjects((int) $user->id)]);
     }
@@ -349,7 +355,7 @@ class ProfilesController extends Controller
             return response()->json(['error' => 'Not found'], 404);
         }
         // Enrichment belongs to the owner onboarding response and admin reports only.
-        unset($profile->location_details);
+        unset($profile->location_details, $profile->completed_profile_steps, $profile->profile_draft_saved_at);
         unset($profile->seo_state_hash);
         unset($profile->district, $profile->sub_district, $profile->locality, $profile->locality_type, $profile->postal_code);
 

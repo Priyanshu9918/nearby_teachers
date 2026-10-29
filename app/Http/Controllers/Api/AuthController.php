@@ -329,6 +329,7 @@ class AuthController extends Controller
             'profileComplete' => $profileComplete,
             'publicProfilePublished' => $accountType === 'teacher' && filled($profile->public_page_slug ?? null),
             'profileCompletion' => ['isComplete' => $profileComplete, 'missingFields' => $completionMissing],
+            ...($accountType === 'teacher' ? ['profileDraft' => \App\Services\TeacherProfileDraft::forProfile($profile)] : []),
         ]);
     }
 
