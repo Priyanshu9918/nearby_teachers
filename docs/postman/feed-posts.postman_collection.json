@@ -2,7 +2,7 @@
   "info": {
     "name": "Nearby Teachers — Feed, Post, Like and Unlike",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Set baseUrl and a verified user bearer token in collection variables. All learner, teacher and institute accounts use these endpoints. Create Post accepts only city and body and saves the returned postId automatically. For an existing post, set postId manually before Like or Unlike. Unlike uses DELETE on the same /feed/{postId}/like URL. Posting is limited to once every 7 days per account."
+    "description": "Set baseUrl and a verified user bearer token in collection variables. All learner, teacher and institute accounts use these endpoints. Create Post accepts city, optional subjectId and body and saves the returned postId automatically. For an existing post, set postId manually before Like or Unlike. Unlike uses DELETE on the same /feed/{postId}/like URL. Posting is limited to once every 7 days per account."
   },
   "auth": {
     "type": "bearer",
@@ -38,6 +38,11 @@
     {
       "key": "perPage",
       "value": "50",
+      "type": "string"
+    },
+    {
+      "key": "subjectId",
+      "value": "1",
       "type": "string"
     }
   ],

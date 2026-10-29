@@ -78,6 +78,35 @@ class TeacherPublicPagesTest extends TestCase
         $this->assertSame('http://localhost/teacher/asha-sharma-kanpur', TeacherPublicPages::urls($published)['webPageUrl']);
     }
 
+    public function test_location_directory_uses_short_paths_and_mobile_teacher_cards(): void
+    {
+        $teacher = $this->teacher();
+        DB::table('teacher_profiles')->where('user_id', $teacher->user_id)->update([
+            'district' => 'Kanpur Nagar', 'locality' => 'Bithoor',
+        ]);
+        app(TeacherPublicPages::class)->publish($teacher->user_id, $teacher->user_id);
+
+        $paths = DB::table('seo_location_pages')->where('country', 'in')->where('language', 'en')->pluck('path')->all();
+        $this->assertContains('/in', $paths);
+        $this->assertContains('/in/kanpur-nagar', $paths);
+        $this->assertContains('/in/kanpur-nagar/bithoor', $paths);
+        $this->assertContains('/in/kanpur-nagar/bithoor/maths-tuition', $paths);
+        $this->assertNotContains('/in/en/kanpur-nagar/bithoor', $paths);
+
+        $page = $this->get('/in/kanpur-nagar/bithoor')->assertOk()
+            ->assertSee('<h1>Teachers in Bithoor, Kanpur Nagar</h1>', false)
+            ->assertSee('directory-search')->assertSee('Referral points:')
+            ->assertSee('Maths')->assertSee('Get the app to contact')->assertSee('View profile');
+        $this->assertStringNotContainsString('/in/en/', $page->getContent());
+        $this->get('/in/hi/kanpur-nagar/bithoor')->assertStatus(301)
+            ->assertRedirect('http://localhost/in/kanpur-nagar/bithoor?lang=hi');
+        $this->get('/in/kanpur-nagar/bithoor?lang=hi')->assertOk()
+            ->assertSee('<html lang="hi"', false)
+            ->assertSee('<link rel="canonical" href="http://localhost/in/kanpur-nagar/bithoor">', false);
+        $this->get('/in/kanpur-nagar/bithoor?mode=home_tuition')->assertOk()
+            ->assertSee('No teachers match these filters.');
+    }
+
     public function test_one_teacher_page_all_subjects_privacy_and_old_routes_redirect(): void
     {
         $profile = $this->teacher(subjects: ['Maths', 'English', 'Physics', 'Chemistry', 'Hindi']);
@@ -105,17 +134,19 @@ class TeacherPublicPagesTest extends TestCase
         $this->get('/teachers/'.$old)->assertStatus(301)->assertRedirect('http://localhost/teacher/asha-sharma-kanpur');
     }
 
-    public function test_listing_languages_have_reciprocal_hreflang_and_self_canonicals(): void
+    public function test_listing_languages_share_the_short_canonical_url(): void
     {
         $this->teacher();
-        $english = $this->get('/in/kanpur/maths-tuition')->assertOk()->assertSee('Maths teachers in Kanpur');
-        $hindi = $this->get('/in/hi/kanpur/maths-tuition')->assertOk()->assertSee('<html lang="hi"', false)->assertSee('गणित');
-        foreach ([$english, $hindi] as $response) {
-            $response->assertSee('hreflang="en-IN"', false)->assertSee('hreflang="hi-IN"', false)
-                ->assertSee('http://localhost/in/kanpur/maths-tuition', false)->assertSee('http://localhost/in/hi/kanpur/maths-tuition', false);
-        }
-        $hindi->assertSee('<link rel="canonical" href="http://localhost/in/hi/kanpur/maths-tuition">', false);
-        $this->get('/in/en/kanpur/maths-tuition')->assertStatus(301)->assertRedirect('http://localhost/in/kanpur/maths-tuition');
+        $this->get('/in/kanpur/maths-tuition')->assertOk()->assertSee('Maths teachers in Kanpur')
+            ->assertSee('<link rel="canonical" href="http://localhost/in/kanpur/maths-tuition">', false)
+            ->assertDontSee('hreflang=', false);
+        $this->get('/in/hi/kanpur/maths-tuition')->assertStatus(301)
+            ->assertRedirect('http://localhost/in/kanpur/maths-tuition?lang=hi');
+        $this->get('/in/kanpur/maths-tuition?lang=hi')->assertOk()->assertSee('<html lang="hi"', false)
+            ->assertSee('गणित')->assertSee('<link rel="canonical" href="http://localhost/in/kanpur/maths-tuition">', false)
+            ->assertDontSee('hreflang=', false);
+        $this->get('/in/en/kanpur/maths-tuition')->assertStatus(301)
+            ->assertRedirect('http://localhost/in/kanpur/maths-tuition?lang=en');
         $this->get('/in/ja/kanpur/maths-tuition')->assertNotFound();
         $this->get('/in/unknown/maths-tuition')->assertNotFound();
     }
@@ -196,7 +227,9 @@ class TeacherPublicPagesTest extends TestCase
             'subject_id' => $this->subjects['Guitar'], 'country' => 'in', 'language' => 'hi',
             'display_name' => 'गिटार', 'city_slug' => 'guitar-tuition', 'online_slug' => 'guitar-tuition', 'enabled' => true,
         ])->assertRedirect();
-        $this->get('/in/hi/kanpur/guitar-tuition')->assertOk()->assertSee('गिटार');
+        $this->get('/in/hi/kanpur/guitar-tuition')->assertStatus(301)
+            ->assertRedirect('http://localhost/in/kanpur/guitar-tuition?lang=hi');
+        $this->get('/in/kanpur/guitar-tuition?lang=hi')->assertOk()->assertSee('गिटार');
     }
 
     public function test_admin_mapping_edits_redirect_old_listing_paths_and_export_logged_reports(): void
@@ -235,7 +268,8 @@ class TeacherPublicPagesTest extends TestCase
         $index = $this->get('/sitemap.xml')->assertOk()->streamedContent();
         $this->assertStringContainsString('/sitemaps/teachers-1.xml', $index);
         $xml = $this->get('/sitemaps/directory-1.xml')->assertOk()->streamedContent();
-        $this->assertStringContainsString('hreflang="hi-IN"', $xml);
+        $this->assertStringNotContainsString('hreflang=', $xml);
+        $this->assertStringNotContainsString('/in/hi/', $xml);
         $this->assertStringContainsString('/in/kanpur/maths-tuition', $xml);
         $this->assertStringNotContainsString('/teachers/', $xml);
         $this->get('/sitemaps/directory-999.xml')->assertNotFound();

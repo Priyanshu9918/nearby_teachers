@@ -14,10 +14,8 @@ Configure `SEO_PUBLIC_URL` with this origin for the current server. Public teach
 
 | Page | Route | Example |
 |---|---|---|
-| Subject + city, default language | `/{country}/{city}/{subject-slug}` | `/in/kanpur/maths-tuition` |
-| Country online, default language | `/{country}/online/{subject-slug}` | `/in/online/ielts-coaching` |
-| Extra language | `/{country}/{language}/{city}/{subject-slug}` | `/in/hi/kanpur/maths-tuition` |
-| Extra-language online | `/{country}/{language}/online/{subject-slug}` | `/in/hi/online/ielts-coaching` |
+| Subject + city | `/{country}/{city}/{subject-slug}` | `/in/kanpur/maths-tuition` |
+| Country online | `/{country}/online/{subject-slug}` | `/in/online/ielts-coaching` |
 | Country directory | `/{country}` | `/in` |
 | District directory | `/{country}/{district}` | `/in/kanpur-nagar` |
 | Village/area directory | `/{country}/{district}/{village}` | `/in/kanpur-nagar/bithoor` |
@@ -35,17 +33,17 @@ Client examples are supported by the starter Maths/IELTS mappings:
 /ae/dubai/maths-tutor
 /in/online/ielts-coaching
 /us/online/ielts-prep
-/in/hi/kanpur/maths-tuition
+/in/kanpur/maths-tuition?lang=hi
 /teacher/asha-sharma-kanpur
 ```
 
 Location pages are created when an eligible teacher publishes or when SEO sync
 processes that teacher. District comes from the saved teacher profile's explicit
 `district`; the area uses `locality`, falling back to `city`. Subject-area pages
-use the enabled subject URL mapping for that country and language. Pages with no
+use the enabled default-language subject URL mapping for that country. Pages with no
 currently eligible teachers return 404 and are omitted from the location sitemap.
 They show matching teacher profiles, referral-point ordering, location/subject
-links, pagination and language alternates. Country, district, village and subject
+links, pagination and an in-page language selector. Country, district, village and subject
 pages use their own SEO title/description and canonical URLs.
 
 Teacher subjects are **not concatenated into the profile URL**. All selected subjects remain visible in the profile and determine listing membership.
@@ -70,7 +68,7 @@ Country selection uses the explicit profile country name when supplied, otherwis
 
 These are explicit initial configurations, not guesses about a country's sole language. Adding countries/languages requires matching native UI copy and reviewed subject wording. Changing a country's established default language requires a planned URL migration, not an unreviewed config change.
 
-Russian, Chinese, Japanese and Arabic subject URLs use English wording. Hindi, Bengali and Urdu use the applicable Indian-English tuition/coaching wording. Spanish/French/Portuguese starter mappings use localized URL words. Locale labels are in `resources/seo/{language}.json`; Arabic/Urdu pages use RTL direction. The English messaging/download CTA is preserved as requested.
+Canonical paths contain no language segment. The page language selector uses a `lang` query parameter for translated headings and subject display names; every language shares the same clean canonical URL and sitemap entry. Legacy language-in-path URLs permanently redirect to the clean path. Locale labels are in `resources/seo/{language}.json`; Arabic/Urdu pages use RTL direction. The English messaging/download CTA is preserved as requested.
 
 Profile names, biographies and reviews are user-authored text and are not automatically machine-translated. The surrounding interface/headings, approved subject names and listing descriptions are localized. Do not claim an English biography has been translated merely because the page language changed.
 
@@ -124,12 +122,12 @@ Admin edits can change display names/slugs or disable mappings. Slug changes upd
 
 All report definitions are registered in `config/reports.php`, with explicit output/search/timestamp/participant contracts. They use the shared query/filter services, bounded pages, streamed CSV and report access logger. Mapping reads/writes and sync actions require the admin session, with CSRF protection for mutations and audit logging. No HTTP parameter can provide SQL/table/column names.
 
-## Canonical, hreflang, sitemap and content
+## Canonical URLs, sitemap and content
 
 - Every teacher has a single canonical URL. Legacy overview/full-profile routes are redirects, not separate pages.
-- Each real translated listing is self-canonical; Hindi is not canonicalized to English. Reciprocal `hreflang` links include self and other published variants of the same subject/city/country or same online-country listing.
+- Each country/location/subject page has one short canonical path with no language segment. Language query variants point to the same canonical URL and are not separate sitemap entries.
 - `en-IN`, `hi-IN`, `bn-IN`, `ur-IN`, `en-GB`, `es-ES`, `ar-AE`, `ja-JP`, etc. use language-region codes. Different cities are not presented as translations of one another.
-- Listing pages are paginated at 20 teachers, with self-canonical page URLs and matching language pagination. Invalid/out-of-range pages return `404`.
+- Listing pages are paginated at 20 teachers, with a clean canonical page URL and matching pagination. The selected language is a display preference, not another indexed path. Invalid/out-of-range pages return `404`.
 - Native page templates display real matching profiles, available fees, teaching modes and actual ratings. Profiles include current subjects, approved avatar, biography, safe LinkedIn, real reviews (10 per page) and messaging/download CTA. Exact address JSON, postcode, phone, email, credentials and guardian data are not added to public SEO templates.
 - Titles, descriptions, Open Graph/Twitter tags and escaped JSON-LD use the actual profile/listing. There are no fabricated credentials/review stars or rich-result promises.
 - `/sitemap.xml` is a streamed sitemap index. `/sitemaps/teachers-{n}.xml` and `/sitemaps/directory-{n}.xml` stream at most 1,000 entries per part. Only currently eligible/available pages are included; listing XML also includes language alternatives.
@@ -191,4 +189,4 @@ ONBOARDING_TEST_DATABASE=nearby_teachers_seo_test \
 vendor/bin/phpunit tests/Feature/TeacherPublicPagesTest.php tests/Feature/OnboardingPersistenceTest.php tests/Feature/TeacherGeocodingTest.php tests/Feature/ApiCatalogTest.php tests/Feature/ExampleTest.php
 ```
 
-Coverage includes country/subject wording, local-language HTML and RTL, extra-language reciprocal hreflang, one teacher page, membership/online filters, missing countries, duplicate names, old links/long aliases, pagination, streamed sitemaps, admin mapping edits/disable, CSV access logging, privacy and transaction rollback. Desktop/mobile static previews can be rendered with fictional teacher data without altering application data.
+Coverage includes country/subject wording, local-language HTML and RTL, language-free canonical paths and redirects from older language URLs, one teacher page, membership/online filters, missing countries, duplicate names, old links/long aliases, pagination, streamed sitemaps, admin mapping edits/disable, CSV access logging, privacy and transaction rollback. Desktop/mobile static previews can be rendered with fictional teacher data without altering application data.

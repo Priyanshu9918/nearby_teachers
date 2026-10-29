@@ -46,6 +46,10 @@ Route::get('/{country}/{first}/{second}/{third}', [InternationalSeoController::c
     ->where('country', '[a-z]{2}')->where('first', '[a-z0-9][a-z0-9-]{0,179}')
     ->where('second', '[a-z0-9][a-z0-9-]{0,179}')->where('third', '[a-z0-9][a-z0-9-]{0,229}')
     ->name('seo.location.subject');
+Route::get('/{country}/{language}/{district}/{village}/{subject}', [InternationalSeoController::class, 'localizedGeoLevelFive'])
+    ->where('country', '[a-z]{2}')->where('language', '[a-z]{2}')
+    ->where('district', '[a-z0-9][a-z0-9-]{0,179}')->where('village', '[a-z0-9][a-z0-9-]{0,179}')
+    ->where('subject', '[a-z0-9][a-z0-9-]{0,229}')->name('seo.localized.location.subject');
 Route::get('/{country}/{district}/{village}', [InternationalSeoController::class, 'geoLevelThree'])
     ->where('country', '[a-z]{2}')->where('district', '[a-z0-9][a-z0-9-]{0,179}')
     ->where('village', '[a-z0-9][a-z0-9-]{0,179}')->name('seo.location.village');

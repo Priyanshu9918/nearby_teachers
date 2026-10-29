@@ -17,7 +17,7 @@ class InternationalSeoController extends Controller
     private function canonical(Request $request, string $url): ?Response
     {
         if ($request->url() !== $url) {
-            $parameters = $request->only(['page']);
+            $parameters = $request->only(['page', 'lang', 'q', 'mode', 'trial']);
             $suffix = $parameters ? '?'.http_build_query($parameters) : '';
 
             return redirect()->to($url.$suffix, 301);
@@ -92,7 +92,7 @@ class InternationalSeoController extends Controller
     public function listing(Request $request, string $country, string $city, string $slug, ?string $language = null): Response
     {
         abort_unless(isset(config('seo.countries')[$country]), 404);
-        $language ??= SeoDirectory::language($country);
+        $language ??= (string) $request->query('lang', SeoDirectory::language($country));
         abort_unless(in_array($language, config('seo.countries.'.$country.'.languages'), true), 404);
         $path = '/'.$request->path();
         $page = $this->directory->pages()->where('r.path', $path)->first();
@@ -111,6 +111,10 @@ class InternationalSeoController extends Controller
             return $redirect;
         }
         $request->validate(['page' => ['sometimes', 'integer', 'min:1']]);
+        if ($language !== SeoDirectory::language($country)) {
+            $page->display_name = DB::table('seo_subject_routes')->where('country', $country)->where('language', $language)
+                ->where('subject_id', $page->subject_id)->where('enabled', true)->value('display_name') ?? $page->display_name;
+        }
         $teachers = $this->directory->matching($page)->select('p.user_id', 'p.public_page_slug', 'p.city',
             'p.rate_per_hour', 'p.currency', 'p.rating_avg', 'p.rating_count', 'p.lesson_modes')
             ->selectRaw('COALESCE(NULLIF(p.listing_name, \'\'), u.full_name) AS full_name')
@@ -118,7 +122,7 @@ class InternationalSeoController extends Controller
             ->orderByDesc('p.rating_count')->orderByDesc('p.rating_avg')->orderBy('p.user_id')
             ->paginate(20)->withQueryString();
         abort_if($teachers->isEmpty(), 404);
-        $variants = $this->variants($page, $teachers->currentPage());
+        $variants = [];
         $labels = SeoDirectory::labels($language);
         $values = ['subject' => $page->display_name, 'city' => $page->city,
             'country' => config('seo.countries.'.$country.'.name')];
@@ -155,10 +159,7 @@ class InternationalSeoController extends Controller
 
         $countryConfig = config('seo.countries.'.$country);
         if (in_array($segment, $countryConfig['languages'], true)) {
-            $default = $countryConfig['language'];
-            if ($segment === $default) {
-                return redirect()->to(SeoDirectory::url('/'.$country), 301);
-            }
+            return redirect()->to(SeoDirectory::url('/'.$country).'?lang='.rawurlencode($segment), 301);
         }
 
         abort(404);
@@ -167,6 +168,12 @@ class InternationalSeoController extends Controller
     public function geoLevelThree(Request $request, string $country, string $district, string $village): Response
     {
         abort_unless(isset(config('seo.countries')[$country]), 404);
+        if (in_array($district, config('seo.countries.'.$country.'.languages'), true)) {
+            $locationPath = '/'.$country.'/'.$village;
+            if (DB::table('seo_location_pages')->where('path', $locationPath)->exists()) {
+                return redirect()->to(SeoDirectory::url($locationPath).'?lang='.rawurlencode($district), 301);
+            }
+        }
         $page = $this->directory->locationPages()->where('lp.path', '/'.$request->path())->first();
         if ($page !== null) {
             return $this->renderLocationPage($request, $page);
@@ -184,12 +191,38 @@ class InternationalSeoController extends Controller
             return $this->renderLocationPage($request, $page);
         }
 
-        // Preserve existing /country/language/city/subject listing pages.
+        // Old locale-in-path URLs redirect to the same short URL with a UI language preference.
         if (in_array($first, config('seo.countries.'.$country.'.languages'), true)) {
-            return $this->localizedListing($request, $country, $first, $second, $third);
+            $locationPath = '/'.$country.'/'.$second.'/'.$third;
+            if (DB::table('seo_location_pages')->where('path', $locationPath)->exists()) {
+                return redirect()->to(SeoDirectory::url($locationPath).'?lang='.rawurlencode($first), 301);
+            }
+
+            $subjectRoute = DB::table('seo_subject_routes')->where('country', $country)->where('language', $first)
+                ->where(fn ($query) => $query->where('city_slug', $third)->orWhere('online_slug', $third))->where('enabled', true)->first();
+            $defaultRoute = $subjectRoute ? DB::table('seo_subject_routes')->where('country', $country)
+                ->where('language', SeoDirectory::language($country))->where('subject_id', $subjectRoute->subject_id)->where('enabled', true)->first() : null;
+            abort_if($defaultRoute === null, 404);
+            $slug = $second === 'online' ? $defaultRoute->online_slug : $defaultRoute->city_slug;
+
+            return redirect()->to(SeoDirectory::url('/'.$country.'/'.$second.'/'.$slug).'?lang='.rawurlencode($first), 301);
         }
 
         abort(404);
+    }
+
+    public function localizedGeoLevelFive(Request $request, string $country, string $language, string $district, string $village, string $subject): Response
+    {
+        abort_unless(isset(config('seo.countries')[$country]), 404);
+        abort_unless(in_array($language, config('seo.countries.'.$country.'.languages'), true), 404);
+
+        $localized = DB::table('seo_subject_routes')->where('country', $country)->where('language', $language)
+            ->where('city_slug', $subject)->where('enabled', true)->first();
+        $default = $localized ? DB::table('seo_subject_routes')->where('country', $country)
+            ->where('language', SeoDirectory::language($country))->where('subject_id', $localized->subject_id)->where('enabled', true)->first() : null;
+        abort_if($default === null, 404);
+
+        return redirect()->to(SeoDirectory::url('/'.$country.'/'.$district.'/'.$village.'/'.$default->city_slug).'?lang='.rawurlencode($language), 301);
     }
 
     private function renderLocationPage(Request $request, object $page): Response
@@ -197,37 +230,59 @@ class InternationalSeoController extends Controller
         if ($redirect = $this->canonical($request, SeoDirectory::url($page->path))) {
             return $redirect;
         }
-        $request->validate(['page' => ['sometimes', 'integer', 'min:1']]);
+        $filters = $request->validate([
+            'page' => ['sometimes', 'integer', 'min:1'],
+            'lang' => ['sometimes', 'string', 'in:'.implode(',', config('seo.countries.'.$page->country.'.languages'))],
+            'q' => ['sometimes', 'string', 'max:100'],
+            'mode' => ['sometimes', 'in:online,home_tuition,in_person'],
+            'trial' => ['sometimes', 'boolean'],
+        ]);
         $query = $this->directory->locationTeachers($page)
             ->select('p.user_id', 'p.public_page_slug', 'p.city', 'p.district', 'p.locality', 'p.rate_per_hour',
-                'p.currency', 'p.rating_avg', 'p.rating_count', 'p.lesson_modes')
+                'p.currency', 'p.rating_avg', 'p.rating_count', 'p.lesson_modes', 'p.trial_days')
             ->selectRaw('COALESCE(NULLIF(p.listing_name, \'\'), u.full_name) AS full_name')
             ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
+            ->selectSub(DB::table('profile_subjects as ps')->join('subjects as s', 's.id', '=', 'ps.subject_id')
+                ->selectRaw("GROUP_CONCAT(s.name ORDER BY s.name SEPARATOR ', ')")
+                ->where('ps.profile_type', 'teacher')->whereColumn('ps.profile_id', 'p.user_id'), 'subject_names')
             ->selectSub(DB::table('referrals')->selectRaw('count(*)')->whereColumn('referrer_id', 'p.user_id'), 'referral_points')
             ->orderByDesc('referral_points')->orderByDesc('p.rating_count')->orderByDesc('p.rating_avg')->orderBy('p.user_id');
+        if (isset($filters['q']) && trim($filters['q']) !== '') {
+            $term = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], trim($filters['q'])).'%';
+            $query->where(fn (Builder $search) => $search->where('u.full_name', 'like', $term)
+                ->orWhere('p.listing_name', 'like', $term)->orWhere('p.bio', 'like', $term)
+                ->orWhereExists(fn (Builder $subjects) => $subjects->selectRaw('1')->from('profile_subjects as ps')
+                    ->join('subjects as s', 's.id', '=', 'ps.subject_id')->where('ps.profile_type', 'teacher')
+                    ->whereColumn('ps.profile_id', 'p.user_id')->where('s.name', 'like', $term)));
+        }
+        if (isset($filters['mode'])) {
+            $query->whereJsonContains('p.lesson_modes', $filters['mode']);
+        }
+        if (($filters['trial'] ?? null) === true || ($filters['trial'] ?? null) === '1') {
+            $query->where('p.trial_days', '>', 0);
+        }
         $teachers = $query->paginate(20)->withQueryString();
-        abort_if($teachers->isEmpty(), 404);
-
+        $language = $filters['lang'] ?? SeoDirectory::language($page->country);
         $subject = null;
         if ($page->subject_id !== null) {
-            $subject = DB::table('seo_subject_routes')->where('country', $page->country)->where('language', $page->language)
+            $subject = DB::table('seo_subject_routes')->where('country', $page->country)->where('language', $language)
                 ->where('subject_id', $page->subject_id)->where('enabled', true)->value('display_name');
         }
-        $copy = SeoDirectory::locationCopy($page->language);
+        $copy = SeoDirectory::locationCopy($language);
         $values = ['country' => config('seo.countries.'.$page->country.'.name'), 'district' => $page->district,
             'village' => $page->village, 'subject' => $subject];
         $titleKey = $page->kind.'_title';
         $title = SeoDirectory::text($copy, $titleKey, $values);
         $description = $title.'. '.SeoDirectory::text($copy, 'browse', $values);
-        $variants = $this->locationVariants($page);
+        $variants = [];
         $children = $this->locationChildren($page);
         $breadcrumbs = [['label' => config('seo.countries.'.$page->country.'.name'), 'url' => SeoDirectory::url('/'.$page->country)]];
         if ($page->kind !== 'country') {
-            $districtPath = '/'.$page->country.($page->language === SeoDirectory::language($page->country) ? '' : '/'.$page->language).'/'.$page->district_slug;
+            $districtPath = '/'.$page->country.'/'.$page->district_slug;
             $breadcrumbs[] = ['label' => $page->district, 'url' => SeoDirectory::url($districtPath)];
         }
         if (in_array($page->kind, ['village', 'subject_village'], true)) {
-            $villagePath = '/'.$page->country.($page->language === SeoDirectory::language($page->country) ? '' : '/'.$page->language).'/'.$page->district_slug.'/'.$page->village_slug;
+            $villagePath = '/'.$page->country.'/'.$page->district_slug.'/'.$page->village_slug;
             $breadcrumbs[] = ['label' => $page->village, 'url' => SeoDirectory::url($villagePath)];
         }
         if ($page->kind === 'subject_village') {
@@ -237,8 +292,8 @@ class InternationalSeoController extends Controller
         $this->logView($request, 'seo_'.$page->kind, $page->path);
 
         return response()->view('seo.location', compact('page', 'teachers', 'title', 'description', 'variants', 'children', 'url', 'subject', 'values', 'breadcrumbs')
-            + ['language' => $page->language, 'labels' => SeoDirectory::labels($page->language), 'lang' => $page->language,
-                't' => [], 'direction' => in_array($page->language, ['ar', 'ur'], true) ? 'rtl' : 'ltr']);
+            + ['language' => $language, 'labels' => SeoDirectory::labels($language), 'lang' => $language,
+                't' => [], 'direction' => in_array($language, ['ar', 'ur'], true) ? 'rtl' : 'ltr']);
     }
 
     private function locationChildren(object $page): array
@@ -266,28 +321,6 @@ class InternationalSeoController extends Controller
         }
 
         return $children->all();
-    }
-
-    private function locationVariants(object $page): array
-    {
-        $query = DB::table('seo_location_pages')->where('country', $page->country)->where('kind', $page->kind)
-            ->where('district_slug', $page->district_slug)->where('village_slug', $page->village_slug)
-            ->where('subject_id', $page->subject_id);
-        $variants = $query->get(['language', 'path']);
-
-        return $variants->map(fn (object $variant): array => [
-            'code' => $variant->language.'-'.strtoupper($page->country),
-            'language' => $variant->language,
-            'url' => SeoDirectory::url($variant->path),
-        ])->all();
-    }
-
-    private function variants(object $page, int $number = 1): array
-    {
-        return $this->directory->pages()->where('r.country', $page->country)->where('r.subject_id', $page->subject_id)
-            ->where('r.kind', $page->kind)->where('r.city_slug', $page->city_slug)->orderBy('r.language')->get()
-            ->map(fn ($variant) => ['code' => $variant->language.'-'.strtoupper($variant->country), 'language' => $variant->language,
-                'url' => SeoDirectory::url($variant->path).($number > 1 ? '?page='.$number : '')])->all();
     }
 
     public function hub(Request $request): Response
@@ -325,16 +358,10 @@ class InternationalSeoController extends Controller
         abort_if($number < 1 || ($number - 1) * 1000 >= (clone $query)->count(), 404);
 
         return response()->stream(function () use ($query, $number, $kind): void {
-            echo '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">';
+            echo '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
             foreach ($query->forPage($number, 1000)->cursor() as $record) {
                 $url = $kind === 'teachers' ? SeoDirectory::url('/teacher/'.$record->public_page_slug) : SeoDirectory::url($record->path);
                 echo '<url><loc>'.htmlspecialchars($url, ENT_XML1 | ENT_QUOTES).'</loc>';
-                if ($kind !== 'teachers') {
-                    $variants = $kind === 'directory' ? $this->variants($record) : $this->locationVariants($record);
-                    foreach ($variants as $variant) {
-                        echo '<xhtml:link rel="alternate" hreflang="'.htmlspecialchars($variant['code'], ENT_XML1 | ENT_QUOTES).'" href="'.htmlspecialchars($variant['url'], ENT_XML1 | ENT_QUOTES).'" />';
-                    }
-                }
                 echo '</url>';
             }
             echo '</urlset>';

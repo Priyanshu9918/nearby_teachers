@@ -5,20 +5,20 @@ use App\Services\SeoDirectory;
 // Explicit report contracts: new database columns are never exposed automatically.
 return [
     'seo-pages' => [
-        'title' => 'SEO pages', 'table' => 'seo_directory_pages', 'timestamp' => 'created_at',
-        'columns' => ['id', 'route_id', 'subject_id', 'country', 'language', 'kind', 'city', 'city_slug', 'path', 'created_at', 'updated_at'],
-        'participants' => [], 'search' => ['country', 'language', 'kind', 'city', 'path'],
+        'title' => 'SEO page URLs', 'table' => 'seo_directory_pages', 'timestamp' => 'created_at',
+        'columns' => ['id', 'subject_id', 'country', 'kind', 'city', 'path', 'created_at'],
+        'participants' => [], 'search' => ['country', 'kind', 'city', 'path'],
         'computed' => ['eligible_teachers' => SeoDirectory::COUNT_SQL,
             'route_enabled' => '(SELECT enabled FROM seo_subject_routes sr WHERE sr.id = r.route_id)'],
     ],
     'seo-location-pages' => [
-        'title' => 'SEO location pages', 'table' => 'seo_location_pages', 'timestamp' => 'created_at',
-        'columns' => ['id', 'kind', 'country', 'language', 'district', 'district_slug', 'village', 'village_slug', 'subject_id', 'subject_slug', 'path', 'created_at', 'updated_at'],
-        'participants' => [], 'search' => ['kind', 'country', 'language', 'district', 'village', 'path'],
+        'title' => 'Location page URLs', 'table' => 'seo_location_pages', 'timestamp' => 'created_at',
+        'columns' => ['id', 'kind', 'country', 'district', 'village', 'subject_slug', 'path', 'created_at'],
+        'participants' => [], 'search' => ['kind', 'country', 'district', 'village', 'path'],
         'computed' => ['eligible_teachers' => str_replace('lp.', 'r.', SeoDirectory::LOCATION_COUNT_SQL)],
     ],
     'seo-subject-routes' => [
-        'title' => 'SEO subject wording', 'table' => 'seo_subject_routes', 'timestamp' => 'updated_at',
+        'title' => 'SEO subject URL settings', 'table' => 'seo_subject_routes', 'timestamp' => 'updated_at',
         'columns' => ['id', 'subject_id', 'country', 'language', 'display_name', 'city_slug', 'online_slug', 'enabled', 'created_at', 'updated_at'],
         'participants' => [], 'search' => ['country', 'language', 'display_name', 'city_slug', 'online_slug'],
     ],

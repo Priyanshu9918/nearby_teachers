@@ -870,7 +870,7 @@ Teacher registration and profile edits accept optional paired `latitude` / `long
 
 Institute registration and edits accept address and GPS fields: [Institute address API](INSTITUTE_REGISTRATION_ADDRESS.md). Institute registration requests omit subjects.
 
-Teacher page links now use the single canonical `/teacher/{name-city}` URL on the configured SEO subdomain. Both teacher URL response keys are retained and equal when eligible. Subject/city and online listings are separate country/language pages: [international SEO](TEACHER_SEO_PAGES.md).
+Teacher page links now use the single canonical `/teacher/{name-city}` URL on the configured SEO subdomain. Both teacher URL response keys are retained and equal when eligible. Subject/city and online listings use short country paths without a language segment; pages can display translated copy through the language selector: [international SEO](TEACHER_SEO_PAGES.md).
 
 ### Step-wise data in profile drafts
 

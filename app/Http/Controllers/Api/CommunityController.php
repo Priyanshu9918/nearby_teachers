@@ -33,6 +33,7 @@ class CommunityController extends Controller
     {
         $data = $request->validate([
             'city' => ['required', 'string', 'max:160'],
+            'subjectId' => ['nullable', 'integer', 'min:1', 'exists:subjects,id'],
             'body' => ['required', 'string', 'max:5000'],
         ]);
         $user = $request->attributes->get('authenticated_user');
@@ -53,6 +54,7 @@ class CommunityController extends Controller
                 'author_id' => $user->id,
                 'post_type' => $user->account_type === 'learner' ? 'request' : 'offer',
                 'city' => $data['city'],
+                'subject_id' => $data['subjectId'] ?? null,
                 'body' => $data['body'],
                 'created_at' => now(),
             ]);

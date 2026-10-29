@@ -10,6 +10,7 @@ use Illuminate\Support\Str;
 final class SeoDirectory
 {
     public const COUNT_SQL = "(SELECT count(*) FROM teacher_profiles sp JOIN users su ON su.id = sp.user_id WHERE su.account_type = 'teacher' AND su.suspended_at IS NULL AND su.phone_verified_at IS NOT NULL AND su.profile_completed_at IS NOT NULL AND sp.is_profile_complete = 1 AND sp.public_page_slug IS NOT NULL AND sp.seo_country = r.country AND ((r.kind = 'city' AND sp.seo_city_slug = r.city_slug) OR (r.kind = 'online' AND JSON_CONTAINS(sp.lesson_modes, JSON_QUOTE('online')) = 1)) AND EXISTS (SELECT 1 FROM profile_subjects sx WHERE sx.profile_type = 'teacher' AND sx.profile_id = sp.user_id AND sx.subject_id = r.subject_id))";
+
     public const LOCATION_COUNT_SQL = "(SELECT count(*) FROM teacher_profiles p JOIN users u ON u.id = p.user_id WHERE u.account_type = 'teacher' AND u.suspended_at IS NULL AND u.phone_verified_at IS NOT NULL AND u.profile_completed_at IS NOT NULL AND p.is_profile_complete = 1 AND p.public_page_slug IS NOT NULL AND p.seo_country = lp.country AND (lp.kind = 'country' OR p.district = lp.district) AND (lp.kind IN ('country', 'district') OR COALESCE(NULLIF(p.locality, ''), p.city) = lp.village) AND (lp.subject_id IS NULL OR EXISTS (SELECT 1 FROM profile_subjects ps WHERE ps.profile_type = 'teacher' AND ps.profile_id = p.user_id AND ps.subject_id = lp.subject_id)))";
 
     public static function url(string $path): string
@@ -96,19 +97,17 @@ final class SeoDirectory
 
     public function pages(): Builder
     {
-        return DB::table('seo_directory_pages as r')->join('seo_subject_routes as sr', 'sr.id', '=', 'r.route_id')
+        $query = DB::table('seo_directory_pages as r')->join('seo_subject_routes as sr', 'sr.id', '=', 'r.route_id')
             ->where('sr.enabled', true)->whereRaw(self::COUNT_SQL.' > 0')
             ->select('r.*', 'sr.display_name');
+        $this->restrictToDefaultLanguages($query, 'r.country', 'r.language');
+
+        return $query;
     }
 
     public static function pagePath(object $route, string $kind, string $citySlug): string
     {
-        $prefix = '/'.$route->country;
-        if ($route->language !== self::language($route->country)) {
-            $prefix .= '/'.$route->language;
-        }
-
-        return $prefix.'/'.($kind === 'online' ? 'online' : $citySlug).'/'.($kind === 'online' ? $route->online_slug : $route->city_slug);
+        return '/'.$route->country.'/'.($kind === 'online' ? 'online' : $citySlug).'/'.($kind === 'online' ? $route->online_slug : $route->city_slug);
     }
 
     public static function claim(string $path, string $type, int $id): bool
@@ -180,7 +179,8 @@ final class SeoDirectory
 
     public function ensurePages(object $profile, array $subjects): void
     {
-        $routes = DB::table('seo_subject_routes')->where('country', $profile->seo_country)->where('enabled', true)
+        $routes = DB::table('seo_subject_routes')->where('country', $profile->seo_country)
+            ->where('language', self::language($profile->seo_country))->where('enabled', true)
             ->whereIn('subject_id', $subjects)->get();
         $online = in_array('online', (json_decode($profile->lesson_modes ?: '[]', true) ?: []), true);
         foreach ($routes as $route) {
@@ -224,10 +224,11 @@ final class SeoDirectory
             return;
         }
 
-        $languages = array_values(array_filter($countryConfig['languages'], fn (string $language): bool => is_file(resource_path('seo/'.$language.'.json'))));
-        foreach ($languages as $language) {
-            $this->registerLocationPage(['kind' => 'country', 'country' => $country, 'language' => $language]);
+        $language = $countryConfig['language'];
+        if (! is_file(resource_path('seo/'.$language.'.json'))) {
+            return;
         }
+        $this->registerLocationPage(['kind' => 'country', 'country' => $country, 'language' => $language]);
 
         $district = trim((string) ($profile->district ?? ''));
         if ($district === '') {
@@ -237,27 +238,23 @@ final class SeoDirectory
         if ($districtSlug === '') {
             return;
         }
-        foreach ($languages as $language) {
-            $this->registerLocationPage(['kind' => 'district', 'country' => $country, 'language' => $language,
-                'district' => $district, 'district_slug' => $districtSlug]);
-        }
+        $this->registerLocationPage(['kind' => 'district', 'country' => $country, 'language' => $language,
+            'district' => $district, 'district_slug' => $districtSlug]);
 
         $village = trim((string) ($profile->locality ?? '')) ?: trim((string) ($profile->city ?? ''));
         $villageSlug = substr(Str::slug($village), 0, 180);
         if ($village === '' || $villageSlug === '') {
             return;
         }
-        foreach ($languages as $language) {
-            $this->registerLocationPage(['kind' => 'village', 'country' => $country, 'language' => $language,
-                'district' => $district, 'district_slug' => $districtSlug, 'village' => $village, 'village_slug' => $villageSlug]);
+        $this->registerLocationPage(['kind' => 'village', 'country' => $country, 'language' => $language,
+            'district' => $district, 'district_slug' => $districtSlug, 'village' => $village, 'village_slug' => $villageSlug]);
 
-            $routes = DB::table('seo_subject_routes')->where('country', $country)->where('language', $language)
-                ->where('enabled', true)->whereIn('subject_id', $subjects)->orderBy('subject_id')->get();
-            foreach ($routes as $route) {
-                $this->registerLocationPage(['kind' => 'subject_village', 'country' => $country, 'language' => $language,
-                    'district' => $district, 'district_slug' => $districtSlug, 'village' => $village,
-                    'village_slug' => $villageSlug, 'subject_id' => (int) $route->subject_id, 'subject_slug' => $route->city_slug]);
-            }
+        $routes = DB::table('seo_subject_routes')->where('country', $country)->where('language', $language)
+            ->where('enabled', true)->whereIn('subject_id', $subjects)->orderBy('subject_id')->get();
+        foreach ($routes as $route) {
+            $this->registerLocationPage(['kind' => 'subject_village', 'country' => $country, 'language' => $language,
+                'district' => $district, 'district_slug' => $districtSlug, 'village' => $village,
+                'village_slug' => $villageSlug, 'subject_id' => (int) $route->subject_id, 'subject_slug' => $route->city_slug]);
         }
     }
 
@@ -304,8 +301,22 @@ final class SeoDirectory
 
     public function locationPages(): Builder
     {
-        return DB::table('seo_location_pages as lp')->select('lp.*')
+        $query = DB::table('seo_location_pages as lp')->select('lp.*')
             ->selectRaw(self::LOCATION_COUNT_SQL.' AS eligible_teachers')->whereRaw(self::LOCATION_COUNT_SQL.' > 0');
+        $this->restrictToDefaultLanguages($query, 'lp.country', 'lp.language');
+
+        return $query;
+    }
+
+    private function restrictToDefaultLanguages(Builder $query, string $countryColumn, string $languageColumn): void
+    {
+        $query->where(function (Builder $localized) use ($countryColumn, $languageColumn): void {
+            foreach (config('seo.countries') as $country => $settings) {
+                $localized->orWhere(function (Builder $scope) use ($countryColumn, $languageColumn, $country, $settings): void {
+                    $scope->where($countryColumn, $country)->where($languageColumn, $settings['language']);
+                });
+            }
+        });
     }
 
     public function locationTeachers(object $page): Builder

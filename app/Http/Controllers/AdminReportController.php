@@ -26,7 +26,16 @@ class AdminReportController extends Controller
     {
         $counts = [];
         foreach ($this->registry->all() as $key => $definition) {
-            $counts[$key] = ['label' => $definition->title, 'total' => DB::table($definition->table)->count()];
+            $query = DB::table($definition->table);
+            if (in_array($key, ['seo-pages', 'seo-location-pages'], true)) {
+                $query->where(function ($scope): void {
+                    foreach (config('seo.countries') as $country => $settings) {
+                        $scope->orWhere(fn ($countryScope) => $countryScope->where('country', $country)
+                            ->where('language', $settings['language']));
+                    }
+                });
+            }
+            $counts[$key] = ['label' => $definition->title, 'total' => $query->count()];
         }
         $types = DB::table('users')->select('account_type')->selectRaw('count(*) as total')->groupBy('account_type')->pluck('total', 'account_type');
         $registered = DB::table('users')->whereNotNull('profile_completed_at')
@@ -44,6 +53,14 @@ class AdminReportController extends Controller
         $definition = $this->registry->get($report);
         $filters = $this->filters->validate($request);
         [$query, $columns] = $this->queries->build($definition, $filters);
+        if (in_array($report, ['seo-pages', 'seo-location-pages'], true)) {
+            $query->where(function ($scope): void {
+                foreach (config('seo.countries') as $country => $settings) {
+                    $scope->orWhere(fn ($countryScope) => $countryScope->where('r.country', $country)
+                        ->where('r.language', $settings['language']));
+                }
+            });
+        }
         $this->access->record($request, $report, $request->boolean('export') ? 'export' : 'view');
         if ($request->boolean('export')) {
             return $this->exports->download($query, $columns, $report);

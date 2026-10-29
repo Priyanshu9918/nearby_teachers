@@ -49,7 +49,9 @@ class AdminSeoController extends Controller
                 }
                 $conflict = DB::table('seo_subject_routes')->where('country', $data['country'])->where('language', $data['language'])
                     ->when($id, fn ($q) => $q->where('id', '!=', $id))
-                    ->where(fn ($q) => $q->where('subject_id', $data['subject_id'])->orWhere('city_slug', $data['city_slug'])->orWhere('online_slug', $data['online_slug']))->exists();
+                    ->where(fn ($q) => $q->where('subject_id', $data['subject_id'])
+                        ->orWhereIn('city_slug', [$data['city_slug'], $data['online_slug']])
+                        ->orWhereIn('online_slug', [$data['city_slug'], $data['online_slug']]))->exists();
                 if ($conflict) {
                     throw ValidationException::withMessages(['city_slug' => 'This subject/locale or slug is already configured.']);
                 }
