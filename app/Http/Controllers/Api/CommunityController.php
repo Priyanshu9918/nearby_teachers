@@ -18,8 +18,10 @@ class CommunityController extends Controller
         $user = $request->attributes->get('authenticated_user');
         $posts = DB::table('posts as p')
             ->join('users as u', 'u.id', '=', 'p.author_id')
+            ->leftJoin('subjects as s', 's.id', '=', 'p.subject_id')
             ->where('p.city', $data['city'])
-            ->select('p.*', 'u.full_name as author_name')
+            ->select('p.id', 'p.author_id', 'p.post_type', 'p.city', 'p.body', 'p.image_url', 'p.created_at',
+                'u.full_name as author_name', 's.name as subject')
             ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS author_avatar")
             ->selectSub(DB::table('post_likes')->selectRaw('count(*)')->whereColumn('post_id', 'p.id'), 'like_count')
             ->selectSub(DB::table('post_comments')->selectRaw('count(*)')->whereColumn('post_id', 'p.id'), 'comment_count')
@@ -59,7 +61,11 @@ class CommunityController extends Controller
                 'created_at' => now(),
             ]);
 
-            return ['post' => DB::table('posts')->where('id', $id)->first()];
+            $createdPost = DB::table('posts as p')->leftJoin('subjects as s', 's.id', '=', 'p.subject_id')
+                ->where('p.id', $id)->select('p.id', 'p.author_id', 'p.post_type', 'p.city', 'p.body', 'p.image_url',
+                    'p.created_at', 's.name as subject')->first();
+
+            return ['post' => $createdPost];
         });
 
         return $post instanceof JsonResponse ? $post : response()->json($post);

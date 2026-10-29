@@ -108,10 +108,10 @@
             "feed"
           ]
         },
-        "description": "Create a city feed post. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days.",
+        "description": "Create a city feed post with optional subjectId. The response includes subject name in subject. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days.",
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"city\": \"{{city}}\",\n  \"body\": \"Looking for maths lessons in Delhi.\"\n}",
+          "raw": "{\n  \"city\": \"{{city}}\",\n  \"subjectId\": \"{{subjectId}}\",\n  \"body\": \"Looking for maths lessons in Delhi.\"\n}",
           "options": {
             "raw": {
               "language": "json"

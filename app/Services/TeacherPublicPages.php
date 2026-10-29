@@ -6,6 +6,7 @@ use App\Reporting\BusinessActivityRecorder;
 use App\Support\RecordId;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use LogicException;
 
@@ -75,8 +76,20 @@ final class TeacherPublicPages
             }
             $profile->seo_country = $country;
             $profile->seo_city_slug = $citySlug;
-            $directory->ensurePages($profile, $ids);
-            $directory->ensureLocationPages($profile, $ids);
+            try {
+                $directory->ensurePages($profile, $ids);
+                $directory->ensureLocationPages($profile, $ids);
+            } catch (LogicException $error) {
+                if ($error->getMessage() !== 'SEO URL is already owned.') {
+                    throw $error;
+                }
+                // A stale/claimed SEO path must not prevent the teacher from saving a profile step.
+                // The next publish attempt can retry after its URL ownership is reconciled.
+                Log::warning('Teacher SEO pages could not be fully synchronized.', [
+                    'user_id' => $userId,
+                    'reason' => $error->getMessage(),
+                ]);
+            }
         }
     }
 

@@ -116,6 +116,22 @@ final class SeoDirectory
         DB::table('seo_urls')->insertOrIgnore(['path' => $path, 'path_hash' => $hash, 'target_type' => $type, 'target_id' => $id, 'created_at' => now()]);
         $owner = DB::table('seo_urls')->where('path_hash', $hash)->where('path', $path)->first();
 
+        // SEO page tables may be cleared while the URL registry is retained. Reassign
+        // ownership only when the old listing/location target has actually disappeared.
+        if ($owner !== null && ($owner->target_type !== $type || (int) $owner->target_id !== $id)) {
+            $targetTable = match ($owner->target_type) {
+                'listing' => 'seo_directory_pages',
+                'location' => 'seo_location_pages',
+                default => null,
+            };
+            if ($targetTable !== null && ! DB::table($targetTable)->where('id', $owner->target_id)
+                ->where('path', $path)->exists()) {
+                DB::table('seo_urls')->where('id', $owner->id)->where('target_type', $owner->target_type)
+                    ->where('target_id', $owner->target_id)->update(['target_type' => $type, 'target_id' => $id]);
+                $owner = DB::table('seo_urls')->where('path_hash', $hash)->where('path', $path)->first();
+            }
+        }
+
         return $owner !== null && $owner->target_type === $type && (int) $owner->target_id === $id;
     }
 

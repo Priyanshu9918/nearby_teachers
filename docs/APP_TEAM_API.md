@@ -599,11 +599,11 @@ a conversation participant. `POST /messages/start` remains learner-only. Listed
 Socket.IO authorization and safety APIs support the same existing chat flow.
 
 The institute can read city feed, publish an offer, like/unlike, comment and
-reply using the feed routes above. Posts have post_type offer and remain
-limited to once per seven days. Example POST /feed body:
+reply using the feed routes above. Posts have post_type offer, accept subjectId (the subject catalog ID), and remain
+limited to once per seven days. Feed responses return the subject name in `subject`; the database ID is used only when creating a post. Example POST /feed body:
 
 ```json
-{"city":"Delhi","body":"New science classes start this month."}
+{"city":"Delhi","subjectId":3,"body":"New science classes start this month."}
 ```
 
 Use `POST /feed/{postId}/comments` with body for a comment or body plus

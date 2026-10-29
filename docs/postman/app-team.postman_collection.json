@@ -8824,7 +8824,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"posts\": [\n    {\n      \"id\": \"10000000-0000-4000-8000-000000000005\",\n      \"author_id\": \"10000000-0000-4000-8000-000000000001\",\n      \"post_type\": \"request\",\n      \"city\": \"Delhi\",\n      \"subject_id\": 1,\n      \"body\": \"Looking for maths lessons in Delhi.\",\n      \"image_url\": null,\n      \"created_at\": \"2026-10-21 10:00:00\",\n      \"author_name\": \"Asha Sharma\",\n      \"author_avatar\": null,\n      \"like_count\": 2,\n      \"comment_count\": 1,\n      \"liked_by_me\": 0\n    }\n  ],\n  \"pagination\": {\n    \"perPage\": 50,\n    \"hasMore\": false,\n    \"nextCursor\": null,\n    \"previousCursor\": null\n  }\n}"
+              "body": "{\n  \"posts\": [\n    {\n      \"id\": \"10000000-0000-4000-8000-000000000005\",\n      \"author_id\": \"10000000-0000-4000-8000-000000000001\",\n      \"post_type\": \"request\",\n      \"city\": \"Delhi\",\n      \"subject\": \"Mathematics\",\n      \"body\": \"Looking for maths lessons in Delhi.\",\n      \"image_url\": null,\n      \"created_at\": \"2026-10-21 10:00:00\",\n      \"author_name\": \"Asha Sharma\",\n      \"author_avatar\": null,\n      \"like_count\": 2,\n      \"comment_count\": 1,\n      \"liked_by_me\": 0\n    }\n  ],\n  \"pagination\": {\n    \"perPage\": 50,\n    \"hasMore\": false,\n    \"nextCursor\": null,\n    \"previousCursor\": null\n  }\n}"
             },
             {
               "name": "Fictional example — 401 Bearer missing",
@@ -8901,10 +8901,10 @@
                 "feed"
               ]
             },
-            "description": "Learner workflow. Create a city feed post. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days. Saved examples are fictional contract illustrations, not live captures.",
+            "description": "Learner workflow. Create a city feed post with optional subjectId. The response includes the subject name in subject. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days. Saved examples are fictional contract illustrations, not live captures.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"city\": \"{{city}}\",\n  \"body\": \"Looking for maths lessons in Delhi.\"\n}",
+              "raw": "{\n  \"city\": \"{{city}}\",\n  \"subjectId\": \"{{subjectId}}\",\n  \"body\": \"Looking for maths lessons in Delhi.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -8936,10 +8936,10 @@
                     "feed"
                   ]
                 },
-                "description": "Learner workflow. Create a city feed post. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days. Saved examples are fictional contract illustrations, not live captures.",
+                "description": "Learner workflow. Create a city feed post with optional subjectId. The response includes the subject name in subject. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days. Saved examples are fictional contract illustrations, not live captures.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"city\": \"{{city}}\",\n  \"body\": \"Looking for maths lessons in Delhi.\"\n}",
+                  "raw": "{\n  \"city\": \"{{city}}\",\n  \"subjectId\": \"{{subjectId}}\",\n  \"body\": \"Looking for maths lessons in Delhi.\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -8957,7 +8957,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"post\": {\n    \"id\": \"10000000-0000-4000-8000-000000000005\",\n    \"author_id\": \"10000000-0000-4000-8000-000000000001\",\n    \"post_type\": \"request\",\n    \"city\": \"Delhi\",\n    \"subject_id\": 1,\n    \"body\": \"Looking for maths lessons in Delhi.\",\n    \"image_url\": null,\n    \"created_at\": \"2026-10-21 10:00:00\"\n  }\n}"
+              "body": "{\n  \"post\": {\n    \"id\": \"10000000-0000-4000-8000-000000000005\",\n    \"author_id\": \"10000000-0000-4000-8000-000000000001\",\n    \"post_type\": \"request\",\n    \"city\": \"Delhi\",\n    \"subject\": \"Mathematics\",\n    \"body\": \"Looking for maths lessons in Delhi.\",\n    \"image_url\": null,\n    \"created_at\": \"2026-10-21 10:00:00\"\n  }\n}"
             },
             {
               "name": "Fictional example — 429 You can post once every 7 days",
@@ -8982,10 +8982,10 @@
                     "feed"
                   ]
                 },
-                "description": "Learner workflow. Create a city feed post. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days. Saved examples are fictional contract illustrations, not live captures.",
+                "description": "Learner workflow. Create a city feed post with optional subjectId. The response includes the subject name in subject. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days. Saved examples are fictional contract illustrations, not live captures.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"city\": \"{{city}}\",\n  \"body\": \"Looking for maths lessons in Delhi.\"\n}",
+                  "raw": "{\n  \"city\": \"{{city}}\",\n  \"subjectId\": \"{{subjectId}}\",\n  \"body\": \"Looking for maths lessons in Delhi.\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -13351,7 +13351,7 @@
                     }
                   ],
                   "cookie": [],
-                  "body": "{\n  \"posts\": [\n    {\n      \"id\": \"10000000-0000-4000-8000-000000000005\",\n      \"author_id\": \"20000000-0000-4000-8000-000000000001\",\n      \"post_type\": \"offer\",\n      \"city\": \"Delhi\",\n      \"subject_id\": 1,\n      \"body\": \"Offering maths lessons in Delhi. Ask about available sessions.\",\n      \"image_url\": null,\n      \"created_at\": \"2026-10-21 10:00:00\",\n      \"author_name\": \"Example Teacher\",\n      \"author_avatar\": null,\n      \"like_count\": 2,\n      \"comment_count\": 1,\n      \"liked_by_me\": 0\n    }\n  ],\n  \"pagination\": {\n    \"perPage\": 50,\n    \"hasMore\": false,\n    \"nextCursor\": null,\n    \"previousCursor\": null\n  }\n}"
+                  "body": "{\n  \"posts\": [\n    {\n      \"id\": \"10000000-0000-4000-8000-000000000005\",\n      \"author_id\": \"20000000-0000-4000-8000-000000000001\",\n      \"post_type\": \"offer\",\n      \"city\": \"Delhi\",\n      \"subject\": \"Mathematics\",\n      \"body\": \"Offering maths lessons in Delhi. Ask about available sessions.\",\n      \"image_url\": null,\n      \"created_at\": \"2026-10-21 10:00:00\",\n      \"author_name\": \"Example Teacher\",\n      \"author_avatar\": null,\n      \"like_count\": 2,\n      \"comment_count\": 1,\n      \"liked_by_me\": 0\n    }\n  ],\n  \"pagination\": {\n    \"perPage\": 50,\n    \"hasMore\": false,\n    \"nextCursor\": null,\n    \"previousCursor\": null\n  }\n}"
                 },
                 {
                   "name": "Fictional example — 401 Bearer missing",
@@ -13428,10 +13428,10 @@
                     "feed"
                   ]
                 },
-                "description": "Teacher workflow. Create a city feed post. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days. Saved examples are fictional contract illustrations, not live captures.",
+                "description": "Teacher workflow. Create a city feed post with optional subjectId. The response includes the subject name in subject. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days. Saved examples are fictional contract illustrations, not live captures.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"city\": \"{{city}}\",\n  \"body\": \"Offering maths lessons in Delhi. Ask about available sessions.\"\n}",
+                  "raw": "{\n  \"city\": \"{{city}}\",\n  \"subjectId\": \"{{subjectId}}\",\n  \"body\": \"Offering maths lessons in Delhi. Ask about available sessions.\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -13463,10 +13463,10 @@
                         "feed"
                       ]
                     },
-                    "description": "Teacher workflow. Create a city feed post. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days. Saved examples are fictional contract illustrations, not live captures.",
+                    "description": "Teacher workflow. Create a city feed post with optional subjectId. The response includes the subject name in subject. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days. Saved examples are fictional contract illustrations, not live captures.",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"city\": \"{{city}}\",\n  \"body\": \"Offering maths lessons in Delhi. Ask about available sessions.\"\n}",
+                      "raw": "{\n  \"city\": \"{{city}}\",\n  \"subjectId\": \"{{subjectId}}\",\n  \"body\": \"Offering maths lessons in Delhi. Ask about available sessions.\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -13484,7 +13484,7 @@
                     }
                   ],
                   "cookie": [],
-                  "body": "{\n  \"post\": {\n    \"id\": \"10000000-0000-4000-8000-000000000005\",\n    \"author_id\": \"20000000-0000-4000-8000-000000000001\",\n    \"post_type\": \"offer\",\n    \"city\": \"Delhi\",\n    \"subject_id\": 1,\n    \"body\": \"Offering maths lessons in Delhi. Ask about available sessions.\",\n    \"image_url\": null,\n    \"created_at\": \"2026-10-21 10:00:00\"\n  }\n}"
+                  "body": "{\n  \"post\": {\n    \"id\": \"10000000-0000-4000-8000-000000000005\",\n    \"author_id\": \"20000000-0000-4000-8000-000000000001\",\n    \"post_type\": \"offer\",\n    \"city\": \"Delhi\",\n    \"subject\": \"Mathematics\",\n    \"body\": \"Offering maths lessons in Delhi. Ask about available sessions.\",\n    \"image_url\": null,\n    \"created_at\": \"2026-10-21 10:00:00\"\n  }\n}"
                 },
                 {
                   "name": "Fictional example — 429 You can post once every 7 days",
@@ -13509,10 +13509,10 @@
                         "feed"
                       ]
                     },
-                    "description": "Teacher workflow. Create a city feed post. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days. Saved examples are fictional contract illustrations, not live captures.",
+                    "description": "Teacher workflow. Create a city feed post with optional subjectId. The response includes the subject name in subject. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days. Saved examples are fictional contract illustrations, not live captures.",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"city\": \"{{city}}\",\n  \"body\": \"Offering maths lessons in Delhi. Ask about available sessions.\"\n}",
+                      "raw": "{\n  \"city\": \"{{city}}\",\n  \"subjectId\": \"{{subjectId}}\",\n  \"body\": \"Offering maths lessons in Delhi. Ask about available sessions.\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -17619,7 +17619,7 @@
                     }
                   ],
                   "cookie": [],
-                  "body": "{\n  \"posts\": [\n    {\n      \"id\": \"10000000-0000-4000-8000-000000000005\",\n      \"author_id\": \"30000000-0000-4000-8000-000000000001\",\n      \"post_type\": \"offer\",\n      \"city\": \"Delhi\",\n      \"subject_id\": 1,\n      \"body\": \"Offering maths lessons in Delhi. Contact us for available sessions.\",\n      \"image_url\": null,\n      \"created_at\": \"2026-10-21 10:00:00\",\n      \"author_name\": \"Example Institute\",\n      \"author_avatar\": null,\n      \"like_count\": 2,\n      \"comment_count\": 1,\n      \"liked_by_me\": 0\n    }\n  ],\n  \"pagination\": {\n    \"perPage\": 50,\n    \"hasMore\": false,\n    \"nextCursor\": null,\n    \"previousCursor\": null\n  }\n}"
+                  "body": "{\n  \"posts\": [\n    {\n      \"id\": \"10000000-0000-4000-8000-000000000005\",\n      \"author_id\": \"30000000-0000-4000-8000-000000000001\",\n      \"post_type\": \"offer\",\n      \"city\": \"Delhi\",\n      \"subject\": \"Mathematics\",\n      \"body\": \"Offering maths lessons in Delhi. Contact us for available sessions.\",\n      \"image_url\": null,\n      \"created_at\": \"2026-10-21 10:00:00\",\n      \"author_name\": \"Example Institute\",\n      \"author_avatar\": null,\n      \"like_count\": 2,\n      \"comment_count\": 1,\n      \"liked_by_me\": 0\n    }\n  ],\n  \"pagination\": {\n    \"perPage\": 50,\n    \"hasMore\": false,\n    \"nextCursor\": null,\n    \"previousCursor\": null\n  }\n}"
                 },
                 {
                   "name": "Fictional example — 401 Bearer missing",
@@ -17696,10 +17696,10 @@
                     "feed"
                   ]
                 },
-                "description": "Institute workflow. Create a city feed post. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days. Saved examples are fictional contract illustrations, not live captures.",
+                "description": "Institute workflow. Create a city feed post with optional subjectId. The response includes the subject name in subject. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days. Saved examples are fictional contract illustrations, not live captures.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"city\": \"{{city}}\",\n  \"body\": \"Offering maths lessons in Delhi. Contact us for available sessions.\"\n}",
+                  "raw": "{\n  \"city\": \"{{city}}\",\n  \"subjectId\": \"{{subjectId}}\",\n  \"body\": \"Offering maths lessons in Delhi. Contact us for available sessions.\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -17731,10 +17731,10 @@
                         "feed"
                       ]
                     },
-                    "description": "Institute workflow. Create a city feed post. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days. Saved examples are fictional contract illustrations, not live captures.",
+                    "description": "Institute workflow. Create a city feed post with optional subjectId. The response includes the subject name in subject. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days. Saved examples are fictional contract illustrations, not live captures.",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"city\": \"{{city}}\",\n  \"body\": \"Offering maths lessons in Delhi. Contact us for available sessions.\"\n}",
+                      "raw": "{\n  \"city\": \"{{city}}\",\n  \"subjectId\": \"{{subjectId}}\",\n  \"body\": \"Offering maths lessons in Delhi. Contact us for available sessions.\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -17752,7 +17752,7 @@
                     }
                   ],
                   "cookie": [],
-                  "body": "{\n  \"post\": {\n    \"id\": \"10000000-0000-4000-8000-000000000005\",\n    \"author_id\": \"30000000-0000-4000-8000-000000000001\",\n    \"post_type\": \"offer\",\n    \"city\": \"Delhi\",\n    \"subject_id\": 1,\n    \"body\": \"Offering maths lessons in Delhi. Contact us for available sessions.\",\n    \"image_url\": null,\n    \"created_at\": \"2026-10-21 10:00:00\"\n  }\n}"
+                  "body": "{\n  \"post\": {\n    \"id\": \"10000000-0000-4000-8000-000000000005\",\n    \"author_id\": \"30000000-0000-4000-8000-000000000001\",\n    \"post_type\": \"offer\",\n    \"city\": \"Delhi\",\n    \"subject\": \"Mathematics\",\n    \"body\": \"Offering maths lessons in Delhi. Contact us for available sessions.\",\n    \"image_url\": null,\n    \"created_at\": \"2026-10-21 10:00:00\"\n  }\n}"
                 },
                 {
                   "name": "Fictional example — 429 You can post once every 7 days",
@@ -17777,10 +17777,10 @@
                         "feed"
                       ]
                     },
-                    "description": "Institute workflow. Create a city feed post. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days. Saved examples are fictional contract illustrations, not live captures.",
+                    "description": "Institute workflow. Create a city feed post with optional subjectId. The response includes the subject name in subject. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days. Saved examples are fictional contract illustrations, not live captures.",
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"city\": \"{{city}}\",\n  \"body\": \"Offering maths lessons in Delhi. Contact us for available sessions.\"\n}",
+                      "raw": "{\n  \"city\": \"{{city}}\",\n  \"subjectId\": \"{{subjectId}}\",\n  \"body\": \"Offering maths lessons in Delhi. Contact us for available sessions.\"\n}",
                       "options": {
                         "raw": {
                           "language": "json"
@@ -21795,7 +21795,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"posts\": [\n    {\n      \"id\": \"10000000-0000-4000-8000-000000000005\",\n      \"author_id\": \"10000000-0000-4000-8000-000000000001\",\n      \"post_type\": \"request\",\n      \"city\": \"Delhi\",\n      \"subject_id\": 1,\n      \"body\": \"Looking for maths lessons in Delhi.\",\n      \"image_url\": null,\n      \"created_at\": \"2026-10-21 10:00:00\",\n      \"author_name\": \"Asha Sharma\",\n      \"author_avatar\": null,\n      \"like_count\": 2,\n      \"comment_count\": 1,\n      \"liked_by_me\": 0\n    }\n  ],\n  \"pagination\": {\n    \"perPage\": 50,\n    \"hasMore\": false,\n    \"nextCursor\": null,\n    \"previousCursor\": null\n  }\n}"
+              "body": "{\n  \"posts\": [\n    {\n      \"id\": \"10000000-0000-4000-8000-000000000005\",\n      \"author_id\": \"10000000-0000-4000-8000-000000000001\",\n      \"post_type\": \"request\",\n      \"city\": \"Delhi\",\n      \"subject\": \"Mathematics\",\n      \"body\": \"Looking for maths lessons in Delhi.\",\n      \"image_url\": null,\n      \"created_at\": \"2026-10-21 10:00:00\",\n      \"author_name\": \"Asha Sharma\",\n      \"author_avatar\": null,\n      \"like_count\": 2,\n      \"comment_count\": 1,\n      \"liked_by_me\": 0\n    }\n  ],\n  \"pagination\": {\n    \"perPage\": 50,\n    \"hasMore\": false,\n    \"nextCursor\": null,\n    \"previousCursor\": null\n  }\n}"
             },
             {
               "name": "Fictional example — 401 Bearer missing",
@@ -21872,10 +21872,10 @@
                 "feed"
               ]
             },
-            "description": "Shared workflow. Create a city feed post. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days. Saved examples are fictional contract illustrations, not live captures.",
+            "description": "Shared workflow. Create a city feed post with optional subjectId. The response includes the subject name in subject. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days. Saved examples are fictional contract illustrations, not live captures.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"city\": \"{{city}}\",\n  \"body\": \"Looking for maths lessons in Delhi.\"\n}",
+              "raw": "{\n  \"city\": \"{{city}}\",\n  \"subjectId\": \"{{subjectId}}\",\n  \"body\": \"Looking for maths lessons in Delhi.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -21907,10 +21907,10 @@
                     "feed"
                   ]
                 },
-                "description": "Shared workflow. Create a city feed post. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days. Saved examples are fictional contract illustrations, not live captures.",
+                "description": "Shared workflow. Create a city feed post with optional subjectId. The response includes the subject name in subject. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days. Saved examples are fictional contract illustrations, not live captures.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"city\": \"{{city}}\",\n  \"body\": \"Looking for maths lessons in Delhi.\"\n}",
+                  "raw": "{\n  \"city\": \"{{city}}\",\n  \"subjectId\": \"{{subjectId}}\",\n  \"body\": \"Looking for maths lessons in Delhi.\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -21928,7 +21928,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"post\": {\n    \"id\": \"10000000-0000-4000-8000-000000000005\",\n    \"author_id\": \"10000000-0000-4000-8000-000000000001\",\n    \"post_type\": \"request\",\n    \"city\": \"Delhi\",\n    \"subject_id\": 1,\n    \"body\": \"Looking for maths lessons in Delhi.\",\n    \"image_url\": null,\n    \"created_at\": \"2026-10-21 10:00:00\"\n  }\n}"
+              "body": "{\n  \"post\": {\n    \"id\": \"10000000-0000-4000-8000-000000000005\",\n    \"author_id\": \"10000000-0000-4000-8000-000000000001\",\n    \"post_type\": \"request\",\n    \"city\": \"Delhi\",\n    \"subject\": \"Mathematics\",\n    \"body\": \"Looking for maths lessons in Delhi.\",\n    \"image_url\": null,\n    \"created_at\": \"2026-10-21 10:00:00\"\n  }\n}"
             },
             {
               "name": "Fictional example — 429 You can post once every 7 days",
@@ -21953,10 +21953,10 @@
                     "feed"
                   ]
                 },
-                "description": "Shared workflow. Create a city feed post. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days. Saved examples are fictional contract illustrations, not live captures.",
+                "description": "Shared workflow. Create a city feed post with optional subjectId. The response includes the subject name in subject. Learner accounts produce post_type=request; teacher/institute accounts produce post_type=offer. The server derives the post type from the bearer user, not from HTTP input. One post per account per seven days. Saved examples are fictional contract illustrations, not live captures.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"city\": \"{{city}}\",\n  \"body\": \"Looking for maths lessons in Delhi.\"\n}",
+                  "raw": "{\n  \"city\": \"{{city}}\",\n  \"subjectId\": \"{{subjectId}}\",\n  \"body\": \"Looking for maths lessons in Delhi.\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
