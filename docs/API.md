@@ -273,7 +273,7 @@ checks authenticated identity, contact gates and a teacher/institute target.
 | `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
 | `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
 | `GET` | `/feed` | Verified bearer | Required query `city`; optional `perPage`, `cursor` | Paginated city posts, with like/comment counts and the caller's like state. |
-| `POST` | `/feed` | Verified bearer | `city`, `body`; optional `subjectId`, `imageUrl` | Creates a city post; one post per account every 7 days. |
+| `POST` | `/feed` | Verified bearer | `city`, `body` | Creates a city post; one post per account every 7 days. |
 | `POST` | `/feed/{postId}/like` | Verified bearer | — | Likes a post. |
 | `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
 | `GET` | `/feed/{postId}/comments` | Public | `perPage`, `cursor` | Lists comments. |
@@ -491,6 +491,10 @@ feed reading, likes, comments and replies.
 
 | Method | Path | Access | Request / query | Result / notes |
 |---|---|---|---|---|
+| `GET` | `/profiles/me` | Verified teacher/institute bearer | — | Shared profile read with saved account, profile, subjects, `profileComplete`, `profileDraft` and provider page URLs. |
+| `PATCH` | `/profiles/me/steps/{step}` | Verified teacher/institute bearer, completed registration | Steps 1–5; account-specific fields below | Saves a section and draft progress atomically. Account type comes from the bearer, never the payload. |
+| `POST` | `/profiles/me/photo` | Verified teacher/institute bearer | Multipart `image`, JPEG/PNG/WebP up to 5 MB | Submits photo for moderation; no step progress change. |
+| `POST` | `/profiles/me/publish` | Verified teacher/institute bearer, completed registration | `agreeToTerms:true` | Step 6: validates required fields, records terms and completion, returns provider page links. |
 | `PUT` | `/profiles/me` | Verified provider bearer, completed registration | Provider fields described below | Updates the signed-in teacher/institute listing and its subject assignments. |
 | `GET` | `/profiles/me/stats` | Verified bearer | Optional `days` (default 30, maximum 365) | Provider listing views and new booking-request counts. |
 | `GET` | `/bookings/incoming` | Verified bearer | `perPage`, `cursor` | Provider's incoming bookings. |
@@ -503,7 +507,7 @@ feed reading, likes, comments and replies.
 | `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
 | `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
 | `GET` | `/feed` | Verified bearer | Required query `city`; optional `perPage`, `cursor` | Paginated city posts, with like/comment counts and the caller's like state. |
-| `POST` | `/feed` | Verified bearer | `city`, `body`; optional `subjectId`, `imageUrl` | Creates a city post; one post per account every 7 days. |
+| `POST` | `/feed` | Verified bearer | `city`, `body` | Creates a city post; one post per account every 7 days. |
 | `POST` | `/feed/{postId}/like` | Verified bearer | — | Likes a post. |
 | `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
 | `GET` | `/feed/{postId}/comments` | Public | `perPage`, `cursor` | Lists comments. |
@@ -586,7 +590,7 @@ Use `GET /feed?city=Delhi` for city posts. `POST /feed` creates a teacher
 `post_type:"offer"`, at most once per seven days:
 
 ```json
-{"city":"Delhi","subjectId":1,"body":"Maths lesson slots are available this week."}
+{"city":"Delhi","body":"Maths lesson slots are available this week."}
 ```
 
 Like/unlike use the post like endpoints. Comment with
@@ -622,6 +626,10 @@ feed reading, likes, comments and replies.
 
 | Method | Path | Access | Request / query | Result / notes |
 |---|---|---|---|---|
+| `GET` | `/profiles/me` | Verified teacher/institute bearer | — | Shared profile read with saved account, profile, subjects, `profileComplete`, `profileDraft` and provider page URLs. |
+| `PATCH` | `/profiles/me/steps/{step}` | Verified teacher/institute bearer, completed registration | Steps 1–5; account-specific fields below | Saves a section and draft progress atomically. Account type comes from the bearer, never the payload. |
+| `POST` | `/profiles/me/photo` | Verified teacher/institute bearer | Multipart `image`, JPEG/PNG/WebP up to 5 MB | Submits photo for moderation; no step progress change. |
+| `POST` | `/profiles/me/publish` | Verified teacher/institute bearer, completed registration | `agreeToTerms:true` | Step 6: validates required fields, records terms and completion, returns provider page links. |
 | `PUT` | `/profiles/me` | Verified provider bearer, completed registration | Provider fields described below | Updates the signed-in teacher/institute listing and its subject assignments. |
 | `GET` | `/profiles/me/stats` | Verified bearer | Optional `days` (default 30, maximum 365) | Provider listing views and new booking-request counts. |
 | `GET` | `/bookings/incoming` | Verified bearer | `perPage`, `cursor` | Provider's incoming bookings. |
@@ -634,7 +642,7 @@ feed reading, likes, comments and replies.
 | `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
 | `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
 | `GET` | `/feed` | Verified bearer | Required query `city`; optional `perPage`, `cursor` | Paginated city posts, with like/comment counts and the caller's like state. |
-| `POST` | `/feed` | Verified bearer | `city`, `body`; optional `subjectId`, `imageUrl` | Creates a city post; one post per account every 7 days. |
+| `POST` | `/feed` | Verified bearer | `city`, `body` | Creates a city post; one post per account every 7 days. |
 | `POST` | `/feed/{postId}/like` | Verified bearer | — | Likes a post. |
 | `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
 | `GET` | `/feed/{postId}/comments` | Public | `perPage`, `cursor` | Lists comments. |
@@ -702,7 +710,7 @@ comments and reply using the feed routes listed above. `POST /feed` creates
 `post_type:"offer"` and remains limited to one post per seven days. Example:
 
 ```json
-{"city":"Delhi","subjectId":1,"body":"New science classes start this month."}
+{"city":"Delhi","body":"New science classes start this month."}
 ```
 
 Comment/reply both use `POST /feed/{postId}/comments`. Send `{body:"Message"}`
@@ -730,7 +738,7 @@ shown in this shared documentation category.
 | `GET` | `/auth/safety-disclaimer` | Public | — | Returns the disclaimer text. |
 | `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging or booking. |
 | `GET` | `/subjects` | Public | — | Subject domains with their subjects and BSL catalog data. |
-| `GET` | `/geo/countries`, `/geo/countries/{countryCode}/states`, `/geo/countries/{countryCode}/cities` | Public | Optional `search`; city also accepts `stateCode`, `page`, `perPage` | Country/state/city lookups for registration; city search is paginated. See [Geography API and dataset import](GEOGRAPHY_API.md). |
+| `GET` | `/geo/countries`, `/geo/countries/{countryCode}/states`, `/geo/countries/{countryCode}/cities` | Public | Optional `search`; cities require `stateCode` and accept `page`, `perPage` | Full country list, country-scoped states and state-scoped paginated cities. See [Geography API and dataset import](GEOGRAPHY_API.md). |
 | `GET` | `/i18n/languages` | Public | — | Supported language metadata. |
 | `GET` | `/i18n/{lang}` | Public | Language code in path | Returns translations; unsupported language codes serve English and identify the requested/served language. |
 | `PATCH` | `/bookings/{id}/status` | Verified bearer, participant | `status`: `accepted`, `declined`, `cancelled`, or `completed` | Updates a booking in which the caller participates. |
@@ -741,7 +749,7 @@ shown in this shared documentation category.
 | `POST` | `/broadcasting/auth` | Verified bearer, conversation participant | `channel_name`; `socket_id` as required by configured broadcaster | Legacy channel authorization; Socket.IO clients use the events below. |
 | `GET` | `/broadcasting/auth` | Verified bearer, conversation participant | Same inputs as query parameters | Legacy broadcasting compatibility; not new mobile chat setup. |
 | `GET` | `/feed` | Verified bearer | Required query `city`; optional `perPage`, `cursor` | Paginated city posts, with like/comment counts and the caller's like state. |
-| `POST` | `/feed` | Verified bearer | `city`, `body`; optional `subjectId`, `imageUrl` | Creates a city post; one post per account every 7 days. |
+| `POST` | `/feed` | Verified bearer | `city`, `body` | Creates a city post; one post per account every 7 days. |
 | `POST` | `/feed/{postId}/like` | Verified bearer | — | Likes a post. |
 | `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
 | `GET` | `/feed/{postId}/comments` | Public | `perPage`, `cursor` | Lists comments. |

@@ -6,10 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Reporting\BusinessActivityRecorder;
 use App\Services\CountryCurrency;
 use App\Services\OnboardingState;
+use App\Services\ProfileDraft;
+use App\Services\ProfileEditor;
 use App\Services\TeacherAddress;
 use App\Services\TeacherLocation;
 use App\Services\TeacherPublicPages;
-use App\Services\TeacherProfileDraft;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -118,7 +119,8 @@ class ProfilesController extends Controller
         $updateParts[] = 'updated_at = now()';
 
         DB::transaction(function () use ($data, $subjectsField, $user, $type, $profileTable, $updateParts, $bindings, $location): void {
-            if (DB::table($profileTable)->where('user_id', $user->id)->lockForUpdate()->first() === null) {
+            $lockedProfile = DB::table($profileTable)->where('user_id', $user->id)->lockForUpdate()->first();
+            if ($lockedProfile === null) {
                 abort(404, 'Profile not found');
             }
 
@@ -145,7 +147,8 @@ class ProfilesController extends Controller
                 }
             }
 
-            $this->ensureSlug($profileTable, $user->id, $user->full_name);
+            $displayName = $type === 'institute' && filled($lockedProfile->listing_name ?? null) ? $lockedProfile->listing_name : $user->full_name;
+            $this->ensureSlug($profileTable, $user->id, $displayName);
             app(TeacherLocation::class)->store((int) $user->id, $location, $type);
             app(TeacherAddress::class)->store((int) $user->id, $data, $type);
             if ($type === 'teacher') {
@@ -162,86 +165,128 @@ class ProfilesController extends Controller
         }
 
         if (! $isTeacher) {
-            $details = DB::table($profileTable)->where('user_id', $user->id)->value('location_details');
-            $teacherResponse['locationDetails'] = $details === null ? null : json_decode($details, true, flags: JSON_THROW_ON_ERROR);
+            $profile = DB::table($profileTable)->where('user_id', $user->id)->first(['slug', 'is_profile_complete', 'location_details']);
+            $teacherResponse = [...ProfileEditor::urls($profile, $type),
+                'locationDetails' => $profile->location_details === null ? null : json_decode($profile->location_details, true, flags: JSON_THROW_ON_ERROR)];
         }
 
         return response()->json(['ok' => true, ...$teacherResponse]);
     }
 
-    /** Save one section of the teacher's six-step profile editor. */
+    // Existing teacher routes remain restricted to teachers and delegate to the shared editor.
     public function updateTeacherStep(Request $request, string $step): JsonResponse
     {
+        abort_unless($request->attributes->get('authenticated_user')->account_type === 'teacher', 403, 'Teacher account required.');
+
+        return $this->updateStep($request, $step);
+    }
+
+    public function publishTeacherProfile(Request $request): JsonResponse
+    {
+        abort_unless($request->attributes->get('authenticated_user')->account_type === 'teacher', 403, 'Teacher account required.');
+
+        return $this->publishProfile($request);
+    }
+
+    public function showMine(Request $request): JsonResponse
+    {
+        abort_unless($request->attributes->get('authenticated_user')->account_type === 'teacher', 403, 'Teacher account required.');
+
+        return $this->showProvider($request);
+    }
+
+    public function uploadTeacherPhoto(Request $request): JsonResponse
+    {
+        abort_unless($request->attributes->get('authenticated_user')->account_type === 'teacher', 403, 'Teacher account required.');
+
+        return $this->uploadPhoto($request);
+    }
+
+    private function providerType(Request $request): string
+    {
+        $type = $request->attributes->get('authenticated_user')->account_type;
+        abort_unless(in_array($type, ['teacher', 'institute'], true), 403, 'Teacher or institute account required.');
+
+        return $type;
+    }
+
+    /** Save one allowlisted section of either provider's six-step editor. */
+    public function updateStep(Request $request, string $step): JsonResponse
+    {
+        $type = $this->providerType($request);
+        $table = ProfileEditor::table($type);
         $user = $request->attributes->get('authenticated_user');
-        abort_unless($user->account_type === 'teacher', 403, 'Teacher account required.');
         if (! app(OnboardingState::class)->registrationCompleted($user)) {
             return response()->json(['error' => 'Complete registration before updating your profile.', 'registrationRequired' => true], 409);
         }
-
+        $isTeacher = $type === 'teacher';
+        $subjects = $isTeacher ? 'primarySubjects' : 'subjectIds';
+        $story = $isTeacher ? 'bio' : 'description';
         $allowed = match ($step) {
-            '1' => ['fullName', 'listingName'],
-            '2' => ['primarySubjects'],
+            '1' => $isTeacher ? ['fullName', 'listingName'] : ['fullName', 'listingName', 'contactPerson'],
+            '2' => [$subjects],
             '3' => ['lessonModes', 'latitude', 'longitude', 'addressText', 'city', 'state', 'country', 'countryCode', 'district', 'subDistrict', 'locality', 'localityType', 'postalCode'],
-            '4' => ['ratePerHour', 'currency', 'trialDays'],
-            '5' => ['bio', 'linkedinUrl'],
+            '4' => [$isTeacher ? 'ratePerHour' : 'startingRate', 'currency', 'trialDays'],
+            '5' => $isTeacher ? ['bio', 'linkedinUrl'] : ['description', 'websiteUrl', 'instructorsText'],
             default => abort(404),
         };
-
         $payload = $request->only($allowed);
         abort_if($payload === [], 422, 'Provide at least one field for this profile step.');
 
         if ($step === '1') {
-            $data = validator($payload, [
+            $rules = [
                 'fullName' => ['sometimes', 'required', 'string', 'min:2', 'max:160'],
                 'listingName' => ['sometimes', 'nullable', 'string', 'min:2', 'max:160'],
-            ])->validate();
-            $draft = DB::transaction(function () use ($user, $data): array {
-                abort_if(DB::table('teacher_profiles')->where('user_id', $user->id)->lockForUpdate()->first() === null, 404, 'Teacher profile not found.');
-                $updates = ['updated_at' => now()];
-                $changedFields = [];
+            ];
+            if (! $isTeacher) $rules['contactPerson'] = ['sometimes', 'required', 'string', 'min:2', 'max:160'];
+            $data = validator($payload, $rules)->validate();
+            $draft = DB::transaction(function () use ($user, $data, $type, $table): array {
+                abort_if(DB::table($table)->where('user_id', $user->id)->lockForUpdate()->first() === null, 404, 'Profile not found.');
+                $changed = [];
                 if (isset($data['fullName'])) {
-                    $updates['full_name'] = trim($data['fullName']);
-                    $changedFields[] = 'full_name';
+                    DB::table('users')->where('id', $user->id)->update(['full_name' => trim($data['fullName']), 'updated_at' => now()]);
+                    $changed[] = 'full_name';
                 }
-                if (array_key_exists('listingName', $data)) {
-                    $updates['listing_name'] = $data['listingName'] === null ? null : trim($data['listingName']);
-                    $changedFields[] = 'listing_name';
+                $updates = ['updated_at' => now()];
+                foreach (['listingName' => 'listing_name', 'contactPerson' => 'contact_person'] as $input => $column) {
+                    if (array_key_exists($input, $data)) {
+                        $updates[$column] = $data[$input] === null ? null : trim($data[$input]);
+                        $changed[] = $column;
+                    }
                 }
-                DB::table('users')->where('id', $user->id)->update(array_intersect_key($updates, ['full_name' => true, 'updated_at' => true]));
-                if (array_key_exists('listing_name', $updates)) {
-                    DB::table('teacher_profiles')->where('user_id', $user->id)->update(['listing_name' => $updates['listing_name'], 'updated_at' => now()]);
-                }
-                app(BusinessActivityRecorder::class)->record('teacher.profile_step_updated', (string) $user->id, (string) $user->id,
-                    after: ['step' => 1, 'changed_fields' => $changedFields]);
-                app(TeacherPublicPages::class)->publish((int) $user->id, (int) $user->id);
+                DB::table($table)->where('user_id', $user->id)->update($updates);
+                app(BusinessActivityRecorder::class)->record($type.'.profile_step_updated', $user->id, $user->id,
+                    after: ['step' => 1, 'changed_fields' => $changed]);
+                if ($type === 'teacher') app(TeacherPublicPages::class)->publish((int) $user->id, (int) $user->id);
 
-                return app(TeacherProfileDraft::class)->saveStep((int) $user->id, 1);
+                return app(ProfileDraft::class)->saveStep((int) $user->id, 1, $type);
             });
-
-            $saved = DB::table('users as u')->join('teacher_profiles as p', 'p.user_id', '=', 'u.id')
-                ->where('u.id', $user->id)->first(['u.full_name', 'u.email', 'p.listing_name']);
+            $columns = ['u.full_name', 'u.email', 'p.listing_name'];
+            if (! $isTeacher) $columns[] = 'p.contact_person';
+            $saved = DB::table('users as u')->join($table.' as p', 'p.user_id', '=', 'u.id')->where('u.id', $user->id)->first($columns);
 
             return response()->json(['ok' => true, 'step' => 1, 'fullName' => $saved->full_name,
-                'email' => $saved->email, 'listingName' => $saved->listing_name ?? $saved->full_name, 'profileDraft' => $draft]);
+                'email' => $saved->email, 'listingName' => $saved->listing_name ?? $saved->full_name,
+                ...($isTeacher ? [] : ['contactPerson' => $saved->contact_person]), 'profileDraft' => $draft]);
         }
 
-        $stepFields = match ($step) {
-            '2' => ['primarySubjects' => $payload['primarySubjects'] ?? null],
-            '3' => $payload,
-            '4' => $payload,
-            '5' => $payload,
-        };
-        if ($step === '5' && array_key_exists('bio', $stepFields) && $stepFields['bio'] !== null
-            && $this->wordCount(trim($stepFields['bio'])) < 100) {
-            throw ValidationException::withMessages(['bio' => 'Write at least 100 words about yourself.']);
+        if ($step === '2') {
+            validator($payload, [$subjects => ['required', 'array', 'min:1', 'max:5'],
+                $subjects.'.*' => ['required', 'integer', 'distinct', 'exists:subjects,id']])->validate();
         }
-
-        $request->replace($stepFields);
-        $body = DB::transaction(function () use ($request, $step, $stepFields, $user): array {
+        if ($step === '5') {
+            // Validate the type before word counting, including malformed array input.
+            validator($payload, [$story => ['sometimes', 'nullable', 'string', 'max:2000']])->validate();
+            if (isset($payload[$story]) && ProfileEditor::wordCount($payload[$story]) < 100) {
+                throw ValidationException::withMessages([$story => 'Write at least 100 words about '.($isTeacher ? 'yourself.' : 'your institute.')]);
+            }
+        }
+        $request->replace($payload);
+        $body = DB::transaction(function () use ($request, $step, $payload, $user, $type): array {
             $body = $this->updateMine($request)->getData(true);
-            app(BusinessActivityRecorder::class)->record('teacher.profile_step_updated', (string) $user->id, (string) $user->id,
-                after: ['step' => (int) $step, 'changed_fields' => array_keys($stepFields)]);
-            $body['profileDraft'] = app(TeacherProfileDraft::class)->saveStep((int) $user->id, (int) $step);
+            app(BusinessActivityRecorder::class)->record($type.'.profile_step_updated', $user->id, $user->id,
+                after: ['step' => (int) $step, 'changed_fields' => array_keys($payload)]);
+            $body['profileDraft'] = app(ProfileDraft::class)->saveStep((int) $user->id, (int) $step, $type);
 
             return $body;
         });
@@ -249,76 +294,78 @@ class ProfilesController extends Controller
         return response()->json([...$body, 'step' => (int) $step]);
     }
 
-    public function publishTeacherProfile(Request $request): JsonResponse
+    public function publishProfile(Request $request): JsonResponse
     {
+        $type = $this->providerType($request);
+        $table = ProfileEditor::table($type);
         $user = $request->attributes->get('authenticated_user');
-        abort_unless($user->account_type === 'teacher', 403, 'Teacher account required.');
         if (! app(OnboardingState::class)->registrationCompleted($user)) {
             return response()->json(['error' => 'Complete registration before publishing your profile.', 'registrationRequired' => true], 409);
         }
         $request->validate(['agreeToTerms' => ['required', 'accepted']]);
-        $profile = DB::table('teacher_profiles')->where('user_id', $user->id)->first();
-        abort_if($profile === null, 404, 'Teacher profile not found.');
-        $subjects = TeacherPublicPages::subjects((int) $user->id);
-        $missing = [];
-        if ($subjects->isEmpty()) $missing[] = 'primarySubjects';
-        if (trim((string) $profile->city) === '') $missing[] = 'city';
-        if (trim((string) $profile->district) === '') $missing[] = 'district';
-        if (\App\Services\SeoDirectory::country($profile) === null) $missing[] = 'countryCode';
-        if (trim((string) $profile->bio) === '' || $this->wordCount(trim((string) $profile->bio)) < 100) $missing[] = 'bio';
-        if (json_decode($profile->lesson_modes ?: '[]', true) === []) $missing[] = 'lessonModes';
-        if ($missing !== []) {
-            return response()->json(['error' => 'Complete the required profile sections before publishing.', 'missingFields' => $missing], 422);
-        }
 
-        DB::transaction(function () use ($user): void {
+        return DB::transaction(function () use ($user, $type, $table): JsonResponse {
+            $profile = DB::table($table)->where('user_id', $user->id)->lockForUpdate()->first();
+            abort_if($profile === null, 404, 'Profile not found.');
+            $missing = ProfileEditor::missingFields($profile, $type, ProfileEditor::subjects((int) $user->id, $type)->isNotEmpty());
+            if ($missing !== []) {
+                return response()->json(['error' => 'Complete the required profile sections before publishing.', 'missingFields' => $missing], 422);
+            }
             DB::table('users')->where('id', $user->id)->update(['terms_accepted_at' => now(), 'updated_at' => now()]);
-            DB::table('teacher_profiles')->where('user_id', $user->id)->update(['is_profile_complete' => true, 'updated_at' => now()]);
-            app(TeacherPublicPages::class)->publish((int) $user->id, (int) $user->id);
-            app(BusinessActivityRecorder::class)->record('teacher.profile_published', (string) $user->id, (string) $user->id,
+            DB::table($table)->where('user_id', $user->id)->update(['is_profile_complete' => true, 'updated_at' => now()]);
+            if ($type === 'teacher') {
+                app(TeacherPublicPages::class)->publish((int) $user->id, (int) $user->id);
+            } else {
+                $this->ensureSlug($table, (int) $user->id, $profile->listing_name ?: $user->full_name);
+            }
+            $profile = DB::table($table)->where('user_id', $user->id)->first();
+            if ($type === 'teacher' && $profile->public_page_slug === null) {
+                // Roll back terms/completion when publication could not succeed.
+                throw ValidationException::withMessages(['profile' => 'Profile is not eligible for a public page yet.']);
+            }
+            app(BusinessActivityRecorder::class)->record($type.'.profile_published', $user->id, $user->id,
                 after: ['status' => 'published', 'terms_accepted' => true, 'profile_complete' => true]);
+
+            return response()->json(['ok' => true, 'published' => true, 'profileComplete' => true,
+                'profileDraft' => ProfileDraft::loadForOwner($profile, (int) $user->id, $type), ...ProfileEditor::urls($profile, $type)]);
         });
-
-        $profile = DB::table('teacher_profiles')->where('user_id', $user->id)->first();
-        if ($profile->public_page_slug === null) {
-            return response()->json(['error' => 'Profile is saved but not eligible for a public page yet.', 'published' => false], 422);
-        }
-
-        return response()->json(['ok' => true, 'published' => true, 'profileComplete' => true,
-            'profileDraft' => TeacherProfileDraft::forProfile($profile),
-            ...TeacherPublicPages::urls($profile, $user->full_name)]);
     }
 
-    public function showMine(Request $request): JsonResponse
+    public function showProvider(Request $request): JsonResponse
     {
+        $type = $this->providerType($request);
         $user = $request->attributes->get('authenticated_user');
-        abort_unless($user->account_type === 'teacher', 403, 'Teacher account required.');
-        $profile = DB::table('teacher_profiles')->where('user_id', $user->id)
-            ->first(['id', 'user_id', 'primary_subject_id', 'listing_name', 'is_profile_complete', 'completed_profile_steps', 'profile_draft_saved_at', 'bio', 'rate_per_hour', 'currency', 'lesson_modes', 'latitude', 'longitude', 'address_text', 'city', 'state', 'country', 'country_code', 'linkedin_url', 'slug', 'is_verified', 'verified_at', 'trial_days', 'rating_avg', 'rating_count', 'district', 'sub_district', 'locality', 'locality_type', 'postal_code', 'location_details', 'public_page_slug', 'public_profile_slug', 'seo_slug', 'seo_country', 'seo_city_slug']);
-        abort_if($profile === null, 404, 'Teacher profile not found.');
+        $columns = ['id', 'user_id', 'listing_name', 'is_profile_complete', 'completed_profile_steps', 'profile_draft_saved_at',
+            'currency', 'lesson_modes', 'latitude', 'longitude', 'address_text', 'city', 'state', 'country', 'country_code', 'slug',
+            'is_verified', 'verified_at', 'trial_days', 'rating_avg', 'rating_count', 'district', 'sub_district', 'locality',
+            'locality_type', 'postal_code', 'location_details'];
+        $columns = [...$columns, ...($type === 'teacher'
+            ? ['primary_subject_id', 'bio', 'rate_per_hour', 'linkedin_url', 'public_page_slug', 'public_profile_slug', 'seo_slug', 'seo_country', 'seo_city_slug']
+            : ['contact_person', 'description', 'starting_rate', 'instructors_text', 'website_url', 'institute_type', 'is_bsl_official', 'bsl_official_since'])];
+        $profile = DB::table(ProfileEditor::table($type))->where('user_id', $user->id)->first($columns);
+        abort_if($profile === null, 404, 'Profile not found.');
         $profile->lesson_modes = json_decode($profile->lesson_modes ?: '[]', true, flags: JSON_THROW_ON_ERROR);
         $profile->is_profile_complete = (bool) $profile->is_profile_complete;
         $profile->location_details = $profile->location_details === null ? null : json_decode($profile->location_details, true, flags: JSON_THROW_ON_ERROR);
-        $userData = DB::table('users')->where('id', $user->id)->first(['id', 'full_name', 'email', 'phone', 'avatar_url', 'avatar_status', 'phone_verified_at', 'profile_completed_at']);
+        $userData = DB::table('users')->where('id', $user->id)->first(['id', 'full_name', 'email', 'phone', 'avatar_url', 'avatar_status', 'phone_verified_at', 'profile_completed_at', 'terms_accepted_at']);
         $profile->listing_name = $profile->listing_name ?: $userData->full_name;
+        $subjects = ProfileEditor::subjects((int) $user->id, $type);
 
-        return response()->json(['user' => $userData, 'profile' => $profile,
-            'profileComplete' => $profile->is_profile_complete,
-            'profileDraft' => TeacherProfileDraft::forProfile($profile),
-            ...TeacherPublicPages::urls($profile, $userData->full_name),
-            'subjects' => TeacherPublicPages::subjects((int) $user->id)]);
+        return response()->json(['user' => $userData, 'profile' => $profile, 'profileComplete' => $profile->is_profile_complete,
+            'profileDraft' => ProfileDraft::forOwner($profile, $userData, $type, $subjects->pluck('id')->all()), ...ProfileEditor::urls($profile, $type),
+            'subjects' => $subjects]);
     }
 
-    public function uploadTeacherPhoto(Request $request): JsonResponse
+    public function uploadPhoto(Request $request): JsonResponse
     {
+        $type = $this->providerType($request);
         $user = $request->attributes->get('authenticated_user');
-        abort_unless($user->account_type === 'teacher', 403, 'Teacher account required.');
         $data = $request->validate(['image' => ['required', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120']]);
-        $path = $data['image']->store('teacher-photos', 'public');
+        $path = $data['image']->store($type.'-photos', 'public');
         $url = url(Storage::disk('public')->url($path));
-        DB::transaction(function () use ($user, $url): void {
+        DB::transaction(function () use ($user, $url, $type): void {
             DB::table('users')->where('id', $user->id)->update(['avatar_url' => $url, 'avatar_status' => 'pending', 'updated_at' => now()]);
-            app(BusinessActivityRecorder::class)->record('teacher.avatar_submitted', (string) $user->id, (string) $user->id,
+            app(BusinessActivityRecorder::class)->record($type.'.avatar_submitted', $user->id, $user->id,
                 after: ['avatar_status' => 'pending']);
         });
 
@@ -484,11 +531,6 @@ class ProfilesController extends Controller
         $parts[] = $column.' = ?';
         $value = $data[$input];
         $bindings[] = $uppercase && is_string($value) ? strtoupper($value) : $value;
-    }
-
-    private function wordCount(string $value): int
-    {
-        return preg_match_all("/[\\p{L}\\p{N}]+(?:['’][\\p{L}\\p{N}]+)*/u", $value) ?: 0;
     }
 
     private function ensureSlug(string $table, int $userId, string $fullName): void

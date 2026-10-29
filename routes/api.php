@@ -85,6 +85,12 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
     Route::patch('/student/profile', [StudentProfilesController::class, 'update']);
     Route::post('/student/profile/photo', [StudentProfilesController::class, 'uploadPhoto'])->middleware('throttle:10,1');
     Route::put('/profiles/me', [ProfilesController::class, 'updateMine']);
+    Route::prefix('profiles/me')->group(function (): void {
+        Route::get('/', [ProfilesController::class, 'showProvider']);
+        Route::patch('/steps/{step}', [ProfilesController::class, 'updateStep'])->whereIn('step', ['1', '2', '3', '4', '5']);
+        Route::post('/publish', [ProfilesController::class, 'publishProfile']);
+        Route::post('/photo', [ProfilesController::class, 'uploadPhoto'])->middleware('throttle:10,1');
+    });
     Route::prefix('teacher/profile')->group(function (): void {
         Route::get('/', [ProfilesController::class, 'showMine']);
         Route::patch('/steps/{step}', [ProfilesController::class, 'updateTeacherStep'])->whereIn('step', ['1', '2', '3', '4', '5']);

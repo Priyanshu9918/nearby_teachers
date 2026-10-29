@@ -33,9 +33,7 @@ class CommunityController extends Controller
     {
         $data = $request->validate([
             'city' => ['required', 'string', 'max:160'],
-            'subjectId' => ['nullable', 'integer', 'exists:subjects,id'],
             'body' => ['required', 'string', 'max:5000'],
-            'imageUrl' => ['nullable', 'url', 'max:2048'],
         ]);
         $user = $request->attributes->get('authenticated_user');
         $post = DB::transaction(function () use ($data, $user): array|JsonResponse {
@@ -55,9 +53,7 @@ class CommunityController extends Controller
                 'author_id' => $user->id,
                 'post_type' => $user->account_type === 'learner' ? 'request' : 'offer',
                 'city' => $data['city'],
-                'subject_id' => $data['subjectId'] ?? null,
                 'body' => $data['body'],
-                'image_url' => $data['imageUrl'] ?? null,
                 'created_at' => now(),
             ]);
 

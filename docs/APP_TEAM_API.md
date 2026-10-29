@@ -48,7 +48,7 @@ Logout also works while suspended. **Admin bearer** additionally requires
 | `POST` | `/auth/otp/verify` | Public | `authMethod:"phone_otp"` (or omitted), `phone`, `code` (6 digits) | Registration phone verification: verifies the code and returns `token`, `user`, `authMethod:"phone_otp"`, routing fields. Up to 5 code attempts. |
 | `POST` | `/auth/login` | Public | `email`, `password` (phone prohibited) | Email-only password login. Completed registration required; incomplete accounts receive `409 REGISTRATION_INCOMPLETE` without a token. Returns `token`, `user`, `mobileVerified` on success. |
 | `POST` | `/auth/logout` | Bearer token | `{}` | Revokes all existing API sessions for this user; returns `{ok:true,message,loggedOutAllDevices:true}`. Available before mobile verification and for suspended users. |
-| `GET` | `/auth/session` | Bearer token | — | Returns safe user fields, the account-type profile (`profile`), subjects, registration/onboarding flags, `profileComplete`, and `profileCompletion`. Teacher profile uses `is_profile_complete`; institute completion is derived from required onboarding fields; learner completion follows registration/age/consent gates. Teacher links: `webPageUrl`, `teacherProfileUrl`, `teacherSeoUrl` (null until published). Institute links: `webPageUrl`, `instituteProfileUrl` (null without a saved slug). Allowed before phone verification. |
+| `GET` | `/auth/session` | Bearer token | — | Returns safe user fields, the account-type profile (`profile`), subjects, registration/onboarding flags, `profileComplete`, and `profileCompletion`. Teacher and institute profiles use `is_profile_complete` and return `profileDraft`; learner completion follows registration/age/consent gates. Teacher links: `webPageUrl`, `teacherProfileUrl`, `teacherSeoUrl` (null until published). Institute links: `webPageUrl`, `instituteProfileUrl` (null until published). Allowed before phone verification. |
 | `GET` | `/auth/onboarding` | Bearer token | — | Saved DB fields under `draft`, completion flags and routing; no new autosave. Available before phone verification. |
 | `PATCH` | `/auth/onboarding` | Registered, verified bearer | Partial profile fields below | Autosave only after registration. Returns `409` before registration. |
 | `POST` | `/auth/register` | Verified bearer | Full registration form below | Saves the full form; student DOB is a separate step. Pending-DOB retries return `200`; completed registration returns `409`. |
@@ -213,7 +213,7 @@ See [email recovery](EMAIL_AUTH.md) for code requirements.
 | `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
 | `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
 | `GET` | `/feed` | Verified bearer | Required query `city`; optional `perPage`, `cursor` | Paginated city posts, with like/comment counts and the caller's like state. |
-| `POST` | `/feed` | Verified bearer | `city`, `body`; optional `subjectId`, `imageUrl` | Creates a city post; one post per account every 7 days. |
+| `POST` | `/feed` | Verified bearer | `city`, `body` | Creates a city post; one post per account every 7 days. |
 | `POST` | `/feed/{postId}/like` | Verified bearer | — | Likes a post. |
 | `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
 | `GET` | `/feed/{postId}/comments` | Public | `perPage`, `cursor` | Lists comments. |
@@ -325,6 +325,10 @@ in that same subsection.
 
 | Method | Path | Access | Request / query | Result / notes |
 |---|---|---|---|---|
+| `GET` | `/profiles/me` | Verified teacher/institute bearer | — | Shared profile read with saved account, profile, subjects, `profileComplete`, `profileDraft` and provider page URLs. |
+| `PATCH` | `/profiles/me/steps/{step}` | Verified teacher/institute bearer, completed registration | Steps 1–5; account-specific fields below | Saves a section and draft progress atomically. Account type comes from the bearer, never the payload. |
+| `POST` | `/profiles/me/photo` | Verified teacher/institute bearer | Multipart `image`, JPEG/PNG/WebP up to 5 MB | Submits photo for moderation; no step progress change. |
+| `POST` | `/profiles/me/publish` | Verified teacher/institute bearer, completed registration | `agreeToTerms:true` | Step 6: validates required fields, records terms and completion, returns provider page links. |
 | `PUT` | `/profiles/me` | Verified provider bearer, completed registration | Provider fields described below | Updates the signed-in teacher/institute listing and its subject assignments. |
 | `GET` | `/teacher/profile` | Verified teacher bearer | — | Returns the signed-in teacher's account, profile fields, subjects, `profileComplete` flag and `webPageUrl` (null until publish). |
 | `PATCH` | `/teacher/profile/steps/{step}` | Verified teacher bearer, completed registration | Step 1 `fullName`, `listingName`; 2 subjects; 3 lesson modes/location; 4 rate/trial; 5 story/LinkedIn | Saves one allowlisted profile section. Account email is returned by `GET /teacher/profile` and is read-only. Step 5 bio must contain at least 100 words when supplied. |
@@ -343,7 +347,7 @@ in that same subsection.
 | `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
 | `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
 | `GET` | `/feed` | Verified bearer | Required query `city`; optional `perPage`, `cursor` | Paginated city posts, with like/comment counts and the caller's like state. |
-| `POST` | `/feed` | Verified bearer | `city`, `body`; optional `subjectId`, `imageUrl` | Creates a city post; one post per account every 7 days. |
+| `POST` | `/feed` | Verified bearer | `city`, `body` | Creates a city post; one post per account every 7 days. |
 | `POST` | `/feed/{postId}/like` | Verified bearer | — | Likes a post. |
 | `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
 | `GET` | `/feed/{postId}/comments` | Public | `perPage`, `cursor` | Lists comments. |
@@ -447,7 +451,7 @@ provider read/reply to an existing conversation; it does not open new chats.
 For city posts use `GET /feed?city=Delhi`, then `POST /feed` to create an offer:
 
 ```json
-{"city":"Delhi","subjectId":1,"body":"Maths lesson slots are available this week."}
+{"city":"Delhi","body":"Maths lesson slots are available this week."}
 ```
 
 Provider post_type is offer, with one post per seven days. Use like/unlike
@@ -467,7 +471,54 @@ WhatsApp/call links only when phone is present. See [contact action integration]
 Conversation responses do not expose the learner's phone, so this does not add
 teacher-to-student phone lookup from chat.
 
+### Shared six-step provider profile editor
+
+Both teacher and institute accounts use `/profiles/me` and its `/steps/{step}`,
+`/photo` and `/publish` endpoints. Existing `/teacher/profile` routes remain
+teacher-only aliases of the shared implementation. No account type or target
+user ID is accepted from the client. Email and verification/classification badges
+cannot be changed through the editor.
+
+| Step | Teacher payload | Institute payload |
+|---|---|---|
+| 1 | `fullName`, `listingName` | `fullName` (institute name), `listingName`, `contactPerson` |
+| 2 | `primarySubjects` (1–5 subject IDs) | `subjectIds` (1–5 subject IDs) |
+| 3 | `lessonModes`, coordinates/address/geography | Same fields |
+| 4 | `ratePerHour`, `currency`, `trialDays` | `startingRate`, `currency`, `trialDays` |
+| 5 | `bio`, `linkedinUrl` | `description`, `websiteUrl`, `instructorsText` |
+| 6 | `agreeToTerms:true` to `/profiles/me/publish` | Same request |
+
+A supplied bio/description must contain 100 words and remain within 2,000
+characters. A section can be partially updated; progress records successful
+section saves. Publication separately requires subjects, city, district, country,
+teaching modes and the 100-word story; institutes also require `contactPerson`.
+Rates, trial, website, instructors and listing name remain optional.
+
+`GET /profiles/me`, `GET /auth/session`, step saves and publish return the same
+`profileDraft` shape documented above. After steps 1–3 are saved, reopen step 4
+using `profileDraft.nextStep` and prefill saved `user`, `profile`, `subjects`.
+Publishing returns `completedSteps:[1,2,3,4,5,6]`, `nextStep:null` and
+`profileComplete:true`. Teacher response URLs retain their names; institutes
+return `instituteProfileUrl` and `webPageUrl`. Incomplete institute drafts have
+null page links and cannot be opened through the public institute website route.
+
+Institute completion in `/auth/session` now follows explicit listing publication,
+separately from registration. Existing institute profiles with a nonempty slug
+retain their accessible pages through a migration compatibility flag. No past
+step completion, terms acceptance or save dates are fabricated. Existing profiles
+without a slug begin in draft state. General `PUT /profiles/me` updates keep their
+existing partial-update semantics and do not advance step progress.
+
+Postman: import `docs/postman/teacher-profile-geography.postman_collection.json`
+or `docs/postman/app-team.postman_collection.json`, then open **Teacher / Institute
+→ Shared Profile API** for all steps, photo, publish and the restored-draft GET
+response example. Set `token` to the corresponding provider account.
+
 ## Institute
+
+Dedicated Postman collection: `docs/postman/institute-profile.postman_collection.json`
+contains all six profile steps, photo upload, draft save/resume examples, subjects
+and geography lookups. Set `baseUrl` and an institute bearer in `token`.
 
 Institute registration is under Auth; provide institute name, city and contact.
 No DOB is required. This category includes the institute's listing,
@@ -480,6 +531,10 @@ in that same subsection.
 
 | Method | Path | Access | Request / query | Result / notes |
 |---|---|---|---|---|
+| `GET` | `/profiles/me` | Verified teacher/institute bearer | — | Shared profile read with saved account, profile, subjects, `profileComplete`, `profileDraft` and provider page URLs. |
+| `PATCH` | `/profiles/me/steps/{step}` | Verified teacher/institute bearer, completed registration | Steps 1–5; account-specific fields below | Saves a section and draft progress atomically. Account type comes from the bearer, never the payload. |
+| `POST` | `/profiles/me/photo` | Verified teacher/institute bearer | Multipart `image`, JPEG/PNG/WebP up to 5 MB | Submits photo for moderation; no step progress change. |
+| `POST` | `/profiles/me/publish` | Verified teacher/institute bearer, completed registration | `agreeToTerms:true` | Step 6: validates required fields, records terms and completion, returns provider page links. |
 | `PUT` | `/profiles/me` | Verified provider bearer, completed registration | Provider fields described below | Updates the signed-in teacher/institute listing and its subject assignments. |
 | `GET` | `/profiles/me/stats` | Verified bearer | Optional `days` (default 30, maximum 365) | Provider listing views and new booking-request counts. |
 | `GET` | `/bookings/incoming` | Verified bearer | `perPage`, `cursor` | Provider's incoming bookings. |
@@ -492,7 +547,7 @@ in that same subsection.
 | `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
 | `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
 | `GET` | `/feed` | Verified bearer | Required query `city`; optional `perPage`, `cursor` | Paginated city posts, with like/comment counts and the caller's like state. |
-| `POST` | `/feed` | Verified bearer | `city`, `body`; optional `subjectId`, `imageUrl` | Creates a city post; one post per account every 7 days. |
+| `POST` | `/feed` | Verified bearer | `city`, `body` | Creates a city post; one post per account every 7 days. |
 | `POST` | `/feed/{postId}/like` | Verified bearer | — | Likes a post. |
 | `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
 | `GET` | `/feed/{postId}/comments` | Public | `perPage`, `cursor` | Lists comments. |
@@ -548,7 +603,7 @@ reply using the feed routes above. Posts have post_type offer and remain
 limited to once per seven days. Example POST /feed body:
 
 ```json
-{"city":"Delhi","subjectId":1,"body":"New science classes start this month."}
+{"city":"Delhi","body":"New science classes start this month."}
 ```
 
 Use `POST /feed/{postId}/comments` with body for a comment or body plus
@@ -582,7 +637,7 @@ compatibility/system endpoints are here. Classification does not widen access.
 | `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
 | `POST` | `/broadcasting/auth` | Verified bearer, conversation participant | `channel_name` | Legacy channel authorization; Socket.IO clients use the events below. |
 | `GET` | `/feed` | Verified bearer | Required query `city`; optional `perPage`, `cursor` | Paginated city posts, with like/comment counts and the caller's like state. |
-| `POST` | `/feed` | Verified bearer | `city`, `body`; optional `subjectId`, `imageUrl` | Creates a city post; one post per account every 7 days. |
+| `POST` | `/feed` | Verified bearer | `city`, `body` | Creates a city post; one post per account every 7 days. |
 | `POST` | `/feed/{postId}/like` | Verified bearer | — | Likes a post. |
 | `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
 | `GET` | `/feed/{postId}/comments` | Public | `perPage`, `cursor` | Lists comments. |
@@ -816,3 +871,48 @@ Teacher registration and profile edits accept optional paired `latitude` / `long
 Institute registration and edits accept address and GPS fields: [Institute address API](INSTITUTE_REGISTRATION_ADDRESS.md). Institute registration requests omit subjects.
 
 Teacher page links now use the single canonical `/teacher/{name-city}` URL on the configured SEO subdomain. Both teacher URL response keys are retained and equal when eligible. Subject/city and online listings are separate country/language pages: [international SEO](TEACHER_SEO_PAGES.md).
+
+### Step-wise data in profile drafts
+
+All teacher/institute owner responses that return `profileDraft` now also include
+`profileDraft.steps`: six ordered entries with `step`, `completed` and `data`.
+This applies to GET `/profiles/me`, teacher GET aliases, GET `/auth/session`,
+step saves and successful publish. Existing progress keys stay unchanged.
+
+`data` uses the same camelCase field names accepted by that step. Step 1 includes
+name/listing name and read-only email (plus institute contact person); step 2
+contains `primarySubjects` or `subjectIds`; step 3 contains teaching modes and
+address; step 4 contains rate/currency/trial; step 5 contains story and links;
+step 6 contains `agreeToTerms`. The latter is true only for completed profiles
+with a saved terms-acceptance timestamp, not merely registered accounts.
+
+For example, these are the first two entries (the API always returns all six):
+
+```json
+{
+  "steps": [
+    {"step": 1, "completed": true, "data": {"fullName": "Example Academy", "listingName": "Example Academy", "email": "academy@example.test", "contactPerson": "Asha Sharma"}},
+    {"step": 2, "completed": true, "data": {"subjectIds": [1]}}
+  ]
+}
+```
+
+Each entry reflects current saved values, including registration/default values
+in steps the user has not saved yet. Unset fields are null or empty arrays;
+`completed` follows step-save tracking, separately from field presence. Email is
+returned for display and remains read-only. Photo upload is a separate endpoint.
+No new migration is required for this response addition. The teacher and institute
+Postman collections include the new step-wise response examples.
+
+### Country → state → city dropdowns
+
+| Method | Path | Access | Request / query | Result / notes |
+|---|---|---|---|---|
+| `GET` | `/geo/countries` | Public | Optional `search` | Full stored country list with names and codes, unpaginated. Omit search to load all countries. |
+| `GET` | `/geo/countries/{countryCode}/states` | Public | Country alpha-2 code; optional `search` | All states for the selected country. |
+| `GET` | `/geo/countries/{countryCode}/cities` | Public | Required `stateCode`; optional `search`, `page`, `perPage` | Cities for the selected country/state only; default 50 per page, maximum 100. Missing state is 422, invalid country/state combination is 404. |
+
+Example: countries → `/geo/countries/IN/states` →
+`/geo/countries/IN/cities?stateCode=UP&perPage=50&page=1`. Cities responses include
+`countryCode`, `stateCode`, `cities` and `pagination`. Clear dependent selections
+when country/state changes. See [Geography API](GEOGRAPHY_API.md).

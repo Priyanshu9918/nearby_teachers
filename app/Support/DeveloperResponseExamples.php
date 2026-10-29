@@ -105,7 +105,7 @@ class DeveloperResponseExamples
     private function signature(string $method, string $path): string
     {
         $path = preg_replace('/\{[^}]+\}/', '{}', $path);
-        $path = preg_replace('#^(/teacher/profile/steps/)\d+$#', '$1{}', $path);
+        $path = preg_replace('#^(/(?:teacher/profile|profiles/me)/steps/)\d+$#', '$1{}', $path);
 
         return $method.' '.$path;
     }

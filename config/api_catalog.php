@@ -59,6 +59,10 @@ return [
         'POST /franchise/enquiries' => ['Learner', 'Teacher', 'Common'],
         'POST /jobs/applications' => ['Learner', 'Teacher', 'Common'],
 
+        'GET /profiles/me' => ['Teacher Profile', 'Teacher', 'Institute'],
+        'PATCH /profiles/me/steps/{step}' => ['Teacher Profile', 'Teacher', 'Institute'],
+        'POST /profiles/me/photo' => ['Teacher Profile', 'Teacher', 'Institute'],
+        'POST /profiles/me/publish' => ['Teacher Profile', 'Teacher', 'Institute'],
         'PUT /profiles/me' => ['Teacher Profile', 'Teacher', 'Institute'],
         'GET /profiles/me/stats' => ['Teacher Profile', 'Teacher', 'Institute'],
         'GET /teacher/profile' => ['Teacher Profile'],

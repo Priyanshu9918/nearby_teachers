@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Nearby Teacher — Teacher Profile and Geography APIs (Mock Responses)",
-    "description": "Focused collection with saved mock response examples. In Postman, import this latest JSON, expand Teacher > Profile, then select the example under a request to view its saved response. Geography lookup examples are under Common. Set baseUrl and, for Teacher requests, a verified teacher bearer token.",
+    "description": "Focused collection with saved mock response examples. In Postman, import this latest JSON, expand Teacher > Profile, then select the example under a request to view its saved response. Geography lookup examples are under Common. Set baseUrl and, for Teacher requests, a verified teacher bearer token. Draft examples: Teacher > Profile > Draft — Save and Resume. Save step 3, restore next day with nextStep=4, then continue step 4. Each request includes a saved response. Shared teacher/institute six-step APIs: open Teacher or Institute > Shared Profile API. Both use /profiles/me and the bearer account type; existing /teacher/profile requests remain teacher-only.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -49,6 +49,249 @@
           "name": "Profile",
           "description": "Six-step editor. Steps 1–5 save profile sections, the separate photo request uploads a file, and Publish completes step 6.",
           "item": [
+            {
+              "name": "Draft — Save and Resume",
+              "description": "Set baseUrl and token. Save steps 1–2 using the Profile requests first, then run these requests in order. Successful steps persist draft data and progress. GET restores saved data; no separate draft API is needed. Saved examples illustrate a first-time draft.",
+              "item": [
+                {
+                  "name": "1. Save draft — Step 3 (after steps 1–2)",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"lessonModes\": [\n    \"online\"\n  ],\n  \"city\": \"Kanpur\",\n  \"district\": \"Kanpur Nagar\",\n  \"countryCode\": \"IN\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/teacher/profile/steps/3",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "teacher",
+                        "profile",
+                        "steps",
+                        "3"
+                      ]
+                    },
+                    "description": "Save profile steps 1 and 2 first. This saves step 3 and draft progress automatically. Expected completedSteps=[1,2,3], nextStep=4. There is no separate draft endpoint."
+                  },
+                  "response": [
+                    {
+                      "name": "200 — Draft saved through step 3; next step 4",
+                      "originalRequest": {
+                        "method": "PATCH",
+                        "header": [
+                          {
+                            "key": "Accept",
+                            "value": "application/json"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"lessonModes\": [\n    \"online\"\n  ],\n  \"city\": \"Kanpur\",\n  \"district\": \"Kanpur Nagar\",\n  \"countryCode\": \"IN\"\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseUrl}}/teacher/profile/steps/3",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "teacher",
+                            "profile",
+                            "steps",
+                            "3"
+                          ]
+                        },
+                        "description": "Save profile steps 1 and 2 first. This saves step 3 and draft progress automatically. Expected completedSteps=[1,2,3], nextStep=4. There is no separate draft endpoint."
+                      },
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"ok\": true,\n  \"teacherSeoUrl\": null,\n  \"teacherProfileUrl\": null,\n  \"webPageUrl\": null,\n  \"locationDetails\": null,\n  \"step\": 3,\n  \"profileDraft\": {\n    \"status\": \"draft\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1,\n      2,\n      3\n    ],\n    \"nextStep\": 4,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Ravi Kumar\",\n          \"listingName\": \"Ravi Kumar\",\n          \"email\": \"ravi@example.com\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": true,\n        \"data\": {\n          \"primarySubjects\": [\n            \"{{subjectId}}\"\n          ]\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": true,\n        \"data\": {\n          \"lessonModes\": [\n            \"in_person\",\n            \"home_tuition\",\n            \"online\"\n          ],\n          \"latitude\": null,\n          \"longitude\": null,\n          \"addressText\": null,\n          \"city\": \"Varanasi\",\n          \"state\": \"Uttar Pradesh\",\n          \"country\": \"India\",\n          \"countryCode\": \"IN\",\n          \"district\": null,\n          \"subDistrict\": null,\n          \"locality\": null,\n          \"localityType\": null,\n          \"postalCode\": null\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": false,\n        \"data\": {\n          \"ratePerHour\": null,\n          \"currency\": \"INR\",\n          \"trialDays\": 0\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": false,\n        \"data\": {\n          \"bio\": null,\n          \"linkedinUrl\": null\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": false,\n        \"data\": {\n          \"agreeToTerms\": false\n        }\n      }\n    ]\n  }\n}"
+                    }
+                  ]
+                },
+                {
+                  "name": "2. Resume draft — Open step 4 next day",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/teacher/profile",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "teacher",
+                        "profile"
+                      ]
+                    },
+                    "description": "Call after login or reopening the app. Prefill saved user/profile/subjects and open profileDraft.nextStep. This example assumes steps 1–3 were saved, so nextStep=4. Read-only; does not reset progress or change lastSavedAt. Set token to the same teacher account."
+                  },
+                  "response": [
+                    {
+                      "name": "200 — Draft restored; steps 1–3 saved, resume step 4",
+                      "originalRequest": {
+                        "method": "GET",
+                        "header": [
+                          {
+                            "key": "Accept",
+                            "value": "application/json"
+                          }
+                        ],
+                        "url": {
+                          "raw": "{{baseUrl}}/teacher/profile",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "teacher",
+                            "profile"
+                          ]
+                        },
+                        "description": "Call after login or reopening the app. Prefill saved user/profile/subjects and open profileDraft.nextStep. This example assumes steps 1–3 were saved, so nextStep=4. Read-only; does not reset progress or change lastSavedAt. Set token to the same teacher account."
+                      },
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"user\": {\n    \"id\": \"10000000-0000-4000-8000-000000000001\",\n    \"full_name\": \"Ravi Kumar\",\n    \"email\": \"ravi@example.com\",\n    \"phone\": \"+919876543210\",\n    \"avatar_url\": \"https://example.test/storage/teacher-photos/ravi.jpg\",\n    \"avatar_status\": \"approved\",\n    \"phone_verified_at\": \"2026-10-22 10:00:00\",\n    \"profile_completed_at\": \"2026-10-22 10:00:00\"\n  },\n  \"profile\": {\n    \"id\": \"20000000-0000-4000-8000-000000000001\",\n    \"user_id\": \"10000000-0000-4000-8000-000000000001\",\n    \"primary_subject_id\": 1,\n    \"listing_name\": \"Ravi Kumar\",\n    \"is_profile_complete\": false,\n    \"bio\": null,\n    \"rate_per_hour\": null,\n    \"currency\": \"INR\",\n    \"lesson_modes\": [\n      \"in_person\",\n      \"home_tuition\",\n      \"online\"\n    ],\n    \"latitude\": 25.3176,\n    \"longitude\": 82.9739,\n    \"address_text\": \"Sigra, Varanasi\",\n    \"city\": \"Varanasi\",\n    \"state\": \"Uttar Pradesh\",\n    \"country\": \"India\",\n    \"country_code\": \"IN\",\n    \"linkedin_url\": null,\n    \"slug\": \"ravi-kumar-varanasi\",\n    \"is_verified\": false,\n    \"verified_at\": null,\n    \"trial_days\": 3,\n    \"rating_avg\": \"4.80\",\n    \"rating_count\": 12,\n    \"district\": \"Varanasi\",\n    \"sub_district\": null,\n    \"locality\": \"Sigra\",\n    \"locality_type\": \"area\",\n    \"postal_code\": \"221010\",\n    \"location_details\": {\n      \"country\": \"India\",\n      \"state\": \"Uttar Pradesh\",\n      \"district\": \"Varanasi\",\n      \"city\": \"Varanasi\",\n      \"locality\": \"Sigra\"\n    },\n    \"public_page_slug\": null,\n    \"public_profile_slug\": null,\n    \"seo_slug\": null,\n    \"seo_country\": null,\n    \"seo_city_slug\": null,\n    \"subjects\": [\n      {\n        \"id\": 1,\n        \"name\": \"Mathematics\"\n      }\n    ],\n    \"completed_profile_steps\": \"[1, 2, 3]\",\n    \"profile_draft_saved_at\": \"2026-10-28 10:00:00\"\n  },\n  \"profileComplete\": false,\n  \"teacherSeoUrl\": null,\n  \"teacherProfileUrl\": null,\n  \"webPageUrl\": null,\n  \"subjects\": [\n    {\n      \"id\": 1,\n      \"name\": \"Mathematics\"\n    }\n  ],\n  \"profileDraft\": {\n    \"status\": \"draft\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1,\n      2,\n      3\n    ],\n    \"nextStep\": 4,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Ravi Kumar\",\n          \"listingName\": \"Ravi Kumar\",\n          \"email\": \"ravi@example.com\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": true,\n        \"data\": {\n          \"primarySubjects\": [\n            1\n          ]\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": true,\n        \"data\": {\n          \"lessonModes\": [\n            \"in_person\",\n            \"home_tuition\",\n            \"online\"\n          ],\n          \"latitude\": 25.3176,\n          \"longitude\": 82.9739,\n          \"addressText\": \"Sigra, Varanasi\",\n          \"city\": \"Varanasi\",\n          \"state\": \"Uttar Pradesh\",\n          \"country\": \"India\",\n          \"countryCode\": \"IN\",\n          \"district\": \"Varanasi\",\n          \"subDistrict\": null,\n          \"locality\": \"Sigra\",\n          \"localityType\": \"area\",\n          \"postalCode\": \"221010\"\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": false,\n        \"data\": {\n          \"ratePerHour\": null,\n          \"currency\": \"INR\",\n          \"trialDays\": 3\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": false,\n        \"data\": {\n          \"bio\": null,\n          \"linkedinUrl\": null\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": false,\n        \"data\": {\n          \"agreeToTerms\": false\n        }\n      }\n    ]\n  }\n}"
+                    }
+                  ]
+                },
+                {
+                  "name": "3. Continue draft — Save step 4",
+                  "request": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"ratePerHour\": 500,\n  \"currency\": \"INR\",\n  \"trialDays\": 3\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/teacher/profile/steps/4",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "teacher",
+                        "profile",
+                        "steps",
+                        "4"
+                      ]
+                    },
+                    "description": "After restoring nextStep=4, save rates and trial here. When steps 1–3 are saved, nextStep advances to 5. Complete step 5, then use the existing publish request for step 6."
+                  },
+                  "response": [
+                    {
+                      "name": "200 — Step 4 saved; next step 5",
+                      "originalRequest": {
+                        "method": "PATCH",
+                        "header": [
+                          {
+                            "key": "Accept",
+                            "value": "application/json"
+                          },
+                          {
+                            "key": "Content-Type",
+                            "value": "application/json"
+                          }
+                        ],
+                        "body": {
+                          "mode": "raw",
+                          "raw": "{\n  \"ratePerHour\": 500,\n  \"currency\": \"INR\",\n  \"trialDays\": 3\n}",
+                          "options": {
+                            "raw": {
+                              "language": "json"
+                            }
+                          }
+                        },
+                        "url": {
+                          "raw": "{{baseUrl}}/teacher/profile/steps/4",
+                          "host": [
+                            "{{baseUrl}}"
+                          ],
+                          "path": [
+                            "teacher",
+                            "profile",
+                            "steps",
+                            "4"
+                          ]
+                        },
+                        "description": "After restoring nextStep=4, save rates and trial here. When steps 1–3 are saved, nextStep advances to 5. Complete step 5, then use the existing publish request for step 6."
+                      },
+                      "status": "OK",
+                      "code": 200,
+                      "_postman_previewlanguage": "json",
+                      "header": [
+                        {
+                          "key": "Content-Type",
+                          "value": "application/json"
+                        }
+                      ],
+                      "cookie": [],
+                      "body": "{\n  \"ok\": true,\n  \"teacherSeoUrl\": null,\n  \"teacherProfileUrl\": null,\n  \"webPageUrl\": null,\n  \"locationDetails\": {\n    \"country\": \"India\",\n    \"state\": \"Uttar Pradesh\",\n    \"district\": \"Varanasi\",\n    \"city\": \"Varanasi\",\n    \"locality\": \"Sigra\"\n  },\n  \"step\": 4,\n  \"profileDraft\": {\n    \"status\": \"draft\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1,\n      2,\n      3,\n      4\n    ],\n    \"nextStep\": 5,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Ravi Kumar\",\n          \"listingName\": \"Ravi Kumar\",\n          \"email\": \"ravi@example.com\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": true,\n        \"data\": {\n          \"primarySubjects\": [\n            \"{{subjectId}}\"\n          ]\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": true,\n        \"data\": {\n          \"lessonModes\": [\n            \"in_person\",\n            \"home_tuition\",\n            \"online\"\n          ],\n          \"latitude\": null,\n          \"longitude\": null,\n          \"addressText\": null,\n          \"city\": \"Varanasi\",\n          \"state\": \"Uttar Pradesh\",\n          \"country\": \"India\",\n          \"countryCode\": \"IN\",\n          \"district\": null,\n          \"subDistrict\": null,\n          \"locality\": null,\n          \"localityType\": null,\n          \"postalCode\": null\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": true,\n        \"data\": {\n          \"ratePerHour\": 500,\n          \"currency\": \"INR\",\n          \"trialDays\": 3\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": false,\n        \"data\": {\n          \"bio\": null,\n          \"linkedinUrl\": null\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": false,\n        \"data\": {\n          \"agreeToTerms\": false\n        }\n      }\n    ]\n  }\n}"
+                    }
+                  ]
+                }
+              ]
+            },
             {
               "name": "GET /teacher/profile — View my complete profile and web page link",
               "request": {
@@ -104,7 +347,41 @@
                     }
                   ],
                   "cookie": [],
-                  "body": "{\n  \"user\": {\n    \"id\": \"10000000-0000-4000-8000-000000000001\",\n    \"full_name\": \"Ravi Kumar\",\n    \"email\": \"ravi@example.com\",\n    \"phone\": \"+919876543210\",\n    \"avatar_url\": \"https://example.test/storage/teacher-photos/ravi.jpg\",\n    \"avatar_status\": \"approved\",\n    \"phone_verified_at\": \"2026-10-22 10:00:00\",\n    \"profile_completed_at\": \"2026-10-22 10:00:00\"\n  },\n  \"profile\": {\n    \"id\": \"20000000-0000-4000-8000-000000000001\",\n    \"user_id\": \"10000000-0000-4000-8000-000000000001\",\n    \"primary_subject_id\": 1,\n    \"listing_name\": \"Ravi Kumar\",\n    \"is_profile_complete\": true,\n    \"bio\": \"Ravi Kumar is an experienced mathematics teacher who helps learners understand concepts with clarity and confidence. His lessons combine careful explanations, guided practice, and real examples from everyday life. He adapts each class to a student's current level, learning pace, and academic goals. Before introducing a new topic, he checks what the learner already knows and identifies ideas that need more support. Students receive clear feedback, useful practice questions, and a practical plan for continued improvement. Ravi teaches school mathematics, exam preparation, and foundational problem solving through home tuition and online classes. He encourages learners to ask questions, review mistakes without fear, and build consistent study habits. Parents receive regular updates about progress and next steps. His goal is to help every student become independent, motivated, and successful.\",\n    \"rate_per_hour\": \"500.00\",\n    \"currency\": \"INR\",\n    \"lesson_modes\": [\n      \"in_person\",\n      \"home_tuition\",\n      \"online\"\n    ],\n    \"latitude\": 25.3176,\n    \"longitude\": 82.9739,\n    \"address_text\": \"Sigra, Varanasi\",\n    \"city\": \"Varanasi\",\n    \"state\": \"Uttar Pradesh\",\n    \"country\": \"India\",\n    \"country_code\": \"IN\",\n    \"linkedin_url\": \"https://www.linkedin.com/in/example\",\n    \"slug\": \"ravi-kumar-varanasi\",\n    \"is_verified\": false,\n    \"verified_at\": null,\n    \"trial_days\": 3,\n    \"rating_avg\": \"4.80\",\n    \"rating_count\": 12,\n    \"district\": \"Varanasi\",\n    \"sub_district\": null,\n    \"locality\": \"Sigra\",\n    \"locality_type\": \"area\",\n    \"postal_code\": \"221010\",\n    \"location_details\": {\n      \"country\": \"India\",\n      \"state\": \"Uttar Pradesh\",\n      \"district\": \"Varanasi\",\n      \"city\": \"Varanasi\",\n      \"locality\": \"Sigra\"\n    },\n    \"public_page_slug\": \"ravi-kumar-varanasi\",\n    \"public_profile_slug\": \"ravi-kumar-varanasi\",\n    \"seo_slug\": \"ravi-kumar-varanasi\",\n    \"seo_country\": \"in\",\n    \"seo_city_slug\": \"varanasi\",\n    \"subjects\": [\n      {\n        \"id\": 1,\n        \"name\": \"Mathematics\"\n      }\n    ]\n  },\n  \"profileComplete\": true,\n  \"teacherSeoUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"teacherProfileUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"webPageUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"subjects\": [\n    {\n      \"id\": 1,\n      \"name\": \"Mathematics\"\n    }\n  ]\n}"
+                  "body": "{\n  \"user\": {\n    \"id\": \"10000000-0000-4000-8000-000000000001\",\n    \"full_name\": \"Ravi Kumar\",\n    \"email\": \"ravi@example.com\",\n    \"phone\": \"+919876543210\",\n    \"avatar_url\": \"https://example.test/storage/teacher-photos/ravi.jpg\",\n    \"avatar_status\": \"approved\",\n    \"phone_verified_at\": \"2026-10-22 10:00:00\",\n    \"profile_completed_at\": \"2026-10-22 10:00:00\"\n  },\n  \"profile\": {\n    \"id\": \"20000000-0000-4000-8000-000000000001\",\n    \"user_id\": \"10000000-0000-4000-8000-000000000001\",\n    \"primary_subject_id\": 1,\n    \"listing_name\": \"Ravi Kumar\",\n    \"is_profile_complete\": true,\n    \"bio\": \"Ravi Kumar is an experienced mathematics teacher who helps learners understand concepts with clarity and confidence. His lessons combine careful explanations, guided practice, and real examples from everyday life. He adapts each class to a student's current level, learning pace, and academic goals. Before introducing a new topic, he checks what the learner already knows and identifies ideas that need more support. Students receive clear feedback, useful practice questions, and a practical plan for continued improvement. Ravi teaches school mathematics, exam preparation, and foundational problem solving through home tuition and online classes. He encourages learners to ask questions, review mistakes without fear, and build consistent study habits. Parents receive regular updates about progress and next steps. His goal is to help every student become independent, motivated, and successful.\",\n    \"rate_per_hour\": \"500.00\",\n    \"currency\": \"INR\",\n    \"lesson_modes\": [\n      \"in_person\",\n      \"home_tuition\",\n      \"online\"\n    ],\n    \"latitude\": 25.3176,\n    \"longitude\": 82.9739,\n    \"address_text\": \"Sigra, Varanasi\",\n    \"city\": \"Varanasi\",\n    \"state\": \"Uttar Pradesh\",\n    \"country\": \"India\",\n    \"country_code\": \"IN\",\n    \"linkedin_url\": \"https://www.linkedin.com/in/example\",\n    \"slug\": \"ravi-kumar-varanasi\",\n    \"is_verified\": false,\n    \"verified_at\": null,\n    \"trial_days\": 3,\n    \"rating_avg\": \"4.80\",\n    \"rating_count\": 12,\n    \"district\": \"Varanasi\",\n    \"sub_district\": null,\n    \"locality\": \"Sigra\",\n    \"locality_type\": \"area\",\n    \"postal_code\": \"221010\",\n    \"location_details\": {\n      \"country\": \"India\",\n      \"state\": \"Uttar Pradesh\",\n      \"district\": \"Varanasi\",\n      \"city\": \"Varanasi\",\n      \"locality\": \"Sigra\"\n    },\n    \"public_page_slug\": \"ravi-kumar-varanasi\",\n    \"public_profile_slug\": \"ravi-kumar-varanasi\",\n    \"seo_slug\": \"ravi-kumar-varanasi\",\n    \"seo_country\": \"in\",\n    \"seo_city_slug\": \"varanasi\",\n    \"subjects\": [\n      {\n        \"id\": 1,\n        \"name\": \"Mathematics\"\n      }\n    ]\n  },\n  \"profileComplete\": true,\n  \"teacherSeoUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"teacherProfileUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"webPageUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"subjects\": [\n    {\n      \"id\": 1,\n      \"name\": \"Mathematics\"\n    }\n  ],\n  \"profileDraft\": {\n    \"status\": \"published\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1,\n      2,\n      3,\n      4,\n      5,\n      6\n    ],\n    \"nextStep\": null,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Ravi Kumar\",\n          \"listingName\": \"Ravi Kumar\",\n          \"email\": \"ravi@example.com\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": true,\n        \"data\": {\n          \"primarySubjects\": [\n            1\n          ]\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": true,\n        \"data\": {\n          \"lessonModes\": [\n            \"in_person\",\n            \"home_tuition\",\n            \"online\"\n          ],\n          \"latitude\": 25.3176,\n          \"longitude\": 82.9739,\n          \"addressText\": \"Sigra, Varanasi\",\n          \"city\": \"Varanasi\",\n          \"state\": \"Uttar Pradesh\",\n          \"country\": \"India\",\n          \"countryCode\": \"IN\",\n          \"district\": \"Varanasi\",\n          \"subDistrict\": null,\n          \"locality\": \"Sigra\",\n          \"localityType\": \"area\",\n          \"postalCode\": \"221010\"\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": true,\n        \"data\": {\n          \"ratePerHour\": \"500.00\",\n          \"currency\": \"INR\",\n          \"trialDays\": 3\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": true,\n        \"data\": {\n          \"bio\": \"Ravi Kumar is an experienced mathematics teacher who helps learners understand concepts with clarity and confidence. His lessons combine careful explanations, guided practice, and real examples from everyday life. He adapts each class to a student's current level, learning pace, and academic goals. Before introducing a new topic, he checks what the learner already knows and identifies ideas that need more support. Students receive clear feedback, useful practice questions, and a practical plan for continued improvement. Ravi teaches school mathematics, exam preparation, and foundational problem solving through home tuition and online classes. He encourages learners to ask questions, review mistakes without fear, and build consistent study habits. Parents receive regular updates about progress and next steps. His goal is to help every student become independent, motivated, and successful.\",\n          \"linkedinUrl\": \"https://www.linkedin.com/in/example\"\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": true,\n        \"data\": {\n          \"agreeToTerms\": true\n        }\n      }\n    ]\n  }\n}"
+                },
+                {
+                  "name": "200 — Draft restored; steps 1–3 saved, resume step 4",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/teacher/profile",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "teacher",
+                        "profile"
+                      ]
+                    },
+                    "description": "Includes profileComplete and webPageUrl. webPageUrl stays null until the profile is published after step 6."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"user\": {\n    \"id\": \"10000000-0000-4000-8000-000000000001\",\n    \"full_name\": \"Ravi Kumar\",\n    \"email\": \"ravi@example.com\",\n    \"phone\": \"+919876543210\",\n    \"avatar_url\": \"https://example.test/storage/teacher-photos/ravi.jpg\",\n    \"avatar_status\": \"approved\",\n    \"phone_verified_at\": \"2026-10-22 10:00:00\",\n    \"profile_completed_at\": \"2026-10-22 10:00:00\"\n  },\n  \"profile\": {\n    \"id\": \"20000000-0000-4000-8000-000000000001\",\n    \"user_id\": \"10000000-0000-4000-8000-000000000001\",\n    \"primary_subject_id\": 1,\n    \"listing_name\": \"Ravi Kumar\",\n    \"is_profile_complete\": false,\n    \"bio\": null,\n    \"rate_per_hour\": null,\n    \"currency\": \"INR\",\n    \"lesson_modes\": [\n      \"in_person\",\n      \"home_tuition\",\n      \"online\"\n    ],\n    \"latitude\": 25.3176,\n    \"longitude\": 82.9739,\n    \"address_text\": \"Sigra, Varanasi\",\n    \"city\": \"Varanasi\",\n    \"state\": \"Uttar Pradesh\",\n    \"country\": \"India\",\n    \"country_code\": \"IN\",\n    \"linkedin_url\": null,\n    \"slug\": \"ravi-kumar-varanasi\",\n    \"is_verified\": false,\n    \"verified_at\": null,\n    \"trial_days\": 3,\n    \"rating_avg\": \"4.80\",\n    \"rating_count\": 12,\n    \"district\": \"Varanasi\",\n    \"sub_district\": null,\n    \"locality\": \"Sigra\",\n    \"locality_type\": \"area\",\n    \"postal_code\": \"221010\",\n    \"location_details\": {\n      \"country\": \"India\",\n      \"state\": \"Uttar Pradesh\",\n      \"district\": \"Varanasi\",\n      \"city\": \"Varanasi\",\n      \"locality\": \"Sigra\"\n    },\n    \"public_page_slug\": null,\n    \"public_profile_slug\": null,\n    \"seo_slug\": null,\n    \"seo_country\": null,\n    \"seo_city_slug\": null,\n    \"subjects\": [\n      {\n        \"id\": 1,\n        \"name\": \"Mathematics\"\n      }\n    ],\n    \"completed_profile_steps\": \"[1, 2, 3]\",\n    \"profile_draft_saved_at\": \"2026-10-28 10:00:00\"\n  },\n  \"profileComplete\": false,\n  \"teacherSeoUrl\": null,\n  \"teacherProfileUrl\": null,\n  \"webPageUrl\": null,\n  \"subjects\": [\n    {\n      \"id\": 1,\n      \"name\": \"Mathematics\"\n    }\n  ],\n  \"profileDraft\": {\n    \"status\": \"draft\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1,\n      2,\n      3\n    ],\n    \"nextStep\": 4,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Ravi Kumar\",\n          \"listingName\": \"Ravi Kumar\",\n          \"email\": \"ravi@example.com\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": true,\n        \"data\": {\n          \"primarySubjects\": [\n            1\n          ]\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": true,\n        \"data\": {\n          \"lessonModes\": [\n            \"in_person\",\n            \"home_tuition\",\n            \"online\"\n          ],\n          \"latitude\": 25.3176,\n          \"longitude\": 82.9739,\n          \"addressText\": \"Sigra, Varanasi\",\n          \"city\": \"Varanasi\",\n          \"state\": \"Uttar Pradesh\",\n          \"country\": \"India\",\n          \"countryCode\": \"IN\",\n          \"district\": \"Varanasi\",\n          \"subDistrict\": null,\n          \"locality\": \"Sigra\",\n          \"localityType\": \"area\",\n          \"postalCode\": \"221010\"\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": false,\n        \"data\": {\n          \"ratePerHour\": null,\n          \"currency\": \"INR\",\n          \"trialDays\": 3\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": false,\n        \"data\": {\n          \"bio\": null,\n          \"linkedinUrl\": null\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": false,\n        \"data\": {\n          \"agreeToTerms\": false\n        }\n      }\n    ]\n  }\n}"
                 }
               ]
             },
@@ -193,7 +470,7 @@
                     }
                   ],
                   "cookie": [],
-                  "body": "{\n  \"ok\": true,\n  \"step\": 1,\n  \"fullName\": \"Ravi Kumar\",\n  \"email\": \"ravi@example.com\",\n  \"listingName\": \"Ravi Kumar\"\n}"
+                  "body": "{\n  \"ok\": true,\n  \"step\": 1,\n  \"fullName\": \"Ravi Kumar\",\n  \"email\": \"ravi@example.com\",\n  \"listingName\": \"Ravi Kumar\",\n  \"profileDraft\": {\n    \"status\": \"draft\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1\n    ],\n    \"nextStep\": 2,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Ravi Kumar\",\n          \"listingName\": \"Ravi Kumar\",\n          \"email\": \"ravi@example.com\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": false,\n        \"data\": {\n          \"primarySubjects\": []\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": false,\n        \"data\": {\n          \"lessonModes\": [],\n          \"latitude\": null,\n          \"longitude\": null,\n          \"addressText\": null,\n          \"city\": null,\n          \"state\": null,\n          \"country\": null,\n          \"countryCode\": null,\n          \"district\": null,\n          \"subDistrict\": null,\n          \"locality\": null,\n          \"localityType\": null,\n          \"postalCode\": null\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": false,\n        \"data\": {\n          \"ratePerHour\": null,\n          \"currency\": \"INR\",\n          \"trialDays\": 0\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": false,\n        \"data\": {\n          \"bio\": null,\n          \"linkedinUrl\": null\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": false,\n        \"data\": {\n          \"agreeToTerms\": false\n        }\n      }\n    ]\n  }\n}"
                 }
               ]
             },
@@ -280,7 +557,7 @@
                     }
                   ],
                   "cookie": [],
-                  "body": "{\n  \"ok\": true,\n  \"teacherSeoUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"teacherProfileUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"webPageUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"locationDetails\": {\n    \"country\": \"India\",\n    \"state\": \"Uttar Pradesh\",\n    \"district\": \"Varanasi\",\n    \"city\": \"Varanasi\",\n    \"locality\": \"Sigra\"\n  },\n  \"step\": 2\n}"
+                  "body": "{\n  \"ok\": true,\n  \"teacherSeoUrl\": null,\n  \"teacherProfileUrl\": null,\n  \"webPageUrl\": null,\n  \"locationDetails\": {\n    \"country\": \"India\",\n    \"state\": \"Uttar Pradesh\",\n    \"district\": \"Varanasi\",\n    \"city\": \"Varanasi\",\n    \"locality\": \"Sigra\"\n  },\n  \"step\": 2,\n  \"profileDraft\": {\n    \"status\": \"draft\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1,\n      2\n    ],\n    \"nextStep\": 3,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Ravi Kumar\",\n          \"listingName\": \"Ravi Kumar\",\n          \"email\": \"ravi@example.com\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": true,\n        \"data\": {\n          \"primarySubjects\": [\n            \"{{subjectId}}\"\n          ]\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": false,\n        \"data\": {\n          \"lessonModes\": [],\n          \"latitude\": null,\n          \"longitude\": null,\n          \"addressText\": null,\n          \"city\": null,\n          \"state\": null,\n          \"country\": null,\n          \"countryCode\": null,\n          \"district\": null,\n          \"subDistrict\": null,\n          \"locality\": null,\n          \"localityType\": null,\n          \"postalCode\": null\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": false,\n        \"data\": {\n          \"ratePerHour\": null,\n          \"currency\": \"INR\",\n          \"trialDays\": 0\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": false,\n        \"data\": {\n          \"bio\": null,\n          \"linkedinUrl\": null\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": false,\n        \"data\": {\n          \"agreeToTerms\": false\n        }\n      }\n    ]\n  }\n}"
                 }
               ]
             },
@@ -367,7 +644,7 @@
                     }
                   ],
                   "cookie": [],
-                  "body": "{\n  \"ok\": true,\n  \"teacherSeoUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"teacherProfileUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"webPageUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"locationDetails\": {\n    \"country\": \"India\",\n    \"state\": \"Uttar Pradesh\",\n    \"district\": \"Varanasi\",\n    \"city\": \"Varanasi\",\n    \"locality\": \"Sigra\"\n  },\n  \"step\": 3\n}"
+                  "body": "{\n  \"ok\": true,\n  \"teacherSeoUrl\": null,\n  \"teacherProfileUrl\": null,\n  \"webPageUrl\": null,\n  \"locationDetails\": {\n    \"country\": \"India\",\n    \"state\": \"Uttar Pradesh\",\n    \"district\": \"Varanasi\",\n    \"city\": \"Varanasi\",\n    \"locality\": \"Sigra\"\n  },\n  \"step\": 3,\n  \"profileDraft\": {\n    \"status\": \"draft\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1,\n      2,\n      3\n    ],\n    \"nextStep\": 4,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Ravi Kumar\",\n          \"listingName\": \"Ravi Kumar\",\n          \"email\": \"ravi@example.com\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": true,\n        \"data\": {\n          \"primarySubjects\": [\n            \"{{subjectId}}\"\n          ]\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": true,\n        \"data\": {\n          \"lessonModes\": [\n            \"in_person\",\n            \"home_tuition\",\n            \"online\"\n          ],\n          \"latitude\": null,\n          \"longitude\": null,\n          \"addressText\": null,\n          \"city\": \"Varanasi\",\n          \"state\": \"Uttar Pradesh\",\n          \"country\": \"India\",\n          \"countryCode\": \"IN\",\n          \"district\": null,\n          \"subDistrict\": null,\n          \"locality\": null,\n          \"localityType\": null,\n          \"postalCode\": null\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": false,\n        \"data\": {\n          \"ratePerHour\": null,\n          \"currency\": \"INR\",\n          \"trialDays\": 0\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": false,\n        \"data\": {\n          \"bio\": null,\n          \"linkedinUrl\": null\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": false,\n        \"data\": {\n          \"agreeToTerms\": false\n        }\n      }\n    ]\n  }\n}"
                 }
               ]
             },
@@ -454,7 +731,7 @@
                     }
                   ],
                   "cookie": [],
-                  "body": "{\n  \"ok\": true,\n  \"teacherSeoUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"teacherProfileUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"webPageUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"locationDetails\": {\n    \"country\": \"India\",\n    \"state\": \"Uttar Pradesh\",\n    \"district\": \"Varanasi\",\n    \"city\": \"Varanasi\",\n    \"locality\": \"Sigra\"\n  },\n  \"step\": 4\n}"
+                  "body": "{\n  \"ok\": true,\n  \"teacherSeoUrl\": null,\n  \"teacherProfileUrl\": null,\n  \"webPageUrl\": null,\n  \"locationDetails\": {\n    \"country\": \"India\",\n    \"state\": \"Uttar Pradesh\",\n    \"district\": \"Varanasi\",\n    \"city\": \"Varanasi\",\n    \"locality\": \"Sigra\"\n  },\n  \"step\": 4,\n  \"profileDraft\": {\n    \"status\": \"draft\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1,\n      2,\n      3,\n      4\n    ],\n    \"nextStep\": 5,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Ravi Kumar\",\n          \"listingName\": \"Ravi Kumar\",\n          \"email\": \"ravi@example.com\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": true,\n        \"data\": {\n          \"primarySubjects\": [\n            \"{{subjectId}}\"\n          ]\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": true,\n        \"data\": {\n          \"lessonModes\": [\n            \"in_person\",\n            \"home_tuition\",\n            \"online\"\n          ],\n          \"latitude\": null,\n          \"longitude\": null,\n          \"addressText\": null,\n          \"city\": \"Varanasi\",\n          \"state\": \"Uttar Pradesh\",\n          \"country\": \"India\",\n          \"countryCode\": \"IN\",\n          \"district\": null,\n          \"subDistrict\": null,\n          \"locality\": null,\n          \"localityType\": null,\n          \"postalCode\": null\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": true,\n        \"data\": {\n          \"ratePerHour\": 500,\n          \"currency\": \"INR\",\n          \"trialDays\": 3\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": false,\n        \"data\": {\n          \"bio\": null,\n          \"linkedinUrl\": null\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": false,\n        \"data\": {\n          \"agreeToTerms\": false\n        }\n      }\n    ]\n  }\n}"
                 }
               ]
             },
@@ -541,7 +818,7 @@
                     }
                   ],
                   "cookie": [],
-                  "body": "{\n  \"ok\": true,\n  \"teacherSeoUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"teacherProfileUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"webPageUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"locationDetails\": {\n    \"country\": \"India\",\n    \"state\": \"Uttar Pradesh\",\n    \"district\": \"Varanasi\",\n    \"city\": \"Varanasi\",\n    \"locality\": \"Sigra\"\n  },\n  \"step\": 5\n}"
+                  "body": "{\n  \"ok\": true,\n  \"teacherSeoUrl\": null,\n  \"teacherProfileUrl\": null,\n  \"webPageUrl\": null,\n  \"locationDetails\": {\n    \"country\": \"India\",\n    \"state\": \"Uttar Pradesh\",\n    \"district\": \"Varanasi\",\n    \"city\": \"Varanasi\",\n    \"locality\": \"Sigra\"\n  },\n  \"step\": 5,\n  \"profileDraft\": {\n    \"status\": \"draft\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1,\n      2,\n      3,\n      4,\n      5\n    ],\n    \"nextStep\": 6,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Ravi Kumar\",\n          \"listingName\": \"Ravi Kumar\",\n          \"email\": \"ravi@example.com\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": true,\n        \"data\": {\n          \"primarySubjects\": [\n            \"{{subjectId}}\"\n          ]\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": true,\n        \"data\": {\n          \"lessonModes\": [\n            \"in_person\",\n            \"home_tuition\",\n            \"online\"\n          ],\n          \"latitude\": null,\n          \"longitude\": null,\n          \"addressText\": null,\n          \"city\": \"Varanasi\",\n          \"state\": \"Uttar Pradesh\",\n          \"country\": \"India\",\n          \"countryCode\": \"IN\",\n          \"district\": null,\n          \"subDistrict\": null,\n          \"locality\": null,\n          \"localityType\": null,\n          \"postalCode\": null\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": true,\n        \"data\": {\n          \"ratePerHour\": 500,\n          \"currency\": \"INR\",\n          \"trialDays\": 3\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": true,\n        \"data\": {\n          \"bio\": \"Write at least 100 words about your teaching experience, approach and student outcomes.\",\n          \"linkedinUrl\": \"https://www.linkedin.com/in/example\"\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": false,\n        \"data\": {\n          \"agreeToTerms\": false\n        }\n      }\n    ]\n  }\n}"
                 }
               ]
             },
@@ -707,7 +984,7 @@
                     }
                   ],
                   "cookie": [],
-                  "body": "{\n  \"ok\": true,\n  \"published\": true,\n  \"profileComplete\": true,\n  \"teacherSeoUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"teacherProfileUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"webPageUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\"\n}"
+                  "body": "{\n  \"ok\": true,\n  \"published\": true,\n  \"profileComplete\": true,\n  \"teacherSeoUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"teacherProfileUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"webPageUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"profileDraft\": {\n    \"status\": \"published\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1,\n      2,\n      3,\n      4,\n      5,\n      6\n    ],\n    \"nextStep\": null,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Ravi Kumar\",\n          \"listingName\": \"Ravi Kumar\",\n          \"email\": \"ravi@example.com\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": true,\n        \"data\": {\n          \"primarySubjects\": [\n            \"{{subjectId}}\"\n          ]\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": true,\n        \"data\": {\n          \"lessonModes\": [\n            \"in_person\",\n            \"home_tuition\",\n            \"online\"\n          ],\n          \"latitude\": null,\n          \"longitude\": null,\n          \"addressText\": null,\n          \"city\": \"Varanasi\",\n          \"state\": \"Uttar Pradesh\",\n          \"country\": \"India\",\n          \"countryCode\": \"IN\",\n          \"district\": null,\n          \"subDistrict\": null,\n          \"locality\": null,\n          \"localityType\": null,\n          \"postalCode\": null\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": true,\n        \"data\": {\n          \"ratePerHour\": 500,\n          \"currency\": \"INR\",\n          \"trialDays\": 3\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": true,\n        \"data\": {\n          \"bio\": \"Write at least 100 words about your teaching experience, approach and student outcomes.\",\n          \"linkedinUrl\": \"https://www.linkedin.com/in/example\"\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": true,\n        \"data\": {\n          \"agreeToTerms\": true\n        }\n      }\n    ]\n  }\n}"
                 },
                 {
                   "name": "422 — Required profile sections are incomplete",
@@ -760,6 +1037,1531 @@
               ]
             }
           ]
+        },
+        {
+          "name": "Shared Profile API",
+          "description": "The same /profiles/me endpoints support teacher and institute bearers. Set token to the intended account. Save steps 1–5, restore with GET, then publish step 6. Email and verification/classification fields are read-only.",
+          "item": [
+            {
+              "name": "GET /profiles/me — View my complete profile and web page link",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/profiles/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "profiles",
+                    "me"
+                  ]
+                },
+                "description": "Restore the signed-in provider profile and subjects. Open profileDraft.nextStep; after steps 1–3 it is 4. Complete profiles return nextStep:null. No separate draft endpoint."
+              },
+              "response": [
+                {
+                  "name": "200 — Complete teacher profile",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/profiles/me",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "profiles",
+                        "me"
+                      ]
+                    },
+                    "description": "Restore the signed-in provider profile and subjects. Open profileDraft.nextStep; after steps 1–3 it is 4. Complete profiles return nextStep:null. No separate draft endpoint."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"user\": {\n    \"id\": \"10000000-0000-4000-8000-000000000001\",\n    \"full_name\": \"Ravi Kumar\",\n    \"email\": \"ravi@example.com\",\n    \"phone\": \"+919876543210\",\n    \"avatar_url\": \"https://example.test/storage/teacher-photos/ravi.jpg\",\n    \"avatar_status\": \"approved\",\n    \"phone_verified_at\": \"2026-10-22 10:00:00\",\n    \"profile_completed_at\": \"2026-10-22 10:00:00\"\n  },\n  \"profile\": {\n    \"id\": \"20000000-0000-4000-8000-000000000001\",\n    \"user_id\": \"10000000-0000-4000-8000-000000000001\",\n    \"primary_subject_id\": 1,\n    \"listing_name\": \"Ravi Kumar\",\n    \"is_profile_complete\": true,\n    \"bio\": \"Ravi Kumar is an experienced mathematics teacher who helps learners understand concepts with clarity and confidence. His lessons combine careful explanations, guided practice, and real examples from everyday life. He adapts each class to a student's current level, learning pace, and academic goals. Before introducing a new topic, he checks what the learner already knows and identifies ideas that need more support. Students receive clear feedback, useful practice questions, and a practical plan for continued improvement. Ravi teaches school mathematics, exam preparation, and foundational problem solving through home tuition and online classes. He encourages learners to ask questions, review mistakes without fear, and build consistent study habits. Parents receive regular updates about progress and next steps. His goal is to help every student become independent, motivated, and successful.\",\n    \"rate_per_hour\": \"500.00\",\n    \"currency\": \"INR\",\n    \"lesson_modes\": [\n      \"in_person\",\n      \"home_tuition\",\n      \"online\"\n    ],\n    \"latitude\": 25.3176,\n    \"longitude\": 82.9739,\n    \"address_text\": \"Sigra, Varanasi\",\n    \"city\": \"Varanasi\",\n    \"state\": \"Uttar Pradesh\",\n    \"country\": \"India\",\n    \"country_code\": \"IN\",\n    \"linkedin_url\": \"https://www.linkedin.com/in/example\",\n    \"slug\": \"ravi-kumar-varanasi\",\n    \"is_verified\": false,\n    \"verified_at\": null,\n    \"trial_days\": 3,\n    \"rating_avg\": \"4.80\",\n    \"rating_count\": 12,\n    \"district\": \"Varanasi\",\n    \"sub_district\": null,\n    \"locality\": \"Sigra\",\n    \"locality_type\": \"area\",\n    \"postal_code\": \"221010\",\n    \"location_details\": {\n      \"country\": \"India\",\n      \"state\": \"Uttar Pradesh\",\n      \"district\": \"Varanasi\",\n      \"city\": \"Varanasi\",\n      \"locality\": \"Sigra\"\n    },\n    \"public_page_slug\": \"ravi-kumar-varanasi\",\n    \"public_profile_slug\": \"ravi-kumar-varanasi\",\n    \"seo_slug\": \"ravi-kumar-varanasi\",\n    \"seo_country\": \"in\",\n    \"seo_city_slug\": \"varanasi\",\n    \"subjects\": [\n      {\n        \"id\": 1,\n        \"name\": \"Mathematics\"\n      }\n    ]\n  },\n  \"profileComplete\": true,\n  \"teacherSeoUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"teacherProfileUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"webPageUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"subjects\": [\n    {\n      \"id\": 1,\n      \"name\": \"Mathematics\"\n    }\n  ],\n  \"profileDraft\": {\n    \"status\": \"published\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1,\n      2,\n      3,\n      4,\n      5,\n      6\n    ],\n    \"nextStep\": null,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Ravi Kumar\",\n          \"listingName\": \"Ravi Kumar\",\n          \"email\": \"ravi@example.com\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": true,\n        \"data\": {\n          \"primarySubjects\": [\n            1\n          ]\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": true,\n        \"data\": {\n          \"lessonModes\": [\n            \"in_person\",\n            \"home_tuition\",\n            \"online\"\n          ],\n          \"latitude\": 25.3176,\n          \"longitude\": 82.9739,\n          \"addressText\": \"Sigra, Varanasi\",\n          \"city\": \"Varanasi\",\n          \"state\": \"Uttar Pradesh\",\n          \"country\": \"India\",\n          \"countryCode\": \"IN\",\n          \"district\": \"Varanasi\",\n          \"subDistrict\": null,\n          \"locality\": \"Sigra\",\n          \"localityType\": \"area\",\n          \"postalCode\": \"221010\"\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": true,\n        \"data\": {\n          \"ratePerHour\": \"500.00\",\n          \"currency\": \"INR\",\n          \"trialDays\": 3\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": true,\n        \"data\": {\n          \"bio\": \"Ravi Kumar is an experienced mathematics teacher who helps learners understand concepts with clarity and confidence. His lessons combine careful explanations, guided practice, and real examples from everyday life. He adapts each class to a student's current level, learning pace, and academic goals. Before introducing a new topic, he checks what the learner already knows and identifies ideas that need more support. Students receive clear feedback, useful practice questions, and a practical plan for continued improvement. Ravi teaches school mathematics, exam preparation, and foundational problem solving through home tuition and online classes. He encourages learners to ask questions, review mistakes without fear, and build consistent study habits. Parents receive regular updates about progress and next steps. His goal is to help every student become independent, motivated, and successful.\",\n          \"linkedinUrl\": \"https://www.linkedin.com/in/example\"\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": true,\n        \"data\": {\n          \"agreeToTerms\": true\n        }\n      }\n    ]\n  }\n}"
+                },
+                {
+                  "name": "200 — Draft restored; steps 1–3 saved, resume step 4",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/profiles/me",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "profiles",
+                        "me"
+                      ]
+                    },
+                    "description": "Restore the signed-in provider profile and subjects. Open profileDraft.nextStep; after steps 1–3 it is 4. Complete profiles return nextStep:null. No separate draft endpoint."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"user\": {\n    \"id\": \"10000000-0000-4000-8000-000000000001\",\n    \"full_name\": \"Ravi Kumar\",\n    \"email\": \"ravi@example.com\",\n    \"phone\": \"+919876543210\",\n    \"avatar_url\": \"https://example.test/storage/teacher-photos/ravi.jpg\",\n    \"avatar_status\": \"approved\",\n    \"phone_verified_at\": \"2026-10-22 10:00:00\",\n    \"profile_completed_at\": \"2026-10-22 10:00:00\"\n  },\n  \"profile\": {\n    \"id\": \"20000000-0000-4000-8000-000000000001\",\n    \"user_id\": \"10000000-0000-4000-8000-000000000001\",\n    \"primary_subject_id\": 1,\n    \"listing_name\": \"Ravi Kumar\",\n    \"is_profile_complete\": false,\n    \"bio\": null,\n    \"rate_per_hour\": null,\n    \"currency\": \"INR\",\n    \"lesson_modes\": [\n      \"in_person\",\n      \"home_tuition\",\n      \"online\"\n    ],\n    \"latitude\": 25.3176,\n    \"longitude\": 82.9739,\n    \"address_text\": \"Sigra, Varanasi\",\n    \"city\": \"Varanasi\",\n    \"state\": \"Uttar Pradesh\",\n    \"country\": \"India\",\n    \"country_code\": \"IN\",\n    \"linkedin_url\": null,\n    \"slug\": \"ravi-kumar-varanasi\",\n    \"is_verified\": false,\n    \"verified_at\": null,\n    \"trial_days\": 3,\n    \"rating_avg\": \"4.80\",\n    \"rating_count\": 12,\n    \"district\": \"Varanasi\",\n    \"sub_district\": null,\n    \"locality\": \"Sigra\",\n    \"locality_type\": \"area\",\n    \"postal_code\": \"221010\",\n    \"location_details\": {\n      \"country\": \"India\",\n      \"state\": \"Uttar Pradesh\",\n      \"district\": \"Varanasi\",\n      \"city\": \"Varanasi\",\n      \"locality\": \"Sigra\"\n    },\n    \"public_page_slug\": null,\n    \"public_profile_slug\": null,\n    \"seo_slug\": null,\n    \"seo_country\": null,\n    \"seo_city_slug\": null,\n    \"subjects\": [\n      {\n        \"id\": 1,\n        \"name\": \"Mathematics\"\n      }\n    ],\n    \"completed_profile_steps\": \"[1, 2, 3]\",\n    \"profile_draft_saved_at\": \"2026-10-28 10:00:00\"\n  },\n  \"profileComplete\": false,\n  \"teacherSeoUrl\": null,\n  \"teacherProfileUrl\": null,\n  \"webPageUrl\": null,\n  \"subjects\": [\n    {\n      \"id\": 1,\n      \"name\": \"Mathematics\"\n    }\n  ],\n  \"profileDraft\": {\n    \"status\": \"draft\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1,\n      2,\n      3\n    ],\n    \"nextStep\": 4,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Ravi Kumar\",\n          \"listingName\": \"Ravi Kumar\",\n          \"email\": \"ravi@example.com\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": true,\n        \"data\": {\n          \"primarySubjects\": [\n            1\n          ]\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": true,\n        \"data\": {\n          \"lessonModes\": [\n            \"in_person\",\n            \"home_tuition\",\n            \"online\"\n          ],\n          \"latitude\": 25.3176,\n          \"longitude\": 82.9739,\n          \"addressText\": \"Sigra, Varanasi\",\n          \"city\": \"Varanasi\",\n          \"state\": \"Uttar Pradesh\",\n          \"country\": \"India\",\n          \"countryCode\": \"IN\",\n          \"district\": \"Varanasi\",\n          \"subDistrict\": null,\n          \"locality\": \"Sigra\",\n          \"localityType\": \"area\",\n          \"postalCode\": \"221010\"\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": false,\n        \"data\": {\n          \"ratePerHour\": null,\n          \"currency\": \"INR\",\n          \"trialDays\": 3\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": false,\n        \"data\": {\n          \"bio\": null,\n          \"linkedinUrl\": null\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": false,\n        \"data\": {\n          \"agreeToTerms\": false\n        }\n      }\n    ]\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "PATCH /profiles/me/steps/1 — Teacher step 1",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"Ravi Kumar\",\n  \"listingName\": \"Ravi Kumar\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/profiles/me/steps/1",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "profiles",
+                    "me",
+                    "steps",
+                    "1"
+                  ]
+                },
+                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+              },
+              "response": [
+                {
+                  "name": "200 — Basics saved",
+                  "originalRequest": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"fullName\": \"Ravi Kumar\",\n  \"listingName\": \"Ravi Kumar\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/profiles/me/steps/1",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "profiles",
+                        "me",
+                        "steps",
+                        "1"
+                      ]
+                    },
+                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"ok\": true,\n  \"step\": 1,\n  \"fullName\": \"Ravi Kumar\",\n  \"email\": \"ravi@example.com\",\n  \"listingName\": \"Ravi Kumar\",\n  \"profileDraft\": {\n    \"status\": \"draft\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1\n    ],\n    \"nextStep\": 2,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Ravi Kumar\",\n          \"listingName\": \"Ravi Kumar\",\n          \"email\": \"ravi@example.com\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": false,\n        \"data\": {\n          \"primarySubjects\": []\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": false,\n        \"data\": {\n          \"lessonModes\": [],\n          \"latitude\": null,\n          \"longitude\": null,\n          \"addressText\": null,\n          \"city\": null,\n          \"state\": null,\n          \"country\": null,\n          \"countryCode\": null,\n          \"district\": null,\n          \"subDistrict\": null,\n          \"locality\": null,\n          \"localityType\": null,\n          \"postalCode\": null\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": false,\n        \"data\": {\n          \"ratePerHour\": null,\n          \"currency\": \"INR\",\n          \"trialDays\": 0\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": false,\n        \"data\": {\n          \"bio\": null,\n          \"linkedinUrl\": null\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": false,\n        \"data\": {\n          \"agreeToTerms\": false\n        }\n      }\n    ]\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "PATCH /profiles/me/steps/2 — Teacher step 2",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"primarySubjects\": [\n    \"{{subjectId}}\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/profiles/me/steps/2",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "profiles",
+                    "me",
+                    "steps",
+                    "2"
+                  ]
+                },
+                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+              },
+              "response": [
+                {
+                  "name": "200 — Subjects saved",
+                  "originalRequest": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"primarySubjects\": [\n    \"{{subjectId}}\"\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/profiles/me/steps/2",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "profiles",
+                        "me",
+                        "steps",
+                        "2"
+                      ]
+                    },
+                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"ok\": true,\n  \"teacherSeoUrl\": null,\n  \"teacherProfileUrl\": null,\n  \"webPageUrl\": null,\n  \"locationDetails\": {\n    \"country\": \"India\",\n    \"state\": \"Uttar Pradesh\",\n    \"district\": \"Varanasi\",\n    \"city\": \"Varanasi\",\n    \"locality\": \"Sigra\"\n  },\n  \"step\": 2,\n  \"profileDraft\": {\n    \"status\": \"draft\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1,\n      2\n    ],\n    \"nextStep\": 3,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Ravi Kumar\",\n          \"listingName\": \"Ravi Kumar\",\n          \"email\": \"ravi@example.com\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": true,\n        \"data\": {\n          \"primarySubjects\": [\n            \"{{subjectId}}\"\n          ]\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": false,\n        \"data\": {\n          \"lessonModes\": [],\n          \"latitude\": null,\n          \"longitude\": null,\n          \"addressText\": null,\n          \"city\": null,\n          \"state\": null,\n          \"country\": null,\n          \"countryCode\": null,\n          \"district\": null,\n          \"subDistrict\": null,\n          \"locality\": null,\n          \"localityType\": null,\n          \"postalCode\": null\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": false,\n        \"data\": {\n          \"ratePerHour\": null,\n          \"currency\": \"INR\",\n          \"trialDays\": 0\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": false,\n        \"data\": {\n          \"bio\": null,\n          \"linkedinUrl\": null\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": false,\n        \"data\": {\n          \"agreeToTerms\": false\n        }\n      }\n    ]\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "PATCH /profiles/me/steps/3 — Teacher step 3",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"lessonModes\": [\n    \"in_person\",\n    \"home_tuition\",\n    \"online\"\n  ],\n  \"city\": \"Varanasi\",\n  \"state\": \"Uttar Pradesh\",\n  \"country\": \"India\",\n  \"countryCode\": \"IN\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/profiles/me/steps/3",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "profiles",
+                    "me",
+                    "steps",
+                    "3"
+                  ]
+                },
+                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+              },
+              "response": [
+                {
+                  "name": "200 — Teaching modes and location saved",
+                  "originalRequest": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"lessonModes\": [\n    \"in_person\",\n    \"home_tuition\",\n    \"online\"\n  ],\n  \"city\": \"Varanasi\",\n  \"state\": \"Uttar Pradesh\",\n  \"country\": \"India\",\n  \"countryCode\": \"IN\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/profiles/me/steps/3",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "profiles",
+                        "me",
+                        "steps",
+                        "3"
+                      ]
+                    },
+                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"ok\": true,\n  \"teacherSeoUrl\": null,\n  \"teacherProfileUrl\": null,\n  \"webPageUrl\": null,\n  \"locationDetails\": {\n    \"country\": \"India\",\n    \"state\": \"Uttar Pradesh\",\n    \"district\": \"Varanasi\",\n    \"city\": \"Varanasi\",\n    \"locality\": \"Sigra\"\n  },\n  \"step\": 3,\n  \"profileDraft\": {\n    \"status\": \"draft\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1,\n      2,\n      3\n    ],\n    \"nextStep\": 4,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Ravi Kumar\",\n          \"listingName\": \"Ravi Kumar\",\n          \"email\": \"ravi@example.com\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": true,\n        \"data\": {\n          \"primarySubjects\": [\n            \"{{subjectId}}\"\n          ]\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": true,\n        \"data\": {\n          \"lessonModes\": [\n            \"in_person\",\n            \"home_tuition\",\n            \"online\"\n          ],\n          \"latitude\": null,\n          \"longitude\": null,\n          \"addressText\": null,\n          \"city\": \"Varanasi\",\n          \"state\": \"Uttar Pradesh\",\n          \"country\": \"India\",\n          \"countryCode\": \"IN\",\n          \"district\": null,\n          \"subDistrict\": null,\n          \"locality\": null,\n          \"localityType\": null,\n          \"postalCode\": null\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": false,\n        \"data\": {\n          \"ratePerHour\": null,\n          \"currency\": \"INR\",\n          \"trialDays\": 0\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": false,\n        \"data\": {\n          \"bio\": null,\n          \"linkedinUrl\": null\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": false,\n        \"data\": {\n          \"agreeToTerms\": false\n        }\n      }\n    ]\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "PATCH /profiles/me/steps/4 — Teacher step 4",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ratePerHour\": 500,\n  \"currency\": \"INR\",\n  \"trialDays\": 3\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/profiles/me/steps/4",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "profiles",
+                    "me",
+                    "steps",
+                    "4"
+                  ]
+                },
+                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+              },
+              "response": [
+                {
+                  "name": "200 — Rates and trial saved",
+                  "originalRequest": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"ratePerHour\": 500,\n  \"currency\": \"INR\",\n  \"trialDays\": 3\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/profiles/me/steps/4",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "profiles",
+                        "me",
+                        "steps",
+                        "4"
+                      ]
+                    },
+                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"ok\": true,\n  \"teacherSeoUrl\": null,\n  \"teacherProfileUrl\": null,\n  \"webPageUrl\": null,\n  \"locationDetails\": {\n    \"country\": \"India\",\n    \"state\": \"Uttar Pradesh\",\n    \"district\": \"Varanasi\",\n    \"city\": \"Varanasi\",\n    \"locality\": \"Sigra\"\n  },\n  \"step\": 4,\n  \"profileDraft\": {\n    \"status\": \"draft\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1,\n      2,\n      3,\n      4\n    ],\n    \"nextStep\": 5,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Ravi Kumar\",\n          \"listingName\": \"Ravi Kumar\",\n          \"email\": \"ravi@example.com\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": true,\n        \"data\": {\n          \"primarySubjects\": [\n            \"{{subjectId}}\"\n          ]\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": true,\n        \"data\": {\n          \"lessonModes\": [\n            \"in_person\",\n            \"home_tuition\",\n            \"online\"\n          ],\n          \"latitude\": null,\n          \"longitude\": null,\n          \"addressText\": null,\n          \"city\": \"Varanasi\",\n          \"state\": \"Uttar Pradesh\",\n          \"country\": \"India\",\n          \"countryCode\": \"IN\",\n          \"district\": null,\n          \"subDistrict\": null,\n          \"locality\": null,\n          \"localityType\": null,\n          \"postalCode\": null\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": true,\n        \"data\": {\n          \"ratePerHour\": 500,\n          \"currency\": \"INR\",\n          \"trialDays\": 3\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": false,\n        \"data\": {\n          \"bio\": null,\n          \"linkedinUrl\": null\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": false,\n        \"data\": {\n          \"agreeToTerms\": false\n        }\n      }\n    ]\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "PATCH /profiles/me/steps/5 — Teacher step 5",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"bio\": \"Write at least 100 words about your teaching experience, approach and student outcomes.\",\n  \"linkedinUrl\": \"https://www.linkedin.com/in/example\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/profiles/me/steps/5",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "profiles",
+                    "me",
+                    "steps",
+                    "5"
+                  ]
+                },
+                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+              },
+              "response": [
+                {
+                  "name": "200 — Story saved",
+                  "originalRequest": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"bio\": \"Write at least 100 words about your teaching experience, approach and student outcomes.\",\n  \"linkedinUrl\": \"https://www.linkedin.com/in/example\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/profiles/me/steps/5",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "profiles",
+                        "me",
+                        "steps",
+                        "5"
+                      ]
+                    },
+                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"ok\": true,\n  \"teacherSeoUrl\": null,\n  \"teacherProfileUrl\": null,\n  \"webPageUrl\": null,\n  \"locationDetails\": {\n    \"country\": \"India\",\n    \"state\": \"Uttar Pradesh\",\n    \"district\": \"Varanasi\",\n    \"city\": \"Varanasi\",\n    \"locality\": \"Sigra\"\n  },\n  \"step\": 5,\n  \"profileDraft\": {\n    \"status\": \"draft\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1,\n      2,\n      3,\n      4,\n      5\n    ],\n    \"nextStep\": 6,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Ravi Kumar\",\n          \"listingName\": \"Ravi Kumar\",\n          \"email\": \"ravi@example.com\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": true,\n        \"data\": {\n          \"primarySubjects\": [\n            \"{{subjectId}}\"\n          ]\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": true,\n        \"data\": {\n          \"lessonModes\": [\n            \"in_person\",\n            \"home_tuition\",\n            \"online\"\n          ],\n          \"latitude\": null,\n          \"longitude\": null,\n          \"addressText\": null,\n          \"city\": \"Varanasi\",\n          \"state\": \"Uttar Pradesh\",\n          \"country\": \"India\",\n          \"countryCode\": \"IN\",\n          \"district\": null,\n          \"subDistrict\": null,\n          \"locality\": null,\n          \"localityType\": null,\n          \"postalCode\": null\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": true,\n        \"data\": {\n          \"ratePerHour\": 500,\n          \"currency\": \"INR\",\n          \"trialDays\": 3\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": true,\n        \"data\": {\n          \"bio\": \"Write at least 100 words about your teaching experience, approach and student outcomes.\",\n          \"linkedinUrl\": \"https://www.linkedin.com/in/example\"\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": false,\n        \"data\": {\n          \"agreeToTerms\": false\n        }\n      }\n    ]\n  }\n}"
+                }
+              ]
+            },
+            {
+              "name": "POST /profiles/me/photo — Upload photo",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "image",
+                      "type": "file",
+                      "src": ""
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/profiles/me/photo",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "profiles",
+                    "me",
+                    "photo"
+                  ]
+                },
+                "description": "Upload multipart image (JPEG/PNG/WebP up to 5 MB) for moderation. Does not advance draft progress."
+              },
+              "response": [
+                {
+                  "name": "201 — Photo uploaded for review",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "image",
+                          "type": "file",
+                          "src": ""
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/profiles/me/photo",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "profiles",
+                        "me",
+                        "photo"
+                      ]
+                    },
+                    "description": "Upload multipart image (JPEG/PNG/WebP up to 5 MB) for moderation. Does not advance draft progress."
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"user\": {\n    \"id\": \"10000000-0000-4000-8000-000000000001\",\n    \"avatar_url\": \"https://example.test/storage/teacher-photos/ravi.jpg\",\n    \"avatar_status\": \"pending\"\n  },\n  \"message\": \"Photo uploaded; it will appear on your public profile after review.\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "POST /profiles/me/publish — Review and publish (step 6)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"agreeToTerms\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/profiles/me/publish",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "profiles",
+                    "me",
+                    "publish"
+                  ]
+                },
+                "description": "Step 6. Send agreeToTerms:true after required profile data is ready. Institutes require subjectIds, contactPerson, city, district, country, lessonModes and a 100-word description. Returns profileComplete:true and provider page links."
+              },
+              "response": [
+                {
+                  "name": "200 — Teacher profile published",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"agreeToTerms\": true\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/profiles/me/publish",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "profiles",
+                        "me",
+                        "publish"
+                      ]
+                    },
+                    "description": "Step 6. Send agreeToTerms:true after required profile data is ready. Institutes require subjectIds, contactPerson, city, district, country, lessonModes and a 100-word description. Returns profileComplete:true and provider page links."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"ok\": true,\n  \"published\": true,\n  \"profileComplete\": true,\n  \"teacherSeoUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"teacherProfileUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"webPageUrl\": \"https://teachers.example.test/teacher/ravi-kumar-varanasi\",\n  \"profileDraft\": {\n    \"status\": \"published\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1,\n      2,\n      3,\n      4,\n      5,\n      6\n    ],\n    \"nextStep\": null,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Ravi Kumar\",\n          \"listingName\": \"Ravi Kumar\",\n          \"email\": \"ravi@example.com\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": true,\n        \"data\": {\n          \"primarySubjects\": [\n            \"{{subjectId}}\"\n          ]\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": true,\n        \"data\": {\n          \"lessonModes\": [\n            \"in_person\",\n            \"home_tuition\",\n            \"online\"\n          ],\n          \"latitude\": null,\n          \"longitude\": null,\n          \"addressText\": null,\n          \"city\": \"Varanasi\",\n          \"state\": \"Uttar Pradesh\",\n          \"country\": \"India\",\n          \"countryCode\": \"IN\",\n          \"district\": null,\n          \"subDistrict\": null,\n          \"locality\": null,\n          \"localityType\": null,\n          \"postalCode\": null\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": true,\n        \"data\": {\n          \"ratePerHour\": 500,\n          \"currency\": \"INR\",\n          \"trialDays\": 3\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": true,\n        \"data\": {\n          \"bio\": \"Write at least 100 words about your teaching experience, approach and student outcomes.\",\n          \"linkedinUrl\": \"https://www.linkedin.com/in/example\"\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": true,\n        \"data\": {\n          \"agreeToTerms\": true\n        }\n      }\n    ]\n  }\n}"
+                },
+                {
+                  "name": "422 — Required profile sections are incomplete",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"agreeToTerms\": true\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/profiles/me/publish",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "profiles",
+                        "me",
+                        "publish"
+                      ]
+                    },
+                    "description": "Step 6. Send agreeToTerms:true after required profile data is ready. Institutes require subjectIds, contactPerson, city, district, country, lessonModes and a 100-word description. Returns profileComplete:true and provider page links."
+                  },
+                  "status": "OK",
+                  "code": 422,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"error\": \"Complete the required profile sections before publishing.\",\n  \"missingFields\": [\n    \"primarySubjects\",\n    \"city\",\n    \"district\",\n    \"countryCode\",\n    \"bio\",\n    \"lessonModes\"\n  ]\n}"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Institute",
+      "item": [
+        {
+          "name": "Shared Profile API",
+          "description": "The same /profiles/me endpoints support teacher and institute bearers. Set token to the intended account. Save steps 1–5, restore with GET, then publish step 6. Email and verification/classification fields are read-only.",
+          "item": [
+            {
+              "name": "GET /profiles/me — View my complete profile and web page link",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/profiles/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "profiles",
+                    "me"
+                  ]
+                },
+                "description": "Restore the signed-in provider profile and subjects. Open profileDraft.nextStep; after steps 1–3 it is 4. Complete profiles return nextStep:null. No separate draft endpoint."
+              },
+              "response": [
+                {
+                  "name": "200 — Complete institute profile",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/profiles/me",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "profiles",
+                        "me"
+                      ]
+                    },
+                    "description": "Restore the signed-in provider profile and subjects. Open profileDraft.nextStep; after steps 1–3 it is 4. Complete profiles return nextStep:null. No separate draft endpoint."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"user\": {\n    \"id\": 123,\n    \"full_name\": \"Example Academy\",\n    \"email\": \"academy@example.test\",\n    \"phone\": \"+919876543210\",\n    \"avatar_url\": \"https://example.test/storage/teacher-photos/ravi.jpg\",\n    \"avatar_status\": \"approved\",\n    \"phone_verified_at\": \"2026-10-22 10:00:00\",\n    \"profile_completed_at\": \"2026-10-22 10:00:00\"\n  },\n  \"profile\": {\n    \"id\": 456,\n    \"user_id\": 123,\n    \"listing_name\": \"Example Academy\",\n    \"is_profile_complete\": true,\n    \"currency\": \"INR\",\n    \"lesson_modes\": [\n      \"in_person\",\n      \"home_tuition\",\n      \"online\"\n    ],\n    \"latitude\": 25.3176,\n    \"longitude\": 82.9739,\n    \"address_text\": \"Sigra, Varanasi\",\n    \"city\": \"Varanasi\",\n    \"state\": \"Uttar Pradesh\",\n    \"country\": \"India\",\n    \"country_code\": \"IN\",\n    \"slug\": \"example-academy-kanpur\",\n    \"is_verified\": false,\n    \"verified_at\": null,\n    \"trial_days\": 3,\n    \"rating_avg\": \"4.80\",\n    \"rating_count\": 12,\n    \"district\": \"Varanasi\",\n    \"sub_district\": null,\n    \"locality\": \"Sigra\",\n    \"locality_type\": \"area\",\n    \"postal_code\": \"221010\",\n    \"location_details\": {\n      \"country\": \"India\",\n      \"state\": \"Uttar Pradesh\",\n      \"district\": \"Varanasi\",\n      \"city\": \"Varanasi\",\n      \"locality\": \"Sigra\"\n    },\n    \"subjects\": [\n      {\n        \"id\": 1,\n        \"name\": \"Mathematics\"\n      }\n    ],\n    \"contact_person\": \"Asha Sharma\",\n    \"description\": \"Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback.\",\n    \"starting_rate\": \"500.00\",\n    \"instructors_text\": \"Experienced teaching team\",\n    \"website_url\": \"https://example.test\",\n    \"institute_type\": \"independent\",\n    \"is_bsl_official\": false,\n    \"bsl_official_since\": null,\n    \"completed_profile_steps\": \"[1, 2, 3, 4, 5]\",\n    \"profile_draft_saved_at\": \"2026-10-28 10:00:00\"\n  },\n  \"profileComplete\": true,\n  \"webPageUrl\": \"https://example.test/site/institute/example-academy-kanpur\",\n  \"subjects\": [\n    {\n      \"id\": 1,\n      \"name\": \"Mathematics\"\n    }\n  ],\n  \"profileDraft\": {\n    \"status\": \"published\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1,\n      2,\n      3,\n      4,\n      5,\n      6\n    ],\n    \"nextStep\": null,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Example Academy\",\n          \"listingName\": \"Example Academy\",\n          \"email\": \"academy@example.test\",\n          \"contactPerson\": \"Asha Sharma\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": true,\n        \"data\": {\n          \"subjectIds\": [\n            1\n          ]\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": true,\n        \"data\": {\n          \"lessonModes\": [\n            \"in_person\",\n            \"home_tuition\",\n            \"online\"\n          ],\n          \"latitude\": 25.3176,\n          \"longitude\": 82.9739,\n          \"addressText\": \"Sigra, Varanasi\",\n          \"city\": \"Varanasi\",\n          \"state\": \"Uttar Pradesh\",\n          \"country\": \"India\",\n          \"countryCode\": \"IN\",\n          \"district\": \"Varanasi\",\n          \"subDistrict\": null,\n          \"locality\": \"Sigra\",\n          \"localityType\": \"area\",\n          \"postalCode\": \"221010\"\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": true,\n        \"data\": {\n          \"startingRate\": \"500.00\",\n          \"currency\": \"INR\",\n          \"trialDays\": 3\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": true,\n        \"data\": {\n          \"description\": \"Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback.\",\n          \"websiteUrl\": \"https://example.test\",\n          \"instructorsText\": \"Experienced teaching team\"\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": true,\n        \"data\": {\n          \"agreeToTerms\": true\n        }\n      }\n    ]\n  },\n  \"instituteProfileUrl\": \"https://example.test/site/institute/example-academy-kanpur\"\n}"
+                },
+                {
+                  "name": "200 — Draft restored; steps 1–3 saved, resume step 4",
+                  "originalRequest": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{baseUrl}}/profiles/me",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "profiles",
+                        "me"
+                      ]
+                    },
+                    "description": "Restore the signed-in provider profile and subjects. Open profileDraft.nextStep; after steps 1–3 it is 4. Complete profiles return nextStep:null. No separate draft endpoint."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"user\": {\n    \"id\": 123,\n    \"full_name\": \"Example Academy\",\n    \"email\": \"academy@example.test\",\n    \"phone\": \"+919876543210\",\n    \"avatar_url\": \"https://example.test/storage/teacher-photos/ravi.jpg\",\n    \"avatar_status\": \"approved\",\n    \"phone_verified_at\": \"2026-10-22 10:00:00\",\n    \"profile_completed_at\": \"2026-10-22 10:00:00\"\n  },\n  \"profile\": {\n    \"id\": 456,\n    \"user_id\": 123,\n    \"listing_name\": \"Example Academy\",\n    \"is_profile_complete\": false,\n    \"currency\": \"INR\",\n    \"lesson_modes\": [\n      \"in_person\",\n      \"home_tuition\",\n      \"online\"\n    ],\n    \"latitude\": 25.3176,\n    \"longitude\": 82.9739,\n    \"address_text\": \"Sigra, Varanasi\",\n    \"city\": \"Varanasi\",\n    \"state\": \"Uttar Pradesh\",\n    \"country\": \"India\",\n    \"country_code\": \"IN\",\n    \"slug\": \"example-academy-kanpur\",\n    \"is_verified\": false,\n    \"verified_at\": null,\n    \"trial_days\": 3,\n    \"rating_avg\": \"4.80\",\n    \"rating_count\": 12,\n    \"district\": \"Varanasi\",\n    \"sub_district\": null,\n    \"locality\": \"Sigra\",\n    \"locality_type\": \"area\",\n    \"postal_code\": \"221010\",\n    \"location_details\": {\n      \"country\": \"India\",\n      \"state\": \"Uttar Pradesh\",\n      \"district\": \"Varanasi\",\n      \"city\": \"Varanasi\",\n      \"locality\": \"Sigra\"\n    },\n    \"subjects\": [\n      {\n        \"id\": 1,\n        \"name\": \"Mathematics\"\n      }\n    ],\n    \"completed_profile_steps\": \"[1, 2, 3]\",\n    \"profile_draft_saved_at\": \"2026-10-28 10:00:00\",\n    \"contact_person\": \"Asha Sharma\",\n    \"description\": null,\n    \"starting_rate\": null,\n    \"instructors_text\": null,\n    \"website_url\": null,\n    \"institute_type\": \"independent\",\n    \"is_bsl_official\": false,\n    \"bsl_official_since\": null\n  },\n  \"profileComplete\": false,\n  \"webPageUrl\": null,\n  \"subjects\": [\n    {\n      \"id\": 1,\n      \"name\": \"Mathematics\"\n    }\n  ],\n  \"profileDraft\": {\n    \"status\": \"draft\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1,\n      2,\n      3\n    ],\n    \"nextStep\": 4,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Example Academy\",\n          \"listingName\": \"Example Academy\",\n          \"email\": \"academy@example.test\",\n          \"contactPerson\": \"Asha Sharma\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": true,\n        \"data\": {\n          \"subjectIds\": [\n            1\n          ]\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": true,\n        \"data\": {\n          \"lessonModes\": [\n            \"in_person\",\n            \"home_tuition\",\n            \"online\"\n          ],\n          \"latitude\": 25.3176,\n          \"longitude\": 82.9739,\n          \"addressText\": \"Sigra, Varanasi\",\n          \"city\": \"Varanasi\",\n          \"state\": \"Uttar Pradesh\",\n          \"country\": \"India\",\n          \"countryCode\": \"IN\",\n          \"district\": \"Varanasi\",\n          \"subDistrict\": null,\n          \"locality\": \"Sigra\",\n          \"localityType\": \"area\",\n          \"postalCode\": \"221010\"\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": false,\n        \"data\": {\n          \"startingRate\": null,\n          \"currency\": \"INR\",\n          \"trialDays\": 3\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": false,\n        \"data\": {\n          \"description\": null,\n          \"websiteUrl\": null,\n          \"instructorsText\": null\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": false,\n        \"data\": {\n          \"agreeToTerms\": false\n        }\n      }\n    ]\n  },\n  \"instituteProfileUrl\": null\n}"
+                }
+              ]
+            },
+            {
+              "name": "PATCH /profiles/me/steps/1 — Institute step 1",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fullName\": \"Example Academy\",\n  \"listingName\": \"Example Academy\",\n  \"contactPerson\": \"Asha Sharma\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/profiles/me/steps/1",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "profiles",
+                    "me",
+                    "steps",
+                    "1"
+                  ]
+                },
+                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+              },
+              "response": [
+                {
+                  "name": "200 — Basics saved",
+                  "originalRequest": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"fullName\": \"Example Academy\",\n  \"listingName\": \"Example Academy\",\n  \"contactPerson\": \"Asha Sharma\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/profiles/me/steps/1",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "profiles",
+                        "me",
+                        "steps",
+                        "1"
+                      ]
+                    },
+                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"ok\": true,\n  \"step\": 1,\n  \"fullName\": \"Example Academy\",\n  \"email\": \"academy@example.test\",\n  \"listingName\": \"Example Academy\",\n  \"profileDraft\": {\n    \"status\": \"draft\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1\n    ],\n    \"nextStep\": 2,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Example Academy\",\n          \"listingName\": \"Example Academy\",\n          \"email\": \"academy@example.test\",\n          \"contactPerson\": \"Asha Sharma\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": false,\n        \"data\": {\n          \"subjectIds\": []\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": false,\n        \"data\": {\n          \"lessonModes\": [],\n          \"latitude\": null,\n          \"longitude\": null,\n          \"addressText\": null,\n          \"city\": null,\n          \"state\": null,\n          \"country\": null,\n          \"countryCode\": null,\n          \"district\": null,\n          \"subDistrict\": null,\n          \"locality\": null,\n          \"localityType\": null,\n          \"postalCode\": null\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": false,\n        \"data\": {\n          \"startingRate\": null,\n          \"currency\": \"INR\",\n          \"trialDays\": 0\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": false,\n        \"data\": {\n          \"description\": null,\n          \"websiteUrl\": null,\n          \"instructorsText\": null\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": false,\n        \"data\": {\n          \"agreeToTerms\": false\n        }\n      }\n    ]\n  },\n  \"contactPerson\": \"Asha Sharma\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "PATCH /profiles/me/steps/2 — Institute step 2",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"subjectIds\": [\n    1\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/profiles/me/steps/2",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "profiles",
+                    "me",
+                    "steps",
+                    "2"
+                  ]
+                },
+                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+              },
+              "response": [
+                {
+                  "name": "200 — Subjects saved",
+                  "originalRequest": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"subjectIds\": [\n    1\n  ]\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/profiles/me/steps/2",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "profiles",
+                        "me",
+                        "steps",
+                        "2"
+                      ]
+                    },
+                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"ok\": true,\n  \"webPageUrl\": null,\n  \"locationDetails\": {\n    \"country\": \"India\",\n    \"state\": \"Uttar Pradesh\",\n    \"district\": \"Varanasi\",\n    \"city\": \"Varanasi\",\n    \"locality\": \"Sigra\"\n  },\n  \"step\": 2,\n  \"profileDraft\": {\n    \"status\": \"draft\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1,\n      2\n    ],\n    \"nextStep\": 3,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Example Academy\",\n          \"listingName\": \"Example Academy\",\n          \"email\": \"academy@example.test\",\n          \"contactPerson\": \"Asha Sharma\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": true,\n        \"data\": {\n          \"subjectIds\": [\n            1\n          ]\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": false,\n        \"data\": {\n          \"lessonModes\": [],\n          \"latitude\": null,\n          \"longitude\": null,\n          \"addressText\": null,\n          \"city\": null,\n          \"state\": null,\n          \"country\": null,\n          \"countryCode\": null,\n          \"district\": null,\n          \"subDistrict\": null,\n          \"locality\": null,\n          \"localityType\": null,\n          \"postalCode\": null\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": false,\n        \"data\": {\n          \"startingRate\": null,\n          \"currency\": \"INR\",\n          \"trialDays\": 0\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": false,\n        \"data\": {\n          \"description\": null,\n          \"websiteUrl\": null,\n          \"instructorsText\": null\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": false,\n        \"data\": {\n          \"agreeToTerms\": false\n        }\n      }\n    ]\n  },\n  \"instituteProfileUrl\": null\n}"
+                }
+              ]
+            },
+            {
+              "name": "PATCH /profiles/me/steps/3 — Institute step 3",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"lessonModes\": [\n    \"in_person\",\n    \"home_tuition\",\n    \"online\"\n  ],\n  \"city\": \"Varanasi\",\n  \"state\": \"Uttar Pradesh\",\n  \"country\": \"India\",\n  \"countryCode\": \"IN\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/profiles/me/steps/3",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "profiles",
+                    "me",
+                    "steps",
+                    "3"
+                  ]
+                },
+                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+              },
+              "response": [
+                {
+                  "name": "200 — Teaching modes and location saved",
+                  "originalRequest": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"lessonModes\": [\n    \"in_person\",\n    \"home_tuition\",\n    \"online\"\n  ],\n  \"city\": \"Varanasi\",\n  \"state\": \"Uttar Pradesh\",\n  \"country\": \"India\",\n  \"countryCode\": \"IN\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/profiles/me/steps/3",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "profiles",
+                        "me",
+                        "steps",
+                        "3"
+                      ]
+                    },
+                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"ok\": true,\n  \"webPageUrl\": null,\n  \"locationDetails\": {\n    \"country\": \"India\",\n    \"state\": \"Uttar Pradesh\",\n    \"district\": \"Varanasi\",\n    \"city\": \"Varanasi\",\n    \"locality\": \"Sigra\"\n  },\n  \"step\": 3,\n  \"profileDraft\": {\n    \"status\": \"draft\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1,\n      2,\n      3\n    ],\n    \"nextStep\": 4,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Example Academy\",\n          \"listingName\": \"Example Academy\",\n          \"email\": \"academy@example.test\",\n          \"contactPerson\": \"Asha Sharma\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": true,\n        \"data\": {\n          \"subjectIds\": [\n            1\n          ]\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": true,\n        \"data\": {\n          \"lessonModes\": [\n            \"in_person\",\n            \"home_tuition\",\n            \"online\"\n          ],\n          \"latitude\": null,\n          \"longitude\": null,\n          \"addressText\": null,\n          \"city\": \"Varanasi\",\n          \"state\": \"Uttar Pradesh\",\n          \"country\": \"India\",\n          \"countryCode\": \"IN\",\n          \"district\": null,\n          \"subDistrict\": null,\n          \"locality\": null,\n          \"localityType\": null,\n          \"postalCode\": null\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": false,\n        \"data\": {\n          \"startingRate\": null,\n          \"currency\": \"INR\",\n          \"trialDays\": 0\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": false,\n        \"data\": {\n          \"description\": null,\n          \"websiteUrl\": null,\n          \"instructorsText\": null\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": false,\n        \"data\": {\n          \"agreeToTerms\": false\n        }\n      }\n    ]\n  },\n  \"instituteProfileUrl\": null\n}"
+                }
+              ]
+            },
+            {
+              "name": "PATCH /profiles/me/steps/4 — Institute step 4",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"startingRate\": 500,\n  \"currency\": \"INR\",\n  \"trialDays\": 3\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/profiles/me/steps/4",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "profiles",
+                    "me",
+                    "steps",
+                    "4"
+                  ]
+                },
+                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+              },
+              "response": [
+                {
+                  "name": "200 — Rates and trial saved",
+                  "originalRequest": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"startingRate\": 500,\n  \"currency\": \"INR\",\n  \"trialDays\": 3\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/profiles/me/steps/4",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "profiles",
+                        "me",
+                        "steps",
+                        "4"
+                      ]
+                    },
+                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"ok\": true,\n  \"webPageUrl\": null,\n  \"locationDetails\": {\n    \"country\": \"India\",\n    \"state\": \"Uttar Pradesh\",\n    \"district\": \"Varanasi\",\n    \"city\": \"Varanasi\",\n    \"locality\": \"Sigra\"\n  },\n  \"step\": 4,\n  \"profileDraft\": {\n    \"status\": \"draft\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1,\n      2,\n      3,\n      4\n    ],\n    \"nextStep\": 5,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Example Academy\",\n          \"listingName\": \"Example Academy\",\n          \"email\": \"academy@example.test\",\n          \"contactPerson\": \"Asha Sharma\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": true,\n        \"data\": {\n          \"subjectIds\": [\n            1\n          ]\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": true,\n        \"data\": {\n          \"lessonModes\": [\n            \"in_person\",\n            \"home_tuition\",\n            \"online\"\n          ],\n          \"latitude\": null,\n          \"longitude\": null,\n          \"addressText\": null,\n          \"city\": \"Varanasi\",\n          \"state\": \"Uttar Pradesh\",\n          \"country\": \"India\",\n          \"countryCode\": \"IN\",\n          \"district\": null,\n          \"subDistrict\": null,\n          \"locality\": null,\n          \"localityType\": null,\n          \"postalCode\": null\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": true,\n        \"data\": {\n          \"startingRate\": 500,\n          \"currency\": \"INR\",\n          \"trialDays\": 3\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": false,\n        \"data\": {\n          \"description\": null,\n          \"websiteUrl\": null,\n          \"instructorsText\": null\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": false,\n        \"data\": {\n          \"agreeToTerms\": false\n        }\n      }\n    ]\n  },\n  \"instituteProfileUrl\": null\n}"
+                }
+              ]
+            },
+            {
+              "name": "PATCH /profiles/me/steps/5 — Institute step 5",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"description\": \"Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback.\",\n  \"websiteUrl\": \"https://example.test\",\n  \"instructorsText\": \"Experienced teaching team\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/profiles/me/steps/5",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "profiles",
+                    "me",
+                    "steps",
+                    "5"
+                  ]
+                },
+                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+              },
+              "response": [
+                {
+                  "name": "200 — Story saved",
+                  "originalRequest": {
+                    "method": "PATCH",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"description\": \"Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback.\",\n  \"websiteUrl\": \"https://example.test\",\n  \"instructorsText\": \"Experienced teaching team\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/profiles/me/steps/5",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "profiles",
+                        "me",
+                        "steps",
+                        "5"
+                      ]
+                    },
+                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 words when supplied."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"ok\": true,\n  \"webPageUrl\": null,\n  \"locationDetails\": {\n    \"country\": \"India\",\n    \"state\": \"Uttar Pradesh\",\n    \"district\": \"Varanasi\",\n    \"city\": \"Varanasi\",\n    \"locality\": \"Sigra\"\n  },\n  \"step\": 5,\n  \"profileDraft\": {\n    \"status\": \"draft\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1,\n      2,\n      3,\n      4,\n      5\n    ],\n    \"nextStep\": 6,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Example Academy\",\n          \"listingName\": \"Example Academy\",\n          \"email\": \"academy@example.test\",\n          \"contactPerson\": \"Asha Sharma\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": true,\n        \"data\": {\n          \"subjectIds\": [\n            1\n          ]\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": true,\n        \"data\": {\n          \"lessonModes\": [\n            \"in_person\",\n            \"home_tuition\",\n            \"online\"\n          ],\n          \"latitude\": null,\n          \"longitude\": null,\n          \"addressText\": null,\n          \"city\": \"Varanasi\",\n          \"state\": \"Uttar Pradesh\",\n          \"country\": \"India\",\n          \"countryCode\": \"IN\",\n          \"district\": null,\n          \"subDistrict\": null,\n          \"locality\": null,\n          \"localityType\": null,\n          \"postalCode\": null\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": true,\n        \"data\": {\n          \"startingRate\": 500,\n          \"currency\": \"INR\",\n          \"trialDays\": 3\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": true,\n        \"data\": {\n          \"description\": \"Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback.\",\n          \"websiteUrl\": \"https://example.test\",\n          \"instructorsText\": \"Experienced teaching team\"\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": false,\n        \"data\": {\n          \"agreeToTerms\": false\n        }\n      }\n    ]\n  },\n  \"instituteProfileUrl\": null\n}"
+                }
+              ]
+            },
+            {
+              "name": "POST /profiles/me/photo — Upload photo",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "image",
+                      "type": "file",
+                      "src": ""
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/profiles/me/photo",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "profiles",
+                    "me",
+                    "photo"
+                  ]
+                },
+                "description": "Upload multipart image (JPEG/PNG/WebP up to 5 MB) for moderation. Does not advance draft progress."
+              },
+              "response": [
+                {
+                  "name": "201 — Photo uploaded for review",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "image",
+                          "type": "file",
+                          "src": ""
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/profiles/me/photo",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "profiles",
+                        "me",
+                        "photo"
+                      ]
+                    },
+                    "description": "Upload multipart image (JPEG/PNG/WebP up to 5 MB) for moderation. Does not advance draft progress."
+                  },
+                  "status": "Created",
+                  "code": 201,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"user\": {\n    \"id\": 123,\n    \"avatar_url\": \"https://example.test/storage/institute-photos/academy.png\",\n    \"avatar_status\": \"pending\"\n  },\n  \"message\": \"Photo uploaded; it will appear on your public profile after review.\"\n}"
+                }
+              ]
+            },
+            {
+              "name": "POST /profiles/me/publish — Review and publish (step 6)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"agreeToTerms\": true\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/profiles/me/publish",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "profiles",
+                    "me",
+                    "publish"
+                  ]
+                },
+                "description": "Step 6. Send agreeToTerms:true after required profile data is ready. Institutes require subjectIds, contactPerson, city, district, country, lessonModes and a 100-word description. Returns profileComplete:true and provider page links."
+              },
+              "response": [
+                {
+                  "name": "200 — Institute profile published",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"agreeToTerms\": true\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/profiles/me/publish",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "profiles",
+                        "me",
+                        "publish"
+                      ]
+                    },
+                    "description": "Step 6. Send agreeToTerms:true after required profile data is ready. Institutes require subjectIds, contactPerson, city, district, country, lessonModes and a 100-word description. Returns profileComplete:true and provider page links."
+                  },
+                  "status": "OK",
+                  "code": 200,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"ok\": true,\n  \"published\": true,\n  \"profileComplete\": true,\n  \"webPageUrl\": \"https://example.test/site/institute/example-academy-kanpur\",\n  \"profileDraft\": {\n    \"status\": \"published\",\n    \"totalSteps\": 6,\n    \"completedSteps\": [\n      1,\n      2,\n      3,\n      4,\n      5,\n      6\n    ],\n    \"nextStep\": null,\n    \"lastSavedAt\": \"2026-10-28 10:00:00\",\n    \"steps\": [\n      {\n        \"step\": 1,\n        \"completed\": true,\n        \"data\": {\n          \"fullName\": \"Example Academy\",\n          \"listingName\": \"Example Academy\",\n          \"email\": \"academy@example.test\",\n          \"contactPerson\": \"Asha Sharma\"\n        }\n      },\n      {\n        \"step\": 2,\n        \"completed\": true,\n        \"data\": {\n          \"subjectIds\": [\n            1\n          ]\n        }\n      },\n      {\n        \"step\": 3,\n        \"completed\": true,\n        \"data\": {\n          \"lessonModes\": [\n            \"in_person\",\n            \"home_tuition\",\n            \"online\"\n          ],\n          \"latitude\": null,\n          \"longitude\": null,\n          \"addressText\": null,\n          \"city\": \"Varanasi\",\n          \"state\": \"Uttar Pradesh\",\n          \"country\": \"India\",\n          \"countryCode\": \"IN\",\n          \"district\": null,\n          \"subDistrict\": null,\n          \"locality\": null,\n          \"localityType\": null,\n          \"postalCode\": null\n        }\n      },\n      {\n        \"step\": 4,\n        \"completed\": true,\n        \"data\": {\n          \"startingRate\": 500,\n          \"currency\": \"INR\",\n          \"trialDays\": 3\n        }\n      },\n      {\n        \"step\": 5,\n        \"completed\": true,\n        \"data\": {\n          \"description\": \"Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback. Our instructors help students build confidence through regular practice and feedback.\",\n          \"websiteUrl\": \"https://example.test\",\n          \"instructorsText\": \"Experienced teaching team\"\n        }\n      },\n      {\n        \"step\": 6,\n        \"completed\": true,\n        \"data\": {\n          \"agreeToTerms\": true\n        }\n      }\n    ]\n  },\n  \"instituteProfileUrl\": \"https://example.test/site/institute/example-academy-kanpur\"\n}"
+                },
+                {
+                  "name": "422 — Required profile sections are incomplete",
+                  "originalRequest": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"agreeToTerms\": true\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    },
+                    "url": {
+                      "raw": "{{baseUrl}}/profiles/me/publish",
+                      "host": [
+                        "{{baseUrl}}"
+                      ],
+                      "path": [
+                        "profiles",
+                        "me",
+                        "publish"
+                      ]
+                    },
+                    "description": "Step 6. Send agreeToTerms:true after required profile data is ready. Institutes require subjectIds, contactPerson, city, district, country, lessonModes and a 100-word description. Returns profileComplete:true and provider page links."
+                  },
+                  "status": "OK",
+                  "code": 422,
+                  "_postman_previewlanguage": "json",
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "cookie": [],
+                  "body": "{\n  \"error\": \"Complete the required profile sections before publishing.\",\n  \"missingFields\": [\n    \"subjectIds\",\n    \"city\",\n    \"district\",\n    \"countryCode\",\n    \"description\",\n    \"lessonModes\",\n    \"contactPerson\"\n  ]\n}"
+                }
+              ]
+            }
+          ]
         }
       ]
     },
@@ -770,7 +2572,7 @@
       },
       "item": [
         {
-          "name": "GET /geo/countries — Countries",
+          "name": "GET — All countries",
           "request": {
             "method": "GET",
             "header": [
@@ -780,21 +2582,16 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/geo/countries?search=ind",
+              "raw": "{{baseUrl}}/geo/countries",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "geo",
                 "countries"
-              ],
-              "query": [
-                {
-                  "key": "search",
-                  "value": "ind"
-                }
               ]
-            }
+            },
+            "description": "Returns the complete stored country list with full country names, alpha-2 and alpha-3 codes. No default search filter or pagination. Optional search narrows the list. Saved mock response illustrates a subset."
           },
           "response": [
             {
@@ -808,21 +2605,16 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/geo/countries?search=ind",
+                  "raw": "{{baseUrl}}/geo/countries",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "geo",
                     "countries"
-                  ],
-                  "query": [
-                    {
-                      "key": "search",
-                      "value": "ind"
-                    }
                   ]
-                }
+                },
+                "description": "Returns the complete stored country list with full country names, alpha-2 and alpha-3 codes. No default search filter or pagination. Optional search narrows the list. Saved mock response illustrates a subset."
               },
               "status": "OK",
               "code": 200,
@@ -839,7 +2631,7 @@
           ]
         },
         {
-          "name": "GET /geo/countries/:countryCode/states — States",
+          "name": "GET — All states for selected country",
           "request": {
             "method": "GET",
             "header": [
@@ -849,7 +2641,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/geo/countries/{{countryCode}}/states?search=utt",
+              "raw": "{{baseUrl}}/geo/countries/{{countryCode}}/states",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -858,14 +2650,9 @@
                 "countries",
                 "{{countryCode}}",
                 "states"
-              ],
-              "query": [
-                {
-                  "key": "search",
-                  "value": "utt"
-                }
               ]
-            }
+            },
+            "description": "Select countryCode from GET /geo/countries. Returns all stored states for that country. Optional search is omitted here to show the full state list. Saved mock response illustrates a subset."
           },
           "response": [
             {
@@ -879,7 +2666,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/geo/countries/{{countryCode}}/states?search=utt",
+                  "raw": "{{baseUrl}}/geo/countries/{{countryCode}}/states",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -888,14 +2675,9 @@
                     "countries",
                     "{{countryCode}}",
                     "states"
-                  ],
-                  "query": [
-                    {
-                      "key": "search",
-                      "value": "utt"
-                    }
                   ]
-                }
+                },
+                "description": "Select countryCode from GET /geo/countries. Returns all stored states for that country. Optional search is omitted here to show the full state list. Saved mock response illustrates a subset."
               },
               "status": "OK",
               "code": 200,
@@ -912,7 +2694,7 @@
           ]
         },
         {
-          "name": "GET /geo/countries/:countryCode/cities — Cities",
+          "name": "GET — Cities for selected country and state",
           "request": {
             "method": "GET",
             "header": [
@@ -922,7 +2704,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/geo/countries/{{countryCode}}/cities?stateCode={{stateCode}}&search=varanasi&perPage=50&page=1",
+              "raw": "{{baseUrl}}/geo/countries/{{countryCode}}/cities?stateCode={{stateCode}}&perPage=50&page=1",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -938,10 +2720,6 @@
                   "value": "{{stateCode}}"
                 },
                 {
-                  "key": "search",
-                  "value": "varanasi"
-                },
-                {
                   "key": "perPage",
                   "value": "50"
                 },
@@ -950,7 +2728,8 @@
                   "value": "1"
                 }
               ]
-            }
+            },
+            "description": "Required stateCode comes from the selected country states API. Cities are restricted to that country and state. Missing stateCode returns 422; unknown/cross-country state returns 404. Results are paginated: default 50, maximum 100 per page. Optional search narrows the state city list."
           },
           "response": [
             {
@@ -964,7 +2743,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/geo/countries/{{countryCode}}/cities?stateCode={{stateCode}}&search=varanasi&perPage=50&page=1",
+                  "raw": "{{baseUrl}}/geo/countries/{{countryCode}}/cities?stateCode={{stateCode}}&perPage=50&page=1",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -980,10 +2759,6 @@
                       "value": "{{stateCode}}"
                     },
                     {
-                      "key": "search",
-                      "value": "varanasi"
-                    },
-                    {
                       "key": "perPage",
                       "value": "50"
                     },
@@ -992,7 +2767,8 @@
                       "value": "1"
                     }
                   ]
-                }
+                },
+                "description": "Required stateCode comes from the selected country states API. Cities are restricted to that country and state. Missing stateCode returns 422; unknown/cross-country state returns 404. Results are paginated: default 50, maximum 100 per page. Optional search narrows the state city list."
               },
               "status": "OK",
               "code": 200,
@@ -1004,7 +2780,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"countryCode\": \"IN\",\n  \"cities\": [\n    {\n      \"id\": 1253405,\n      \"name\": \"Varanasi\",\n      \"asciiName\": \"Varanasi\",\n      \"stateCode\": \"UP\",\n      \"stateName\": \"Uttar Pradesh\",\n      \"latitude\": 25.3167,\n      \"longitude\": 83.0104,\n      \"population\": 1164404\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"perPage\": 50,\n    \"total\": 1,\n    \"lastPage\": 1\n  },\n  \"source\": \"GeoNames\"\n}"
+              "body": "{\n  \"countryCode\": \"IN\",\n  \"cities\": [\n    {\n      \"id\": 1253405,\n      \"name\": \"Varanasi\",\n      \"asciiName\": \"Varanasi\",\n      \"stateCode\": \"UP\",\n      \"stateName\": \"Uttar Pradesh\",\n      \"latitude\": 25.3167,\n      \"longitude\": 83.0104,\n      \"population\": 1164404\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"perPage\": 50,\n    \"total\": 1,\n    \"lastPage\": 1\n  },\n  \"source\": \"GeoNames\",\n  \"stateCode\": \"UP\"\n}"
             }
           ]
         }
