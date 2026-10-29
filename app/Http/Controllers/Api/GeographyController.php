@@ -37,19 +37,15 @@ class GeographyController
         $data = $request->validate([
             'state_id' => ['required', 'integer', 'min:1', 'max:9007199254740991'],
             'search' => ['sometimes', 'string', 'max:100'],
-            'page' => ['sometimes', 'integer', 'min:1'],
-            'perPage' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ]);
         $stateId = (int) $data['state_id'];
         abort_unless(DB::table('states')->where('id', $stateId)->exists(), 404, 'State not found.');
         $cities = $this->search(DB::table('cities')->where('state_id', $stateId), $data)
-            ->orderBy('name')->orderBy('id')->paginate((int) ($data['perPage'] ?? 50),
-                ['id', 'name', 'state_id'], 'page', (int) ($data['page'] ?? 1));
+            ->orderBy('name')->orderBy('id')->get(['id', 'name', 'state_id']);
 
         return response()->json([
             'state_id' => $stateId,
-            'cities' => $cities->items(),
-            'pagination' => ['page' => $cities->currentPage(), 'perPage' => $cities->perPage(), 'total' => $cities->total(), 'lastPage' => $cities->lastPage()],
+            'cities' => $cities,
         ]);
     }
 

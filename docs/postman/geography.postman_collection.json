@@ -2,7 +2,7 @@
   "info": {
     "name": "Nearby Teachers — Country, State and City",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Public APIs for the imported countries, states and cities SQL tables. Set country_id from a country response, then state_id from its states response. Country and state lists are complete; cities use page/perPage. Saved examples are abbreviated and fictional."
+    "description": "Public APIs for the imported countries, states and cities SQL tables. Set country_id from a country response, then state_id from its states response. Country, state and city lists are returned complete for the selected parent. Saved examples are abbreviated and fictional."
   },
   "auth": {
     "type": "noauth"
@@ -178,7 +178,7 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/geo/cities?state_id={{state_id}}&perPage=50&page=1",
+          "raw": "{{baseUrl}}/geo/cities?state_id={{state_id}}",
           "host": [
             "{{baseUrl}}"
           ],
@@ -190,18 +190,10 @@
             {
               "key": "state_id",
               "value": "{{state_id}}"
-            },
-            {
-              "key": "perPage",
-              "value": "50"
-            },
-            {
-              "key": "page",
-              "value": "1"
             }
           ]
         },
-        "description": "Required state_id from GET /geo/states. Returns cities in that state (id, name, state_id). Optional search, page and perPage; default 50, maximum 100 per page.",
+        "description": "Required state_id from GET /geo/states. Returns all cities in that state (id, name, state_id). Optional search filters by city name; response has no pagination.",
         "auth": {
           "type": "noauth"
         }
