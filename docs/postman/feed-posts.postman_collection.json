@@ -44,6 +44,11 @@
       "key": "subjectId",
       "value": "1",
       "type": "string"
+    },
+    {
+      "key": "timezone",
+      "value": "Asia/Kolkata",
+      "type": "string"
     }
   ],
   "item": [
@@ -57,7 +62,7 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/feed?city={{city}}&perPage={{perPage}}",
+          "raw": "{{baseUrl}}/feed?city={{city}}&perPage={{perPage}}&timezone={{timezone}}",
           "host": [
             "{{baseUrl}}"
           ],
@@ -79,12 +84,18 @@
               "key": "cursor",
               "value": "{{cursor}}",
               "disabled": true
+            },
+            {
+              "key": "timezone",
+              "value": "{{timezone}}",
+              "disabled": false
             }
           ]
         },
         "description": "Public endpoint: read the shared city feed with perPage/cursor pagination; no bearer token is required. Guests receive liked_by_me=false."
       },
-      "name": "Feed — List posts"
+      "name": "Feed — List posts",
+      "description": "Public endpoint: read the shared city feed with perPage/cursor pagination; no bearer token is required. Guests receive liked_by_me=false. Pass an IANA timezone (for example Asia/Kolkata) to receive created_at in that timezone."
     },
     {
       "request": {

@@ -212,7 +212,7 @@ See [email recovery](EMAIL_AUTH.md) for code requirements.
 | `GET` | `/messages/{conversationId}` | Verified bearer, participant | `perPage`, `cursor` | Conversation messages. |
 | `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
 | `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
-| `GET` | `/feed` | Public; bearer optional | Required query `city`; optional `perPage`, `cursor` | Paginated city posts, with like/comment counts; `liked_by_me` is false for guests. |
+| `GET` | `/feed` | Public; bearer optional | Required query `city`; optional `perPage`, `cursor`, `timezone` (IANA) | Paginated city posts with like/comment counts; `created_at` uses requested timezone, and `liked_by_me` is false for guests. |
 | `POST` | `/feed` | Verified bearer | `city`, `body` | Creates a city post; one post per account every 7 days. |
 | `POST` | `/feed/{postId}/like` | Verified bearer | — | Likes a post. |
 | `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
@@ -346,7 +346,7 @@ in that same subsection.
 | `GET` | `/messages/{conversationId}` | Verified bearer, participant | `perPage`, `cursor` | Conversation messages. |
 | `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
 | `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
-| `GET` | `/feed` | Public; bearer optional | Required query `city`; optional `perPage`, `cursor` | Paginated city posts, with like/comment counts; `liked_by_me` is false for guests. |
+| `GET` | `/feed` | Public; bearer optional | Required query `city`; optional `perPage`, `cursor`, `timezone` (IANA) | Paginated city posts with like/comment counts; `created_at` uses requested timezone, and `liked_by_me` is false for guests. |
 | `POST` | `/feed` | Verified bearer | `city`, `body` | Creates a city post; one post per account every 7 days. |
 | `POST` | `/feed/{postId}/like` | Verified bearer | — | Likes a post. |
 | `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
@@ -546,7 +546,7 @@ in that same subsection.
 | `GET` | `/messages/{conversationId}` | Verified bearer, participant | `perPage`, `cursor` | Conversation messages. |
 | `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
 | `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
-| `GET` | `/feed` | Public; bearer optional | Required query `city`; optional `perPage`, `cursor` | Paginated city posts, with like/comment counts; `liked_by_me` is false for guests. |
+| `GET` | `/feed` | Public; bearer optional | Required query `city`; optional `perPage`, `cursor`, `timezone` (IANA) | Paginated city posts with like/comment counts; `created_at` uses requested timezone, and `liked_by_me` is false for guests. |
 | `POST` | `/feed` | Verified bearer | `city`, `body` | Creates a city post; one post per account every 7 days. |
 | `POST` | `/feed/{postId}/like` | Verified bearer | — | Likes a post. |
 | `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
@@ -636,7 +636,7 @@ compatibility/system endpoints are here. Classification does not widen access.
 | `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
 | `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
 | `POST` | `/broadcasting/auth` | Verified bearer, conversation participant | `channel_name` | Legacy channel authorization; Socket.IO clients use the events below. |
-| `GET` | `/feed` | Public; bearer optional | Required query `city`; optional `perPage`, `cursor` | Paginated city posts, with like/comment counts; `liked_by_me` is false for guests. |
+| `GET` | `/feed` | Public; bearer optional | Required query `city`; optional `perPage`, `cursor`, `timezone` (IANA) | Paginated city posts with like/comment counts; `created_at` uses requested timezone, and `liked_by_me` is false for guests. |
 | `POST` | `/feed` | Verified bearer | `city`, `body` | Creates a city post; one post per account every 7 days. |
 | `POST` | `/feed/{postId}/like` | Verified bearer | — | Likes a post. |
 | `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |

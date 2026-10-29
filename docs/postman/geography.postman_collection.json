@@ -2,7 +2,7 @@
   "info": {
     "name": "Nearby Teachers — Country, State and City",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Public APIs for the imported countries, states and cities SQL tables. Set country_id from a country response, then state_id from its states response. Country, state and city lists are returned complete for the selected parent. Saved examples are abbreviated and fictional."
+    "description": "Public APIs for the imported countries, states and cities SQL tables. Set country_id from a country response, then state_id from its states response. Country, state and city lists are returned complete for the selected parent. Popular countries (IN, US, GB, ES, FR, SA, CN, PT, RU) appear first and include is_popular:true; other country records keep their existing fields. Saved examples are abbreviated and fictional."
   },
   "auth": {
     "type": "noauth"
@@ -88,7 +88,8 @@
           "cookie": [],
           "body": "{\n  \"countries\": [\n    {\n      \"id\": 101,\n      \"sortname\": \"IN\",\n      \"name\": \"India\",\n      \"phonecode\": 91\n    }\n  ]\n}"
         }
-      ]
+      ],
+      "description": "Returns all countries alphabetically, with popular countries first. India, United States, United Kingdom, Spain, France, Saudi Arabia, China, Portugal and Russia include is_popular:true. Other countries keep their current fields. Optional search filters names."
     },
     {
       "name": "GET /geo/states",

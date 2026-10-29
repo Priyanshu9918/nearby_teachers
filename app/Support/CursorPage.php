@@ -11,7 +11,7 @@ use Throwable;
 
 class CursorPage
 {
-    public static function respond(Request $request, Builder $query, string $key, bool $reverse = false): JsonResponse
+    public static function respond(Request $request, Builder $query, string $key, bool $reverse = false, ?callable $transform = null): JsonResponse
     {
         $data = validator($request->query(), [
             'perPage' => ['sometimes', 'integer', 'between:1,100'],
@@ -36,6 +36,9 @@ class CursorPage
 
         $page = $query->cursorPaginate((int) ($data['perPage'] ?? 50), ['*'], 'cursor', $cursor);
         $items = $page->items();
+        if ($transform !== null) {
+            $items = array_map($transform, $items);
+        }
 
         return response()->json([
             $key => $reverse ? array_reverse($items) : $items,

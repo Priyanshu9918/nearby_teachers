@@ -14,7 +14,10 @@ class CommunityController extends Controller
 {
     public function feed(Request $request): JsonResponse
     {
-        $data = $request->validate(['city' => ['required', 'string', 'max:160']]);
+        $data = $request->validate([
+            'city' => ['required', 'string', 'max:160'],
+            'timezone' => ['sometimes', 'string', 'timezone'],
+        ]);
         $user = $request->attributes->get('authenticated_user');
         $posts = DB::table('posts as p')
             ->join('users as u', 'u.id', '=', 'p.author_id')
@@ -31,7 +34,15 @@ class CommunityController extends Controller
                 $user === null ? [] : [$user->id])
             ->orderByDesc('p.created_at')->orderByDesc('p.id');
 
-        return CursorPage::respond($request, $posts, 'posts');
+        $timezone = $data['timezone'] ?? config('app.timezone', 'UTC');
+        $sourceTimezone = config('app.timezone', 'UTC');
+
+        return CursorPage::respond($request, $posts, 'posts', transform: static function (object $post) use ($timezone, $sourceTimezone): object {
+            $post->created_at = Carbon::parse($post->created_at, $sourceTimezone)->timezone($timezone)->toIso8601String();
+            $post->created_at_timezone = $timezone;
+
+            return $post;
+        });
     }
 
     public function createPost(Request $request): JsonResponse

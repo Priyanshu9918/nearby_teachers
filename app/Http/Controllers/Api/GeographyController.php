@@ -9,11 +9,19 @@ use Illuminate\Support\Facades\DB;
 
 class GeographyController
 {
+    private const POPULAR_COUNTRY_CODES = ['IN', 'US', 'GB', 'ES', 'FR', 'SA', 'CN', 'PT', 'RU'];
+
     public function countries(Request $request): JsonResponse
     {
         $data = $request->validate(['search' => ['sometimes', 'string', 'max:100']]);
         $countries = $this->search(DB::table('countries'), $data)
+            ->orderByRaw("CASE WHEN UPPER(sortname) IN ('IN', 'US', 'GB', 'ES', 'FR', 'SA', 'CN', 'PT', 'RU') THEN 0 ELSE 1 END")
             ->orderBy('name')->orderBy('id')->get(['id', 'sortname', 'name', 'phonecode']);
+        $countries->each(function (object $country): void {
+            if (in_array(strtoupper((string) $country->sortname), self::POPULAR_COUNTRY_CODES, true)) {
+                $country->is_popular = true;
+            }
+        });
 
         return response()->json(['countries' => $countries]);
     }
