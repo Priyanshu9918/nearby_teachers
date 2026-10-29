@@ -48,6 +48,7 @@ Route::prefix('geo')->middleware('throttle:60,1')->group(function (): void {
 Route::post('/analytics/page-view', [OperationsController::class, 'recordPageView'])->middleware('throttle:120,1');
 Route::get('/reviews/for/{providerId}', [CommunityController::class, 'providerReviews'])->where('providerId', RecordId::ROUTE_PATTERN);
 Route::get('/feed/{postId}/comments', [CommunityController::class, 'comments'])->where('postId', RecordId::ROUTE_PATTERN);
+Route::middleware(AttachOptionalApiUser::class)->get('/feed', [CommunityController::class, 'feed']);
 Route::middleware('throttle:60,1')->group(function (): void {
     Route::get('/search/dashboard', [SearchController::class, 'dashboard']);
     Route::get('/search/counts', [SearchController::class, 'counts']);
@@ -116,7 +117,6 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
 
     // Feed / Posts: shared by learner, teacher and institute accounts.
     // The developer catalog and Postman list these under each role's category.
-    Route::get('/feed', [CommunityController::class, 'feed']);
     Route::post('/feed', [CommunityController::class, 'createPost']);
     Route::post('/feed/{postId}/like', [CommunityController::class, 'like'])->where('postId', RecordId::ROUTE_PATTERN);
     Route::delete('/feed/{postId}/like', [CommunityController::class, 'unlike'])->where('postId', RecordId::ROUTE_PATTERN);

@@ -82,7 +82,7 @@
             }
           ]
         },
-        "description": "Read the shared city feed with perPage/cursor pagination. Feed visibility is shared across learner, teacher and institute accounts."
+        "description": "Public endpoint: read the shared city feed with perPage/cursor pagination; no bearer token is required. Guests receive liked_by_me=false."
       },
       "name": "Feed — List posts"
     },

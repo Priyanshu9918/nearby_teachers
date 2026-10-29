@@ -25,7 +25,10 @@ class CommunityController extends Controller
             ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS author_avatar")
             ->selectSub(DB::table('post_likes')->selectRaw('count(*)')->whereColumn('post_id', 'p.id'), 'like_count')
             ->selectSub(DB::table('post_comments')->selectRaw('count(*)')->whereColumn('post_id', 'p.id'), 'comment_count')
-            ->selectRaw('EXISTS (SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = ?) AS liked_by_me', [$user->id])
+            ->selectRaw($user === null
+                ? '0 AS liked_by_me'
+                : 'EXISTS (SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = ?) AS liked_by_me',
+                $user === null ? [] : [$user->id])
             ->orderByDesc('p.created_at')->orderByDesc('p.id');
 
         return CursorPage::respond($request, $posts, 'posts');

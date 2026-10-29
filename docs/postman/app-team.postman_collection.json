@@ -8773,7 +8773,7 @@
                 }
               ]
             },
-            "description": "Learner workflow. Read the shared city feed with perPage/cursor pagination. Feed visibility is shared across learner, teacher and institute accounts. Saved examples are fictional contract illustrations, not live captures."
+            "description": "Learner workflow. Public endpoint: read the shared city feed with perPage/cursor pagination; no bearer token is required. Guests receive liked_by_me=false. Saved examples are fictional contract illustrations, not live captures."
           },
           "response": [
             {
@@ -8812,7 +8812,7 @@
                     }
                   ]
                 },
-                "description": "Learner workflow. Read the shared city feed with perPage/cursor pagination. Feed visibility is shared across learner, teacher and institute accounts. Saved examples are fictional contract illustrations, not live captures."
+                "description": "Learner workflow. Public endpoint: read the shared city feed with perPage/cursor pagination; no bearer token is required. Guests receive liked_by_me=false. Saved examples are fictional contract illustrations, not live captures."
               },
               "status": "OK",
               "code": 200,
@@ -8862,7 +8862,7 @@
                     }
                   ]
                 },
-                "description": "Learner workflow. Read the shared city feed with perPage/cursor pagination. Feed visibility is shared across learner, teacher and institute accounts. Saved examples are fictional contract illustrations, not live captures."
+                "description": "Learner workflow. Public endpoint: read the shared city feed with perPage/cursor pagination; no bearer token is required. Guests receive liked_by_me=false. Saved examples are fictional contract illustrations, not live captures."
               },
               "status": "Unauthorized",
               "code": 401,
@@ -13300,7 +13300,7 @@
                     }
                   ]
                 },
-                "description": "Teacher workflow. Read the shared city feed with perPage/cursor pagination. Feed visibility is shared across learner, teacher and institute accounts. Saved examples are fictional contract illustrations, not live captures."
+                "description": "Teacher workflow. Public endpoint: read the shared city feed with perPage/cursor pagination; no bearer token is required. Guests receive liked_by_me=false. Saved examples are fictional contract illustrations, not live captures."
               },
               "response": [
                 {
@@ -13339,7 +13339,7 @@
                         }
                       ]
                     },
-                    "description": "Teacher workflow. Read the shared city feed with perPage/cursor pagination. Feed visibility is shared across learner, teacher and institute accounts. Saved examples are fictional contract illustrations, not live captures."
+                    "description": "Teacher workflow. Public endpoint: read the shared city feed with perPage/cursor pagination; no bearer token is required. Guests receive liked_by_me=false. Saved examples are fictional contract illustrations, not live captures."
                   },
                   "status": "OK",
                   "code": 200,
@@ -13389,7 +13389,7 @@
                         }
                       ]
                     },
-                    "description": "Teacher workflow. Read the shared city feed with perPage/cursor pagination. Feed visibility is shared across learner, teacher and institute accounts. Saved examples are fictional contract illustrations, not live captures."
+                    "description": "Teacher workflow. Public endpoint: read the shared city feed with perPage/cursor pagination; no bearer token is required. Guests receive liked_by_me=false. Saved examples are fictional contract illustrations, not live captures."
                   },
                   "status": "Unauthorized",
                   "code": 401,
@@ -17568,7 +17568,7 @@
                     }
                   ]
                 },
-                "description": "Institute workflow. Read the shared city feed with perPage/cursor pagination. Feed visibility is shared across learner, teacher and institute accounts. Saved examples are fictional contract illustrations, not live captures."
+                "description": "Institute workflow. Public endpoint: read the shared city feed with perPage/cursor pagination; no bearer token is required. Guests receive liked_by_me=false. Saved examples are fictional contract illustrations, not live captures."
               },
               "response": [
                 {
@@ -17607,7 +17607,7 @@
                         }
                       ]
                     },
-                    "description": "Institute workflow. Read the shared city feed with perPage/cursor pagination. Feed visibility is shared across learner, teacher and institute accounts. Saved examples are fictional contract illustrations, not live captures."
+                    "description": "Institute workflow. Public endpoint: read the shared city feed with perPage/cursor pagination; no bearer token is required. Guests receive liked_by_me=false. Saved examples are fictional contract illustrations, not live captures."
                   },
                   "status": "OK",
                   "code": 200,
@@ -17657,7 +17657,7 @@
                         }
                       ]
                     },
-                    "description": "Institute workflow. Read the shared city feed with perPage/cursor pagination. Feed visibility is shared across learner, teacher and institute accounts. Saved examples are fictional contract illustrations, not live captures."
+                    "description": "Institute workflow. Public endpoint: read the shared city feed with perPage/cursor pagination; no bearer token is required. Guests receive liked_by_me=false. Saved examples are fictional contract illustrations, not live captures."
                   },
                   "status": "Unauthorized",
                   "code": 401,
@@ -21744,7 +21744,7 @@
                 }
               ]
             },
-            "description": "Shared workflow. Read the shared city feed with perPage/cursor pagination. Feed visibility is shared across learner, teacher and institute accounts. Saved examples are fictional contract illustrations, not live captures."
+            "description": "Shared workflow. Public endpoint: read the shared city feed with perPage/cursor pagination; no bearer token is required. Guests receive liked_by_me=false. Saved examples are fictional contract illustrations, not live captures."
           },
           "response": [
             {
@@ -21783,7 +21783,7 @@
                     }
                   ]
                 },
-                "description": "Shared workflow. Read the shared city feed with perPage/cursor pagination. Feed visibility is shared across learner, teacher and institute accounts. Saved examples are fictional contract illustrations, not live captures."
+                "description": "Shared workflow. Public endpoint: read the shared city feed with perPage/cursor pagination; no bearer token is required. Guests receive liked_by_me=false. Saved examples are fictional contract illustrations, not live captures."
               },
               "status": "OK",
               "code": 200,
@@ -21833,7 +21833,7 @@
                     }
                   ]
                 },
-                "description": "Shared workflow. Read the shared city feed with perPage/cursor pagination. Feed visibility is shared across learner, teacher and institute accounts. Saved examples are fictional contract illustrations, not live captures."
+                "description": "Shared workflow. Public endpoint: read the shared city feed with perPage/cursor pagination; no bearer token is required. Guests receive liked_by_me=false. Saved examples are fictional contract illustrations, not live captures."
               },
               "status": "Unauthorized",
               "code": 401,
