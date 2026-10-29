@@ -636,7 +636,7 @@ class DeveloperController extends Controller
             'POST /broadcasting/auth' => ['body' => ['socket_id' => '123456.789012', 'channel_name' => 'private-conversation.3'], 'guide' => 'Laravel broadcasting compatibility endpoint; bearer and conversation membership required. Socket.IO uses POST /chat/socket/authorize.'],
             'POST /reviews' => ['body' => ['bookingId' => 2, 'rating' => 5, 'comment' => 'Great lesson.']],
             'GET /feed' => ['query' => 'city=New%20Delhi'],
-            'POST /feed' => ['body' => ['city' => 'New Delhi', 'body' => 'Looking for a BSL teacher for beginner classes.', 'subjectId' => 1]],
+            'POST /feed' => ['body' => ['city' => 'New Delhi', 'body' => 'Looking for a BSL teacher for beginner classes.']],
             'POST /feed/{postId}/comments' => ['body' => ['body' => 'Thanks for sharing.'], 'pathDefaults' => ['postId' => 4]],
             'POST /safety/reports' => ['body' => ['targetType' => 'user', 'targetId' => 1, 'reasonCategory' => 'fake_profile', 'reason' => 'Example report reason.']],
             'POST /presence/update' => [

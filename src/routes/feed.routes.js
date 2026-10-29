@@ -49,11 +49,11 @@ router.post('/', requireAuth, async (req, res) => {
   }
 
   const postType = req.user.account_type === 'learner' ? 'request' : 'offer';
-  const { city, subjectId, body, imageUrl } = req.body;
+  const { city, body } = req.body;
   const result = await query(
-    `INSERT INTO posts (author_id, post_type, city, subject_id, body, image_url)
-     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-    [req.user.id, postType, city, subjectId, body, imageUrl]
+    `INSERT INTO posts (author_id, post_type, city, body)
+     VALUES ($1, $2, $3, $4) RETURNING *`,
+    [req.user.id, postType, city, body]
   );
   res.json({ post: result.rows[0] });
 });

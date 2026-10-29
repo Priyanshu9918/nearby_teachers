@@ -273,7 +273,7 @@ checks authenticated identity, contact gates and a teacher/institute target.
 | `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
 | `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
 | `GET` | `/feed` | Verified bearer | Required query `city`; optional `perPage`, `cursor` | Paginated city posts, with like/comment counts and the caller's like state. |
-| `POST` | `/feed` | Verified bearer | `city`, `body`; optional `subjectId`, `imageUrl` | Creates a city post; one post per account every 7 days. |
+| `POST` | `/feed` | Verified bearer | `city`, `body` | Creates a city post; one post per account every 7 days. |
 | `POST` | `/feed/{postId}/like` | Verified bearer | — | Likes a post. |
 | `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
 | `GET` | `/feed/{postId}/comments` | Public | `perPage`, `cursor` | Lists comments. |
@@ -507,7 +507,7 @@ feed reading, likes, comments and replies.
 | `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
 | `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
 | `GET` | `/feed` | Verified bearer | Required query `city`; optional `perPage`, `cursor` | Paginated city posts, with like/comment counts and the caller's like state. |
-| `POST` | `/feed` | Verified bearer | `city`, `body`; optional `subjectId`, `imageUrl` | Creates a city post; one post per account every 7 days. |
+| `POST` | `/feed` | Verified bearer | `city`, `body` | Creates a city post; one post per account every 7 days. |
 | `POST` | `/feed/{postId}/like` | Verified bearer | — | Likes a post. |
 | `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
 | `GET` | `/feed/{postId}/comments` | Public | `perPage`, `cursor` | Lists comments. |
@@ -590,7 +590,7 @@ Use `GET /feed?city=Delhi` for city posts. `POST /feed` creates a teacher
 `post_type:"offer"`, at most once per seven days:
 
 ```json
-{"city":"Delhi","subjectId":1,"body":"Maths lesson slots are available this week."}
+{"city":"Delhi","body":"Maths lesson slots are available this week."}
 ```
 
 Like/unlike use the post like endpoints. Comment with
@@ -642,7 +642,7 @@ feed reading, likes, comments and replies.
 | `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
 | `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
 | `GET` | `/feed` | Verified bearer | Required query `city`; optional `perPage`, `cursor` | Paginated city posts, with like/comment counts and the caller's like state. |
-| `POST` | `/feed` | Verified bearer | `city`, `body`; optional `subjectId`, `imageUrl` | Creates a city post; one post per account every 7 days. |
+| `POST` | `/feed` | Verified bearer | `city`, `body` | Creates a city post; one post per account every 7 days. |
 | `POST` | `/feed/{postId}/like` | Verified bearer | — | Likes a post. |
 | `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
 | `GET` | `/feed/{postId}/comments` | Public | `perPage`, `cursor` | Lists comments. |
@@ -710,7 +710,7 @@ comments and reply using the feed routes listed above. `POST /feed` creates
 `post_type:"offer"` and remains limited to one post per seven days. Example:
 
 ```json
-{"city":"Delhi","subjectId":1,"body":"New science classes start this month."}
+{"city":"Delhi","body":"New science classes start this month."}
 ```
 
 Comment/reply both use `POST /feed/{postId}/comments`. Send `{body:"Message"}`
@@ -749,7 +749,7 @@ shown in this shared documentation category.
 | `POST` | `/broadcasting/auth` | Verified bearer, conversation participant | `channel_name`; `socket_id` as required by configured broadcaster | Legacy channel authorization; Socket.IO clients use the events below. |
 | `GET` | `/broadcasting/auth` | Verified bearer, conversation participant | Same inputs as query parameters | Legacy broadcasting compatibility; not new mobile chat setup. |
 | `GET` | `/feed` | Verified bearer | Required query `city`; optional `perPage`, `cursor` | Paginated city posts, with like/comment counts and the caller's like state. |
-| `POST` | `/feed` | Verified bearer | `city`, `body`; optional `subjectId`, `imageUrl` | Creates a city post; one post per account every 7 days. |
+| `POST` | `/feed` | Verified bearer | `city`, `body` | Creates a city post; one post per account every 7 days. |
 | `POST` | `/feed/{postId}/like` | Verified bearer | — | Likes a post. |
 | `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
 | `GET` | `/feed/{postId}/comments` | Public | `perPage`, `cursor` | Lists comments. |
