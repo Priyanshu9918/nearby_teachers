@@ -6,11 +6,14 @@ use App\Http\Middleware\TrackAuthActivity;
 use App\Reporting\BusinessActivityRecorder;
 use App\Reporting\ReportRegistry;
 use App\Services\AuthenticationService;
+use App\Services\SafetyReportCreator;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
 use Tests\Support\NumericTestIds;
 use Tests\TestCase;
 
@@ -269,5 +272,106 @@ class AdminReportingTest extends TestCase
         $this->assertStringContainsString($first->items()[0]->id, $csv);
         $this->assertSame(1, DB::table('admin_report_access_log')->where('report', 'users')->where('action', 'export')->count());
         $this->get('/admin/reports/users?per_page=100000')->assertSessionHasErrors('per_page');
+    }
+
+    public function test_learner_teacher_and_institute_can_submit_report_fields_for_admin_reporting(): void
+    {
+        $auth = app(AuthenticationService::class);
+        foreach ([['id' => $this->learner, 'target' => $this->teacher],
+            ['id' => $this->teacher, 'target' => $this->institute],
+            ['id' => $this->institute, 'target' => $this->learner]] as $index => $case) {
+            $details = 'Review detail '.$index.' NeedleReport';
+            $response = $this->withToken($auth->issueSessionToken($case['id']))->postJson('/reports', [
+                'targetType' => 'user', 'targetId' => $case['target'], 'reasonCategory' => 'fake_profile',
+                'additionalDetails' => $details, 'evidenceLink' => 'https://example.test/report-'.$index,
+            ])->assertCreated()->assertJsonPath('report.status', 'open')
+                ->assertJsonPath('report.reasonCategory', 'fake_profile')
+                ->assertJsonPath('report.additionalDetails', $details)
+                ->assertJsonPath('report.evidenceLink', 'https://example.test/report-'.$index)
+                ->assertJsonPath('report.screenshotAttached', false);
+
+            $reportId = $response->json('report.id');
+            $this->assertDatabaseHas('reports', ['id' => $reportId, 'reporter_id' => $case['id'],
+                'target_id' => $case['target'], 'reason' => $details]);
+            $event = DB::table('business_activity')->where('event', 'safety_report.submitted')
+                ->where('entity_id', (string) $reportId)->first();
+            $this->assertNotNull($event);
+            $this->assertStringNotContainsString($details, $event->after_data);
+            $this->assertStringNotContainsString('example.test', $event->after_data);
+        }
+
+        $this->withSession(['admin_authenticated' => true]);
+        $this->get('/admin/reports/reports?q=NeedleReport')->assertOk()->assertSee('NeedleReport');
+        $csv = $this->get('/admin/reports/reports?q=NeedleReport&export=1')->assertOk()->streamedContent();
+        $this->assertStringContainsString('evidence_link', $csv);
+        $this->assertStringContainsString('screenshot_available', $csv);
+        $this->assertStringContainsString('https://example.test/report-', $csv);
+        $this->assertStringNotContainsString('screenshot_path', $csv);
+        $this->assertSame(1, DB::table('admin_report_access_log')->where('report', 'reports')->where('action', 'view')->count());
+        $this->assertSame(1, DB::table('admin_report_access_log')->where('report', 'reports')->where('action', 'export')->count());
+
+        DB::table('users')->where('id', $this->institute)->update(['is_admin' => true]);
+        $apiReports = $this->withToken($auth->issueSessionToken($this->institute))
+            ->getJson('/safety/reports?perPage=1')->assertOk()->assertJsonCount(1, 'reports')
+            ->assertJsonPath('pagination.page', 1)->assertJsonPath('pagination.perPage', 1)
+            ->assertJsonPath('pagination.hasMore', true);
+        $apiReports->assertDontSee('screenshot_path');
+        $this->assertSame(1, DB::table('admin_report_access_log')
+            ->where('report', 'reports')->where('action', 'api-view')->count());
+    }
+
+    public function test_report_screenshots_are_private_and_browser_admin_access_is_logged(): void
+    {
+        Storage::fake('local');
+        $auth = app(AuthenticationService::class);
+        $response = $this->withToken($auth->issueSessionToken($this->learner))->post('/reports', [
+            'targetType' => 'user', 'targetId' => $this->teacher, 'reasonCategory' => 'spam',
+            'screenshot' => UploadedFile::fake()->image('evidence.png'),
+        ], ['Accept' => 'application/json'])->assertCreated();
+
+        $reportId = $response->json('report.id');
+        $path = DB::table('reports')->where('id', $reportId)->value('screenshot_path');
+        $this->assertStringStartsWith('reports/', $path);
+        Storage::disk('local')->assertExists($path);
+        $response->assertJsonPath('report.screenshotAttached', true);
+
+        $this->get('/admin/reports/safety/'.$reportId.'/screenshot')->assertRedirect(route('admin.login'));
+        $this->withSession(['admin_authenticated' => true])
+            ->get('/admin/reports/safety/'.$reportId.'/screenshot')->assertOk()
+            ->assertHeader('Cache-Control', 'private, no-store');
+        $this->assertSame(1, DB::table('admin_report_access_log')->where('report', 'reports')
+            ->where('record_id', (string) $reportId)->where('action', 'evidence')->count());
+    }
+
+    public function test_message_report_requires_conversation_participation_and_other_sender(): void
+    {
+        $messageId = DB::table('messages')->where('conversation_id', $this->conversation)->value('id');
+        $auth = app(AuthenticationService::class);
+
+        $this->withToken($auth->issueSessionToken($this->institute))->postJson('/reports', [
+            'targetType' => 'message', 'targetId' => $messageId, 'reasonCategory' => 'spam',
+        ])->assertUnprocessable();
+
+        $this->withToken($auth->issueSessionToken($this->teacher))->postJson('/reports', [
+            'targetType' => 'message', 'targetId' => $messageId, 'reasonCategory' => 'spam',
+        ])->assertCreated();
+    }
+
+    public function test_report_and_submission_history_roll_back_together(): void
+    {
+        $reports = app(SafetyReportCreator::class);
+        $beforeReports = DB::table('reports')->count();
+        $beforeEvents = DB::table('business_activity')->where('event', 'safety_report.submitted')->count();
+        try {
+            DB::transaction(function () use ($reports): void {
+                $reports->create($this->learner, 'user', $this->teacher, 'spam', 'Rollback this report');
+                throw new \RuntimeException('Force outer transaction rollback.');
+            });
+        } catch (\RuntimeException $error) {
+            $this->assertSame('Force outer transaction rollback.', $error->getMessage());
+        }
+
+        $this->assertSame($beforeReports, DB::table('reports')->count());
+        $this->assertSame($beforeEvents, DB::table('business_activity')->where('event', 'safety_report.submitted')->count());
     }
 }

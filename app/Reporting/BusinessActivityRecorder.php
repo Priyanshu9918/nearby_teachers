@@ -35,6 +35,8 @@ final class BusinessActivityRecorder
         'auth.logged_out' => ['user', ['auth_version', 'scope']],
         'user.blocked' => ['user', ['blocked']],
         'user.unblocked' => ['user', ['blocked']],
+        'safety_report.submitted' => ['report', ['target_type', 'reason_category', 'status', 'has_screenshot', 'has_evidence_link']],
+        'safety_report.status_changed' => ['report', ['status']],
         // Version 1 submission history excludes contact details; no follow-up/decision workflow exists yet.
         'franchise_enquiry.submitted' => ['franchise_enquiry', ['status']],
         'teaching_job_application.submitted' => ['teaching_job_application', ['status', 'course_ids', 'expected_salary', 'currency', 'salary_period']],

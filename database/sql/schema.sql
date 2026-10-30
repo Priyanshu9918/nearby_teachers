@@ -398,6 +398,8 @@ CREATE TABLE reports (
   target_id     BIGINT NOT NULL,
   reason_category TEXT NOT NULL CHECK (reason_category IN ('fraud', 'fake_profile', 'inappropriate', 'spam', 'other')),
   reason        TEXT,
+  evidence_link TEXT,
+  screenshot_path TEXT,
   status        TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'reviewed', 'dismissed')),
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );

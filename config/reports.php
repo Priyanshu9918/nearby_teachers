@@ -122,8 +122,9 @@ return [
     ],
     'reports' => [
         'title' => 'Safety reports', 'table' => 'reports', 'timestamp' => 'created_at',
-        'columns' => ['id', 'reporter_id', 'target_type', 'target_id', 'reason_category', 'reason', 'status', 'created_at'],
-        'participants' => ['reporter_id'], 'search' => ['reason', 'reason_category', 'status'],
+        'columns' => ['id', 'reporter_id', 'target_type', 'target_id', 'reason_category', 'reason', 'evidence_link', 'status', 'created_at'],
+        'participants' => ['reporter_id'], 'search' => ['target_type', 'reason', 'reason_category', 'evidence_link', 'status'],
+        'computed' => ['screenshot_available' => 'CASE WHEN r.screenshot_path IS NOT NULL THEN 1 ELSE 0 END'],
     ],
     'blocks' => [
         'title' => 'User blocks', 'table' => 'blocks', 'timestamp' => 'created_at',

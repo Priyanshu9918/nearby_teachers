@@ -642,6 +642,7 @@ compatibility/system endpoints are here. Classification does not widen access.
 | `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
 | `GET` | `/feed/{postId}/comments` | Public | `perPage`, `cursor` | Lists comments. |
 | `POST` | `/feed/{postId}/comments` | Verified bearer | `body`; optional `parentCommentId` | Adds a comment or reply. |
+| `POST` | `/reports` | Verified learner, teacher or institute bearer | `targetType` (`user`, `post`, `comment`, `message`), `targetId`, `reasonCategory` (`fraud`, `fake_profile`, `inappropriate`, `spam`, `other`); optional `additionalDetails` (max 500), `evidenceLink` (HTTP/HTTPS), `screenshot` (JPEG/PNG/WebP, max 5 MB) | Creates an open confidential safety report; use JSON without an image or multipart/form-data with a screenshot. Limited to 10/minute. |
 | `POST` | `/safety/reports` | Verified bearer | `targetType` (`user`, `post`, `comment`, `message`), `targetId`, `reasonCategory` (`fraud`, `fake_profile`, `inappropriate`, `spam`, `other`); optional `reason` | Creates a report. |
 | `POST` | `/safety/blocks/{userId}` | Verified bearer | — | Blocks a user. |
 | `POST` | `/presence/update` | Verified bearer | `deviceId`, `event` (`foreground`, `activity`, `heartbeat`, `background`) | Returns `{isActive}`. Five-minute inactivity and 90-second heartbeat expiry; [integration details](PRESENCE.md). |
@@ -759,8 +760,9 @@ provide this API permission. Keep admin tests in a separate admin environment.
 | `PATCH` | `/profiles/{type}/{id}/verify` | Admin bearer | `verified` boolean; type `teacher` or `institute` | Sets provider verification. |
 | `PATCH` | `/profiles/institute/{id}/type` | Admin bearer | `institute_type`: `independent`, `franchise`, `mcp_partner`, `bsl_direct` | Classifies an institute. |
 | `PATCH` | `/profiles/institute/{id}/bsl-verified` | Admin bearer | `verified` boolean | Sets BSL official status; enabling requires `bsl_direct`. |
-| `GET` | `/safety/reports` | Admin bearer | Optional `status`: `open`, `reviewed`, `dismissed` | Lists reports (defaults to open). |
-| `PATCH` | `/safety/reports/{id}/status` | Admin bearer | `status`: `open`, `reviewed`, `dismissed` | Updates report status. |
+| `GET` | `/safety/reports` | Admin bearer | Optional `status` (`open`, `reviewed`, `dismissed`), `page` (default 1), `perPage` (default 30, max 100) | Lists reports with details, evidence link and `screenshot_available`; private storage paths are omitted. Returns `pagination.hasMore`. Access is logged and response is no-store. |
+| `PATCH` | `/safety/reports/{id}/status` | Admin bearer | `status`: `open`, `reviewed`, `dismissed` | Updates report status and records the status change in activity history. |
+| `GET` | `/admin/reports/safety/{id}/screenshot` | Browser admin session | Report ID | Streams a report screenshot from private storage and logs the read. |
 | `GET` | `/suggestions` | Admin bearer | Optional `status`: `open`, `added`, `declined` | Lists suggestions (defaults to open). |
 | `PATCH` | `/suggestions/{id}/status` | Admin bearer | `status`: `open`, `added`, `declined` | Updates suggestion status. |
 | `GET` | `/support` | Admin bearer | Optional `status`: `open`, `in_progress`, `resolved` | Lists support tickets (defaults to open). |
@@ -780,6 +782,9 @@ provide this API permission. Keep admin tests in a separate admin environment.
 
 Browser admin reports use a separate admin session and access-logged report
 registry; see [reporting architecture](REPORTING_ARCHITECTURE.md).
+Report rows include evidence links and a screenshot-available flag. The private
+screenshot is served through `/admin/reports/safety/{id}/screenshot`, protected
+by the admin session and recorded in the admin report access log.
 
 ### Developer workbench and Postman
 

@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Log;
 
 class OperationsController extends Controller
 {
-    public function report(Request $request): JsonResponse
+    public function report(Request $request, \App\Services\SafetyReportCreator $reportCreator): JsonResponse
     {
         $data = $request->validate([
             'targetType' => ['required', 'in:user,post,comment,message'],
@@ -22,41 +22,73 @@ class OperationsController extends Controller
             'reasonCategory' => ['required', 'in:fraud,fake_profile,inappropriate,spam,other'],
             'reason' => ['nullable', 'string', 'max:5000'],
         ]);
-        $id = DB::table('reports')->insertGetId([
-            'reporter_id' => $request->attributes->get('authenticated_user')->id,
-            'target_type' => $data['targetType'],
-            'target_id' => $data['targetId'],
-            'reason_category' => $data['reasonCategory'],
-            'reason' => $data['reason'] ?? null,
-            'created_at' => now(),
-        ]);
+        $user = $request->attributes->get('authenticated_user');
+        $reason = isset($data['reason']) ? trim($data['reason']) : null;
+        $report = $reportCreator->create((int) $user->id, $data['targetType'], (int) $data['targetId'],
+            $data['reasonCategory'], $reason === '' ? null : $reason);
 
-        return response()->json(['report' => DB::table('reports')->where('id', $id)->first()]);
+        return response()->json(['report' => $report]);
     }
 
     public function reports(Request $request): JsonResponse
     {
-        $data = $request->validate(['status' => ['sometimes', 'in:open,reviewed,dismissed']]);
-        $reports = DB::table('reports as r')
+        $data = $request->validate([
+            'status' => ['sometimes', 'in:open,reviewed,dismissed'],
+            'page' => ['sometimes', 'integer', 'between:1,100000'],
+            'perPage' => ['sometimes', 'integer', 'between:1,100'],
+        ]);
+        $page = (int) ($data['page'] ?? 1);
+        $perPage = (int) ($data['perPage'] ?? 30);
+        app(\App\Reporting\ReportAccessLog::class)->record($request, 'reports', 'api-view');
+        $rows = DB::table('reports as r')
             ->join('users as u', 'u.id', '=', 'r.reporter_id')
             ->where('r.status', $data['status'] ?? 'open')
-            ->select('r.*', 'u.full_name as reporter_name')
+            ->select('r.id', 'r.reporter_id', 'r.target_type', 'r.target_id', 'r.reason_category', 'r.reason',
+                'r.evidence_link', 'r.status', 'r.created_at', 'u.full_name as reporter_name',
+                'u.account_type as reporter_type')
+            ->selectRaw('CASE WHEN r.screenshot_path IS NOT NULL THEN 1 ELSE 0 END AS screenshot_available')
             ->orderByRaw("CASE WHEN r.reason_category = 'fraud' THEN 0 ELSE 1 END")
             ->orderByDesc('r.created_at')
+            ->orderByDesc('r.id')
+            ->offset(($page - 1) * $perPage)
+            ->limit($perPage + 1)
             ->get();
+        $hasMore = $rows->count() > $perPage;
+        $reports = $rows->take($perPage)->values();
 
-        return response()->json(['reports' => $reports]);
+        return response()->json([
+            'reports' => $reports,
+            'pagination' => ['page' => $page, 'perPage' => $perPage, 'hasMore' => $hasMore],
+        ])->header('Cache-Control', 'no-store, private');
     }
 
     public function updateReport(Request $request, int $id): JsonResponse
     {
         $data = $request->validate(['status' => ['required', 'in:open,reviewed,dismissed']]);
-        $updated = DB::table('reports')->where('id', $id)->update($data);
-        if ($updated === 0 && ! DB::table('reports')->where('id', $id)->exists()) {
+        $actor = $request->attributes->get('authenticated_user');
+        $report = DB::transaction(function () use ($data, $id, $actor): ?object {
+            $saved = DB::table('reports')->where('id', $id)->lockForUpdate()->first(['id', 'reporter_id', 'status']);
+            if ($saved === null) {
+                return null;
+            }
+            if ($saved->status !== $data['status']) {
+                DB::table('reports')->where('id', $id)->update($data);
+                app(BusinessActivityRecorder::class)->record('safety_report.status_changed', (string) $id,
+                    $actor->id, (int) $saved->reporter_id,
+                    before: ['status' => $saved->status], after: ['status' => $data['status']]);
+            }
+
+            return DB::table('reports')->where('id', $id)
+                ->select('id', 'reporter_id', 'target_type', 'target_id', 'reason_category', 'reason',
+                    'evidence_link', 'status', 'created_at')
+                ->selectRaw('CASE WHEN screenshot_path IS NOT NULL THEN 1 ELSE 0 END AS screenshot_available')
+                ->first();
+        }, 3);
+        if ($report === null) {
             return response()->json(['error' => 'Report not found'], 404);
         }
 
-        return response()->json(['report' => DB::table('reports')->where('id', $id)->first()]);
+        return response()->json(['report' => $report]);
     }
 
     public function block(Request $request, int $userId): JsonResponse

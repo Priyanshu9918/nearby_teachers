@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\PresenceController;
 use App\Http\Controllers\Api\ProfilesController;
 use App\Http\Controllers\Api\StudentProfilesController;
 use App\Http\Controllers\Api\SearchController;
+use App\Http\Controllers\Api\SafetyReportsController;
 use App\Http\Controllers\Api\SocketIoController;
 use App\Http\Controllers\Api\SubjectsController;
 use App\Http\Middleware\AttachOptionalApiUser;
@@ -117,6 +118,7 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
     Route::get('/messages/{conversationId}', [MessagesController::class, 'show'])->where('conversationId', RecordId::ROUTE_PATTERN);
     Route::post('/messages/{conversationId}', [MessagesController::class, 'send'])->where('conversationId', RecordId::ROUTE_PATTERN)->middleware('throttle:chat-send');
     Route::post('/reviews', [CommunityController::class, 'createReview']);
+    Route::post('/reports', [SafetyReportsController::class, 'store'])->middleware('throttle:10,1');
 
     // Feed / Posts: shared by learner, teacher and institute accounts.
     // The developer catalog and Postman list these under each role's category.

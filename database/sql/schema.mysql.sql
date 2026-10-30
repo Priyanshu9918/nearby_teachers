@@ -309,6 +309,8 @@ CREATE TABLE reports (
   target_id CHAR(36) NOT NULL,
   reason_category ENUM('fraud', 'fake_profile', 'inappropriate', 'spam', 'other') NOT NULL,
   reason TEXT NULL,
+  evidence_link VARCHAR(2048) NULL,
+  screenshot_path VARCHAR(1024) NULL,
   status ENUM('open', 'reviewed', 'dismissed') NOT NULL DEFAULT 'open',
   created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   INDEX idx_reports_category (reason_category, status),

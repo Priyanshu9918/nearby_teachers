@@ -12,6 +12,7 @@
 @forelse ($records as $record)
     <tr><td>
         @if ($report === 'users')<a class="btn btn-small" href="{{ route('admin.reports.user', $record->id) }}">User report</a>
+        @elseif ($report === 'reports' && $record->screenshot_available)<a class="btn btn-small" href="{{ route('admin.reports.safety-screenshot', ['id' => $record->id]) }}">View screenshot</a>
         @elseif ($report === 'conversations')<a class="btn btn-small" href="{{ route('admin.reports.conversation', $record->id) }}">Read messages</a>
         @elseif ($report === 'messages')<a class="btn btn-small" href="{{ route('admin.reports.conversation', $record->conversation_id) }}">Conversation</a>
         @elseif ($report === 'teacher-profiles' && $record->seo_public)<a class="btn btn-small" href="{{ \App\Services\SeoDirectory::url('/teacher/'.$record->public_page_slug) }}" target="_blank" rel="noopener noreferrer">Open teacher page <x-admin-icon name="arrow" /></a>

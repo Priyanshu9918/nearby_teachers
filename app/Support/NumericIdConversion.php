@@ -17,7 +17,7 @@ final class NumericIdConversion
     private const ENTITIES = ['user' => 'users', 'teacher_profile' => 'teacher_profiles', 'institute_profile' => 'institute_profiles',
         'booking' => 'bookings', 'message' => 'messages',
         'message_reaction' => 'message_reactions', 'otp_delivery' => 'otp_delivery_attempts',
-        'post' => 'posts', 'comment' => 'post_comments'];
+        'post' => 'posts', 'comment' => 'post_comments', 'report' => 'reports'];
 
     public function __construct()
     {

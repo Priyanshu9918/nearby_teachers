@@ -96,7 +96,19 @@ for historical uptime/latency reporting. Conversation start/leave/end remains wi
 is not reconstructed. Named persistent chat mutations are recorded as described
 below; typing hints remain transient.
 
-Current event coverage starts when migration `000029` is deployed:
+Current event coverage starts when migration `000029` is deployed. Safety reports
+submitted through `/reports` or `/safety/reports` record version 1
+`safety_report.submitted` activity in the same transaction as the report. The
+event stores only target type, category, initial status and evidence-presence
+flags; details, evidence URLs and private screenshot paths are excluded. The
+admin status API records `safety_report.status_changed` with previous and new
+status in the same transaction. The
+reports registry explicitly exposes report details and evidence links plus a
+screenshot-available flag. Screenshot downloads use the protected admin session
+and access logging. History begins at deployment; earlier reports get no
+invented activity rows.
+
+Tracked activity events include:
 
 | Event | Recorded metadata |
 |---|---|

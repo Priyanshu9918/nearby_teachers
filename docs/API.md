@@ -764,6 +764,7 @@ shown in this shared documentation category.
 | `GET` | `/feed/{postId}/comments` | Public | `perPage`, `cursor` | Lists comments. |
 | `POST` | `/feed/{postId}/comments` | Verified bearer | `body`; optional `parentCommentId` | Adds a comment or reply. |
 | `POST` | `/safety/reports` | Verified bearer | `targetType` (`user`, `post`, `comment`, `message`), `targetId`, `reasonCategory` (`fraud`, `fake_profile`, `inappropriate`, `spam`, `other`); optional `reason` | Creates a report. |
+| `POST` | `/reports` | Verified learner, teacher or institute bearer | `targetType`, `targetId`, `reasonCategory`; optional `additionalDetails` (max 500), `evidenceLink` (HTTP/HTTPS), `screenshot` (JPEG/PNG/WebP, max 5 MB) | Creates an open confidential report. Use JSON without an image or multipart/form-data with one. Limited to 10/minute. |
 | `POST` | `/presence/update` | Verified bearer | `deviceId`, `event` (`foreground`, `activity`, `heartbeat`, `background`) | Returns `{isActive}`. Five-minute inactivity and 90-second heartbeat expiry; [presence contract](PRESENCE.md). |
 | `POST` | `/safety/blocks/{userId}` | Verified bearer | — | Blocks a user. |
 | `DELETE` | `/safety/blocks/{userId}` | Verified bearer | — | Unblocks a user. |
@@ -825,7 +826,7 @@ code (`404`) and an already credited account (`409`). Page-view types are
 | Chat `body` | Required for send, optional for start; max 5,000 characters |
 | Feed `city`, `body`, `imageUrl` | City max 160; body max 5,000; optional URL max 2048 |
 | Comment `body`, `parentCommentId` | Body max 5,000; optional parent UUID must belong to the same post |
-| Safety `targetType`, `targetId` | user/post/comment/message; target UUID |
+| Safety `targetType`, `targetId` | user/post/comment/message; target record ID |
 | Safety `reasonCategory`, `reason` | fraud/fake_profile/inappropriate/spam/other; optional reason max 5,000 |
 | Suggestion `suggestionType`, `name`, `notes` | course/city/state/country; name max 255; optional notes max 5,000 |
 | Support `subject`, `message` | Max 255 / 10,000 |
@@ -950,8 +951,8 @@ admin portal's `ADMIN_EMAIL`/`ADMIN_PASSWORD_HASH` login.
 | `PATCH` | `/profiles/{type}/{id}/verify` | `verified` boolean; type `teacher` or `institute` | Sets provider verification. |
 | `PATCH` | `/profiles/institute/{id}/type` | `institute_type`: `independent`, `franchise`, `mcp_partner`, `bsl_direct` | Classifies an institute. |
 | `PATCH` | `/profiles/institute/{id}/bsl-verified` | `verified` boolean | Sets BSL official status; enabling requires `bsl_direct`. |
-| `GET` | `/safety/reports` | Optional `status`: `open`, `reviewed`, `dismissed` | Lists reports (defaults to open). |
-| `PATCH` | `/safety/reports/{id}/status` | `status`: `open`, `reviewed`, `dismissed` | Updates report status. |
+| `GET` | `/safety/reports` | Admin bearer; optional `status`, `page` (default 1), `perPage` (default 30, max 100) | Lists reports with details, evidence link and screenshot availability; private paths are omitted. Returns `pagination.hasMore`. Access logged, no-store. |
+| `PATCH` | `/safety/reports/{id}/status` | Admin bearer | `status`: `open`, `reviewed`, `dismissed` | Updates status and records the change in business activity history. |
 | `GET` | `/suggestions` | Optional `status`: `open`, `added`, `declined` | Lists suggestions (defaults to open). |
 | `PATCH` | `/suggestions/{id}/status` | `status`: `open`, `added`, `declined` | Updates suggestion status. |
 | `GET` | `/support` | Optional `status`: `open`, `in_progress`, `resolved` | Lists support tickets (defaults to open). |

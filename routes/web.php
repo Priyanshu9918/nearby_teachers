@@ -92,6 +92,8 @@ Route::middleware(RequireAdminSession::class)->prefix('admin')->name('admin.')->
     Route::get('/dashboard', [AdminReportController::class, 'dashboard'])->name('dashboard');
     Route::get('/reports/users/{id}', [AdminReportController::class, 'user'])->where('id', RecordId::ROUTE_PATTERN)->name('reports.user');
     Route::get('/reports/conversations/{id}', [AdminReportController::class, 'conversation'])->where('id', RecordId::ROUTE_PATTERN)->name('reports.conversation');
+    Route::get('/reports/safety/{id}/screenshot', [AdminReportController::class, 'screenshot'])
+        ->where('id', '[A-Fa-f0-9-]{1,36}')->name('reports.safety-screenshot');
     Route::get('/reports/{report}', [AdminReportController::class, 'index'])->name('reports.index');
 
     Route::get('/{section}/create', [AdminController::class, 'create'])->name('create');

@@ -9,7 +9,9 @@ use App\Reporting\ReportQuery;
 use App\Reporting\ReportRegistry;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminReportController extends Controller
@@ -116,5 +118,23 @@ class AdminReportController extends Controller
         $messages = $query->paginate((int) ($filters['per_page'] ?? 50))->withQueryString();
 
         return view('admin.reports.conversation', compact('conversation', 'messages', 'filters'));
+    }
+
+    public function screenshot(Request $request, string $id): BinaryFileResponse
+    {
+        $report = DB::table('reports')->where('id', $id)->first(['screenshot_path']);
+        abort_if($report === null || ! is_string($report->screenshot_path)
+            || ! str_starts_with($report->screenshot_path, 'reports/'), 404);
+
+        $disk = Storage::disk('local');
+        abort_unless($disk->exists($report->screenshot_path), 404);
+        $this->access->record($request, 'reports', 'evidence', $id);
+
+        return response()->file($disk->path($report->screenshot_path), [
+            'Content-Type' => $disk->mimeType($report->screenshot_path) ?? 'application/octet-stream',
+            'Content-Disposition' => 'inline; filename="report-evidence"',
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 }

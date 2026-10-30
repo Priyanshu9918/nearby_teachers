@@ -637,6 +637,9 @@ class DeveloperController extends Controller
             'POST /feed' => ['body' => ['city' => 'New Delhi', 'body' => 'Looking for a BSL teacher for beginner classes.']],
             'POST /feed/{postId}/comments' => ['body' => ['body' => 'Thanks for sharing.'], 'pathDefaults' => ['postId' => 4]],
             'POST /safety/reports' => ['body' => ['targetType' => 'user', 'targetId' => 1, 'reasonCategory' => 'fake_profile', 'reason' => 'Example report reason.']],
+            'POST /reports' => ['body' => ['targetType' => 'message', 'targetId' => 1, 'reasonCategory' => 'spam',
+                'additionalDetails' => 'Unwanted repeated messages.', 'evidenceLink' => 'https://example.test/evidence'],
+                'guide' => 'Learner, teacher and institute accounts can report a user, post, comment or message. Optional multipart fields: additionalDetails (500 chars), evidenceLink (HTTP/HTTPS URL) and screenshot (JPEG/PNG/WebP up to 5 MB). Send as multipart/form-data when attaching an image. Categories: fraud, fake_profile, inappropriate, spam, other. Rate limit: 10/minute.'],
             'POST /presence/update' => [
                 'body' => ['deviceId' => 'app-device-unique-id', 'event' => 'foreground'],
                 'guide' => 'Database-backed presence for this authenticated device; no Redis required. Send foreground/activity/heartbeat/background. Heartbeat every 30 seconds; foreground/activity reset the five-minute idle timer. Background removes the device immediately; a missing heartbeat expires it in 90 seconds. Only current state is retained; the Laravel scheduler prunes expired rows in bounded batches.',
