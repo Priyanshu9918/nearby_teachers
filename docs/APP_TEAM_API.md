@@ -733,15 +733,16 @@ Use the public Socket.IO URL; a raw WebSocket client is not compatible.
 | `conversation.leave` | App → server | `{conversationId}` |
 | `message.send` | App → server | `{conversationId,body}`; ack `{ok:true,message}` or `{ok:false,status,error,errors?}` |
 | `message.sent` | Server → app | `{message}`; both participants' connected devices receive it. |
-| `session.expired` | Server → app | Reconnect and restore history via REST. |
+| `session.expired` | Server → app | Bearer expired/revoked/unauthorized; reconnect with a current token and restore history via REST. A valid connection is reauthorized every 15 minutes and remains connected. |
 
 Listen before connecting. Deduplicate saved messages by ID because REST replies,
 socket acknowledgements and queued events overlap. Avoid sending the same action
 through both REST and Socket.IO: each send persists a new message. There is no
-client idempotency key, read-receipt or typing endpoint in this contract. Socket
-sessions last at most 15 minutes; reconnect to reauthorize and reload REST state.
-A send acknowledgement confirms persistence, not delivery/read. Background/closed
-apps require separately integrated FCM/APNs. Full client example:
+client idempotency key, read-receipt or typing endpoint in this contract. Active
+sockets reauthorize with Laravel every 15 minutes and stay connected while the
+bearer remains valid. Reconnect only after expiry/revocation, then reload REST
+state. A send acknowledgement confirms persistence, not delivery/read.
+Background/closed apps require separately integrated FCM/APNs. Full client example:
 [CHAT_SOCKET_IO.md](CHAT_SOCKET_IO.md).
 
 For manual testing, sign in to the developer portal and open

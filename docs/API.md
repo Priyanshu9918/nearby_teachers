@@ -932,9 +932,10 @@ Every authenticated socket is automatically placed in its own server-managed
 user room. Both participants receive `message.sent` with `{message}` even
 when not viewing that conversation; outsiders receive nothing. Joining a
 conversation requires membership. Deduplicate on message ID because queue
-retries, REST acknowledgements and socket events may overlap. Sessions expire
-after at most 15 minutes; reconnect to reauthorize. Recover missed events from
-REST after reconnect. Closed/background apps still need FCM/APNs for OS push.
+retries, REST acknowledgements and socket events may overlap. Active sockets
+reauthorize with Laravel every 15 minutes and stay connected while the bearer
+remains valid. Reconnect after expiry/revocation and recover missed events from
+REST. Closed/background apps still need FCM/APNs for OS push.
 
 Run `npm run chat:start` and a `broadcasts` queue worker. Setup, mobile client
 code, reverse-proxy and multi-node Redis instructions are in

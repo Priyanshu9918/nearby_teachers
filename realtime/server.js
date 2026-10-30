@@ -198,12 +198,36 @@ function createChatServer(config) {
 
   io.on('connection', (socket) => {
     socket.join('user.' + socket.data.userId);
-    const expiry = setTimeout(() => {
-      socket.emit('session.expired');
-      socket.disconnect(true);
-    }, socket.data.sessionMs);
-    expiry.unref();
-    socket.on('disconnect', () => clearTimeout(expiry));
+    let sessionCheck;
+    const scheduleSessionCheck = (delayMs = socket.data.sessionMs) => {
+      sessionCheck = setTimeout(async () => {
+        if (!socket.connected) return;
+        try {
+          const auth = normalizeIds(await laravel(socket.data.token, '/chat/socket/authorize', {}));
+          if (auth.userId !== socket.data.userId || !Number.isSafeInteger(auth.authVersion)) {
+            const error = new Error('Session authorization changed');
+            error.status = 403;
+            throw error;
+          }
+          if (!socket.connected) return;
+          socket.data.authVersion = auth.authVersion;
+          socket.data.sessionMs = Math.min(900000, Math.max(1000, (auth.expiresInSeconds || 900) * 1000));
+          scheduleSessionCheck();
+        } catch (error) {
+          if (!socket.connected) return;
+          if (error.status === 401 || error.status === 403) {
+            socket.emit('session.expired');
+            socket.disconnect(true);
+            return;
+          }
+          // A temporary API/network failure is not proof that the user's bearer expired.
+          scheduleSessionCheck(Math.min(socket.data.sessionMs, 30000));
+        }
+      }, delayMs);
+      sessionCheck.unref();
+    };
+    scheduleSessionCheck();
+    socket.on('disconnect', () => clearTimeout(sessionCheck));
 
     let windowStart = Date.now();
     let eventCount = 0;

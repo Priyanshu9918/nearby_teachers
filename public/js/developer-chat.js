@@ -26,7 +26,7 @@
         'rest-send': ['Send via REST', 'POST /messages/{conversationId}', {body: 'Example message'}, {message}, 'Alternative send path; also saves and broadcasts a real message. Do not use both sends for the same test.'],
         receive: ['Receive a live message (listen only)', 'message.sent', {}, {message}, 'Delivered to both participants. Deduplicate by message.id. A second tab tests the other device.'],
         leave: ['Leave conversation', 'conversation.leave', {conversationId: exampleConversationId}, {ok: true}, 'Leaves the selected conversation room. The socket remains connected to its private user room.'],
-        expired: ['Session expired (listen only)', 'session.expired', {}, {action: 'Reconnect with a valid login token.'}, 'Server sessions last at most 15 minutes. Observe expiry; the tester cannot emit or force it.'],
+        expired: ['Session expired (listen only)', 'session.expired', {}, {action: 'Reconnect with a valid login token.'}, 'The server reauthorizes every 15 minutes. Observe expiry only after the bearer expires, is revoked, or loses access.'],
         error: ['Connection / access errors', 'connect_error or failed ACK', {}, {ok: false, status: 404, error: 'Conversation not found'}, '401/403: check login/access. 404: check membership. 422: check input. 429: slow down. 503: check API/Node. ACK timeout: check history before retrying.'],
         disconnect: ['Disconnect / end test', 'socket.disconnect()', {}, {reason: 'io client disconnect'}, 'Closes this connection and stops auto ping. It does not delete the conversation or revoke the login token.'],
     };

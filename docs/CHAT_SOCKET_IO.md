@@ -129,8 +129,9 @@ an already submitted mutation may still finish on the server.
 Use two tabs with learner/provider tokens to verify delivery to the other
 participant's actual device. A send acknowledgement confirms persistence, not
 delivery or reading. If no live event arrives, check the broadcasts worker.
-ACK timeouts are ambiguous; inspect REST history before resending. Session
-expiry is observed, not emitted by the tester, and may take up to 15 minutes.
+ACK timeouts are ambiguous; inspect REST history before resending. The server
+reauthorizes connected sockets every 15 minutes; the tester can observe
+`session.expired` only when that check finds an expired or revoked bearer.
 The named chat protocol now includes typing, delivered/read receipts, edit/delete,
 replies and reactions. See [all 13 named events and REST APIs](CHAT_EVENTS.md)
 for payloads, permissions, migration and developer-portal examples.
@@ -221,10 +222,11 @@ Both participants' connected devices receive the event. A device subscribed
 to both its user room and conversation room receives one packet per publish.
 Queue retries can still duplicate an event: deduplicate by message ID.
 
-Socket sessions last at most 15 minutes, then emit `session.expired` and
-disconnect. Reconnect to rerun Laravel authorization; refresh the bearer if
-it has expired. Authorization is checked again on each room join and send.
-After a reconnect, recover messages using REST. Offline/closed apps require
+Socket authorization is rechecked with Laravel every 15 minutes while the
+connection is active. A still-valid bearer keeps the socket connected;
+`session.expired` is emitted only when the bearer is expired, revoked, or no
+longer authorized. Reconnect with a current bearer, then recover messages using
+REST. Authorization is also checked on each room join and send. Offline/closed apps require
 FCM/APNs for operating-system push notifications; Socket.IO is live delivery
 for a connected app, not an OS push service.
 

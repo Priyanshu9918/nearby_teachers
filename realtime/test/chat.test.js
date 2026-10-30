@@ -45,6 +45,9 @@ async function setup(t, options = {}) {
       (req.url.startsWith('/chat/events/') && !['history', 'unread_count', 'delete'].includes(req.url.split('/').pop()))
     )) return reply(403, {error: 'Messaging is unavailable for this conversation.', code: 'CHAT_BLOCKED'});
     if (req.url === '/chat/socket/authorize') {
+      if (options.expireAfterAuthChecks && requests.filter((request) => request.path.endsWith('/chat/socket/authorize')).length > options.expireAfterAuthChecks) {
+        return reply(403, { error: 'Invalid or expired token' });
+      }
       if (body.conversationId && (body.conversationId !== conversation || id === outsider)) {
         return reply(404, { error: 'Conversation not found' });
       }
@@ -251,8 +254,16 @@ test('redis readiness failure returns 503 so the Laravel queue can retry', { tim
   assert.equal((await publish({ message, recipientIds: [learner, provider] })).status, 503);
 });
 
-test('bounded sessions disconnect and require a fresh authorization', { timeout: 10000 }, async (t) => {
-  const { connected } = await setup(t, { expiresInSeconds: 1 });
+test('socket sessions reauthorize and stay connected while the bearer remains valid', { timeout: 10000 }, async (t) => {
+  const { connected, requests } = await setup(t, { expiresInSeconds: 1 });
+  const socket = await connected('learner-token');
+  await new Promise((resolve) => setTimeout(resolve, 1100));
+  assert.equal(socket.connected, true);
+  assert.equal(requests.filter((request) => request.path.endsWith('/chat/socket/authorize')).length, 2);
+});
+
+test('socket sessions expire only when periodic bearer reauthorization fails', { timeout: 10000 }, async (t) => {
+  const { connected } = await setup(t, { expiresInSeconds: 1, expireAfterAuthChecks: 1 });
   const socket = await connected('learner-token');
   const expired = once(socket, 'session.expired');
   const disconnected = once(socket, 'disconnect');
