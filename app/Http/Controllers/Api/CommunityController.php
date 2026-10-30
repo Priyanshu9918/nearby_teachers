@@ -37,12 +37,40 @@ class CommunityController extends Controller
         $timezone = $data['timezone'] ?? config('app.timezone', 'UTC');
         $sourceTimezone = config('app.timezone', 'UTC');
 
-        return CursorPage::respond($request, $posts, 'posts', transform: static function (object $post) use ($timezone, $sourceTimezone): object {
-            $post->created_at = Carbon::parse($post->created_at, $sourceTimezone)->timezone($timezone)->toIso8601String();
-            $post->created_at_timezone = $timezone;
+        return CursorPage::respond(
+            $request,
+            $posts,
+            'posts',
+            transformItems: static function (array $items) use ($timezone, $sourceTimezone): array {
+                $postIds = array_map(static fn (object $post): int => (int) $post->id, $items);
+                $likesByPost = [];
+                if ($postIds !== []) {
+                    $likes = DB::table('post_likes as l')
+                        ->join('users as u', 'u.id', '=', 'l.user_id')
+                        ->whereIn('l.post_id', $postIds)
+                        ->orderBy('l.created_at')->orderBy('l.user_id')
+                        ->get(['l.post_id', 'u.id as user_id', 'u.full_name as name', 'u.account_type as type']);
 
-            return $post;
-        });
+                    foreach ($likes as $like) {
+                        $likesByPost[$like->post_id][] = [
+                            'user_id' => $like->user_id,
+                            'name' => $like->name,
+                            'type' => $like->type,
+                        ];
+                    }
+                }
+
+                foreach ($items as $post) {
+                    $post->likes = $likesByPost[$post->id] ?? [];
+                    $post->liked_by_me = (bool) $post->liked_by_me;
+                    $post->likedByMe = $post->liked_by_me;
+                    $post->created_at = Carbon::parse($post->created_at, $sourceTimezone)->timezone($timezone)->toIso8601String();
+                    $post->created_at_timezone = $timezone;
+                }
+
+                return $items;
+            },
+        );
     }
 
     public function createPost(Request $request): JsonResponse
