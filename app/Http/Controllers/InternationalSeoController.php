@@ -124,7 +124,8 @@ class InternationalSeoController extends Controller
         }
         $providers = $this->directory->matching($page)->select('providers.provider_type', 'providers.user_id', 'providers.public_page_slug',
             'providers.city', 'providers.rate', 'providers.currency', 'providers.rating_avg', 'providers.rating_count',
-            'providers.lesson_modes', 'providers.is_bsl_official', 'providers.avatar_url', 'providers.referral_points', 'providers.full_name')
+            'providers.lesson_modes', 'providers.trial_days', 'providers.subject_names', 'providers.is_bsl_official',
+            'providers.avatar_url', 'providers.referral_points', 'providers.full_name')
             ->orderByDesc('providers.is_bsl_official')->orderByDesc('providers.referral_points')
             ->orderByDesc('providers.rating_count')->orderByDesc('providers.rating_avg')->orderBy('providers.provider_type')->orderBy('providers.user_id')
             ->paginate(20)->withQueryString();

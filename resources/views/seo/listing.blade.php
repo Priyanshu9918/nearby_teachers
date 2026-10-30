@@ -13,15 +13,20 @@
 <main class="directory-shell">
 <nav class="teacher-crumbs" aria-label="Breadcrumb"><a href="{{ \App\Services\SeoDirectory::url('/directory') }}">{{ $labels['directory'] }}</a><span aria-hidden="true">/</span><span>{{ strtoupper($page->country) }}</span><span aria-hidden="true">/</span><span aria-current="page">{{ $page->kind === 'online' ? $labels['online'] : $page->city }}</span></nav>
 <header class="teacher-hero"><div><p class="teacher-kicker">{{ $labels['directory'] }}</p><h1>{{ $title }}</h1><p class="teacher-note">{{ $description }}</p><p>{{ \App\Services\SeoDirectory::text($labels, 'count', ['count' => $providers->total()]) }}</p></div></header>
-<div class="seo-list">@foreach ($providers as $item)
+<section class="directory-results seo-list" aria-label="{{ $title }}">@foreach ($providers as $item)
 @php($profilePath = '/'.$item->provider_type.'/'.$item->public_page_slug)
-<article class="teacher-panel"><div class="seo-card-head"><div class="avatar" aria-hidden="true">@if ($item->avatar_url)<img src="{{ $item->avatar_url }}" alt="" loading="lazy" width="64" height="64">@else{{ mb_substr($item->full_name, 0, 1) }}@endif</div><div><h2><a class="text-link" href="{{ \App\Services\SeoDirectory::url($profilePath) }}">{{ $item->full_name }}</a></h2><span class="teacher-note">{{ $item->provider_type === 'institute' ? 'Institute' : 'Teacher' }}</span></div></div>
-<p class="teacher-note">{{ $item->city }}</p>
-@if ($item->rate !== null)<p>{{ number_format((float) $item->rate, 2) }} {{ $item->currency }} · {{ $labels['rate'] }}</p>@endif
-@if ($item->rating_count > 0)<p>★ {{ $item->rating_avg }} ({{ $item->rating_count }})</p>@endif
-<div class="tags">@foreach (json_decode($item->lesson_modes ?: '[]', true) as $mode)@if(isset($labels[$mode]))<span class="tag">{{ $labels[$mode] }}</span>@endif @endforeach</div>
-<a class="text-link" href="{{ \App\Services\SeoDirectory::url($profilePath) }}">{{ $labels['profile'] }} →</a></article>
-@endforeach</div>
+<article class="directory-card">
+    <div class="directory-card-heading">
+        <div class="directory-avatar" aria-hidden="true">@if ($item->avatar_url)<img src="{{ $item->avatar_url }}" alt="" loading="lazy" width="48" height="48">@else{{ mb_substr($item->full_name, 0, 1) }}@endif</div>
+        <div><h2><a href="{{ \App\Services\SeoDirectory::url($profilePath) }}">{{ $item->full_name }}</a></h2><span class="directory-kind">{{ $item->provider_type === 'institute' ? 'Institute' : 'Teacher' }}</span></div>
+    </div>
+    <p class="directory-place">@if ($item->rating_count > 0)★ {{ number_format((float) $item->rating_avg, 1) }} ({{ $item->rating_count }}) <span>·</span> @else{{ $labels['no_reviews'] }} <span>·</span> @endif{{ $item->city }}</p>
+    @if ($item->subject_names)<p class="directory-subjects">{{ $item->subject_names }}</p>@endif
+    <div class="directory-tags">@foreach (json_decode($item->lesson_modes ?: '[]', true) as $mode)@if(isset($labels[$mode]))<span>{{ $labels[$mode] }}</span>@endif @endforeach @if($item->trial_days > 0)<span>{{ $labels['trial'] }}</span>@endif</div>
+    @if ($item->rate !== null)<p class="directory-rate">{{ number_format((float) $item->rate, 0) }} {{ $item->currency }}/hour · {{ $labels['rate'] }}</p>@endif
+    <div class="directory-actions"><a class="directory-contact" href="{{ route('download', ['type' => $item->provider_type, 'slug' => $item->public_page_slug]) }}">Get the app to contact</a><a class="directory-profile" href="{{ \App\Services\SeoDirectory::url($profilePath) }}">{{ $labels['profile'] }}</a></div>
+</article>
+@endforeach</section>
 <nav class="seo-pages" aria-label="Pagination">@if ($providers->previousPageUrl())<a class="text-link" href="{{ $providers->previousPageUrl() }}" rel="prev">{{ $labels['previous'] }}</a>@endif @if ($providers->nextPageUrl())<a class="text-link" href="{{ $providers->nextPageUrl() }}" rel="next">{{ $labels['next'] }}</a>@endif</nav>
 </main></div>
 @endsection

@@ -189,6 +189,7 @@ class TeacherPublicPagesTest extends TestCase
     {
         $this->teacher();
         $this->get('/in/kanpur/maths-tuition')->assertOk()->assertSee('Maths teachers and institutes in Kanpur')
+            ->assertSee('Get the app to contact')->assertSee('directory-profile')
             ->assertSee('<link rel="canonical" href="http://localhost/in/kanpur/maths-tuition">', false)
             ->assertDontSee('hreflang=', false);
         $this->get('/in/hi/kanpur/maths-tuition')->assertStatus(301)
