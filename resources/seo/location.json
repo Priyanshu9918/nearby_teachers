@@ -1,79 +1,79 @@
 {
   "en": {
-    "country_title": "Teachers across :country",
-    "district_title": "Teachers in :district, :country",
-    "village_title": "Teachers in :village, :district",
-    "subject_village_title": ":subject teachers in :village, :district",
-    "browse": "Browse teacher profiles, subjects, prices and lesson modes."
+    "country_title": "Teachers and institutes across :country",
+    "district_title": "Teachers and institutes in :district, :country",
+    "village_title": "Teachers and institutes in :village, :district",
+    "subject_village_title": ":subject teachers and institutes in :village, :district",
+    "browse": "Browse teacher and institute profiles, subjects, prices and lesson modes."
   },
   "hi": {
-    "country_title": ":country में शिक्षक",
-    "district_title": ":district, :country में शिक्षक",
-    "village_title": ":district के :village में शिक्षक",
-    "subject_village_title": ":district के :village में :subject शिक्षक",
-    "browse": "शिक्षक प्रोफ़ाइल, विषय, फीस और पढ़ाने के तरीके देखें।"
+    "country_title": ":country में शिक्षक और संस्थान",
+    "district_title": ":district, :country में शिक्षक और संस्थान",
+    "village_title": ":district के :village में शिक्षक और संस्थान",
+    "subject_village_title": ":district के :village में :subject के शिक्षक और संस्थान",
+    "browse": "शिक्षक और संस्थानों की प्रोफ़ाइल, विषय, फीस और पढ़ाने के तरीके देखें।"
   },
   "bn": {
-    "country_title": ":country জুড়ে শিক্ষক",
-    "district_title": ":country-এর :district-এ শিক্ষক",
-    "village_title": ":district-এর :village-এ শিক্ষক",
-    "subject_village_title": ":district-এর :village-এ :subject শিক্ষক",
-    "browse": "শিক্ষক প্রোফাইল, বিষয়, ফি এবং পড়ানোর পদ্ধতি দেখুন।"
+    "country_title": ":country জুড়ে শিক্ষক ও প্রতিষ্ঠান",
+    "district_title": ":country-এর :district-এ শিক্ষক ও প্রতিষ্ঠান",
+    "village_title": ":district-এর :village-এ শিক্ষক ও প্রতিষ্ঠান",
+    "subject_village_title": ":district-এর :village-এ :subject শিক্ষক ও প্রতিষ্ঠান",
+    "browse": "শিক্ষক ও প্রতিষ্ঠানের প্রোফাইল, বিষয়, ফি এবং পড়ানোর পদ্ধতি দেখুন।"
   },
   "ur": {
-    "country_title": ":country بھر میں اساتذہ",
-    "district_title": ":country کے :district میں اساتذہ",
-    "village_title": ":district کے :village میں اساتذہ",
-    "subject_village_title": ":district کے :village میں :subject کے اساتذہ",
-    "browse": "اساتذہ کے پروفائل، مضامین، فیس اور تدریسی طریقے دیکھیں۔"
+    "country_title": ":country بھر میں اساتذہ اور ادارے",
+    "district_title": ":country کے :district میں اساتذہ اور ادارے",
+    "village_title": ":district کے :village میں اساتذہ اور ادارے",
+    "subject_village_title": ":district کے :village میں :subject کے اساتذہ اور ادارے",
+    "browse": "اساتذہ اور اداروں کے پروفائل، مضامین، فیس اور تدریسی طریقے دیکھیں۔"
   },
   "es": {
-    "country_title": "Profesores en :country",
-    "district_title": "Profesores en :district, :country",
-    "village_title": "Profesores en :village, :district",
-    "subject_village_title": "Profesores de :subject en :village, :district",
-    "browse": "Consulta perfiles de profesores, materias, precios y modalidades."
+    "country_title": "Profesores e institutos en :country",
+    "district_title": "Profesores e institutos en :district, :country",
+    "village_title": "Profesores e institutos en :village, :district",
+    "subject_village_title": "Profesores e institutos de :subject en :village, :district",
+    "browse": "Consulta perfiles de profesores e institutos, materias, precios y modalidades."
   },
   "fr": {
-    "country_title": "Professeurs dans :country",
-    "district_title": "Professeurs à :district, :country",
-    "village_title": "Professeurs à :village, :district",
-    "subject_village_title": "Professeurs de :subject à :village, :district",
-    "browse": "Consultez les profils, matières, tarifs et modes de cours."
+    "country_title": "Professeurs et instituts dans :country",
+    "district_title": "Professeurs et instituts à :district, :country",
+    "village_title": "Professeurs et instituts à :village, :district",
+    "subject_village_title": "Professeurs et instituts de :subject à :village, :district",
+    "browse": "Consultez les profils des professeurs et instituts, matières, tarifs et modes de cours."
   },
   "ar": {
-    "country_title": "مدرسون في :country",
-    "district_title": "مدرسون في :district، :country",
-    "village_title": "مدرسون في :village، :district",
-    "subject_village_title": "مدرسو :subject في :village، :district",
-    "browse": "تصفح ملفات المدرسين والمواد والأسعار وطرق التدريس."
+    "country_title": "مدرسون ومعاهد في :country",
+    "district_title": "مدرسون ومعاهد في :district، :country",
+    "village_title": "مدرسون ومعاهد في :village، :district",
+    "subject_village_title": "مدرسو ومعاهد :subject في :village، :district",
+    "browse": "تصفح ملفات المدرسين والمعاهد والمواد والأسعار وطرق التدريس."
   },
   "zh": {
-    "country_title": ":country的教师",
-    "district_title": ":country :district的教师",
-    "village_title": ":district :village的教师",
-    "subject_village_title": ":district :village的:subject教师",
-    "browse": "浏览教师资料、科目、价格和授课方式。"
+    "country_title": ":country的教师和机构",
+    "district_title": ":country :district的教师和机构",
+    "village_title": ":district :village的教师和机构",
+    "subject_village_title": ":district :village的:subject教师和机构",
+    "browse": "浏览教师和机构资料、科目、价格和授课方式。"
   },
   "ja": {
-    "country_title": ":countryの講師",
-    "district_title": ":country :districtの講師",
-    "village_title": ":district :villageの講師",
-    "subject_village_title": ":district :villageの:subject講師",
-    "browse": "講師プロフィール、科目、料金、授業形式をご覧ください。"
+    "country_title": ":countryの講師と教育機関",
+    "district_title": ":country :districtの講師と教育機関",
+    "village_title": ":district :villageの講師と教育機関",
+    "subject_village_title": ":district :villageの:subject講師と教育機関",
+    "browse": "講師と教育機関のプロフィール、科目、料金、授業形式をご覧ください。"
   },
   "pt": {
-    "country_title": "Professores em :country",
-    "district_title": "Professores em :district, :country",
-    "village_title": "Professores em :village, :district",
-    "subject_village_title": "Professores de :subject em :village, :district",
-    "browse": "Veja perfis de professores, matérias, preços e formatos de aula."
+    "country_title": "Professores e institutos em :country",
+    "district_title": "Professores e institutos em :district, :country",
+    "village_title": "Professores e institutos em :village, :district",
+    "subject_village_title": "Professores e institutos de :subject em :village, :district",
+    "browse": "Veja perfis de professores e institutos, matérias, preços e formatos de aula."
   },
   "ru": {
-    "country_title": "Преподаватели в стране :country",
-    "district_title": "Преподаватели в районе :district, :country",
-    "village_title": "Преподаватели в :village, :district",
-    "subject_village_title": "Преподаватели по предмету «:subject» в :village, :district",
-    "browse": "Смотрите анкеты преподавателей, предметы, цены и форматы занятий."
+    "country_title": "Преподаватели и учебные заведения в стране :country",
+    "district_title": "Преподаватели и учебные заведения в районе :district, :country",
+    "village_title": "Преподаватели и учебные заведения в :village, :district",
+    "subject_village_title": "Преподаватели и учебные заведения по предмету «:subject» в :village, :district",
+    "browse": "Смотрите анкеты преподавателей и учебных заведений, предметы, цены и форматы занятий."
   }
 }

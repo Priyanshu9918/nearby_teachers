@@ -25,6 +25,7 @@ Route::get('/', [WebsiteController::class, 'home'])->name('website.home');
 Route::get('/site', [WebsiteController::class, 'directory'])->name('website.directory');
 Route::get('/site/institute/{slug}', [WebsiteController::class, 'institute'])->name('website.institute');
 Route::get('/teacher/{slug}', [InternationalSeoController::class, 'teacher'])->name('website.teacher');
+Route::get('/institute/{slug}', [InternationalSeoController::class, 'institute'])->name('website.institute-seo');
 Route::get('/teachers/{slug}', [InternationalSeoController::class, 'teacher'])->name('website.teacher-old-overview');
 Route::get('/teachers/{slug}/profile', [InternationalSeoController::class, 'teacher'])->name('website.teacher-profile');
 Route::get('/site/teacher/{slug}', [InternationalSeoController::class, 'teacher'])->name('website.teacher-legacy');
@@ -38,7 +39,7 @@ Route::post('/location-lookup/reverse', [LocationLookupController::class, 'rever
 Route::get('/download', [WebsiteController::class, 'download'])->name('download');
 Route::get('/sitemap.xml', [InternationalSeoController::class, 'sitemap'])->name('website.sitemap');
 Route::get('/directory', [InternationalSeoController::class, 'hub'])->name('seo.hub');
-Route::get('/sitemaps/{kind}-{number}.xml', [InternationalSeoController::class, 'sitemapPart'])->whereIn('kind', ['teachers', 'directory', 'locations'])->where('number', '[1-9][0-9]{0,6}')->name('seo.sitemap-part');
+Route::get('/sitemaps/{kind}-{number}.xml', [InternationalSeoController::class, 'sitemapPart'])->whereIn('kind', ['teachers', 'institutes', 'directory', 'locations'])->where('number', '[1-9][0-9]{0,6}')->name('seo.sitemap-part');
 Route::get('/robots.txt', [InternationalSeoController::class, 'robots'])->name('website.robots');
 
 // Hierarchical location pages must be checked before the legacy country/city/subject routes.

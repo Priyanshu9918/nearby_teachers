@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Reporting\BusinessActivityRecorder;
+use App\Services\InstitutePublicPages;
 use App\Services\TeacherPublicPages;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -63,6 +64,24 @@ class TeacherPublicPagesTest extends TestCase
         return DB::table('teacher_profiles')->where('user_id', $id)->first();
     }
 
+    private function institute(string $name = 'Bright Academy', string $city = 'Kanpur', ?string $country = 'India', array $subjects = ['Maths'], array $modes = ['online'], bool $complete = true): object
+    {
+        $id = NumericTestIds::next();
+        DB::table('users')->insert(['id' => $id, 'account_type' => 'institute', 'full_name' => $name,
+            'phone_verified_at' => now(), 'profile_completed_at' => now()]);
+        DB::table('institute_profiles')->insert(['id' => NumericTestIds::next(), 'user_id' => $id,
+            'is_profile_complete' => $complete, 'slug' => 'legacy-'.$id, 'listing_name' => $name,
+            'description' => str_repeat('A welcoming institute for learners. ', 4), 'city' => $city,
+            'country' => $country, 'district' => 'Kanpur Nagar', 'locality' => 'Bithoor',
+            'lesson_modes' => json_encode($modes), 'starting_rate' => 700, 'currency' => 'INR']);
+        foreach ($subjects as $subject) {
+            DB::table('profile_subjects')->insert(['profile_type' => 'institute', 'profile_id' => $id, 'subject_id' => $this->subjects[$subject]]);
+        }
+        app(InstitutePublicPages::class)->publish($id, $id);
+
+        return DB::table('institute_profiles')->where('user_id', $id)->first();
+    }
+
     public function test_seo_pages_are_created_only_after_profile_completion(): void
     {
         $teacher = $this->teacher(complete: false);
@@ -94,7 +113,7 @@ class TeacherPublicPagesTest extends TestCase
         $this->assertNotContains('/in/en/kanpur-nagar/bithoor', $paths);
 
         $page = $this->get('/in/kanpur-nagar/bithoor')->assertOk()
-            ->assertSee('<h1>Teachers in Bithoor, Kanpur Nagar</h1>', false)
+            ->assertSee('<h1>Teachers and institutes in Bithoor, Kanpur Nagar</h1>', false)
             ->assertSee('directory-search')->assertSee('Referral points:')
             ->assertSee('Maths')->assertSee('Get the app to contact')->assertSee('View profile');
         $this->assertStringNotContainsString('/in/en/', $page->getContent());
@@ -104,7 +123,38 @@ class TeacherPublicPagesTest extends TestCase
             ->assertSee('<html lang="hi"', false)
             ->assertSee('<link rel="canonical" href="http://localhost/in/kanpur-nagar/bithoor">', false);
         $this->get('/in/kanpur-nagar/bithoor?mode=home_tuition')->assertOk()
-            ->assertSee('No teachers match these filters.');
+            ->assertSee('No teachers or institutes match these filters.');
+    }
+
+    public function test_institutes_publish_after_completion_and_join_teacher_subject_and_location_pages(): void
+    {
+        $institute = $this->institute(subjects: ['Maths', 'English', 'Physics', 'Chemistry', 'Hindi'], complete: false);
+        $this->assertNull($institute->public_page_slug);
+        $this->get('/institute/'.$institute->slug)->assertNotFound();
+        $this->get('/in/kanpur/maths-tuition')->assertNotFound();
+
+        DB::table('institute_profiles')->where('user_id', $institute->user_id)->update(['is_profile_complete' => true]);
+        app(InstitutePublicPages::class)->publish((int) $institute->user_id, (int) $institute->user_id);
+        $published = DB::table('institute_profiles')->where('user_id', $institute->user_id)->first();
+        $this->assertSame('bright-academy-kanpur', $published->public_page_slug);
+        $this->get('/institute/'.$published->public_page_slug)->assertOk()->assertSee('Bright Academy')
+            ->assertSee('Maths')->assertSee('Chemistry');
+        $this->get('/in/kanpur/maths-tuition')->assertOk()->assertSee('Bright Academy')->assertSee('Institute')
+            ->assertSee('directory-topbar')->assertSee('seo-language');
+        $this->get('/in/kanpur-nagar/bithoor')->assertOk()->assertSee('Bright Academy');
+        $this->get('/institute/'.$published->public_page_slug.'?lang=hi')->assertOk()
+            ->assertSee('<html lang="hi"', false)->assertSee('भाषा');
+
+        foreach (['Maths', 'English', 'Physics', 'Chemistry', 'Hindi'] as $subject) {
+            $route = DB::table('seo_subject_routes')->where('country', 'in')->where('language', 'en')
+                ->where('subject_id', $this->subjects[$subject])->first();
+            $this->assertNotNull($route);
+            $this->assertTrue(app(\App\Services\SeoDirectory::class)->pages()
+                ->where('r.subject_id', $route->subject_id)->where('r.city_slug', 'kanpur')->exists());
+        }
+        $this->assertDatabaseHas('business_activity', [
+            'event' => 'institute.seo_state_changed', 'entity_id' => $institute->user_id,
+        ]);
     }
 
     public function test_one_teacher_page_all_subjects_privacy_and_old_routes_redirect(): void
@@ -118,6 +168,7 @@ class TeacherPublicPagesTest extends TestCase
             ->assertSee('Maths')->assertSee('Physics')->assertSee('View LinkedIn')->assertSee('Download the app to message')
             ->assertSee('&lt;b&gt;Patient teacher&lt;/b&gt;', false)->assertDontSee('PRIVATE HOUSE 99')
             ->assertDontSee('PRIVATE-PIN')->assertDontSee('DO NOT EXPOSE')->assertDontSee('message or book');
+        $this->get($urls['teacherSeoUrl'].'?lang=hi')->assertOk()->assertSee('<html lang="hi"', false)->assertSee('seo-language');
         foreach (['/site/teacher/'.$profile->slug, '/teachers/'.$profile->slug,
             '/teachers/old-subject-location-'.$profile->user_id.'/profile', '/site/teacher-profile/old-'.$profile->user_id] as $old) {
             $this->get($old)->assertStatus(301)->assertRedirect($urls['teacherProfileUrl']);
@@ -137,7 +188,7 @@ class TeacherPublicPagesTest extends TestCase
     public function test_listing_languages_share_the_short_canonical_url(): void
     {
         $this->teacher();
-        $this->get('/in/kanpur/maths-tuition')->assertOk()->assertSee('Maths teachers in Kanpur')
+        $this->get('/in/kanpur/maths-tuition')->assertOk()->assertSee('Maths teachers and institutes in Kanpur')
             ->assertSee('<link rel="canonical" href="http://localhost/in/kanpur/maths-tuition">', false)
             ->assertDontSee('hreflang=', false);
         $this->get('/in/hi/kanpur/maths-tuition')->assertStatus(301)
@@ -250,7 +301,7 @@ class TeacherPublicPagesTest extends TestCase
         $this->get('/admin/reports/seo-pages?q=mathematics-tuition')->assertOk()->assertSee('Open page')->assertSee('Published');
         $csv = $this->get('/admin/reports/seo-pages?q=mathematics-tuition&export=1')->assertOk()->streamedContent();
         $this->assertStringContainsString('/in/kanpur/mathematics-tuition', $csv);
-        $this->assertStringContainsString('eligible_teachers', $csv);
+        $this->assertStringContainsString('eligible_providers', $csv);
         $this->assertGreaterThanOrEqual(3, DB::table('admin_report_access_log')->count());
         $this->post('/admin/seo/subjects', [...$body, 'enabled' => false])->assertRedirect();
         $this->get('/in/kanpur/mathematics-tuition')->assertNotFound();

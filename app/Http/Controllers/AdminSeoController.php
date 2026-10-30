@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Reporting\BusinessActivityRecorder;
 use App\Reporting\ReportAccessLog;
 use App\Services\SeoDirectory;
+use App\Services\InstitutePublicPages;
 use App\Services\TeacherPublicPages;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -68,6 +69,9 @@ class AdminSeoController extends Controller
                 foreach (DB::table('teacher_profiles')->where('is_profile_complete', true)->where('seo_country', $data['country'])->orderBy('user_id')->lazyById(100, 'user_id') as $profile) {
                     app(TeacherPublicPages::class)->publish((int) $profile->user_id);
                 }
+                foreach (DB::table('institute_profiles')->where('is_profile_complete', true)->where('seo_country', $data['country'])->orderBy('user_id')->lazyById(100, 'user_id') as $profile) {
+                    app(InstitutePublicPages::class)->publish((int) $profile->user_id);
+                }
 
                 return (int) $id;
             });
@@ -87,6 +91,6 @@ class AdminSeoController extends Controller
         $count = app(SeoDirectory::class)->sync();
         app(ReportAccessLog::class)->record($request, 'seo-pages', 'sync');
 
-        return redirect()->route('admin.reports.index', ['report' => 'seo-pages'])->with('status', 'Processed '.$count.' teacher profiles.');
+        return redirect()->route('admin.reports.index', ['report' => 'seo-pages'])->with('status', 'Processed '.$count.' teacher and institute profiles.');
     }
 }

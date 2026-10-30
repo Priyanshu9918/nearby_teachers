@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Reporting\BusinessActivityRecorder;
 use App\Services\CountryCurrency;
+use App\Services\InstitutePublicPages;
 use App\Services\OnboardingState;
 use App\Services\ProfileDraft;
 use App\Services\ProfileEditor;
@@ -151,9 +152,8 @@ class ProfilesController extends Controller
             $this->ensureSlug($profileTable, $user->id, $displayName);
             app(TeacherLocation::class)->store((int) $user->id, $location, $type);
             app(TeacherAddress::class)->store((int) $user->id, $data, $type);
-            if ($type === 'teacher') {
-                app(TeacherPublicPages::class)->publish((int) $user->id, (int) $user->id);
-            }
+            $publisher = $type === 'teacher' ? TeacherPublicPages::class : InstitutePublicPages::class;
+            app($publisher)->publish((int) $user->id, (int) $user->id);
         });
 
         $teacherResponse = [];
@@ -165,7 +165,8 @@ class ProfilesController extends Controller
         }
 
         if (! $isTeacher) {
-            $profile = DB::table($profileTable)->where('user_id', $user->id)->first(['slug', 'is_profile_complete', 'location_details']);
+            $profile = DB::table($profileTable)->where('user_id', $user->id)
+                ->first(['slug', 'is_profile_complete', 'location_details', 'public_page_slug', 'seo_country']);
             $teacherResponse = [...ProfileEditor::urls($profile, $type),
                 'locationDetails' => $profile->location_details === null ? null : json_decode($profile->location_details, true, flags: JSON_THROW_ON_ERROR)];
         }
@@ -259,9 +260,8 @@ class ProfilesController extends Controller
                 DB::table($table)->where('user_id', $user->id)->update($updates);
                 app(BusinessActivityRecorder::class)->record($type.'.profile_step_updated', $user->id, $user->id,
                     after: ['step' => 1, 'changed_fields' => $changed]);
-                if ($type === 'teacher') {
-                    app(TeacherPublicPages::class)->publish((int) $user->id, (int) $user->id);
-                }
+                $publisher = $type === 'teacher' ? TeacherPublicPages::class : InstitutePublicPages::class;
+                app($publisher)->publish((int) $user->id, (int) $user->id);
 
                 return app(ProfileDraft::class)->saveStep((int) $user->id, 1, $type);
             });
@@ -323,9 +323,10 @@ class ProfilesController extends Controller
                 app(TeacherPublicPages::class)->publish((int) $user->id, (int) $user->id);
             } else {
                 $this->ensureSlug($table, (int) $user->id, $profile->listing_name ?: $user->full_name);
+                app(InstitutePublicPages::class)->publish((int) $user->id, (int) $user->id);
             }
             $profile = DB::table($table)->where('user_id', $user->id)->first();
-            if ($type === 'teacher' && $profile->public_page_slug === null) {
+            if ($profile->public_page_slug === null) {
                 // Roll back terms/completion when publication could not succeed.
                 throw ValidationException::withMessages(['profile' => 'Profile is not eligible for a public page yet.']);
             }
@@ -347,7 +348,7 @@ class ProfilesController extends Controller
             'locality_type', 'postal_code', 'location_details'];
         $columns = [...$columns, ...($type === 'teacher'
             ? ['primary_subject_id', 'bio', 'rate_per_hour', 'linkedin_url', 'public_page_slug', 'public_profile_slug', 'seo_slug', 'seo_country', 'seo_city_slug']
-            : ['contact_person', 'description', 'starting_rate', 'instructors_text', 'website_url', 'institute_type', 'is_bsl_official', 'bsl_official_since'])];
+            : ['contact_person', 'description', 'starting_rate', 'instructors_text', 'website_url', 'institute_type', 'is_bsl_official', 'bsl_official_since', 'public_page_slug', 'seo_country', 'seo_city_slug'])];
         $profile = DB::table(ProfileEditor::table($type))->where('user_id', $user->id)->first($columns);
         abort_if($profile === null, 404, 'Profile not found.');
         $profile->lesson_modes = json_decode($profile->lesson_modes ?: '[]', true, flags: JSON_THROW_ON_ERROR);

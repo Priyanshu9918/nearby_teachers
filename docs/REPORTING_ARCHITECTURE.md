@@ -1,6 +1,6 @@
 # Reporting architecture
 
-International SEO now uses `teacher.seo_state_changed`, `seo.route_configured`,
+International SEO now uses `teacher.seo_state_changed`, `institute.seo_state_changed`, `seo.route_configured`,
 `seo.page_registered` and `seo.page_updated` version 1 events in their source
 transactions. Current pages, wording and URL ownership are explicit reports;
 legacy teacher-page events stay append-only. See
@@ -109,6 +109,7 @@ Current event coverage starts when migration `000029` is deployed:
 | `teacher.profile_draft_saved` | Version 1: saved step, completed step numbers and next step only; emitted with section data and progress in the same transaction. No field values or credentials. |
 | `teacher.profile_step_updated` | Teacher profile step number and changed field names; values such as name, bio, and location are not copied into the event |
 | `teacher.profile_published` | Published status, terms acceptance and profile-completion flag, in the same transaction as page creation |
+| `institute.seo_state_changed` | Version 1 institute SEO publication state, public slug, normalized country/city slug, selected subject IDs and online flag; no contact/address snapshots |
 | `teacher.avatar_submitted` | Pending moderation status only; image URL/content is not copied into history |
 | `learner.profile_updated` | Changed profile field names only; no name, email, DOB, phone or `phone_pin` values are copied into history |
 | `learner.avatar_submitted` | Pending moderation status only; image URL/content is not copied into history |

@@ -1,6 +1,6 @@
-# International teacher SEO directory
+# International teacher and institute SEO directory
 
-This replaces the former two-page teacher SEO design. There is now **one canonical page per teacher**, plus country/city/subject and country/online/subject listing pages. Existing registration, institute address/GPS and messaging functionality remain in place.
+This extends the teacher SEO directory to institutes. Each eligible teacher and institute gets one canonical profile page, and the shared country/location/subject listings show both account types. A provider appears on each subject page selected on that profile. Existing teacher URLs remain unchanged.
 
 ## Public address contract
 
@@ -21,6 +21,7 @@ Configure `SEO_PUBLIC_URL` with this origin for the current server. Public teach
 | Village/area directory | `/{country}/{district}/{village}` | `/in/kanpur-nagar/bithoor` |
 | Subject in village/area | `/{country}/{district}/{village}/{subject-slug}` | `/in/kanpur-nagar/bithoor/maths-tuition` |
 | Teacher, country default language | `/teacher/{name-city}` | `/teacher/asha-sharma-kanpur` |
+| Institute, country default language | `/institute/{name-city}` | `/institute/bright-academy-kanpur` |
 | Browse real published listings | `/directory` | `/directory` |
 
 Client examples are supported by the starter Maths/IELTS mappings:
@@ -87,11 +88,11 @@ City slugs normalize case/spacing/punctuation and use curated native-city aliase
 
 **Online country rule:** `/in/online/...` lists India-based teachers offering online lessons. It does not imply all worldwide teachers who might accept Indian learners. A future served-countries feature would require separate data.
 
-City listings match country plus normalized city slug and include eligible teachers with that subject, including online teachers based in the city. The client URL does not distinguish two cities with the same name in different states; they share the country/city listing. Finer manual addresses and Google `location_details` are never used to infer SEO geography.
+City listings match country plus normalized city slug and include eligible teachers and institutes with that subject, including online providers based in the city. Location pages use the same combined eligible-provider rules. The client URL does not distinguish two cities with the same name in different states; they share the country/city listing. Finer manual addresses and Google `location_details` are never used to infer SEO geography.
 
-Eligibility requires current teacher account type, completed registration, verified phone, non-suspended account, nonblank name/city, a supported explicit country and at least one selected subject. Eligibility is checked again on reads; a suspended/deleted profile cannot remain visible because metadata was previously registered.
+Eligibility requires the matching teacher/institute account type, a completed profile and registration, verified phone, non-suspended account, nonblank name/city, a supported explicit country and at least one selected subject. Institutes generate their SEO profile and shared directory entries when profile publication succeeds. Eligibility is checked again on reads; a suspended/deleted profile cannot remain visible because metadata was previously registered.
 
-`POST /auth/register`, `POST /auth/onboarding/complete`, `PATCH /auth/onboarding`, `PUT /profiles/me` and existing admin teacher name/location edits synchronize the metadata. Both legacy response keys now point to the same canonical page:
+`POST /auth/register`, `POST /auth/onboarding/complete`, `PATCH /auth/onboarding`, `PUT /profiles/me` and admin subject mapping/sync actions synchronize the metadata for both account types. Existing teacher response keys remain unchanged; institute profiles add `instituteSeoUrl` alongside the existing site profile URL:
 
 ```json
 {
@@ -100,7 +101,7 @@ Eligibility requires current teacher account type, completed registration, verif
 }
 ```
 
-For profiles without enough country/publication data, these URLs are null. There are no invented default countries. Selected subjects remain `primarySubjects` for teacher registration/edits. Institute registration and address/GPS contracts are unchanged.
+For profiles without enough country/publication data, SEO URLs are null. There are no invented default countries. Selected subjects remain `primarySubjects` for teacher registration/edits and `subjectIds` for institutes. Institute registration and address/GPS contracts are unchanged.
 
 ## Subject wording and translation approval
 
@@ -114,23 +115,23 @@ Admin edits can change display names/slugs or disable mappings. Slug changes upd
 
 ## Admin screens
 
-- **Sidebar → SEO pages** (`/admin/reports/seo-pages`): country, language, city/online kind, path, eligible-teacher count, enabled flag and public-page link. Status is Published, Disabled or No matching teachers.
-- **Sidebar → SEO subject wording** (`/admin/seo/subjects`): create/edit reviewed country/language subject names and slugs, enable/disable mappings and sync existing profiles.
+- **Sidebar → SEO pages** (`/admin/reports/seo-pages`): country, language, city/online kind, path, eligible-provider count, enabled flag and public-page link. Status is Published, Disabled or No matching providers.
+- **Sidebar → SEO subject wording** (`/admin/seo/subjects`): create/edit reviewed country/language subject names and slugs, enable/disable mappings and sync existing teacher and institute profiles.
 - **Reports → SEO subject wording** (`/admin/reports/seo-subject-routes`): searchable/exportable mappings with Edit wording links.
 - **Reports → SEO URL ownership and redirects** (`/admin/reports/seo-url-history`): reserved current/historical URL ownership.
-- **Reports → Teacher profiles**: current `public_page_slug`, normalized SEO country/city and publication eligibility, with Open teacher page. Missing country/ineligible profiles show a pending message. Retired long-slug columns are no longer the active report columns.
+- **Reports → Teacher profiles / Institute profiles**: current public page slug, normalized SEO country/city and publication eligibility, with links to public pages. Missing country/ineligible profiles show a pending message.
 
 All report definitions are registered in `config/reports.php`, with explicit output/search/timestamp/participant contracts. They use the shared query/filter services, bounded pages, streamed CSV and report access logger. Mapping reads/writes and sync actions require the admin session, with CSRF protection for mutations and audit logging. No HTTP parameter can provide SQL/table/column names.
 
 ## Canonical URLs, sitemap and content
 
-- Every teacher has a single canonical URL. Legacy overview/full-profile routes are redirects, not separate pages.
+- Every teacher and institute has a single canonical SEO URL (`/teacher/...` or `/institute/...`). Existing teacher URLs and the institute app/site profile route are preserved.
 - Each country/location/subject page has one short canonical path with no language segment. Language query variants point to the same canonical URL and are not separate sitemap entries.
 - `en-IN`, `hi-IN`, `bn-IN`, `ur-IN`, `en-GB`, `es-ES`, `ar-AE`, `ja-JP`, etc. use language-region codes. Different cities are not presented as translations of one another.
-- Listing pages are paginated at 20 teachers, with a clean canonical page URL and matching pagination. The selected language is a display preference, not another indexed path. Invalid/out-of-range pages return `404`.
-- Native page templates display real matching profiles, available fees, teaching modes and actual ratings. Profiles include current subjects, approved avatar, biography, safe LinkedIn, real reviews (10 per page) and messaging/download CTA. Exact address JSON, postcode, phone, email, credentials and guardian data are not added to public SEO templates.
+- Listing pages are paginated at 20 combined providers, with a clean canonical page URL and matching pagination. The selected language is a display preference, not another indexed path. Invalid/out-of-range pages return `404`.
+- Native page templates display matching teachers and institutes, available fees, lesson modes and actual ratings. Public profiles include current subjects, approved avatar, biography/description, safe external links, reviews and messaging/download CTA. Exact address JSON, postcode, phone, email, credentials and guardian data are not added to public SEO templates.
 - Titles, descriptions, Open Graph/Twitter tags and escaped JSON-LD use the actual profile/listing. There are no fabricated credentials/review stars or rich-result promises.
-- `/sitemap.xml` is a streamed sitemap index. `/sitemaps/teachers-{n}.xml` and `/sitemaps/directory-{n}.xml` stream at most 1,000 entries per part. Only currently eligible/available pages are included; listing XML also includes language alternatives.
+- `/sitemap.xml` is a streamed sitemap index. `/sitemaps/teachers-{n}.xml`, `/sitemaps/institutes-{n}.xml`, and directory/location sitemaps stream at most 1,000 entries per part. Only currently eligible/available pages are included.
 - `robots.txt` advertises the configured SEO-domain sitemap and disallows admin/developer paths. The subdomain must be verified in Search Console and its sitemap submitted through the site's normal operational process.
 
 See Google's [localized-page guidance](https://developers.google.com/search/docs/specialty/international/localized-versions) and [spam policies](https://developers.google.com/search/docs/essentials/spam-policies). URL wording alone does not guarantee indexing or ranking; pages need useful matching content.

@@ -9,9 +9,9 @@ use Illuminate\Support\Str;
 
 final class SeoDirectory
 {
-    public const COUNT_SQL = "(SELECT count(*) FROM teacher_profiles sp JOIN users su ON su.id = sp.user_id WHERE su.account_type = 'teacher' AND su.suspended_at IS NULL AND su.phone_verified_at IS NOT NULL AND su.profile_completed_at IS NOT NULL AND sp.is_profile_complete = 1 AND sp.public_page_slug IS NOT NULL AND sp.seo_country = r.country AND ((r.kind = 'city' AND sp.seo_city_slug = r.city_slug) OR (r.kind = 'online' AND JSON_CONTAINS(sp.lesson_modes, JSON_QUOTE('online')) = 1)) AND EXISTS (SELECT 1 FROM profile_subjects sx WHERE sx.profile_type = 'teacher' AND sx.profile_id = sp.user_id AND sx.subject_id = r.subject_id))";
+    public const COUNT_SQL = "((SELECT count(*) FROM teacher_profiles sp JOIN users su ON su.id = sp.user_id WHERE su.account_type = 'teacher' AND su.suspended_at IS NULL AND su.phone_verified_at IS NOT NULL AND su.profile_completed_at IS NOT NULL AND sp.is_profile_complete = 1 AND sp.public_page_slug IS NOT NULL AND sp.seo_country = r.country AND ((r.kind = 'city' AND sp.seo_city_slug = r.city_slug) OR (r.kind = 'online' AND JSON_CONTAINS(sp.lesson_modes, JSON_QUOTE('online')) = 1)) AND EXISTS (SELECT 1 FROM profile_subjects sx WHERE sx.profile_type = 'teacher' AND sx.profile_id = sp.user_id AND sx.subject_id = r.subject_id)) + (SELECT count(*) FROM institute_profiles ip JOIN users iu ON iu.id = ip.user_id WHERE iu.account_type = 'institute' AND iu.suspended_at IS NULL AND iu.phone_verified_at IS NOT NULL AND iu.profile_completed_at IS NOT NULL AND ip.is_profile_complete = 1 AND ip.public_page_slug IS NOT NULL AND ip.seo_country = r.country AND ((r.kind = 'city' AND ip.seo_city_slug = r.city_slug) OR (r.kind = 'online' AND JSON_CONTAINS(ip.lesson_modes, JSON_QUOTE('online')) = 1)) AND EXISTS (SELECT 1 FROM profile_subjects ix WHERE ix.profile_type = 'institute' AND ix.profile_id = ip.user_id AND ix.subject_id = r.subject_id)))";
 
-    public const LOCATION_COUNT_SQL = "(SELECT count(*) FROM teacher_profiles p JOIN users u ON u.id = p.user_id WHERE u.account_type = 'teacher' AND u.suspended_at IS NULL AND u.phone_verified_at IS NOT NULL AND u.profile_completed_at IS NOT NULL AND p.is_profile_complete = 1 AND p.public_page_slug IS NOT NULL AND p.seo_country = lp.country AND (lp.kind = 'country' OR p.district = lp.district) AND (lp.kind IN ('country', 'district') OR COALESCE(NULLIF(p.locality, ''), p.city) = lp.village) AND (lp.subject_id IS NULL OR EXISTS (SELECT 1 FROM profile_subjects ps WHERE ps.profile_type = 'teacher' AND ps.profile_id = p.user_id AND ps.subject_id = lp.subject_id)))";
+    public const LOCATION_COUNT_SQL = "((SELECT count(*) FROM teacher_profiles p JOIN users u ON u.id = p.user_id WHERE u.account_type = 'teacher' AND u.suspended_at IS NULL AND u.phone_verified_at IS NOT NULL AND u.profile_completed_at IS NOT NULL AND p.is_profile_complete = 1 AND p.public_page_slug IS NOT NULL AND p.seo_country = lp.country AND (lp.kind = 'country' OR p.district = lp.district) AND (lp.kind IN ('country', 'district') OR COALESCE(NULLIF(p.locality, ''), p.city) = lp.village) AND (lp.subject_id IS NULL OR EXISTS (SELECT 1 FROM profile_subjects ps WHERE ps.profile_type = 'teacher' AND ps.profile_id = p.user_id AND ps.subject_id = lp.subject_id))) + (SELECT count(*) FROM institute_profiles ip JOIN users iu ON iu.id = ip.user_id WHERE iu.account_type = 'institute' AND iu.suspended_at IS NULL AND iu.phone_verified_at IS NOT NULL AND iu.profile_completed_at IS NOT NULL AND ip.is_profile_complete = 1 AND ip.public_page_slug IS NOT NULL AND ip.seo_country = lp.country AND (lp.kind = 'country' OR ip.district = lp.district) AND (lp.kind IN ('country', 'district') OR COALESCE(NULLIF(ip.locality, ''), ip.city) = lp.village) AND (lp.subject_id IS NULL OR EXISTS (SELECT 1 FROM profile_subjects ips WHERE ips.profile_type = 'institute' AND ips.profile_id = ip.user_id AND ips.subject_id = lp.subject_id))))";
 
     public static function url(string $path): string
     {
@@ -81,18 +81,73 @@ final class SeoDirectory
                 ->where('ps.profile_type', 'teacher')->whereColumn('ps.profile_id', 'p.user_id'));
     }
 
+    public function institutes(): Builder
+    {
+        return DB::table('institute_profiles as p')->join('users as u', 'u.id', '=', 'p.user_id')
+            ->where('u.account_type', 'institute')->whereNull('u.suspended_at')
+            ->whereNotNull('u.phone_verified_at')->whereNotNull('u.profile_completed_at')
+            ->where('p.is_profile_complete', true)->whereNotNull('p.public_page_slug')
+            ->whereNotNull('p.seo_country')->whereNotNull('p.seo_city_slug')
+            ->whereExists(fn (Builder $query) => $query->selectRaw('1')->from('profile_subjects as ps')
+                ->where('ps.profile_type', 'institute')->whereColumn('ps.profile_id', 'p.user_id'));
+    }
+
     public function matching(object $page): Builder
     {
-        $query = $this->teachers()->where('p.seo_country', $page->country)
-            ->whereExists(fn (Builder $subjects) => $subjects->selectRaw('1')->from('profile_subjects as ps')
-                ->where('ps.profile_type', 'teacher')->whereColumn('ps.profile_id', 'p.user_id')->where('ps.subject_id', $page->subject_id));
+        $query = DB::query()->fromSub($this->publicProviderRows((int) $page->subject_id), 'providers')
+            ->where('providers.seo_country', $page->country);
         if ($page->kind === 'online') {
-            $query->whereJsonContains('p.lesson_modes', 'online');
+            $query->whereJsonContains('providers.lesson_modes', 'online');
         } else {
-            $query->where('p.seo_city_slug', $page->city_slug);
+            $query->where('providers.seo_city_slug', $page->city_slug);
         }
 
         return $query;
+    }
+
+    /** A stable, explicitly selected union for mixed teacher/institute search results. */
+    private function publicProviderRows(?int $subjectId = null): Builder
+    {
+        $teachers = DB::table('teacher_profiles as p')->join('users as u', 'u.id', '=', 'p.user_id')
+            ->where('u.account_type', 'teacher')->whereNull('u.suspended_at')->whereNotNull('u.phone_verified_at')
+            ->whereNotNull('u.profile_completed_at')->where('p.is_profile_complete', true)
+            ->whereNotNull('p.public_page_slug')->whereNotNull('p.seo_country')->whereNotNull('p.seo_city_slug')
+            ->whereExists(fn (Builder $subjects) => $subjects->selectRaw('1')->from('profile_subjects as ps')
+                ->where('ps.profile_type', 'teacher')->whereColumn('ps.profile_id', 'p.user_id'))
+            ->when($subjectId !== null, fn (Builder $query) => $query->whereExists(fn (Builder $subjects) => $subjects->selectRaw('1')
+                ->from('profile_subjects as ps')->where('ps.profile_type', 'teacher')
+                ->whereColumn('ps.profile_id', 'p.user_id')->where('ps.subject_id', $subjectId)))
+            ->selectRaw("'teacher' AS provider_type")
+            ->addSelect('p.user_id', 'p.public_page_slug', 'p.seo_country', 'p.seo_city_slug', 'p.city', 'p.district', 'p.locality')
+            ->selectRaw("COALESCE(NULLIF(p.listing_name, ''), u.full_name) AS full_name")
+            ->selectRaw('p.rate_per_hour AS rate')->addSelect('p.bio as description', 'p.currency', 'p.rating_avg', 'p.rating_count', 'p.lesson_modes', 'p.trial_days')
+            ->selectRaw('0 AS is_bsl_official')
+            ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
+            ->selectSub(DB::table('profile_subjects as ps')->join('subjects as s', 's.id', '=', 'ps.subject_id')
+                ->selectRaw("GROUP_CONCAT(s.name ORDER BY s.name SEPARATOR ', ')")
+                ->where('ps.profile_type', 'teacher')->whereColumn('ps.profile_id', 'p.user_id'), 'subject_names')
+            ->selectSub(DB::table('referrals')->selectRaw('count(*)')->whereColumn('referrer_id', 'p.user_id'), 'referral_points');
+
+        $institutes = DB::table('institute_profiles as p')->join('users as u', 'u.id', '=', 'p.user_id')
+            ->where('u.account_type', 'institute')->whereNull('u.suspended_at')->whereNotNull('u.phone_verified_at')
+            ->whereNotNull('u.profile_completed_at')->where('p.is_profile_complete', true)
+            ->whereNotNull('p.public_page_slug')->whereNotNull('p.seo_country')->whereNotNull('p.seo_city_slug')
+            ->whereExists(fn (Builder $subjects) => $subjects->selectRaw('1')->from('profile_subjects as ps')
+                ->where('ps.profile_type', 'institute')->whereColumn('ps.profile_id', 'p.user_id'))
+            ->when($subjectId !== null, fn (Builder $query) => $query->whereExists(fn (Builder $subjects) => $subjects->selectRaw('1')
+                ->from('profile_subjects as ps')->where('ps.profile_type', 'institute')
+                ->whereColumn('ps.profile_id', 'p.user_id')->where('ps.subject_id', $subjectId)))
+            ->selectRaw("'institute' AS provider_type")
+            ->addSelect('p.user_id', 'p.public_page_slug', 'p.seo_country', 'p.seo_city_slug', 'p.city', 'p.district', 'p.locality')
+            ->selectRaw("COALESCE(NULLIF(p.listing_name, ''), u.full_name) AS full_name")
+            ->selectRaw('p.starting_rate AS rate')->addSelect('p.description', 'p.currency', 'p.rating_avg', 'p.rating_count', 'p.lesson_modes', 'p.trial_days', 'p.is_bsl_official')
+            ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
+            ->selectSub(DB::table('profile_subjects as ps')->join('subjects as s', 's.id', '=', 'ps.subject_id')
+                ->selectRaw("GROUP_CONCAT(s.name ORDER BY s.name SEPARATOR ', ')")
+                ->where('ps.profile_type', 'institute')->whereColumn('ps.profile_id', 'p.user_id'), 'subject_names')
+            ->selectRaw('0 AS referral_points');
+
+        return $teachers->unionAll($institutes);
     }
 
     public function pages(): Builder
@@ -318,7 +373,7 @@ final class SeoDirectory
     public function locationPages(): Builder
     {
         $query = DB::table('seo_location_pages as lp')->select('lp.*')
-            ->selectRaw(self::LOCATION_COUNT_SQL.' AS eligible_teachers')->whereRaw(self::LOCATION_COUNT_SQL.' > 0');
+            ->selectRaw(self::LOCATION_COUNT_SQL.' AS eligible_providers')->whereRaw(self::LOCATION_COUNT_SQL.' > 0');
         $this->restrictToDefaultLanguages($query, 'lp.country', 'lp.language');
 
         return $query;
@@ -335,24 +390,24 @@ final class SeoDirectory
         });
     }
 
-    public function locationTeachers(object $page): Builder
+    public function locationProviders(object $page): Builder
     {
-        $query = DB::table('teacher_profiles as p')->join('users as u', 'u.id', '=', 'p.user_id')
-            ->where('u.account_type', 'teacher')->whereNull('u.suspended_at')->whereNotNull('u.phone_verified_at')
-            ->whereNotNull('u.profile_completed_at')->where('p.is_profile_complete', true)
-            ->whereNotNull('p.public_page_slug')->where('p.seo_country', $page->country);
+        $query = DB::query()->fromSub($this->publicProviderRows($page->subject_id === null ? null : (int) $page->subject_id), 'providers')
+            ->where('providers.seo_country', $page->country);
         if ($page->kind !== 'country') {
-            $query->where('p.district', $page->district);
+            $query->where('providers.district', $page->district);
         }
         if (in_array($page->kind, ['village', 'subject_village'], true)) {
-            $query->whereRaw("COALESCE(NULLIF(p.locality, ''), p.city) = ?", [$page->village]);
-        }
-        if ($page->subject_id !== null) {
-            $query->whereExists(fn (Builder $subjects) => $subjects->selectRaw('1')->from('profile_subjects as ps')
-                ->where('ps.profile_type', 'teacher')->whereColumn('ps.profile_id', 'p.user_id')->where('ps.subject_id', $page->subject_id));
+            $query->whereRaw("COALESCE(NULLIF(providers.locality, ''), providers.city) = ?", [$page->village]);
         }
 
         return $query;
+    }
+
+    /** @deprecated Use locationProviders() for the shared teacher/institute directory. */
+    public function locationTeachers(object $page): Builder
+    {
+        return $this->locationProviders($page)->where('providers.provider_type', 'teacher');
     }
 
     public function sync(): int
@@ -360,6 +415,10 @@ final class SeoDirectory
         $count = 0;
         foreach (DB::table('teacher_profiles')->orderBy('user_id')->lazyById(100, 'user_id') as $profile) {
             DB::transaction(fn () => app(TeacherPublicPages::class)->publish((int) $profile->user_id));
+            $count++;
+        }
+        foreach (DB::table('institute_profiles')->orderBy('user_id')->lazyById(100, 'user_id') as $profile) {
+            DB::transaction(fn () => app(InstitutePublicPages::class)->publish((int) $profile->user_id));
             $count++;
         }
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\SeoDirectory;
+use App\Services\ProfileEditor;
 use App\Services\TeacherPublicPages;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
@@ -64,7 +65,9 @@ class InternationalSeoController extends Controller
         if ($redirect = $this->canonical($request, $url)) {
             return $redirect;
         }
-        $language = SeoDirectory::language($teacher->seo_country);
+        $languages = config('seo.countries.'.$teacher->seo_country.'.languages', ['en']);
+        $request->validate(['lang' => ['sometimes', 'string', 'in:'.implode(',', $languages)]]);
+        $language = (string) $request->query('lang', SeoDirectory::language($teacher->seo_country));
         $labels = SeoDirectory::labels($language);
         $subjects = TeacherPublicPages::subjects((int) $teacher->user_id);
         $names = DB::table('seo_subject_routes')->where('country', $teacher->seo_country)->where('language', $language)
@@ -79,9 +82,13 @@ class InternationalSeoController extends Controller
         }
         $reviews = DB::table('reviews')->where('provider_id', $teacher->user_id)->select('rating', 'comment', 'created_at')
             ->orderByDesc('created_at')->orderByDesc('id')->simplePaginate(10)->withQueryString();
-        $related = $this->directory->pages()->where('r.country', $teacher->seo_country)->where('r.language', $language)
+        $related = DB::table('seo_directory_pages as r')->join('seo_subject_routes as sr', function ($join) use ($language): void {
+            $join->on('sr.subject_id', '=', 'r.subject_id')->on('sr.country', '=', 'r.country')
+                ->where('sr.language', '=', $language)->where('sr.enabled', '=', true);
+        })->where('r.country', $teacher->seo_country)
             ->where('r.kind', 'city')->where('r.city_slug', $teacher->seo_city_slug)
-            ->whereIn('r.subject_id', $subjects->pluck('id'))->orderBy('r.id')->limit(5)->get();
+            ->whereIn('r.subject_id', $subjects->pluck('id'))->orderBy('r.id')->limit(5)
+            ->get(['r.path', 'r.city', 'sr.display_name']);
         $this->logView($request, 'teacher', 'profile:'.$teacher->user_id);
 
         return response()->view('seo.teacher', compact('teacher', 'subjects', 'reviews', 'language', 'labels', 'url', 'related') + [
@@ -115,24 +122,78 @@ class InternationalSeoController extends Controller
             $page->display_name = DB::table('seo_subject_routes')->where('country', $country)->where('language', $language)
                 ->where('subject_id', $page->subject_id)->where('enabled', true)->value('display_name') ?? $page->display_name;
         }
-        $teachers = $this->directory->matching($page)->select('p.user_id', 'p.public_page_slug', 'p.city',
-            'p.rate_per_hour', 'p.currency', 'p.rating_avg', 'p.rating_count', 'p.lesson_modes')
-            ->selectRaw('COALESCE(NULLIF(p.listing_name, \'\'), u.full_name) AS full_name')
-            ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
-            ->orderByDesc('p.rating_count')->orderByDesc('p.rating_avg')->orderBy('p.user_id')
+        $providers = $this->directory->matching($page)->select('providers.provider_type', 'providers.user_id', 'providers.public_page_slug',
+            'providers.city', 'providers.rate', 'providers.currency', 'providers.rating_avg', 'providers.rating_count',
+            'providers.lesson_modes', 'providers.is_bsl_official', 'providers.avatar_url', 'providers.referral_points', 'providers.full_name')
+            ->orderByDesc('providers.is_bsl_official')->orderByDesc('providers.referral_points')
+            ->orderByDesc('providers.rating_count')->orderByDesc('providers.rating_avg')->orderBy('providers.provider_type')->orderBy('providers.user_id')
             ->paginate(20)->withQueryString();
-        abort_if($teachers->isEmpty(), 404);
+        abort_if($providers->isEmpty(), 404);
         $variants = [];
         $labels = SeoDirectory::labels($language);
         $values = ['subject' => $page->display_name, 'city' => $page->city,
             'country' => config('seo.countries.'.$country.'.name')];
         $title = SeoDirectory::text($labels, $page->kind.'_title', $values);
         $description = SeoDirectory::text($labels, $page->kind.'_description', $values);
-        $canonicalUrl = $url.($teachers->currentPage() > 1 ? '?page='.$teachers->currentPage() : '');
+        $canonicalUrl = $url.($providers->currentPage() > 1 ? '?page='.$providers->currentPage() : '');
         $this->logView($request, 'city_index', 'listing:'.$page->id);
 
-        return response()->view('seo.listing', compact('page', 'teachers', 'labels', 'language', 'variants', 'title', 'description', 'canonicalUrl')
+        return response()->view('seo.listing', compact('page', 'providers', 'labels', 'language', 'variants', 'title', 'description', 'canonicalUrl')
             + ['lang' => $language, 't' => []]);
+    }
+
+    public function institute(Request $request, string $slug): Response
+    {
+        $path = '/'.$request->path();
+        $ownership = DB::table('seo_urls')->where('path_hash', hash('sha256', $path))->where('path', $path)
+            ->where('target_type', 'institute')->first();
+        $query = $this->directory->institutes();
+        if ($ownership !== null) {
+            $query->where('p.user_id', $ownership->target_id);
+        } else {
+            $query->where(fn (Builder $scope) => $scope->where('p.public_page_slug', $slug)->orWhere('p.slug', $slug));
+        }
+        $institute = $query->select('p.user_id', 'p.slug', 'p.public_page_slug', 'p.seo_country', 'p.seo_city_slug',
+            'p.description', 'p.website_url', 'p.city', 'p.state', 'p.country', 'p.starting_rate', 'p.currency',
+            'p.lesson_modes', 'p.trial_days', 'p.rating_avg', 'p.rating_count', 'p.is_bsl_official', 'p.bsl_official_since', 'p.institute_type')
+            ->selectRaw('COALESCE(NULLIF(p.listing_name, \'\'), u.full_name) AS full_name')
+            ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
+            ->selectSub(DB::table('bookings')->selectRaw('count(*)')->whereColumn('provider_id', 'p.user_id')
+                ->where('status', 'completed'), 'lessons_completed')->first();
+        abort_if($institute === null, 404);
+        $url = SeoDirectory::url('/institute/'.$institute->public_page_slug);
+        if ($redirect = $this->canonical($request, $url)) {
+            return $redirect;
+        }
+        $website = is_string($institute->website_url) ? parse_url($institute->website_url) : false;
+        if (! is_array($website) || ! in_array(strtolower((string) ($website['scheme'] ?? '')), ['http', 'https'], true)) {
+            $institute->website_url = null;
+        }
+
+        $languages = config('seo.countries.'.$institute->seo_country.'.languages', ['en']);
+        $request->validate(['lang' => ['sometimes', 'string', 'in:'.implode(',', $languages)]]);
+        $language = (string) $request->query('lang', SeoDirectory::language($institute->seo_country));
+        $labels = SeoDirectory::labels($language);
+        $subjects = ProfileEditor::subjects((int) $institute->user_id, 'institute');
+        $names = DB::table('seo_subject_routes')->where('country', $institute->seo_country)->where('language', $language)
+            ->where('enabled', true)->pluck('display_name', 'subject_id');
+        foreach ($subjects as $subject) {
+            $subject->name = $names[$subject->id] ?? $subject->name;
+        }
+        $reviews = DB::table('reviews')->where('provider_id', $institute->user_id)->select('rating', 'comment', 'created_at')
+            ->orderByDesc('created_at')->orderByDesc('id')->simplePaginate(10)->withQueryString();
+        $related = DB::table('seo_directory_pages as r')->join('seo_subject_routes as sr', function ($join) use ($language): void {
+            $join->on('sr.subject_id', '=', 'r.subject_id')->on('sr.country', '=', 'r.country')
+                ->where('sr.language', '=', $language)->where('sr.enabled', '=', true);
+        })->where('r.country', $institute->seo_country)
+            ->where('r.kind', 'city')->where('r.city_slug', $institute->seo_city_slug)
+            ->whereIn('r.subject_id', $subjects->pluck('id'))->orderBy('r.id')->limit(5)
+            ->get(['r.path', 'r.city', 'sr.display_name']);
+        $this->logView($request, 'institute', 'profile:'.$institute->user_id);
+
+        return response()->view('seo.institute', compact('institute', 'subjects', 'reviews', 'language', 'labels', 'url', 'related') + [
+            'lang' => $language, 't' => [], 'downloadHref' => route('download', ['type' => 'institute', 'slug' => $institute->slug]),
+        ]);
     }
 
     public function localizedListing(Request $request, string $country, string $language, string $city, string $slug): Response
@@ -237,31 +298,26 @@ class InternationalSeoController extends Controller
             'mode' => ['sometimes', 'in:online,home_tuition,in_person'],
             'trial' => ['sometimes', 'boolean'],
         ]);
-        $query = $this->directory->locationTeachers($page)
-            ->select('p.user_id', 'p.public_page_slug', 'p.city', 'p.district', 'p.locality', 'p.rate_per_hour',
-                'p.currency', 'p.rating_avg', 'p.rating_count', 'p.lesson_modes', 'p.trial_days')
-            ->selectRaw('COALESCE(NULLIF(p.listing_name, \'\'), u.full_name) AS full_name')
-            ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
-            ->selectSub(DB::table('profile_subjects as ps')->join('subjects as s', 's.id', '=', 'ps.subject_id')
-                ->selectRaw("GROUP_CONCAT(s.name ORDER BY s.name SEPARATOR ', ')")
-                ->where('ps.profile_type', 'teacher')->whereColumn('ps.profile_id', 'p.user_id'), 'subject_names')
-            ->selectSub(DB::table('referrals')->selectRaw('count(*)')->whereColumn('referrer_id', 'p.user_id'), 'referral_points')
-            ->orderByDesc('referral_points')->orderByDesc('p.rating_count')->orderByDesc('p.rating_avg')->orderBy('p.user_id');
+        $query = $this->directory->locationProviders($page)
+            ->select('providers.provider_type', 'providers.user_id', 'providers.public_page_slug', 'providers.city',
+                'providers.district', 'providers.locality', 'providers.rate', 'providers.currency', 'providers.rating_avg',
+                'providers.rating_count', 'providers.lesson_modes', 'providers.trial_days', 'providers.full_name',
+                'providers.avatar_url', 'providers.subject_names', 'providers.referral_points', 'providers.is_bsl_official')
+            ->orderByDesc('providers.is_bsl_official')->orderByDesc('providers.referral_points')
+            ->orderByDesc('providers.rating_count')->orderByDesc('providers.rating_avg')->orderBy('providers.provider_type')
+            ->orderBy('providers.user_id');
         if (isset($filters['q']) && trim($filters['q']) !== '') {
             $term = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], trim($filters['q'])).'%';
-            $query->where(fn (Builder $search) => $search->where('u.full_name', 'like', $term)
-                ->orWhere('p.listing_name', 'like', $term)->orWhere('p.bio', 'like', $term)
-                ->orWhereExists(fn (Builder $subjects) => $subjects->selectRaw('1')->from('profile_subjects as ps')
-                    ->join('subjects as s', 's.id', '=', 'ps.subject_id')->where('ps.profile_type', 'teacher')
-                    ->whereColumn('ps.profile_id', 'p.user_id')->where('s.name', 'like', $term)));
+            $query->where(fn (Builder $search) => $search->where('providers.full_name', 'like', $term)
+                ->orWhere('providers.description', 'like', $term)->orWhere('providers.subject_names', 'like', $term));
         }
         if (isset($filters['mode'])) {
-            $query->whereJsonContains('p.lesson_modes', $filters['mode']);
+            $query->whereJsonContains('providers.lesson_modes', $filters['mode']);
         }
         if (($filters['trial'] ?? null) === true || ($filters['trial'] ?? null) === '1') {
-            $query->where('p.trial_days', '>', 0);
+            $query->where('providers.trial_days', '>', 0);
         }
-        $teachers = $query->paginate(20)->withQueryString();
+        $providers = $query->paginate(20)->withQueryString();
         $language = $filters['lang'] ?? SeoDirectory::language($page->country);
         $subject = null;
         if ($page->subject_id !== null) {
@@ -291,7 +347,7 @@ class InternationalSeoController extends Controller
         $url = SeoDirectory::url($page->path);
         $this->logView($request, 'seo_'.$page->kind, $page->path);
 
-        return response()->view('seo.location', compact('page', 'teachers', 'title', 'description', 'variants', 'children', 'url', 'subject', 'values', 'breadcrumbs')
+        return response()->view('seo.location', compact('page', 'providers', 'title', 'description', 'variants', 'children', 'url', 'subject', 'values', 'breadcrumbs')
             + ['language' => $language, 'labels' => SeoDirectory::labels($language), 'lang' => $language,
                 't' => [], 'direction' => in_array($language, ['ar', 'ur'], true) ? 'rtl' : 'ltr']);
     }
@@ -328,16 +384,21 @@ class InternationalSeoController extends Controller
         if ($redirect = $this->canonical($request, SeoDirectory::url('/directory'))) {
             return $redirect;
         }
-        $pages = $this->directory->pages()->orderBy('r.country')->orderBy('r.city_slug')->orderBy('r.id')->paginate(40);
+        $request->validate(['lang' => ['sometimes', 'string', 'in:'.implode(',', array_keys(config('seo.language_names')))]]);
+        $language = (string) $request->query('lang', 'en');
+        $labels = SeoDirectory::labels($language);
+        $pages = $this->directory->pages()->orderBy('r.country')->orderBy('r.city_slug')->orderBy('r.id')->paginate(40)->withQueryString();
 
-        return response()->view('seo.hub', ['pages' => $pages, 'lang' => 'en', 't' => []]);
+        return response()->view('seo.hub', ['pages' => $pages, 'lang' => $language, 'language' => $language,
+            'labels' => $labels, 'headerCountry' => null, 't' => []]);
     }
 
     public function sitemap(): Response
     {
         return response()->stream(function (): void {
             echo '<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
-            foreach (['teachers' => $this->directory->teachers()->count(), 'directory' => $this->directory->pages()->count(),
+            foreach (['teachers' => $this->directory->teachers()->count(), 'institutes' => $this->directory->institutes()->count(),
+                'directory' => $this->directory->pages()->count(),
                 'locations' => $this->directory->locationPages()->count()] as $kind => $count) {
                 for ($page = 1; $page <= (int) ceil($count / 1000); $page++) {
                     echo '<sitemap><loc>'.htmlspecialchars(SeoDirectory::url('/sitemaps/'.$kind.'-'.$page.'.xml'), ENT_XML1 | ENT_QUOTES).'</loc></sitemap>';
@@ -349,9 +410,10 @@ class InternationalSeoController extends Controller
 
     public function sitemapPart(string $kind, int $number): Response
     {
-        abort_unless(in_array($kind, ['teachers', 'directory', 'locations'], true), 404);
+        abort_unless(in_array($kind, ['teachers', 'institutes', 'directory', 'locations'], true), 404);
         $query = match ($kind) {
             'teachers' => $this->directory->teachers()->select('p.user_id', 'p.public_page_slug')->orderBy('p.user_id'),
+            'institutes' => $this->directory->institutes()->select('p.user_id', 'p.public_page_slug')->orderBy('p.user_id'),
             'directory' => $this->directory->pages()->orderBy('r.id'),
             default => $this->directory->locationPages()->orderBy('lp.id'),
         };
@@ -360,7 +422,9 @@ class InternationalSeoController extends Controller
         return response()->stream(function () use ($query, $number, $kind): void {
             echo '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
             foreach ($query->forPage($number, 1000)->cursor() as $record) {
-                $url = $kind === 'teachers' ? SeoDirectory::url('/teacher/'.$record->public_page_slug) : SeoDirectory::url($record->path);
+                $url = in_array($kind, ['teachers', 'institutes'], true)
+                    ? SeoDirectory::url('/'.($kind === 'teachers' ? 'teacher' : 'institute').'/'.$record->public_page_slug)
+                    : SeoDirectory::url($record->path);
                 echo '<url><loc>'.htmlspecialchars($url, ENT_XML1 | ENT_QUOTES).'</loc>';
                 echo '</url>';
             }

@@ -79,6 +79,7 @@ final class ProfileEditor
         $url = (bool) ($profile->is_profile_complete ?? false) && filled($profile->slug ?? null)
             ? route('website.institute', ['slug' => $profile->slug]) : null;
 
-        return ['instituteProfileUrl' => $url, 'webPageUrl' => $url];
+        return ['instituteProfileUrl' => $url, 'webPageUrl' => $url,
+            ...InstitutePublicPages::urls($profile)];
     }
 }

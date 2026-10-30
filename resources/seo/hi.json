@@ -1,5 +1,5 @@
 {
-  "teachers": "शिक्षक",
+  "teachers": "शिक्षक और संस्थान",
   "subjects": "पढ़ाए जाने वाले विषय",
   "about": "परिचय",
   "modes": "पढ़ाने का तरीका",
@@ -14,13 +14,13 @@
   "profile": "प्रोफ़ाइल देखें",
   "previous": "पिछला",
   "next": "अगला",
-  "city_title": ":city में :subject के शिक्षक",
-  "online_title": ":country में ऑनलाइन :subject के शिक्षक",
-  "city_description": ":city में :subject के शिक्षक देखें। उपलब्ध फीस, पढ़ाने के तरीके और प्रोफ़ाइल की तुलना करें।",
-  "online_description": ":country के ऑनलाइन :subject शिक्षकों की उपलब्ध फीस और प्रोफ़ाइल देखें।",
-  "count": ":count शिक्षक",
+  "city_title": ":city में :subject के शिक्षक और संस्थान",
+  "online_title": ":country में ऑनलाइन :subject के शिक्षक और संस्थान",
+  "city_description": ":city में :subject के शिक्षक और संस्थान देखें। उपलब्ध फीस, पढ़ाने के तरीके और प्रोफ़ाइल की तुलना करें।",
+  "online_description": ":country के ऑनलाइन :subject शिक्षकों और संस्थानों की उपलब्ध फीस और प्रोफ़ाइल देखें।",
+  "count": ":count शिक्षक और संस्थान",
   "lessons": "पूरे हुए पाठ",
-  "more": "अन्य शिक्षक देखें",
+  "more": "अन्य शिक्षक और संस्थान देखें",
   "language": "भाषा",
-  "directory": "शिक्षक निर्देशिका"
+  "directory": "शिक्षक और संस्थान निर्देशिका"
 }

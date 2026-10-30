@@ -1,5 +1,5 @@
 {
-  "teachers": "Teachers",
+  "teachers": "Teachers and institutes",
   "subjects": "Subjects taught",
   "about": "About",
   "modes": "Lesson modes",
@@ -14,13 +14,13 @@
   "profile": "View profile",
   "previous": "Previous",
   "next": "Next",
-  "city_title": ":subject teachers in :city",
-  "online_title": "Online :subject teachers in :country",
-  "city_description": "Explore :subject teachers in :city. Compare available fees, teaching modes and profiles.",
-  "online_description": "Explore online :subject teachers based in :country. Compare available fees and teacher profiles.",
-  "count": ":count teachers",
+  "city_title": ":subject teachers and institutes in :city",
+  "online_title": "Online :subject teachers and institutes in :country",
+  "city_description": "Explore :subject teachers and institutes in :city. Compare available fees, teaching modes and profiles.",
+  "online_description": "Explore online :subject teachers and institutes based in :country. Compare available fees and profiles.",
+  "count": ":count teachers and institutes",
   "lessons": "Lessons completed",
-  "more": "Explore more teachers",
+  "more": "Explore more teachers and institutes",
   "language": "Language",
-  "directory": "Teacher directory"
+  "directory": "Teacher and institute directory"
 }

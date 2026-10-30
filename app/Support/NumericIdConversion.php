@@ -14,7 +14,8 @@ final class NumericIdConversion
 
     private array $next = [];
 
-    private const ENTITIES = ['user' => 'users', 'booking' => 'bookings', 'message' => 'messages',
+    private const ENTITIES = ['user' => 'users', 'teacher_profile' => 'teacher_profiles', 'institute_profile' => 'institute_profiles',
+        'booking' => 'bookings', 'message' => 'messages',
         'message_reaction' => 'message_reactions', 'otp_delivery' => 'otp_delivery_attempts',
         'post' => 'posts', 'comment' => 'post_comments'];
 

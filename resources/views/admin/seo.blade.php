@@ -2,7 +2,7 @@
 @section('title', 'SEO subject wording')
 @section('content')
 <div class="page-heading"><div><p class="eyebrow">SEO settings</p><h1>Subject names and URL slugs</h1><p>Public URLs follow one format: <code>/country/location/subject</code>. Language is selected on the page and does not add a URL segment.</p></div></div>
-<div class="panel panel-body"><p><a class="btn" href="{{ route('admin.reports.index', ['report' => 'seo-pages']) }}">SEO pages &amp; status</a> <a class="btn" href="{{ route('admin.reports.index', ['report' => 'seo-subject-routes']) }}">All subject mappings</a> <a class="btn" href="{{ route('admin.seo.edit') }}">New mapping</a></p><form method="post" action="{{ route('admin.seo.sync') }}">@csrf<button class="btn" type="submit">Sync existing teacher pages</button></form></div>
+<div class="panel panel-body"><p><a class="btn" href="{{ route('admin.reports.index', ['report' => 'seo-pages']) }}">SEO pages &amp; status</a> <a class="btn" href="{{ route('admin.reports.index', ['report' => 'seo-subject-routes']) }}">All subject mappings</a> <a class="btn" href="{{ route('admin.seo.edit') }}">New mapping</a></p><form method="post" action="{{ route('admin.seo.sync') }}">@csrf<button class="btn" type="submit">Sync existing teacher and institute pages</button></form></div>
 <section class="panel panel-body"><form method="post" action="{{ route('admin.seo.save') }}">@csrf
 <input type="hidden" name="id" value="{{ $editing->id ?? '' }}">
 <div class="field"><label for="seo-subject">Subject</label><select name="subject_id" id="seo-subject" required>@foreach($subjects as $subject)<option value="{{ $subject->id }}" @selected(old('subject_id', $editing->subject_id ?? null) == $subject->id)>{{ $subject->name }}</option>@endforeach</select></div>

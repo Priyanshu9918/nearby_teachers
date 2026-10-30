@@ -8,14 +8,14 @@ return [
         'title' => 'SEO page URLs', 'table' => 'seo_directory_pages', 'timestamp' => 'created_at',
         'columns' => ['id', 'subject_id', 'country', 'kind', 'city', 'path', 'created_at'],
         'participants' => [], 'search' => ['country', 'kind', 'city', 'path'],
-        'computed' => ['eligible_teachers' => SeoDirectory::COUNT_SQL,
+        'computed' => ['eligible_providers' => SeoDirectory::COUNT_SQL,
             'route_enabled' => '(SELECT enabled FROM seo_subject_routes sr WHERE sr.id = r.route_id)'],
     ],
     'seo-location-pages' => [
         'title' => 'Location page URLs', 'table' => 'seo_location_pages', 'timestamp' => 'created_at',
         'columns' => ['id', 'kind', 'country', 'district', 'village', 'subject_slug', 'path', 'created_at'],
         'participants' => [], 'search' => ['kind', 'country', 'district', 'village', 'path'],
-        'computed' => ['eligible_teachers' => str_replace('lp.', 'r.', SeoDirectory::LOCATION_COUNT_SQL)],
+        'computed' => ['eligible_providers' => str_replace('lp.', 'r.', SeoDirectory::LOCATION_COUNT_SQL)],
     ],
     'seo-subject-routes' => [
         'title' => 'SEO subject URL settings', 'table' => 'seo_subject_routes', 'timestamp' => 'updated_at',
@@ -153,8 +153,9 @@ return [
     ],
     'institute-profiles' => [
         'title' => 'Institute profiles', 'table' => 'institute_profiles', 'timestamp' => 'created_at',
-        'columns' => ['id', 'user_id', 'listing_name', 'contact_person', 'is_profile_complete', 'completed_profile_steps', 'profile_draft_saved_at', 'description', 'starting_rate', 'currency', 'lesson_modes', 'latitude', 'longitude', 'address_text', 'city', 'state', 'country', 'country_code', 'instructors_text', 'district', 'sub_district', 'locality', 'locality_type', 'postal_code', 'location_details', 'slug', 'website_url', 'is_verified', 'verified_at', 'trial_days', 'institute_type', 'is_bsl_official', 'bsl_official_since', 'rating_avg', 'rating_count', 'created_at', 'updated_at'],
+        'columns' => ['id', 'user_id', 'listing_name', 'contact_person', 'is_profile_complete', 'completed_profile_steps', 'profile_draft_saved_at', 'description', 'starting_rate', 'currency', 'lesson_modes', 'latitude', 'longitude', 'address_text', 'city', 'state', 'country', 'country_code', 'instructors_text', 'district', 'sub_district', 'locality', 'locality_type', 'postal_code', 'location_details', 'slug', 'public_page_slug', 'seo_country', 'seo_city_slug', 'website_url', 'is_verified', 'verified_at', 'trial_days', 'institute_type', 'is_bsl_official', 'bsl_official_since', 'rating_avg', 'rating_count', 'created_at', 'updated_at'],
         'participants' => ['user_id'], 'search' => ['listing_name', 'contact_person', 'city', 'description', 'district', 'sub_district', 'locality', 'postal_code', 'location_details'],
+        'computed' => ['seo_public' => "CASE WHEN r.is_profile_complete = 1 AND r.public_page_slug IS NOT NULL AND r.seo_country IS NOT NULL AND EXISTS (SELECT 1 FROM users pu WHERE pu.id = r.user_id AND pu.account_type = 'institute' AND pu.suspended_at IS NULL AND pu.phone_verified_at IS NOT NULL AND pu.profile_completed_at IS NOT NULL) AND EXISTS (SELECT 1 FROM profile_subjects ps WHERE ps.profile_id = r.user_id AND ps.profile_type = 'institute') THEN 1 ELSE 0 END"],
     ],
     'profile-subjects' => [
         'title' => 'Profile subjects', 'table' => 'profile_subjects', 'timestamp' => null,

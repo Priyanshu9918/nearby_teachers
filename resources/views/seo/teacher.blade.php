@@ -16,7 +16,8 @@
 @section('description', $description)
 @section('meta')@include('seo.meta')@endsection
 @section('content')
-<div class="teacher-page"><header class="teacher-topbar"><div><a class="teacher-brand" href="{{ \App\Services\SeoDirectory::url('/directory') }}">Nearby Teacher</a><a class="text-link" href="{{ \App\Services\SeoDirectory::url('/directory') }}">{{ $labels['directory'] }}</a></div></header>
+<div class="teacher-page directory-page">
+@include('seo.partials.header', ['headerCountry' => $teacher->seo_country, 'providerType' => 'teacher', 'providerSlug' => $teacher->slug])
 <main class="teacher-shell">
 <nav class="teacher-crumbs" aria-label="Breadcrumb"><a href="{{ \App\Services\SeoDirectory::url('/directory') }}">{{ $labels['teachers'] }}</a><span aria-hidden="true">/</span><span>{{ $teacher->city }}</span><span aria-hidden="true">/</span><span aria-current="page">{{ $teacher->full_name }}</span></nav>
 <header class="teacher-hero"><div class="avatar" aria-hidden="true">@if ($teacher->avatar_url)<img src="{{ $teacher->avatar_url }}" alt="" width="96" height="96">@else{{ mb_substr($teacher->full_name, 0, 1) }}@endif</div><div><p class="teacher-kicker">{{ $labels['profile'] }}</p><h1>{{ $teacher->full_name }}</h1><p class="teacher-subtitle">{{ $subjectNames }}</p><p class="teacher-location">{{ collect([$teacher->city, $teacher->state, $teacher->country])->filter()->unique()->implode(', ') }}</p></div></header>

@@ -16,10 +16,12 @@
         @elseif ($report === 'messages')<a class="btn btn-small" href="{{ route('admin.reports.conversation', $record->conversation_id) }}">Conversation</a>
         @elseif ($report === 'teacher-profiles' && $record->seo_public)<a class="btn btn-small" href="{{ \App\Services\SeoDirectory::url('/teacher/'.$record->public_page_slug) }}" target="_blank" rel="noopener noreferrer">Open teacher page <x-admin-icon name="arrow" /></a>
         @elseif ($report === 'teacher-profiles')<span>Needs eligible profile and country</span>
+        @elseif ($report === 'institute-profiles' && $record->seo_public)<a class="btn btn-small" href="{{ \App\Services\SeoDirectory::url('/institute/'.$record->public_page_slug) }}" target="_blank" rel="noopener noreferrer">Open institute page <x-admin-icon name="arrow" /></a>
+        @elseif ($report === 'institute-profiles')<span>Needs eligible profile and country</span>
         @elseif ($report === 'seo-pages')
-            @if ($record->eligible_teachers > 0 && $record->route_enabled)<a class="btn btn-small" href="{{ \App\Services\SeoDirectory::url($record->path) }}" target="_blank" rel="noopener noreferrer">Open page</a><span>Published</span><code class="seo-url-preview">{{ $record->path }}</code>@else<span>{{ $record->route_enabled ? 'No matching teachers' : 'Disabled' }}</span>@endif
+            @if ($record->eligible_providers > 0 && $record->route_enabled)<a class="btn btn-small" href="{{ \App\Services\SeoDirectory::url($record->path) }}" target="_blank" rel="noopener noreferrer">Open page</a><span>Published</span><code class="seo-url-preview">{{ $record->path }}</code>@else<span>{{ $record->route_enabled ? 'No matching providers' : 'Disabled' }}</span>@endif
         @elseif ($report === 'seo-location-pages')
-            @if ($record->eligible_teachers > 0)<a class="btn btn-small" href="{{ \App\Services\SeoDirectory::url($record->path) }}" target="_blank" rel="noopener noreferrer">Open page</a><span>Published</span><code class="seo-url-preview">{{ $record->path }}</code>@else<span>No matching teachers</span>@endif
+            @if ($record->eligible_providers > 0)<a class="btn btn-small" href="{{ \App\Services\SeoDirectory::url($record->path) }}" target="_blank" rel="noopener noreferrer">Open page</a><span>Published</span><code class="seo-url-preview">{{ $record->path }}</code>@else<span>No matching providers</span>@endif
         @elseif ($report === 'seo-subject-routes')<a class="btn btn-small" href="{{ route('admin.seo.edit', ['id' => $record->id]) }}">Edit wording</a>
         @else — @endif
     </td>

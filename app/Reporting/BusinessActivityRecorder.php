@@ -11,6 +11,7 @@ final class BusinessActivityRecorder
     // Each event explicitly owns its snapshot contract. No raw request/user arrays.
     private const EVENTS = [
         'teacher.seo_state_changed' => ['teacher_profile', ['status', 'public_page_slug', 'country', 'city_slug', 'language', 'subject_ids', 'online']],
+        'institute.seo_state_changed' => ['institute_profile', ['status', 'public_page_slug', 'country', 'city_slug', 'subject_ids', 'online']],
         'seo.route_configured' => ['seo_subject_route', ['subject_id', 'country', 'language', 'display_name', 'city_slug', 'online_slug', 'enabled']],
         'seo.page_registered' => ['seo_page', ['path', 'country', 'language', 'kind', 'subject_id']],
         'seo.page_updated' => ['seo_page', ['path']],
