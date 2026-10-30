@@ -78,8 +78,10 @@ final class ProfileEditor
         self::table($type);
         $url = (bool) ($profile->is_profile_complete ?? false) && filled($profile->slug ?? null)
             ? route('website.institute', ['slug' => $profile->slug]) : null;
+        $myWebpageUrl = isset($profile->public_page_slug) && isset($profile->seo_country)
+            ? SeoDirectory::url('/my-webpage/institute/'.$profile->public_page_slug) : null;
 
-        return ['instituteProfileUrl' => $url, 'webPageUrl' => $url,
+        return ['instituteProfileUrl' => $url, 'webPageUrl' => $myWebpageUrl, 'myWebpageUrl' => $myWebpageUrl,
             ...InstitutePublicPages::urls($profile)];
     }
 }

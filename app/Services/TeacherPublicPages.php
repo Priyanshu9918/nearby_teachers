@@ -119,7 +119,10 @@ final class TeacherPublicPages
     {
         $url = isset($profile->public_page_slug) && isset($profile->seo_country)
             ? SeoDirectory::url('/teacher/'.$profile->public_page_slug) : null;
+        $myWebpageUrl = isset($profile->public_page_slug) && isset($profile->seo_country)
+            ? SeoDirectory::url('/my-webpage/teacher/'.$profile->public_page_slug) : null;
 
-        return ['teacherSeoUrl' => $url, 'teacherProfileUrl' => $url, 'webPageUrl' => $url];
+        return ['teacherSeoUrl' => $url, 'teacherProfileUrl' => $url, 'webPageUrl' => $myWebpageUrl,
+            'myWebpageUrl' => $myWebpageUrl];
     }
 }

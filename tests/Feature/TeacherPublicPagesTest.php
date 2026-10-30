@@ -94,7 +94,9 @@ class TeacherPublicPagesTest extends TestCase
         $published = DB::table('teacher_profiles')->where('user_id', $teacher->user_id)->first();
         $this->assertSame('asha-sharma-kanpur', $published->public_page_slug);
         $this->get('/in/kanpur/maths-tuition')->assertOk()->assertSee('Asha Sharma');
-        $this->assertSame('http://localhost/teacher/asha-sharma-kanpur', TeacherPublicPages::urls($published)['webPageUrl']);
+        $urls = TeacherPublicPages::urls($published);
+        $this->assertSame('http://localhost/my-webpage/teacher/asha-sharma-kanpur', $urls['webPageUrl']);
+        $this->assertSame('http://localhost/teacher/asha-sharma-kanpur', $urls['teacherProfileUrl']);
     }
 
     public function test_location_directory_uses_short_paths_and_mobile_teacher_cards(): void

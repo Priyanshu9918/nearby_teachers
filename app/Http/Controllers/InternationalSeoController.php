@@ -197,6 +197,47 @@ class InternationalSeoController extends Controller
         ]);
     }
 
+    public function myWebpage(Request $request, string $type, string $slug): Response
+    {
+        abort_unless(in_array($type, ['teacher', 'institute'], true), 404);
+        $query = $type === 'teacher' ? $this->directory->teachers() : $this->directory->institutes();
+        $query->where('p.public_page_slug', $slug);
+        if ($type === 'teacher') {
+            $provider = $query->select('p.user_id', 'p.public_page_slug', 'p.slug as legacy_slug', 'p.seo_country', 'p.seo_city_slug', 'p.bio as description',
+                'p.rate_per_hour as rate', 'p.currency', 'p.lesson_modes', 'p.city', 'p.state', 'p.country')
+                ->selectRaw('COALESCE(NULLIF(p.listing_name, \'\'), u.full_name) AS full_name')
+                ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
+                ->first();
+        } else {
+            $provider = $query->select('p.user_id', 'p.public_page_slug', 'p.slug as legacy_slug', 'p.seo_country', 'p.seo_city_slug', 'p.description',
+                'p.starting_rate as rate', 'p.currency', 'p.lesson_modes', 'p.city', 'p.state', 'p.country', 'p.website_url')
+                ->selectRaw('COALESCE(NULLIF(p.listing_name, \'\'), u.full_name) AS full_name')
+                ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
+                ->first();
+        }
+        abort_if($provider === null, 404);
+
+        $subjects = $type === 'teacher'
+            ? TeacherPublicPages::subjects((int) $provider->user_id)
+            : ProfileEditor::subjects((int) $provider->user_id, 'institute');
+        $subjectIds = $subjects->pluck('id')->all();
+        $language = SeoDirectory::language((string) $provider->seo_country);
+        $related = DB::table('seo_directory_pages as r')->join('seo_subject_routes as sr', function ($join) use ($language): void {
+            $join->on('sr.subject_id', '=', 'r.subject_id')->on('sr.country', '=', 'r.country')
+                ->where('sr.language', '=', $language)->where('sr.enabled', '=', true);
+        })->where('r.country', $provider->seo_country)->where('r.city_slug', $provider->seo_city_slug)
+            ->where('r.kind', 'city')->whereIn('r.subject_id', $subjectIds)->orderBy('r.id')->limit(6)
+            ->get(['r.path', 'r.city', 'sr.display_name']);
+
+        $url = SeoDirectory::url('/my-webpage/'.$type.'/'.$provider->public_page_slug);
+        $oldProfileUrl = $type === 'teacher'
+            ? SeoDirectory::url('/teacher/'.$provider->public_page_slug)
+            : route('website.institute', ['slug' => $provider->legacy_slug]);
+        $qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=420x420&margin=12&data='.rawurlencode($url);
+
+        return response()->view('site.my-webpage', compact('provider', 'type', 'subjects', 'related', 'url', 'oldProfileUrl', 'qrUrl'));
+    }
+
     public function localizedListing(Request $request, string $country, string $language, string $city, string $slug): Response
     {
         return $this->listing($request, $country, $city, $slug, $language);

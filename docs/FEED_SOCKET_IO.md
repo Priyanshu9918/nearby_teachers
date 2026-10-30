@@ -93,12 +93,8 @@ like counts, liker `{user_id,name,type}` lists and `likedByMe` state.
 
 ## Postman
 
-Import [`postman/feed-realtime.postman_collection.json`](postman/feed-realtime.postman_collection.json)
-for HTTP authorization checks, feed reads and REST fallback actions. Set
-`baseUrl`, `socketUrl`, `token`, `postId` and `commentId` in collection
-variables. The collection's descriptions contain the Socket.IO connect and
-event workflow. Postman's standard HTTP collection format cannot execute
-Socket.IO emits, so create a Socket.IO request in Postman using `socketUrl`,
-the `/socket.io/` path and `auth.token`; then emit `chat.ping` or the feed event
-payloads above. The importable collection keeps the corresponding HTTP setup
-and fallback requests together.
+Use the [Feed Socket.IO Postman guide](postman/feed-socketio-postman.md) to
+connect, ping, join a post, listen for feed updates and try every feed event.
+The importable [`feed-realtime.postman_collection.json`](postman/feed-realtime.postman_collection.json)
+contains HTTP authorization checks, feed reads and REST fallback actions; it
+cannot send Socket.IO events.

@@ -26,6 +26,8 @@ Route::get('/site', [WebsiteController::class, 'directory'])->name('website.dire
 Route::get('/site/institute/{slug}', [WebsiteController::class, 'institute'])->name('website.institute');
 Route::get('/teacher/{slug}', [InternationalSeoController::class, 'teacher'])->name('website.teacher');
 Route::get('/institute/{slug}', [InternationalSeoController::class, 'institute'])->name('website.institute-seo');
+Route::get('/my-webpage/{type}/{slug}', [InternationalSeoController::class, 'myWebpage'])
+    ->whereIn('type', ['teacher', 'institute'])->name('website.my-webpage');
 Route::get('/teachers/{slug}', [InternationalSeoController::class, 'teacher'])->name('website.teacher-old-overview');
 Route::get('/teachers/{slug}/profile', [InternationalSeoController::class, 'teacher'])->name('website.teacher-profile');
 Route::get('/site/teacher/{slug}', [InternationalSeoController::class, 'teacher'])->name('website.teacher-legacy');

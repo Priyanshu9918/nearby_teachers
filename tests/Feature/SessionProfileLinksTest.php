@@ -12,7 +12,7 @@ use Tests\TestCase;
 class SessionProfileLinksTest extends TestCase
 {
     #[DataProvider('profiles')]
-    public function test_session_returns_provider_website_links(string $type, ?array $fields, ?string $path): void
+    public function test_session_returns_provider_website_links(string $type, ?array $fields, ?string $profilePath, ?string $webpagePath): void
     {
         config(['seo.public_url' => 'https://profiles.example.test']);
         $user = (object) ['id' => 123, 'account_type' => $type, 'suspended_at' => null, 'is_admin' => false, 'phone_verified_at' => null];
@@ -43,26 +43,28 @@ class SessionProfileLinksTest extends TestCase
         $users->shouldReceive('where')->with('id', 123)->once()->andReturnSelf();
         $users->shouldReceive('first')->once()->andReturn(clone $user);
 
-        $expected = $path === null ? null : ($type === 'teacher'
-            ? 'https://profiles.example.test'.$path : url($path));
+        $profileUrl = $profilePath === null ? null : ($type === 'teacher'
+            ? 'https://profiles.example.test'.$profilePath : url($profilePath));
+        $webpageUrl = $webpagePath === null ? null : 'https://profiles.example.test'.$webpagePath;
         $response = $this->getJson('/auth/session', ['Authorization' => 'Bearer session-token'])
-            ->assertOk()->assertJsonPath('webPageUrl', $expected);
-        $response->assertJsonPath($type === 'teacher' ? 'teacherProfileUrl' : 'instituteProfileUrl', $expected);
+            ->assertOk()->assertJsonPath('webPageUrl', $webpageUrl)
+            ->assertJsonPath('myWebpageUrl', $webpageUrl);
+        $response->assertJsonPath($type === 'teacher' ? 'teacherProfileUrl' : 'instituteProfileUrl', $profileUrl);
         if ($type === 'teacher') {
-            $response->assertJsonPath('teacherSeoUrl', $expected);
+            $response->assertJsonPath('teacherSeoUrl', $profileUrl);
         }
     }
 
     public static function profiles(): array
     {
         return [
-            'published teacher' => ['teacher', ['is_profile_complete' => true, 'public_page_slug' => 'ravi-123', 'seo_country' => 'in'], '/teacher/ravi-123'],
-            'unpublished teacher' => ['teacher', ['is_profile_complete' => true], null],
-            'missing teacher' => ['teacher', null, null],
-            'institute with slug' => ['institute', ['slug' => 'academy-123', 'is_profile_complete' => true], '/site/institute/academy-123'],
-            'draft institute with slug' => ['institute', ['slug' => 'draft-123', 'is_profile_complete' => false], null],
-            'institute without slug' => ['institute', ['slug' => ''], null],
-            'missing institute' => ['institute', null, null],
+            'published teacher' => ['teacher', ['is_profile_complete' => true, 'public_page_slug' => 'ravi-123', 'seo_country' => 'in'], '/teacher/ravi-123', '/my-webpage/teacher/ravi-123'],
+            'unpublished teacher' => ['teacher', ['is_profile_complete' => true], null, null],
+            'missing teacher' => ['teacher', null, null, null],
+            'institute with page' => ['institute', ['slug' => 'academy-123', 'is_profile_complete' => true, 'public_page_slug' => 'academy-city', 'seo_country' => 'in'], '/site/institute/academy-123', '/my-webpage/institute/academy-city'],
+            'draft institute with slug' => ['institute', ['slug' => 'draft-123', 'is_profile_complete' => false], null, null],
+            'institute without slug' => ['institute', ['slug' => ''], null, null],
+            'missing institute' => ['institute', null, null, null],
         ];
     }
 }
