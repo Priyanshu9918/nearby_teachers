@@ -235,7 +235,9 @@ class InternationalSeoController extends Controller
             : route('website.institute', ['slug' => $provider->legacy_slug]);
         $qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=420x420&margin=12&data='.rawurlencode($url);
 
-        return response()->view('site.my-webpage', compact('provider', 'type', 'subjects', 'related', 'url', 'oldProfileUrl', 'qrUrl'));
+        return response()->view('site.my-webpage', compact('provider', 'type', 'subjects', 'related', 'url', 'oldProfileUrl', 'qrUrl') + [
+            'lang' => 'en', 't' => [],
+        ]);
     }
 
     public function localizedListing(Request $request, string $country, string $language, string $city, string $slug): Response
