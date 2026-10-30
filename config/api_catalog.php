@@ -93,6 +93,8 @@ return [
         'DELETE /feed/{postId}/like' => ['Learner', 'Teacher', 'Institute', 'Common'],
         'GET /feed/{postId}/comments' => ['Learner', 'Teacher', 'Institute', 'Common'],
         'POST /feed/{postId}/comments' => ['Learner', 'Teacher', 'Institute', 'Common'],
+        'POST /feed/comments/{commentId}/like' => ['Common'],
+        'DELETE /feed/comments/{commentId}/like' => ['Common'],
         'POST /safety/reports' => ['Common'],
         'POST /safety/blocks/{userId}' => ['Common'],
         'DELETE /safety/blocks/{userId}' => ['Common'],

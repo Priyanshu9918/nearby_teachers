@@ -47,7 +47,9 @@ Route::prefix('geo')->middleware('throttle:60,1')->group(function (): void {
 });
 Route::post('/analytics/page-view', [OperationsController::class, 'recordPageView'])->middleware('throttle:120,1');
 Route::get('/reviews/for/{providerId}', [CommunityController::class, 'providerReviews'])->where('providerId', RecordId::ROUTE_PATTERN);
-Route::get('/feed/{postId}/comments', [CommunityController::class, 'comments'])->where('postId', RecordId::ROUTE_PATTERN);
+Route::middleware(AttachOptionalApiUser::class)
+    ->get('/feed/{postId}/comments', [CommunityController::class, 'comments'])
+    ->where('postId', RecordId::ROUTE_PATTERN);
 Route::middleware(AttachOptionalApiUser::class)->get('/feed', [CommunityController::class, 'feed']);
 Route::middleware('throttle:60,1')->group(function (): void {
     Route::get('/search/dashboard', [SearchController::class, 'dashboard']);
@@ -121,6 +123,8 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
     Route::post('/feed/{postId}/like', [CommunityController::class, 'like'])->where('postId', RecordId::ROUTE_PATTERN);
     Route::delete('/feed/{postId}/like', [CommunityController::class, 'unlike'])->where('postId', RecordId::ROUTE_PATTERN);
     Route::post('/feed/{postId}/comments', [CommunityController::class, 'createComment'])->where('postId', RecordId::ROUTE_PATTERN);
+    Route::post('/feed/comments/{commentId}/like', [CommunityController::class, 'likeComment'])->where('commentId', RecordId::ROUTE_PATTERN);
+    Route::delete('/feed/comments/{commentId}/like', [CommunityController::class, 'unlikeComment'])->where('commentId', RecordId::ROUTE_PATTERN);
 
     Route::post('/safety/reports', [OperationsController::class, 'report']);
     Route::post('/safety/blocks/{userId}', [OperationsController::class, 'block'])->where('userId', RecordId::ROUTE_PATTERN);

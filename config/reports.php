@@ -105,6 +105,11 @@ return [
         'columns' => ['id', 'post_id', 'user_id', 'created_at'],
         'participants' => ['user_id'], 'search' => [],
     ],
+    'comment-likes' => [
+        'title' => 'Comment and reply likes', 'table' => 'comment_likes', 'timestamp' => 'created_at',
+        'columns' => ['id', 'comment_id', 'user_id', 'created_at'],
+        'participants' => ['user_id'], 'search' => [],
+    ],
     'support' => [
         'title' => 'Support tickets', 'table' => 'support_tickets', 'timestamp' => 'created_at',
         'columns' => ['id', 'user_id', 'subject', 'message', 'status', 'created_at', 'updated_at'],

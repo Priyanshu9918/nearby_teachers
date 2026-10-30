@@ -193,6 +193,44 @@ class ApiPerformanceTest extends TestCase
         $this->getJson('/bookings/incoming?perPage=2')->assertOk()->assertJsonCount(2, 'bookings');
     }
 
+    public function test_comments_and_replies_can_be_liked_and_unliked_with_activity_history(): void
+    {
+        $postId = NumericTestIds::next();
+        $commentId = NumericTestIds::next();
+        $replyId = NumericTestIds::next();
+        DB::table('posts')->insert([
+            'id' => $postId, 'author_id' => $this->viewerId, 'post_type' => 'request',
+            'city' => 'Delhi', 'body' => 'Post',
+        ]);
+        DB::table('post_comments')->insert([
+            ['id' => $commentId, 'post_id' => $postId, 'user_id' => $this->viewerId, 'body' => 'Comment', 'created_at' => now()],
+            ['id' => $replyId, 'post_id' => $postId, 'user_id' => $this->viewerId, 'parent_comment_id' => $commentId,
+                'body' => 'Reply', 'created_at' => now()->addSecond()],
+        ]);
+
+        $this->postJson('/feed/comments/'.$commentId.'/like')->assertOk()->assertJson(['ok' => true, 'liked' => true]);
+        $this->postJson('/feed/comments/'.$commentId.'/like')->assertOk();
+        $this->postJson('/feed/comments/'.$replyId.'/like')->assertOk();
+        $page = $this->getJson('/feed/'.$postId.'/comments')->assertOk()->assertJsonCount(2, 'comments');
+        $this->assertSame(1, $page->json('comments.0.like_count'));
+        $this->assertSame(true, $page->json('comments.0.likedByMe'));
+        $this->assertSame('Test user', $page->json('comments.0.likes.0.name'));
+        $this->assertSame(true, $page->json('comments.1.likedByMe'));
+
+        $this->deleteJson('/feed/comments/'.$replyId.'/like')->assertOk()->assertJson(['liked' => false]);
+        $this->deleteJson('/feed/comments/'.$replyId.'/like')->assertOk();
+        $this->deleteJson('/feed/comments/'.$commentId.'/like')->assertOk();
+        $page = $this->getJson('/feed/'.$postId.'/comments')->assertOk();
+        $this->assertSame(false, $page->json('comments.0.likedByMe'));
+        $this->assertSame(0, $page->json('comments.0.like_count'));
+        $this->assertSame(4, DB::table('business_activity')
+            ->where('event', 'comment.like_changed')->where('actor_user_id', $this->viewerId)->count());
+
+        $missing = NumericTestIds::next();
+        $this->postJson('/feed/comments/'.$missing.'/like')->assertNotFound();
+        $this->deleteJson('/feed/comments/'.$missing.'/like')->assertNotFound();
+    }
+
     public function test_geo_search_preserves_exact_radius_dateline_and_pole_matches(): void
     {
         $domain = DB::table('subject_domains')->insertGetId(['name' => 'Geo test']);

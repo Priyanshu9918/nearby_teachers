@@ -664,6 +664,10 @@ class DeveloperController extends Controller
             'GET /i18n/{lang}' => ['pathDefaults' => ['lang' => 'en']],
             'GET /reviews/for/{providerId}' => ['pathDefaults' => ['providerId' => 1]],
             'GET /feed/{postId}/comments' => ['pathDefaults' => ['postId' => 4]],
+            'POST /feed/comments/{commentId}/like' => ['pathDefaults' => ['commentId' => 5],
+                'guide' => 'Like a comment or reply as the authenticated user. Learner, Teacher and Institute accounts can use this endpoint; repeated likes are idempotent.'],
+            'DELETE /feed/comments/{commentId}/like' => ['pathDefaults' => ['commentId' => 5],
+                'guide' => 'Remove the authenticated user’s like from a comment or reply. Learner, Teacher and Institute accounts can use this endpoint; repeated unlikes are idempotent.'],
             'GET /moderation/conversations/{id}/messages' => ['pathDefaults' => ['id' => 3]],
             'GET /moderation/users/suspended' => ['query' => ''],
         ];

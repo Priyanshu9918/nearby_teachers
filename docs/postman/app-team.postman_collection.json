@@ -22661,6 +22661,76 @@
           ]
         },
         {
+          "name": "POST /feed/comments/{{commentId}}/like",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/feed/comments/{{commentId}}/like",
+              "host": ["{{baseUrl}}"],
+              "path": ["feed", "comments", "{{commentId}}", "like"]
+            },
+            "description": "Like a comment or reply as the authenticated user. Learner, Teacher and Institute accounts can use this endpoint; repeated likes are idempotent.",
+            "body": { "mode": "raw", "raw": "{}", "options": { "raw": { "language": "json" } } }
+          },
+          "response": [
+            {
+              "name": "Fictional example — 200 Comment liked",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/feed/comments/{{commentId}}/like",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["feed", "comments", "{{commentId}}", "like"]
+                },
+                "description": "Like a comment or reply as the authenticated user.",
+                "body": { "mode": "raw", "raw": "{}", "options": { "raw": { "language": "json" } } }
+              },
+              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [], "body": "{\n  \"ok\": true,\n  \"liked\": true\n}"
+            }
+          ]
+        },
+        {
+          "name": "DELETE /feed/comments/{{commentId}}/like",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/feed/comments/{{commentId}}/like",
+              "host": ["{{baseUrl}}"],
+              "path": ["feed", "comments", "{{commentId}}", "like"]
+            },
+            "description": "Remove the authenticated user’s like from a comment or reply. Learner, Teacher and Institute accounts can use this endpoint; repeated unlikes are idempotent."
+          },
+          "response": [
+            {
+              "name": "Fictional example — 200 Comment unliked",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [{ "key": "Accept", "value": "application/json" }],
+                "url": {
+                  "raw": "{{baseUrl}}/feed/comments/{{commentId}}/like",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["feed", "comments", "{{commentId}}", "like"]
+                },
+                "description": "Remove the authenticated user’s like from a comment or reply."
+              },
+              "status": "OK", "code": 200, "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "cookie": [], "body": "{\n  \"ok\": true,\n  \"liked\": false\n}"
+            }
+          ]
+        },
+        {
           "name": "POST /safety/reports",
           "request": {
             "method": "POST",

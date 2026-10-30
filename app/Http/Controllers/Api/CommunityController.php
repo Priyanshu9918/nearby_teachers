@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Jobs\SendNotificationEmail;
+use App\Reporting\BusinessActivityRecorder;
 use App\Support\CursorPage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -135,13 +136,109 @@ class CommunityController extends Controller
 
     public function comments(Request $request, int $postId): JsonResponse
     {
+        $user = $request->attributes->get('authenticated_user');
         $comments = DB::table('post_comments as c')
             ->join('users as u', 'u.id', '=', 'c.user_id')
             ->where('c.post_id', $postId)
-            ->select('c.*', 'u.full_name as author_name')
+            ->select('c.id', 'c.post_id', 'c.user_id', 'c.parent_comment_id', 'c.body', 'c.created_at', 'u.full_name as author_name')
+            ->selectSub(DB::table('comment_likes')->selectRaw('count(*)')->whereColumn('comment_id', 'c.id'), 'like_count')
+            ->selectRaw($user === null
+                ? '0 AS liked_by_me'
+                : 'EXISTS (SELECT 1 FROM comment_likes WHERE comment_id = c.id AND user_id = ?) AS liked_by_me',
+                $user === null ? [] : [$user->id])
             ->orderBy('c.created_at')->orderBy('c.id');
 
-        return CursorPage::respond($request, $comments, 'comments');
+        return CursorPage::respond(
+            $request,
+            $comments,
+            'comments',
+            transformItems: static function (array $items): array {
+                $commentIds = array_map(static fn (object $comment): int => (int) $comment->id, $items);
+                $likesByComment = [];
+                if ($commentIds !== []) {
+                    $likes = DB::table('comment_likes as l')
+                        ->join('users as u', 'u.id', '=', 'l.user_id')
+                        ->whereIn('l.comment_id', $commentIds)
+                        ->orderBy('l.created_at')->orderBy('l.user_id')
+                        ->get(['l.comment_id', 'u.id as user_id', 'u.full_name as name', 'u.account_type as type']);
+
+                    foreach ($likes as $like) {
+                        $likesByComment[$like->comment_id][] = [
+                            'user_id' => $like->user_id,
+                            'name' => $like->name,
+                            'type' => $like->type,
+                        ];
+                    }
+                }
+
+                foreach ($items as $comment) {
+                    $comment->likes = $likesByComment[$comment->id] ?? [];
+                    $comment->liked_by_me = (bool) $comment->liked_by_me;
+                    $comment->likedByMe = $comment->liked_by_me;
+                }
+
+                return $items;
+            },
+        );
+    }
+
+    public function likeComment(Request $request, int $commentId): JsonResponse
+    {
+        $user = $request->attributes->get('authenticated_user');
+        $liked = DB::transaction(function () use ($commentId, $user): ?bool {
+            $comment = DB::table('post_comments')->where('id', $commentId)->lockForUpdate()->first();
+            if ($comment === null) {
+                return null;
+            }
+
+            $inserted = DB::table('comment_likes')->insertOrIgnore([
+                'comment_id' => $commentId,
+                'user_id' => $user->id,
+                'created_at' => now(),
+            ]);
+            if ($inserted === 1) {
+                app(BusinessActivityRecorder::class)->record(
+                    'comment.like_changed', $commentId, $user->id, $comment->user_id,
+                    before: ['liked' => false], after: ['liked' => true],
+                );
+            }
+
+            return true;
+        });
+
+        if ($liked === null) {
+            return response()->json(['error' => 'Comment not found'], 404);
+        }
+
+        return response()->json(['ok' => true, 'liked' => true]);
+    }
+
+    public function unlikeComment(Request $request, int $commentId): JsonResponse
+    {
+        $user = $request->attributes->get('authenticated_user');
+        $liked = DB::transaction(function () use ($commentId, $user): ?bool {
+            $comment = DB::table('post_comments')->where('id', $commentId)->lockForUpdate()->first();
+            if ($comment === null) {
+                return null;
+            }
+
+            $deleted = DB::table('comment_likes')->where('comment_id', $commentId)
+                ->where('user_id', $user->id)->delete();
+            if ($deleted === 1) {
+                app(BusinessActivityRecorder::class)->record(
+                    'comment.like_changed', $commentId, $user->id, $comment->user_id,
+                    before: ['liked' => true], after: ['liked' => false],
+                );
+            }
+
+            return false;
+        });
+
+        if ($liked === null) {
+            return response()->json(['error' => 'Comment not found'], 404);
+        }
+
+        return response()->json(['ok' => true, 'liked' => false]);
     }
 
     public function createComment(Request $request, int $postId): JsonResponse
