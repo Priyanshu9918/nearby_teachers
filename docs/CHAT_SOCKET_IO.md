@@ -7,6 +7,12 @@ payload remain `message.sent` and `{message}`.
 
 ## Setup
 
+To connect and test `chat.ping` or chat events from Postman, follow the
+[Postman Socket.IO request guide](postman/chat-socketio-postman.md). The
+HTTP-only [chat API collection](postman/chat-realtime.postman_collection.json)
+contains REST checks and fallbacks; save the actual Socket.IO request separately
+from the Postman UI.
+
 Requirements: Node.js 22+, the existing Laravel/MySQL setup, and a queue worker.
 
 ```bash

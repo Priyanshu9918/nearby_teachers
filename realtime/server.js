@@ -66,6 +66,33 @@ function createChatServer(config) {
         }
         return respond(200, { ok: true });
       }
+      if (packet.postId !== undefined) {
+        const supportedFeed = new Set(['feed:comment.created', 'feed:comment.like_changed', 'feed:post.like_changed']);
+        const { postId, event, data } = packet;
+        if (!isId(postId) || !supportedFeed.has(event) || !data || data.postId !== postId) {
+          return respond(422, { error: 'Invalid feed event' });
+        }
+        if (event === 'feed:comment.created') {
+          const comment = data.comment;
+          if (!comment || !isId(comment.id) || comment.post_id !== postId || !isId(comment.user_id) ||
+              (comment.parent_comment_id !== null && comment.parent_comment_id !== undefined && !isId(comment.parent_comment_id)) ||
+              typeof comment.body !== 'string' || Array.from(comment.body).length > 5000 ||
+              typeof comment.author_name !== 'string' || comment.author_name.length > 160 ||
+              !['learner', 'teacher', 'institute'].includes(comment.author_type)) {
+            return respond(422, { error: 'Invalid feed comment event' });
+          }
+        } else {
+          const actor = data.user;
+          if ((event === 'feed:comment.like_changed' && !isId(data.commentId)) || !actor || !isId(actor.user_id) ||
+              typeof actor.name !== 'string' || actor.name.length > 160 ||
+              !['learner', 'teacher', 'institute'].includes(actor.type) || typeof data.liked !== 'boolean' ||
+              !Number.isSafeInteger(data.likeCount) || data.likeCount < 0) {
+            return respond(422, { error: 'Invalid feed like event' });
+          }
+        }
+        io.to('feed-post.' + postId).emit(event, data);
+        return respond(200, { ok: true });
+      }
       if (packet.event) {
         const supported = new Set(['chat:delivered', 'chat:read', 'chat:typing', 'chat:stop_typing', 'chat:delete', 'chat:edit', 'chat:reply', 'chat:reaction']);
         const { event, data, recipientIds } = packet;
@@ -120,9 +147,9 @@ function createChatServer(config) {
     serveClient: false,
   });
 
-  async function laravel(token, path, body) {
+  async function laravel(token, path, body, method = 'POST') {
     const response = await fetch(new URL(path.replace(/^\//, ''), apiUrl), {
-      method: 'POST',
+      method,
       headers: { Authorization: 'Bearer ' + token, Accept: 'application/json', 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(5000),
@@ -141,7 +168,14 @@ function createChatServer(config) {
   }
 
   io.use(async (socket, next) => {
-    const token = socket.handshake.auth?.token;
+    const authToken = socket.handshake.auth?.token;
+    const authorization = socket.handshake.headers.authorization;
+    const headerToken = typeof authorization === 'string'
+      ? /^Bearer\s+(\S+)$/i.exec(authorization)?.[1]
+      : null;
+    // Mobile Socket.IO clients use auth.token. Postman can authenticate its
+    // Socket.IO handshake with a Bearer Authorization header.
+    const token = typeof authToken === 'string' && authToken.length > 0 ? authToken : headerToken;
     if (typeof token !== 'string' || !token || token.length > 8192) {
       const error = new Error('Authentication required');
       error.data = { code: 'UNAUTHORIZED' };
@@ -193,6 +227,23 @@ function createChatServer(config) {
         inFlight--;
       }
     };
+    const feedOperation = (handler) => async (payload, callback) => {
+      payload = normalizeIds(payload);
+      const ack = typeof callback === 'function' ? callback : () => {};
+      if (limited()) return ack({ ok: false, status: 429, error: 'Too many requests' });
+      inFlight++;
+      try {
+        if (!payload || typeof payload !== 'object' || Array.isArray(payload) || !isId(payload.postId)) {
+          return ack({ ok: false, status: 422, error: 'Invalid postId' });
+        }
+        const result = await handler(payload);
+        if (socket.connected) ack({ ok: true, ...result });
+      } catch (error) {
+        ack({ ok: false, status: error.status || 503, error: error.message, errors: error.details });
+      } finally {
+        inFlight--;
+      }
+    };
 
     socket.on('chat.ping', (_payload, callback) => {
       if (typeof callback !== 'function') return;
@@ -215,6 +266,81 @@ function createChatServer(config) {
     socket.on('conversation.leave', operation(async ({ conversationId }) => {
       await socket.leave('private-conversation.' + conversationId);
       return {};
+    }));
+    socket.on('feed:join', feedOperation(async ({ postId }) => {
+      const room = 'feed-post.' + postId;
+      if (!socket.rooms.has(room) && socket.rooms.size >= 52) {
+        const error = new Error('Leave another room before joining more feed posts');
+        error.status = 429;
+        throw error;
+      }
+      const auth = normalizeIds(await laravel(socket.data.token, '/feed/socket/authorize', { postId }));
+      if (auth.userId !== socket.data.userId || auth.postId !== postId || auth.room !== room) {
+        const error = new Error('Invalid feed room authorization');
+        error.status = 403;
+        throw error;
+      }
+      if (socket.connected) await socket.join(room);
+      return { room };
+    }));
+    socket.on('feed:leave', feedOperation(async ({ postId }) => {
+      await socket.leave('feed-post.' + postId);
+      return {};
+    }));
+    const requireFeedRoom = (postId) => {
+      if (socket.rooms.has('feed-post.' + postId)) return;
+      const error = new Error('Join this feed post before sending actions');
+      error.status = 403;
+      throw error;
+    };
+    socket.on('feed:comment', feedOperation(async ({ postId, body }) => {
+      requireFeedRoom(postId);
+      if (typeof body !== 'string' || !body.trim() || Array.from(body).length > 5000) {
+        const error = new Error('Comment body must contain 1–5000 characters');
+        error.status = 422;
+        throw error;
+      }
+      return laravel(socket.data.token, '/feed/' + postId + '/comments', { body });
+    }));
+    socket.on('feed:reply', feedOperation(async ({ postId, parentCommentId, body }) => {
+      requireFeedRoom(postId);
+      if (!isId(parentCommentId)) {
+        const error = new Error('Invalid parentCommentId');
+        error.status = 422;
+        throw error;
+      }
+      if (typeof body !== 'string' || !body.trim() || Array.from(body).length > 5000) {
+        const error = new Error('Reply body must contain 1–5000 characters');
+        error.status = 422;
+        throw error;
+      }
+      return laravel(socket.data.token, '/feed/' + postId + '/comments', { parentCommentId, body });
+    }));
+    socket.on('feed:post.like', feedOperation(async ({ postId }) => {
+      requireFeedRoom(postId);
+      return laravel(socket.data.token, '/feed/' + postId + '/like', {});
+    }));
+    socket.on('feed:post.unlike', feedOperation(async ({ postId }) => {
+      requireFeedRoom(postId);
+      return laravel(socket.data.token, '/feed/' + postId + '/like', {}, 'DELETE');
+    }));
+    socket.on('feed:comment.like', feedOperation(async ({ postId, commentId }) => {
+      requireFeedRoom(postId);
+      if (!isId(commentId)) {
+        const error = new Error('Invalid commentId');
+        error.status = 422;
+        throw error;
+      }
+      return laravel(socket.data.token, '/feed/comments/' + commentId + '/like', { postId });
+    }));
+    socket.on('feed:comment.unlike', feedOperation(async ({ postId, commentId }) => {
+      requireFeedRoom(postId);
+      if (!isId(commentId)) {
+        const error = new Error('Invalid commentId');
+        error.status = 422;
+        throw error;
+      }
+      return laravel(socket.data.token, '/feed/comments/' + commentId + '/like', { postId }, 'DELETE');
     }));
     const chatActions = {
       send: ['conversationId', 'body', 'replyToId'], delivered: ['conversationId', 'messageId'],

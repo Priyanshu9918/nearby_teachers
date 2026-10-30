@@ -58,6 +58,8 @@ final class BusinessActivityRecorder
         'message.deleted' => ['message', ['conversation_id', 'revision', 'deleted_at']],
         'message.reaction_changed' => ['message_reaction', ['conversation_id', 'message_id', 'reaction']],
         'comment.like_changed' => ['comment', ['liked']],
+        'feed.comment_created' => ['comment', ['post_id', 'parent_comment_id']],
+        'post.like_changed' => ['post', ['liked']],
     ];
 
     public function record(string $event, string|int $entityId, string|int|null $actorUserId, string|int|null $relatedUserId = null, array $before = [], array $after = []): string

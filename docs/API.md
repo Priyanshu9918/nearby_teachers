@@ -17,6 +17,12 @@ comments, replies, booking status and safety APIs appear in each app role and
 in Common. Settings and admin-only APIs remain in Common, with their real access
 requirements. Provider contact lookup appears in Learner, Teacher and Institute.
 
+For live feed comments, replies and likes, see the [Socket.IO event guide](FEED_SOCKET_IO.md)
+and import the [Feed Realtime Postman collection](postman/feed-realtime.postman_collection.json).
+For chat connection, ping, history and actions, import the [Chat Realtime Postman collection](postman/chat-realtime.postman_collection.json)
+and see the [chat event contract](CHAT_EVENTS.md). To test actual Socket.IO
+connect/ping inside Postman, follow the [Postman Socket.IO request guide](postman/chat-socketio-postman.md).
+
 Deployed base URL: **`http://157.245.125.79/nearby_teachers/public`**.
 Local: `http://127.0.0.1:8000`; Android emulator: `http://10.0.2.2:8000`.
 There is **no `/api` prefix**. Append `/auth/login`, for example, to the full
@@ -272,12 +278,15 @@ checks authenticated identity, contact gates and a teacher/institute target.
 | `GET` | `/messages/{conversationId}` | Verified bearer, participant | `perPage`, `cursor` | Conversation messages. |
 | `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
 | `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
+| `POST` | `/feed/socket/authorize` | Verified bearer | `postId` | Confirms the feed post exists and returns its Socket.IO room. |
 | `GET` | `/feed` | Verified bearer | Required query `city`; optional `perPage`, `cursor` | Paginated city posts, with like/comment counts and the caller's like state. |
 | `POST` | `/feed` | Verified bearer | `city`, `body` | Creates a city post; one post per account every 7 days. |
 | `POST` | `/feed/{postId}/like` | Verified bearer | — | Likes a post. |
 | `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
 | `GET` | `/feed/{postId}/comments` | Public | `perPage`, `cursor` | Lists comments. |
 | `POST` | `/feed/{postId}/comments` | Verified bearer | `body`; optional `parentCommentId` | Adds a comment or reply. |
+| `POST` | `/feed/comments/{commentId}/like` | Verified bearer | Optional `postId` | Likes a comment or reply; a supplied postId must match the comment. |
+| `DELETE` | `/feed/comments/{commentId}/like` | Verified bearer | Optional `postId` | Removes the caller's comment/reply like. |
 | `GET` | `/broadcasting/auth` | Verified bearer, conversation participant | Same inputs as query parameters | Legacy broadcasting compatibility; not new mobile chat setup. |
 | `POST` | `/broadcasting/auth` | Verified bearer, conversation participant | `channel_name`; `socket_id` as required by configured broadcaster | Legacy channel authorization; Socket.IO clients use the events below. |
 

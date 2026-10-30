@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\FeedActivity;
 use App\Http\Controllers\Controller;
 use App\Jobs\SendNotificationEmail;
 use App\Reporting\BusinessActivityRecorder;
@@ -116,22 +117,73 @@ class CommunityController extends Controller
 
     public function like(Request $request, int $postId): JsonResponse
     {
-        DB::table('post_likes')->insertOrIgnore([
-            'post_id' => $postId,
-            'user_id' => $request->attributes->get('authenticated_user')->id,
-            'created_at' => now(),
-        ]);
+        $user = $request->attributes->get('authenticated_user');
+        $result = DB::transaction(function () use ($postId, $user): ?array {
+            if (DB::table('posts')->where('id', $postId)->lockForUpdate()->first(['id']) === null) {
+                return null;
+            }
 
-        return response()->json(['ok' => true]);
+            $inserted = DB::table('post_likes')->insertOrIgnore([
+                'post_id' => $postId,
+                'user_id' => $user->id,
+                'created_at' => now(),
+            ]);
+            $likeCount = (int) DB::table('post_likes')->where('post_id', $postId)->count();
+            if ($inserted === 1) {
+                app(BusinessActivityRecorder::class)->record(
+                    'post.like_changed', $postId, $user->id,
+                    before: ['liked' => false], after: ['liked' => true],
+                );
+                event(new FeedActivity('feed:post.like_changed', $postId, [
+                    'postId' => $postId,
+                    'user' => ['user_id' => $user->id, 'name' => $user->full_name, 'type' => $user->account_type],
+                    'liked' => true,
+                    'likeCount' => $likeCount,
+                ]));
+            }
+
+            return ['liked' => true, 'likeCount' => $likeCount];
+        });
+
+        if ($result === null) {
+            return response()->json(['error' => 'Post not found'], 404);
+        }
+
+        return response()->json(['ok' => true, ...$result, 'like_count' => $result['likeCount']]);
     }
 
     public function unlike(Request $request, int $postId): JsonResponse
     {
-        DB::table('post_likes')->where('post_id', $postId)
-            ->where('user_id', $request->attributes->get('authenticated_user')->id)
-            ->delete();
+        $user = $request->attributes->get('authenticated_user');
+        $result = DB::transaction(function () use ($postId, $user): ?array {
+            if (DB::table('posts')->where('id', $postId)->lockForUpdate()->first(['id']) === null) {
+                return null;
+            }
 
-        return response()->json(['ok' => true]);
+            $deleted = DB::table('post_likes')->where('post_id', $postId)
+                ->where('user_id', $user->id)->delete();
+            $likeCount = (int) DB::table('post_likes')->where('post_id', $postId)->count();
+            if ($deleted > 0) {
+                app(BusinessActivityRecorder::class)->record(
+                    'post.like_changed', $postId, $user->id,
+                    before: ['liked' => true], after: ['liked' => false],
+                );
+                event(new FeedActivity('feed:post.like_changed', $postId, [
+                    'postId' => $postId,
+                    'user' => ['user_id' => $user->id, 'name' => $user->full_name, 'type' => $user->account_type],
+                    'liked' => false,
+                    'likeCount' => $likeCount,
+                ]));
+            }
+
+            return ['liked' => false, 'likeCount' => $likeCount];
+        });
+
+        if ($result === null) {
+            return response()->json(['error' => 'Post not found'], 404);
+        }
+
+        return response()->json(['ok' => true, ...$result, 'like_count' => $result['likeCount']]);
     }
 
     public function comments(Request $request, int $postId): JsonResponse
@@ -140,7 +192,8 @@ class CommunityController extends Controller
         $comments = DB::table('post_comments as c')
             ->join('users as u', 'u.id', '=', 'c.user_id')
             ->where('c.post_id', $postId)
-            ->select('c.id', 'c.post_id', 'c.user_id', 'c.parent_comment_id', 'c.body', 'c.created_at', 'u.full_name as author_name')
+            ->select('c.id', 'c.post_id', 'c.user_id', 'c.parent_comment_id', 'c.body', 'c.created_at',
+                'u.full_name as author_name', 'u.account_type as author_type')
             ->selectSub(DB::table('comment_likes')->selectRaw('count(*)')->whereColumn('comment_id', 'c.id'), 'like_count')
             ->selectRaw($user === null
                 ? '0 AS liked_by_me'
@@ -184,10 +237,11 @@ class CommunityController extends Controller
 
     public function likeComment(Request $request, int $commentId): JsonResponse
     {
+        $data = $request->validate(['postId' => ['sometimes', 'required', 'integer', 'min:1', 'max:9007199254740991']]);
         $user = $request->attributes->get('authenticated_user');
-        $liked = DB::transaction(function () use ($commentId, $user): ?bool {
+        $result = DB::transaction(function () use ($commentId, $user, $data): ?array {
             $comment = DB::table('post_comments')->where('id', $commentId)->lockForUpdate()->first();
-            if ($comment === null) {
+            if ($comment === null || (isset($data['postId']) && (int) $comment->post_id !== (int) $data['postId'])) {
                 return null;
             }
 
@@ -196,49 +250,68 @@ class CommunityController extends Controller
                 'user_id' => $user->id,
                 'created_at' => now(),
             ]);
+            $likeCount = (int) DB::table('comment_likes')->where('comment_id', $commentId)->count();
             if ($inserted === 1) {
                 app(BusinessActivityRecorder::class)->record(
                     'comment.like_changed', $commentId, $user->id, $comment->user_id,
                     before: ['liked' => false], after: ['liked' => true],
                 );
+                event(new FeedActivity('feed:comment.like_changed', (int) $comment->post_id, [
+                    'postId' => (int) $comment->post_id,
+                    'commentId' => $commentId,
+                    'user' => ['user_id' => $user->id, 'name' => $user->full_name, 'type' => $user->account_type],
+                    'liked' => true,
+                    'likeCount' => $likeCount,
+                ]));
             }
 
-            return true;
+            return ['postId' => (int) $comment->post_id, 'liked' => true,
+                'likeCount' => $likeCount];
         });
 
-        if ($liked === null) {
+        if ($result === null) {
             return response()->json(['error' => 'Comment not found'], 404);
         }
 
-        return response()->json(['ok' => true, 'liked' => true]);
+        return response()->json(['ok' => true, ...$result, 'like_count' => $result['likeCount']]);
     }
 
     public function unlikeComment(Request $request, int $commentId): JsonResponse
     {
+        $data = $request->validate(['postId' => ['sometimes', 'required', 'integer', 'min:1', 'max:9007199254740991']]);
         $user = $request->attributes->get('authenticated_user');
-        $liked = DB::transaction(function () use ($commentId, $user): ?bool {
+        $result = DB::transaction(function () use ($commentId, $user, $data): ?array {
             $comment = DB::table('post_comments')->where('id', $commentId)->lockForUpdate()->first();
-            if ($comment === null) {
+            if ($comment === null || (isset($data['postId']) && (int) $comment->post_id !== (int) $data['postId'])) {
                 return null;
             }
 
             $deleted = DB::table('comment_likes')->where('comment_id', $commentId)
                 ->where('user_id', $user->id)->delete();
+            $likeCount = (int) DB::table('comment_likes')->where('comment_id', $commentId)->count();
             if ($deleted === 1) {
                 app(BusinessActivityRecorder::class)->record(
                     'comment.like_changed', $commentId, $user->id, $comment->user_id,
                     before: ['liked' => true], after: ['liked' => false],
                 );
+                event(new FeedActivity('feed:comment.like_changed', (int) $comment->post_id, [
+                    'postId' => (int) $comment->post_id,
+                    'commentId' => $commentId,
+                    'user' => ['user_id' => $user->id, 'name' => $user->full_name, 'type' => $user->account_type],
+                    'liked' => false,
+                    'likeCount' => $likeCount,
+                ]));
             }
 
-            return false;
+            return ['postId' => (int) $comment->post_id, 'liked' => false,
+                'likeCount' => $likeCount];
         });
 
-        if ($liked === null) {
+        if ($result === null) {
             return response()->json(['error' => 'Comment not found'], 404);
         }
 
-        return response()->json(['ok' => true, 'liked' => false]);
+        return response()->json(['ok' => true, ...$result, 'like_count' => $result['likeCount']]);
     }
 
     public function createComment(Request $request, int $postId): JsonResponse
@@ -247,23 +320,51 @@ class CommunityController extends Controller
             'body' => ['required', 'string', 'max:5000'],
             'parentCommentId' => ['nullable', 'integer', 'min:1', 'max:9007199254740991', 'exists:post_comments,id'],
         ]);
-        if (! DB::table('posts')->where('id', $postId)->exists()) {
+        $user = $request->attributes->get('authenticated_user');
+        $result = DB::transaction(function () use ($data, $postId, $user): ?array {
+            if (DB::table('posts')->where('id', $postId)->lockForUpdate()->first(['id']) === null) {
+                return null;
+            }
+            $parent = null;
+            if (isset($data['parentCommentId'])) {
+                $parent = DB::table('post_comments')->where('id', $data['parentCommentId'])
+                    ->where('post_id', $postId)->lockForUpdate()->first(['id', 'user_id']);
+                if ($parent === null) {
+                    return ['invalid_parent' => true];
+                }
+            }
+
+            $id = DB::table('post_comments')->insertGetId([
+                'post_id' => $postId,
+                'user_id' => $user->id,
+                'parent_comment_id' => $data['parentCommentId'] ?? null,
+                'body' => $data['body'],
+                'created_at' => now(),
+            ]);
+            $comment = DB::table('post_comments as c')->join('users as u', 'u.id', '=', 'c.user_id')
+                ->where('c.id', $id)->select('c.id', 'c.post_id', 'c.user_id', 'c.parent_comment_id', 'c.body', 'c.created_at',
+                    'u.full_name as author_name', 'u.account_type as author_type')->first();
+            $comment->like_count = 0;
+            $comment->liked_by_me = false;
+            $comment->likedByMe = false;
+            $comment->likes = [];
+
+            app(BusinessActivityRecorder::class)->record(
+                'feed.comment_created', $id, $user->id, $parent?->user_id,
+                after: ['post_id' => $postId, 'parent_comment_id' => $data['parentCommentId'] ?? null],
+            );
+            event(new FeedActivity('feed:comment.created', $postId, ['postId' => $postId, 'comment' => (array) $comment]));
+
+            return ['comment' => $comment];
+        });
+
+        if ($result === null) {
             return response()->json(['error' => 'Post not found'], 404);
         }
-        if (isset($data['parentCommentId']) && ! DB::table('post_comments')
-            ->where('id', $data['parentCommentId'])->where('post_id', $postId)->exists()) {
+        if (isset($result['invalid_parent'])) {
             return response()->json(['error' => 'Parent comment not found for this post'], 404);
         }
-        $user = $request->attributes->get('authenticated_user');
-        $id = DB::table('post_comments')->insertGetId([
-            'post_id' => $postId,
-            'user_id' => $user->id,
-            'parent_comment_id' => $data['parentCommentId'] ?? null,
-            'body' => $data['body'],
-            'created_at' => now(),
-        ]);
 
-        $comment = DB::table('post_comments')->where('id', $id)->first();
         if (isset($data['parentCommentId'])) {
             $parent = DB::table('post_comments as c')
                 ->join('users as u', 'u.id', '=', 'c.user_id')
@@ -275,7 +376,7 @@ class CommunityController extends Controller
             }
         }
 
-        return response()->json(['comment' => $comment]);
+        return response()->json(['comment' => $result['comment']]);
     }
 
     public function createReview(Request $request): JsonResponse

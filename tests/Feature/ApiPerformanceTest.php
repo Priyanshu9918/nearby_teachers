@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Broadcasting\SocketIoBroadcaster;
 use App\Events\ChatMessageSent;
+use App\Events\FeedActivity;
 use App\Jobs\SendNotificationEmail;
 use App\Services\AuthenticationService;
 use Illuminate\Broadcasting\BroadcastEvent;
@@ -208,6 +209,8 @@ class ApiPerformanceTest extends TestCase
                 'body' => 'Reply', 'created_at' => now()->addSecond()],
         ]);
 
+        $wrongPostId = NumericTestIds::next();
+        $this->postJson('/feed/comments/'.$commentId.'/like', ['postId' => $wrongPostId])->assertNotFound();
         $this->postJson('/feed/comments/'.$commentId.'/like')->assertOk()->assertJson(['ok' => true, 'liked' => true]);
         $this->postJson('/feed/comments/'.$commentId.'/like')->assertOk();
         $this->postJson('/feed/comments/'.$replyId.'/like')->assertOk();
@@ -215,6 +218,7 @@ class ApiPerformanceTest extends TestCase
         $this->assertSame(1, $page->json('comments.0.like_count'));
         $this->assertSame(true, $page->json('comments.0.likedByMe'));
         $this->assertSame('Test user', $page->json('comments.0.likes.0.name'));
+        $this->assertSame('learner', $page->json('comments.0.likes.0.type'));
         $this->assertSame(true, $page->json('comments.1.likedByMe'));
 
         $this->deleteJson('/feed/comments/'.$replyId.'/like')->assertOk()->assertJson(['liked' => false]);
@@ -229,6 +233,97 @@ class ApiPerformanceTest extends TestCase
         $missing = NumericTestIds::next();
         $this->postJson('/feed/comments/'.$missing.'/like')->assertNotFound();
         $this->deleteJson('/feed/comments/'.$missing.'/like')->assertNotFound();
+    }
+
+    public function test_post_like_changes_are_idempotent_and_reportable(): void
+    {
+        $postId = NumericTestIds::next();
+        DB::table('posts')->insert([
+            'id' => $postId, 'author_id' => $this->viewerId, 'post_type' => 'request',
+            'city' => 'Delhi', 'body' => 'Post for like history',
+        ]);
+
+        $this->postJson('/feed/'.$postId.'/like')->assertOk()
+            ->assertJsonPath('liked', true)->assertJsonPath('like_count', 1);
+        $feedPost = collect($this->getJson('/feed?city=Delhi')->assertOk()->json('posts'))->firstWhere('id', $postId);
+        $this->assertTrue($feedPost['likedByMe']);
+        $this->postJson('/feed/'.$postId.'/like')->assertOk()->assertJsonPath('like_count', 1);
+        $this->deleteJson('/feed/'.$postId.'/like')->assertOk()
+            ->assertJsonPath('liked', false)->assertJsonPath('like_count', 0);
+        $feedPost = collect($this->getJson('/feed?city=Delhi')->assertOk()->json('posts'))->firstWhere('id', $postId);
+        $this->assertFalse($feedPost['likedByMe']);
+        $this->deleteJson('/feed/'.$postId.'/like')->assertOk()->assertJsonPath('like_count', 0);
+
+        $activity = DB::table('business_activity')->where('event', 'post.like_changed')
+            ->where('entity_id', (string) $postId)->orderBy('id')->get();
+        $this->assertCount(2, $activity);
+        $this->assertSame(['liked' => false], json_decode($activity[0]->before_data, true));
+        $this->assertSame(['liked' => true], json_decode($activity[0]->after_data, true));
+        $this->assertSame(['liked' => true], json_decode($activity[1]->before_data, true));
+        $this->assertSame(['liked' => false], json_decode($activity[1]->after_data, true));
+    }
+
+    public function test_new_comments_and_replies_include_author_type_and_record_metadata(): void
+    {
+        $postId = NumericTestIds::next();
+        DB::table('posts')->insert([
+            'id' => $postId, 'author_id' => $this->viewerId, 'post_type' => 'request',
+            'city' => 'Delhi', 'body' => 'Post for comment activity',
+        ]);
+
+        $comment = $this->postJson('/feed/'.$postId.'/comments', ['body' => 'Comment'])
+            ->assertOk()->assertJsonPath('comment.author_type', 'learner')->json('comment');
+        $reply = $this->postJson('/feed/'.$postId.'/comments', [
+            'parentCommentId' => $comment['id'], 'body' => 'Reply',
+        ])->assertOk()->assertJsonPath('comment.parent_comment_id', $comment['id'])->json('comment');
+
+        $this->assertFalse($comment['likedByMe']);
+        $this->assertSame([], $reply['likes']);
+        $this->assertSame(2, DB::table('business_activity')->where('event', 'feed.comment_created')
+            ->where('actor_user_id', $this->viewerId)->count());
+        $replyActivity = DB::table('business_activity')->where('event', 'feed.comment_created')
+            ->where('entity_id', (string) $reply['id'])->first();
+        $this->assertSame(['post_id' => $postId, 'parent_comment_id' => $comment['id']],
+            json_decode($replyActivity->after_data, true));
+    }
+
+    public function test_post_like_and_its_activity_roll_back_together_on_broadcast_failure(): void
+    {
+        $postId = NumericTestIds::next();
+        DB::table('posts')->insert([
+            'id' => $postId, 'author_id' => $this->viewerId, 'post_type' => 'request',
+            'city' => 'Delhi', 'body' => 'Post for rollback check',
+        ]);
+        Event::listen(FeedActivity::class, static function (): void {
+            throw new \RuntimeException('Simulated event dispatch failure');
+        });
+        $this->withoutExceptionHandling();
+
+        try {
+            $this->postJson('/feed/'.$postId.'/like');
+            $this->fail('Expected the simulated broadcast preparation error.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('Simulated event dispatch failure', $exception->getMessage());
+        }
+
+        $this->assertSame(0, DB::table('post_likes')->where('post_id', $postId)->count());
+        $this->assertSame(0, DB::table('business_activity')->where('event', 'post.like_changed')
+            ->where('entity_id', (string) $postId)->count());
+    }
+
+    public function test_feed_socket_authorization_returns_only_an_existing_post_room(): void
+    {
+        $postId = NumericTestIds::next();
+        DB::table('posts')->insert([
+            'id' => $postId, 'author_id' => $this->viewerId, 'post_type' => 'request',
+            'city' => 'Delhi', 'body' => 'Post for socket authorization',
+        ]);
+
+        $this->postJson('/feed/socket/authorize', ['postId' => $postId])->assertOk()
+            ->assertJsonPath('userId', $this->viewerId)
+            ->assertJsonPath('postId', $postId)
+            ->assertJsonPath('room', 'feed-post.'.$postId);
+        $this->postJson('/feed/socket/authorize', ['postId' => NumericTestIds::next()])->assertNotFound();
     }
 
     public function test_geo_search_preserves_exact_radius_dateline_and_pole_matches(): void

@@ -28,4 +28,19 @@ class SocketIoController extends Controller
 
         return response()->json(['userId' => $user->id, 'room' => $room, 'expiresInSeconds' => 900, 'authVersion' => (int) ($user->auth_version ?? 0)]);
     }
+
+    public function authorizeFeed(Request $request): JsonResponse
+    {
+        $data = $request->validate(['postId' => ['required', 'integer', 'min:1', 'max:9007199254740991']]);
+        $post = DB::table('posts')->where('id', $data['postId'])->first(['id']);
+        if ($post === null) {
+            return response()->json(['error' => 'Post not found'], 404);
+        }
+
+        $user = $request->attributes->get('authenticated_user');
+
+        return response()->json(['userId' => $user->id, 'postId' => $post->id,
+            'room' => 'feed-post.'.$post->id, 'expiresInSeconds' => 900,
+            'authVersion' => (int) ($user->auth_version ?? 0)]);
+    }
 }

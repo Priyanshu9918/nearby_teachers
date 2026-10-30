@@ -1,0 +1,142 @@
+{
+  "info": {
+    "name": "Nearby Teachers — Realtime Socket.IO (Chat + Feed)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Realtime Socket.IO integration for chat and feed. Set baseUrl, socketUrl, token, conversationId, postId and commentId. Connect to socketUrl with path /socket.io/ and auth {token}; emit chat.ping with {} for the ACK. Chat rooms use conversation.join/leave and chat events documented in docs/CHAT_EVENTS.md. Join a feed post with feed:join {postId}, then use feed:comment, feed:reply, feed:post.like, feed:post.unlike, feed:comment.like and feed:comment.unlike. Listen to feed:comment.created, feed:post.like_changed and feed:comment.like_changed. Standard Postman HTTP collections cannot execute Socket.IO emits; this collection includes authorization checks, REST reads and fallback mutation requests. Feed event payloads and client examples: docs/FEED_SOCKET_IO.md. Chat setup/ping guide: docs/CHAT_SOCKET_IO.md."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://157.245.125.79/nearby_teachers/public", "type": "string" },
+    { "key": "socketUrl", "value": "http://127.0.0.1:6001", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "conversationId", "value": "", "type": "string" },
+    { "key": "postId", "value": "", "type": "string" },
+    { "key": "commentId", "value": "", "type": "string" },
+    { "key": "parentCommentId", "value": "", "type": "string" },
+    { "key": "city", "value": "Delhi", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "1. Connection and room authorization",
+      "description": "Run the HTTP authorization requests, then use socketUrl as a Socket.IO request URL in Postman. Configure path /socket.io/ and auth.token={{token}}. After connection, emit chat.ping with {} and use its ACK to check the socket round trip.",
+      "item": [
+        {
+          "name": "Authorize Socket.IO connection",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/chat/socket/authorize", "host": ["{{baseUrl}}"], "path": ["chat", "socket", "authorize"] },
+            "description": "Uses the same Laravel bearer as the Socket.IO handshake. The actual connect URL is {{socketUrl}} with path /socket.io/ and auth.token={{token}}."
+          }
+        },
+        {
+          "name": "Authorize feed post room",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"postId\": \"{{postId}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/feed/socket/authorize", "host": ["{{baseUrl}}"], "path": ["feed", "socket", "authorize"] },
+            "description": "Checks that postId exists and returns room feed-post.{postId}. The Socket.IO client then emits feed:join with {postId}."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Read and recover live state",
+      "description": "Reload these endpoints after joining or reconnecting so the client recovers any updates missed while offline.",
+      "item": [
+        {
+          "name": "Read city feed",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/feed?city={{city}}", "host": ["{{baseUrl}}"], "path": ["feed"], "query": [{ "key": "city", "value": "{{city}}" }] },
+            "description": "Public feed read. Authenticated requests include likedByMe; each post has likes with user_id, name and type."
+          }
+        },
+        {
+          "name": "Read post comments and replies",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/feed/{{postId}}/comments", "host": ["{{baseUrl}}"], "path": ["feed", "{{postId}}", "comments"] },
+            "description": "Returns comments and replies, like_count, likes with user_id/name/type and likedByMe."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. REST fallback mutations",
+      "description": "The Socket.IO equivalents are feed:comment, feed:reply, feed:post.like, feed:post.unlike, feed:comment.like and feed:comment.unlike. See docs/FEED_SOCKET_IO.md for the command payloads and live update events.",
+      "item": [
+        {
+          "name": "Like post",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/feed/{{postId}}/like", "host": ["{{baseUrl}}"], "path": ["feed", "{{postId}}", "like"] },
+            "description": "REST fallback for feed:post.like. A committed change broadcasts feed:post.like_changed."
+          }
+        },
+        {
+          "name": "Unlike post",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/feed/{{postId}}/like", "host": ["{{baseUrl}}"], "path": ["feed", "{{postId}}", "like"] },
+            "description": "REST fallback for feed:post.unlike."
+          }
+        },
+        {
+          "name": "Create comment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"body\": \"Hello from the feed.\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/feed/{{postId}}/comments", "host": ["{{baseUrl}}"], "path": ["feed", "{{postId}}", "comments"] },
+            "description": "REST fallback for feed:comment. The saved comment is broadcast as feed:comment.created."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["if (pm.response.code >= 200 && pm.response.code < 300) {", "  const data = pm.response.json();", "  if (data.comment && data.comment.id) pm.collectionVariables.set('commentId', String(data.comment.id));", "}"] } }]
+        },
+        {
+          "name": "Create reply",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"parentCommentId\": \"{{parentCommentId}}\",\n  \"body\": \"Reply from the feed.\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/feed/{{postId}}/comments", "host": ["{{baseUrl}}"], "path": ["feed", "{{postId}}", "comments"] },
+            "description": "REST fallback for feed:reply. The parent must belong to this post."
+          }
+        },
+        {
+          "name": "Like comment or reply",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"postId\": \"{{postId}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/feed/comments/{{commentId}}/like", "host": ["{{baseUrl}}"], "path": ["feed", "comments", "{{commentId}}", "like"] },
+            "description": "REST fallback for feed:comment.like. The postId check prevents liking a comment through a different post room."
+          }
+        },
+        {
+          "name": "Unlike comment or reply",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"postId\": \"{{postId}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/feed/comments/{{commentId}}/like", "host": ["{{baseUrl}}"], "path": ["feed", "comments", "{{commentId}}", "like"] },
+            "description": "REST fallback for feed:comment.unlike."
+          }
+        }
+      ]
+    }
+  ]
+}

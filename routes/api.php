@@ -112,6 +112,7 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
             ->defaults('event', 'chat:'.$chatAction)->middleware('throttle:chat-send');
     }
     Route::post('/chat/socket/authorize', [SocketIoController::class, 'authorizeSocket'])->middleware('throttle:socket-auth');
+    Route::post('/feed/socket/authorize', [SocketIoController::class, 'authorizeFeed'])->middleware('throttle:socket-auth');
     Route::post('/messages/start', [MessagesController::class, 'start']);
     Route::get('/messages/{conversationId}', [MessagesController::class, 'show'])->where('conversationId', RecordId::ROUTE_PATTERN);
     Route::post('/messages/{conversationId}', [MessagesController::class, 'send'])->where('conversationId', RecordId::ROUTE_PATTERN)->middleware('throttle:chat-send');

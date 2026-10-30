@@ -1,0 +1,241 @@
+{
+  "info": {
+    "name": "Nearby Teachers — Chat Realtime (HTTP)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "HTTP-only chat collection for connection authorization, inbox/history, REST action equivalents and block controls. This importable JSON does not contain a Socket.IO request. Configure baseUrl, socketUrl, token, conversationId, providerId, messageId, replyToId and userId. To test the live Socket.IO connection and events, create New > Socket.IO in Postman and save it as a separate multi-protocol collection using docs/postman/chat-socketio-postman.md."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://157.245.125.79/nearby_teachers/public", "type": "string" },
+    { "key": "socketUrl", "value": "http://127.0.0.1:6001", "type": "string", "description": "Local default. Replace with the public Socket.IO URL for your environment." },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "conversationId", "value": "", "type": "string" },
+    { "key": "providerId", "value": "", "type": "string" },
+    { "key": "userId", "value": "", "type": "string" },
+    { "key": "messageId", "value": "", "type": "string" },
+    { "key": "replyToId", "value": "", "type": "string" },
+    { "key": "body", "value": "Hello from chat", "type": "string" },
+    { "key": "perPage", "value": "20", "type": "string" },
+    { "key": "cursor", "value": "", "type": "string" },
+    { "key": "reaction", "value": "❤️", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "1. Connect, ping, inbox and history",
+      "description": "Socket.IO setup: connect to {{socketUrl}}, path /socket.io/, auth.token={{token}}. After connect, emit chat.ping with {} and an ACK callback. Join a conversation with conversation.join {conversationId}; leave with conversation.leave {conversationId}. Listen to message.sent or chat:receive (choose one or deduplicate by message.id).",
+      "item": [
+        {
+          "name": "Authorize Socket.IO connection",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/chat/socket/authorize", "host": ["{{baseUrl}}"], "path": ["chat", "socket", "authorize"] },
+            "description": "Connection auth check, also used internally by the Socket.IO handshake. For a real connection use {{socketUrl}} with path /socket.io/ and auth {token: {{token}}}. Then emit chat.ping with {} to receive {ok:true,serverTime}."
+          }
+        },
+        {
+          "name": "Authorize conversation room",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"conversationId\": \"{{conversationId}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/chat/socket/authorize", "host": ["{{baseUrl}}"], "path": ["chat", "socket", "authorize"] },
+            "description": "Checks that the signed-in user is a participant. Socket.IO equivalent: conversation.join with {conversationId}; leave with conversation.leave."
+          }
+        },
+        {
+          "name": "List my conversations",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/messages?perPage={{perPage}}", "host": ["{{baseUrl}}"], "path": ["messages"], "query": [{ "key": "perPage", "value": "{{perPage}}" }, { "key": "cursor", "value": "{{cursor}}", "disabled": true }] },
+            "description": "Returns the signed-in user's conversations, latest message preview and chatStatus. Use a returned conversation id to authorize/join and load history."
+          }
+        },
+        {
+          "name": "Start or find conversation",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"providerId\": \"{{providerId}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/messages/start", "host": ["{{baseUrl}}"], "path": ["messages", "start"] },
+            "description": "Finds the existing participant pair or creates the conversation, returning conversationId. Omit body to start an empty chat; optional body sends the first message."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["if (pm.response.code >= 200 && pm.response.code < 300) {", "  const data = pm.response.json();", "  if (data.conversationId) pm.collectionVariables.set('conversationId', String(data.conversationId));", "}"] } }]
+        },
+        {
+          "name": "Load saved message history",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/messages/{{conversationId}}?perPage={{perPage}}", "host": ["{{baseUrl}}"], "path": ["messages", "{{conversationId}}"], "query": [{ "key": "perPage", "value": "{{perPage}}" }, { "key": "cursor", "value": "{{cursor}}", "disabled": true }] },
+            "description": "REST recovery/history read for a conversation participant. Socket.IO alternative: emit chat:history with {conversationId,perPage,cursor}."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Send, reply and receipt actions",
+      "description": "Socket.IO command names are listed on each REST equivalent. A message send ACK confirms persistence; use the live event or history to reconcile timeout/reconnect cases.",
+      "item": [
+        {
+          "name": "Send message",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"body\": \"{{body}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/chat/events/send", "host": ["{{baseUrl}}"], "path": ["chat", "events", "send"] },
+            "description": "REST equivalent of Socket.IO chat:send. Saves the message and notifies connected participants."
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["if (pm.response.code >= 200 && pm.response.code < 300) {", "  const data = pm.response.json();", "  if (data.message && data.message.id) pm.collectionVariables.set('messageId', String(data.message.id));", "}"] } }]
+        },
+        {
+          "name": "Send message through messages endpoint",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"body\": \"{{body}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/messages/{{conversationId}}", "host": ["{{baseUrl}}"], "path": ["messages", "{{conversationId}}"] },
+            "description": "REST equivalent of legacy Socket.IO message.send. The canonical named event is chat:send via /chat/events/send."
+          }
+        },
+        {
+          "name": "Reply to message",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"replyToId\": \"{{replyToId}}\",\n  \"body\": \"{{body}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/chat/events/reply", "host": ["{{baseUrl}}"], "path": ["chat", "events", "reply"] },
+            "description": "REST equivalent of chat:reply. The reply target must be an undeleted message in this conversation."
+          }
+        },
+        {
+          "name": "Mark delivered",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"messageId\": \"{{messageId}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/chat/events/delivered", "host": ["{{baseUrl}}"], "path": ["chat", "events", "delivered"] },
+            "description": "REST equivalent of chat:delivered. Use the recipient's bearer; the sender cannot acknowledge their own message."
+          }
+        },
+        {
+          "name": "Mark read",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"messageId\": \"{{messageId}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/chat/events/read", "host": ["{{baseUrl}}"], "path": ["chat", "events", "read"] },
+            "description": "REST equivalent of chat:read. Reading also records delivery when that receipt did not exist. Use the recipient's bearer."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Edit, delete, reactions and typing",
+      "description": "Typing is transient and is not saved. Edit/delete/reaction actions are persisted and broadcast after commit when state changes.",
+      "item": [
+        {
+          "name": "Edit message",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"messageId\": \"{{messageId}}\",\n  \"body\": \"{{body}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/chat/events/edit", "host": ["{{baseUrl}}"], "path": ["chat", "events", "edit"] },
+            "description": "REST equivalent of chat:edit. Only the sender can edit their own message."
+          }
+        },
+        {
+          "name": "Delete message",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"messageId\": \"{{messageId}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/chat/events/delete", "host": ["{{baseUrl}}"], "path": ["chat", "events", "delete"] },
+            "description": "REST equivalent of chat:delete. Sender content becomes a tombstone; the message row is retained."
+          }
+        },
+        {
+          "name": "Set or remove reaction",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"messageId\": \"{{messageId}}\",\n  \"reaction\": \"{{reaction}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/chat/events/reaction", "host": ["{{baseUrl}}"], "path": ["chat", "events", "reaction"] },
+            "description": "REST equivalent of chat:reaction. Allowed values: 👍 👎 ❤️ 😂 😮 😢 🙏 🎉. Send JSON null to remove a reaction."
+          }
+        },
+        {
+          "name": "Typing indicator",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"conversationId\": \"{{conversationId}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/chat/events/typing", "host": ["{{baseUrl}}"], "path": ["chat", "events", "typing"] },
+            "description": "REST equivalent of Socket.IO chat:typing. Typing is transient; prefer the Socket.IO event in app clients."
+          }
+        },
+        {
+          "name": "Stop typing indicator",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"conversationId\": \"{{conversationId}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/chat/events/stop_typing", "host": ["{{baseUrl}}"], "path": ["chat", "events", "stop_typing"] },
+            "description": "REST equivalent of Socket.IO chat:stop_typing."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. History, unread count and blocking",
+      "description": "History and inbox remain available when messaging is blocked. Use chatStatus.canMessage to determine whether sending can resume.",
+      "item": [
+        {
+          "name": "Load history through chat events API",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"conversationId\": \"{{conversationId}}\",\n  \"perPage\": {{perPage}}\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/chat/events/history", "host": ["{{baseUrl}}"], "path": ["chat", "events", "history"] },
+            "description": "REST equivalent of Socket.IO chat:history. Supports bounded cursor pagination."
+          }
+        },
+        {
+          "name": "Get unread count",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"conversationId\": \"{{conversationId}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/chat/events/unread_count", "host": ["{{baseUrl}}"], "path": ["chat", "events", "unread_count"] },
+            "description": "REST equivalent of chat:unread_count. Omit conversationId to count across all owned conversations."
+          }
+        },
+        {
+          "name": "Block participant",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/safety/blocks/{{userId}}", "host": ["{{baseUrl}}"], "path": ["safety", "blocks", "{{userId}}"] },
+            "description": "Blocks the other participant by userId, not conversationId. Both directions disable chat mutations."
+          }
+        },
+        {
+          "name": "Unblock participant",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/safety/blocks/{{userId}}", "host": ["{{baseUrl}}"], "path": ["safety", "blocks", "{{userId}}"] },
+            "description": "Removes the caller's block. The other person may still have blocked the caller; check chatStatus.canMessage."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -11,6 +11,8 @@ const learner = 1;
 const provider = 2;
 const outsider = 3;
 const conversation = 4;
+const postId = 12;
+const commentId = 34;
 const secret = 'test-socket-secret-'.repeat(4);
 const message = {
   id: 5, conversation_id: conversation,
@@ -24,7 +26,7 @@ async function setup(t, options = {}) {
     const chunks = [];
     for await (const chunk of req) chunks.push(chunk);
     const body = JSON.parse(Buffer.concat(chunks).toString() || '{}');
-    requests.push({ path: req.url, body });
+    requests.push({ path: req.url, method: req.method, body });
     if (options.apiPrefix) {
       if (!req.url.startsWith(options.apiPrefix + '/')) {
         res.writeHead(404); res.end('{}'); return;
@@ -51,6 +53,14 @@ async function setup(t, options = {}) {
         expiresInSeconds: options.expiresInSeconds || 900,
         authVersion: req.headers.authorization === 'Bearer fresh-token' ? 1 : 0,
       });
+    }
+    if (req.url === '/feed/socket/authorize') {
+      if (!Number.isSafeInteger(body.postId) || body.postId < 1) return reply(404, { error: 'Post not found' });
+      return reply(200, { userId: id, postId: body.postId, room: 'feed-post.' + body.postId, expiresInSeconds: 900 });
+    }
+    if (req.url === '/feed/' + postId + '/comments' || req.url === '/feed/' + postId + '/like' ||
+        req.url === '/feed/comments/' + commentId + '/like') {
+      return reply(200, { ok: true, comment: { id: commentId, post_id: postId, parent_comment_id: body.parentCommentId || null } });
     }
     if (req.url.startsWith('/chat/events/')) {
       if (id === outsider || (body.conversationId && body.conversationId !== conversation)) return reply(404, {error: 'Conversation not found'});
@@ -121,6 +131,18 @@ test('missing and invalid credentials cannot connect', { timeout: 10000 }, async
     assert.equal(error.data.code, 'UNAUTHORIZED');
     assert.equal(socket.connected, false);
   }
+});
+
+test('Postman Socket.IO request authenticates with a Bearer handshake header', {timeout: 10000}, async (t) => {
+  const {client, requests} = await setup(t);
+  const socket = client(undefined, {extraHeaders: {Authorization: 'Bearer learner-token'}});
+  const ready = once(socket, 'connect');
+  socket.connect();
+  await ready;
+
+  const ping = await socket.timeout(2000).emitWithAck('chat.ping', {});
+  assert.equal(ping.ok, true);
+  assert.deepEqual(requests.map((request) => request.path), ['/chat/socket/authorize']);
 });
 
 test('authenticated chat ping acknowledges without calling the message API and is rate limited', { timeout: 10000 }, async (t) => {
@@ -266,6 +288,72 @@ test('all client chat events are forwarded to allowlisted Laravel APIs with auth
   assert.equal((await socket.timeout(2000).emitWithAck('chat:unread_count', {})).unreadCount, 1);
   const stranger = await connected('outsider-token');
   assert.equal((await stranger.timeout(2000).emitWithAck('chat:read', {conversationId: conversation, messageId: message.id})).status, 404);
+});
+
+test('feed rooms authorize membership and live actions use authenticated REST mutations', {timeout: 10000}, async (t) => {
+  const {connected, requests} = await setup(t);
+  const socket = await connected('learner-token');
+  const denied = await socket.timeout(2000).emitWithAck('feed:comment', {postId, body: 'Before join'});
+  assert.equal(denied.ok, false);
+  assert.equal(denied.status, 403);
+
+  const joined = await socket.timeout(2000).emitWithAck('feed:join', {postId});
+  assert.equal(joined.ok, true);
+  assert.equal(joined.room, 'feed-post.' + postId);
+
+  const actions = [
+    ['feed:comment', {postId, body: 'Hello', userId: outsider, token: 'forged'}, 'POST', '/feed/' + postId + '/comments', {body: 'Hello'}],
+    ['feed:reply', {postId, parentCommentId: commentId, body: 'Reply'}, 'POST', '/feed/' + postId + '/comments', {parentCommentId: commentId, body: 'Reply'}],
+    ['feed:post.like', {postId}, 'POST', '/feed/' + postId + '/like', {}],
+    ['feed:post.unlike', {postId}, 'DELETE', '/feed/' + postId + '/like', {}],
+    ['feed:comment.like', {postId, commentId}, 'POST', '/feed/comments/' + commentId + '/like', {postId}],
+    ['feed:comment.unlike', {postId, commentId}, 'DELETE', '/feed/comments/' + commentId + '/like', {postId}],
+  ];
+  for (const [event, payload, method, path, body] of actions) {
+    assert.equal((await socket.timeout(2000).emitWithAck(event, payload)).ok, true, event);
+    const request = requests.at(-1);
+    assert.equal(request.method, method, event);
+    assert.equal(request.path, path, event);
+    assert.deepEqual(request.body, body, event);
+  }
+  const ping = await socket.timeout(2000).emitWithAck('chat.ping', {});
+  assert.equal(ping.ok, true);
+  assert.equal((await socket.timeout(2000).emitWithAck('feed:leave', {postId})).ok, true);
+  const afterLeave = await socket.timeout(2000).emitWithAck('feed:post.like', {postId});
+  assert.equal(afterLeave.status, 403);
+});
+
+test('feed bridge events reach only authorized post subscribers and reject invalid payloads', {timeout: 10000}, async (t) => {
+  const {connected, publish} = await setup(t);
+  const member = await connected('learner-token');
+  const otherPostMember = await connected('provider-token');
+  await member.timeout(2000).emitWithAck('feed:join', {postId});
+  await otherPostMember.timeout(2000).emitWithAck('feed:join', {postId: postId + 1});
+  const payload = {
+    postId,
+    commentId,
+    user: {user_id: learner, name: 'Learner', type: 'learner'},
+    liked: true,
+    likeCount: 2,
+  };
+  const received = once(member, 'feed:comment.like_changed');
+  let otherPostCount = 0;
+  otherPostMember.on('feed:comment.like_changed', () => otherPostCount++);
+  assert.equal((await publish({postId, event: 'feed:comment.like_changed', data: payload})).status, 200);
+  assert.deepEqual((await received)[0], payload);
+  assert.equal((await publish({postId, event: 'feed:comment.like_changed', data: {...payload, likeCount: -1}})).status, 422);
+  const comment = {
+    id: commentId + 1, post_id: postId, user_id: learner, parent_comment_id: null,
+    body: 'New feed comment', author_name: 'Learner', author_type: 'learner',
+  };
+  const newComment = once(member, 'feed:comment.created');
+  assert.equal((await publish({postId, event: 'feed:comment.created', data: {postId, comment}})).status, 200);
+  assert.deepEqual((await newComment)[0], {postId, comment});
+  assert.equal((await publish({postId, event: 'feed:comment.created', data: {
+    postId, comment: {...comment, author_type: 'admin'},
+  }})).status, 422);
+  await new Promise((resolve) => setTimeout(resolve, 60));
+  assert.equal(otherPostCount, 0);
 });
 
 test('new message aliases reach participants once each and cannot be published by clients', {timeout: 10000}, async (t) => {

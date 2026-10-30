@@ -15,3 +15,7 @@ Broadcast::channel('conversation.{conversationId}', function (object $user, int 
     return $conversation !== null
         && ! app(ChatBlocking::class)->blocked($conversation->learner_id, $conversation->provider_id);
 });
+
+Broadcast::channel('feed-post.{postId}', function (object $user, int $postId): bool {
+    return DB::table('posts')->where('id', $postId)->exists();
+});

@@ -18,7 +18,7 @@
   "online_title": "Online :subject teachers and institutes in :country",
   "city_description": "Explore :subject teachers and institutes in :city. Compare available fees, teaching modes and profiles.",
   "online_description": "Explore online :subject teachers and institutes based in :country. Compare available fees and profiles.",
-  "count": ":count profiles",
+  "count": "Profiles found: :count",
   "lessons": "Lessons completed",
   "more": "Explore more teachers and institutes",
   "language": "Language",

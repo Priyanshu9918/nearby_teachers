@@ -122,12 +122,17 @@ Current event coverage starts when migration `000029` is deployed:
 | `message.edited` / `message.deleted` | Conversation, previous/new revision and mutation timestamp; no original or edited message text |
 | `message.reaction_changed` | Conversation/message references and previous/new allowlisted reaction; null marks removal |
 | `comment.like_changed` | Comment ID, acting user, comment author, and previous/new liked flag; duplicate likes and no-op unlikes add no event |
+| `post.like_changed` | Post ID, acting user and previous/new liked flag; duplicate likes and no-op unlikes add no event |
+| `feed.comment_created` | Comment ID, acting user, post ID and optional parent comment ID; comment text is not copied into history |
 
-Comment and reply likes are available in the `comment-likes` current-state report;
-their append-only changes appear in the activity report. Like/unlike mutations
-and their events commit together. Existing comment likes before this migration
-are not backfilled, and cascading source deletion removes current like rows while
-leaving business activity history intact.
+Post likes and comment/reply likes are available in current feed reads; their
+append-only changes appear in the activity report. Comment creation and all
+like/unlike mutations record history in the same transaction as the source
+change. Duplicate likes and no-op unlikes do not create history or live events.
+No old feed actions are backfilled. There are no comment edit/delete APIs, so
+those actions have no history events. Feed post creation also has no activity
+event yet. Cascading source deletion can remove current post/comment/like rows
+while leaving business activity history intact.
 
 Migration `000033` adds persisted receipt/edit/delete metadata, reply links and
 per-user reactions. Existing rows gain revision 1 and nullable new fields; no

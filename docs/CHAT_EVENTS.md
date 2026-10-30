@@ -154,6 +154,8 @@ Keep another participant connected in a second tab to verify private events.
 Examples also appear in the app-team Postman collection and API catalog.
 
 Deploy migration `2026_10_23_000033_extend_chat_events.php` before using these
-APIs. Restart the Node chat process and broadcasts queue workers after deploying
+APIs. Import [`postman/chat-realtime.postman_collection.json`](postman/chat-realtime.postman_collection.json)
+for the HTTP chat collection; use the [Postman Socket.IO request guide](postman/chat-socketio-postman.md)
+to create and save a real Socket.IO request in Postman. Restart the Node chat process and broadcasts queue workers after deploying
 PHP/Node changes. No migration of application data is performed by the test
 suite; integration tests use a disposable database ending in `_test`.
