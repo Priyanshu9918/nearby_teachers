@@ -36,6 +36,7 @@
             <a href="#authentication-flow" data-tab="authentication-flow"><span class="nav-icon" aria-hidden="true">↗</span>Google → OTP flow</a>
             <a href="#api-explorer" data-tab="api-explorer"><span class="nav-icon" aria-hidden="true">⌘</span>API explorer</a>
             <div class="nav-section">API categories</div>
+            <a href="#api-explorer" class="nav-category" data-tab="api-explorer" data-category=""><span class="nav-icon" aria-hidden="true">•</span>All APIs <span class="nav-count">{{ collect($catalog)->pluck('routeKey')->unique()->count() }}</span></a>
             @foreach ($categories as $category)
                 <a href="#api-explorer" class="nav-category" data-tab="api-explorer" data-category="{{ $category }}"><span class="nav-icon" aria-hidden="true">•</span>{{ $category }} <span class="nav-count">{{ collect($catalog)->where('category', $category)->count() }}</span></a>
             @endforeach
@@ -110,9 +111,9 @@
             <section class="tab" id="api-explorer" aria-label="API explorer">
                 <div class="explorer">
                     <section class="panel endpoint-panel" aria-label="Registered API endpoints">
-                        <div class="panel-head"><div><h2>API catalog</h2><p>{{ $routeCount }} registered routes · {{ count($catalog) }} request examples</p></div></div>
+                        <div class="panel-head"><div><h2>API catalog</h2><p id="catalog-result-count">{{ $routeCount }} registered routes · {{ count($catalog) }} request examples</p></div></div>
                         <div class="endpoint-tools">
-                            <input class="control" id="endpoint-search" type="search" placeholder="Search paths, methods…" aria-label="Search API endpoints">
+                            <input class="control" id="endpoint-search" type="search" placeholder="Search all APIs by method, path, category or access…" aria-label="Search all API endpoints">
                             <select class="control" id="category-filter" aria-label="Filter by category"><option value="">All categories</option></select>
                         </div>
                         <div class="endpoint-list" id="endpoint-list"></div>
@@ -204,6 +205,7 @@
     const apis = @js($catalog);
     const list = document.getElementById('endpoint-list');
     const categoryFilter = document.getElementById('category-filter');
+    const catalogResultCount = document.getElementById('catalog-result-count');
     const search = document.getElementById('endpoint-search');
     const method = document.getElementById('request-method');
     const path = document.getElementById('request-path');
@@ -257,6 +259,7 @@
         const category = categoryFilter.value;
         const visible = apis.filter((api) => (!category || api.category === category)
             && (!term || `${api.method} ${api.path} ${api.category} ${api.section} ${api.label} ${api.access}`.toLowerCase().includes(term)));
+        catalogResultCount.textContent = `${visible.length} API entries shown · ${new Set(visible.map((api) => api.routeKey)).size} routes`;
         let currentCategory = null;
         let currentSection = null;
         list.replaceChildren();
@@ -349,11 +352,16 @@
         const api = apis.find((item) => item.id === button.dataset.endpoint);
         if (api) selectApi(api);
     });
-    search.addEventListener('input', renderCatalog);
+    search.addEventListener('input', () => {
+        // Search is global even when the developer previously opened a role category.
+        categoryFilter.value = '';
+        renderCatalog();
+    });
     categoryFilter.addEventListener('change', renderCatalog);
     document.querySelectorAll('[data-category]').forEach((link) => {
         link.addEventListener('click', () => {
             categoryFilter.value = link.dataset.category;
+            if (!link.dataset.category) search.value = '';
             renderCatalog();
         });
     });
