@@ -8,11 +8,29 @@
 @if ($report === 'activity')<div class="flash">History begins when tracking is enabled. Includes completed registration, booking creation/status changes and message creation metadata. Message text remains in conversation history. Other actions appear when their tracking is added.</div>@endif
 @if (in_array($report, ['seo-pages', 'seo-location-pages'], true))<div class="flash">These are the active short URLs. Older language-in-path links redirect here; the full URL redirect history is under SEO URL ownership and redirects.</div>@endif
 @include('admin.reports.filters')
+@if ($comparison)
+    <section class="period-comparison" aria-label="Comparison with the previous period">
+        <div><span class="eyebrow">Period comparison</span><strong>{{ number_format($comparison['current']) }} records</strong><small>{{ \Illuminate\Support\Carbon::parse($comparison['from'])->format('M j, Y') }} – {{ \Illuminate\Support\Carbon::parse($comparison['to'])->format('M j, Y') }}</small></div>
+        <span class="comparison-divider" aria-hidden="true"></span>
+        <div><strong>{{ number_format($comparison['previous']) }} records</strong><small>Previous period · {{ \Illuminate\Support\Carbon::parse($comparison['previous_from'])->format('M j, Y') }} – {{ \Illuminate\Support\Carbon::parse($comparison['previous_to'])->format('M j, Y') }}</small></div>
+        <span @class(['comparison-change', 'comparison-up' => $comparison['difference'] > 0, 'comparison-down' => $comparison['difference'] < 0])>{{ $comparison['difference'] > 0 ? '+' : '' }}{{ number_format($comparison['difference']) }} vs previous</span>
+    </section>
+@endif
 <section class="panel"><p class="table-hint">Scroll horizontally to view all columns. IDs are shown in full.</p><div class="table-wrap" tabindex="0" role="region" aria-label="{{ $title }} records"><table class="data-table"><thead><tr><th>Details</th>@foreach ($columns as $column)<th>{{ str_replace('_', ' ', $column) }}</th>@endforeach</tr></thead><tbody>
 @forelse ($records as $record)
     <tr><td>
         @if ($report === 'users')<a class="btn btn-small" href="{{ route('admin.reports.user', $record->id) }}">User report</a>
-        @elseif ($report === 'reports' && $record->screenshot_available)<a class="btn btn-small" href="{{ route('admin.reports.safety-screenshot', ['id' => $record->id]) }}">View screenshot</a>
+        @elseif ($report === 'reports')
+            @if ($record->screenshot_available)<a class="btn btn-small" href="{{ route('admin.reports.safety-screenshot', ['id' => $record->id]) }}">View screenshot</a>@endif
+            <div class="table-actions safety-actions">
+                @if ($record->status === 'open')
+                    @foreach (['reviewed' => 'Mark reviewed', 'dismissed' => 'Dismiss'] as $status => $label)
+                        <form method="post" action="{{ route('admin.moderation.safety.update', ['reportId' => $record->id]) }}" @if($status === 'dismissed') onsubmit="return confirm('Dismiss this safety report?')" @endif>@csrf @method('patch')<input type="hidden" name="status" value="{{ $status }}"><button class="btn btn-small {{ $status === 'dismissed' ? 'btn-danger' : '' }}" type="submit">{{ $label }}</button></form>
+                    @endforeach
+                @else
+                    <form method="post" action="{{ route('admin.moderation.safety.update', ['reportId' => $record->id]) }}">@csrf @method('patch')<input type="hidden" name="status" value="open"><button class="btn btn-small" type="submit">Reopen</button></form>
+                @endif
+            </div>
         @elseif ($report === 'conversations')<a class="btn btn-small" href="{{ route('admin.reports.conversation', $record->id) }}">Read messages</a>
         @elseif ($report === 'messages')<a class="btn btn-small" href="{{ route('admin.reports.conversation', $record->conversation_id) }}">Conversation</a>
         @elseif ($report === 'teacher-profiles' && $record->seo_public)<a class="btn btn-small" href="{{ \App\Services\SeoDirectory::url('/teacher/'.$record->public_page_slug) }}" target="_blank" rel="noopener noreferrer">Open teacher page <x-admin-icon name="arrow" /></a>

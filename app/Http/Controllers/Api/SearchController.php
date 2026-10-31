@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Reporting\SearchAnalyticsRecorder;
 use App\Services\Presence\UserPresence;
 use App\Support\GeoBounds;
 use Illuminate\Http\JsonResponse;
@@ -92,6 +93,9 @@ class SearchController extends Controller
             $counts[$type] = $profiles->count();
         }
 
+        app(SearchAnalyticsRecorder::class)->record('dashboard', 'nearby_grid', null, null,
+            $results->count(), $latitude, (float) $data['lng'], $radiusKm);
+
         return $this->providerResponse([
             'center' => ['latitude' => $latitude, 'longitude' => (float) $data['lng']],
             'radiusKm' => $radiusKm,
@@ -178,6 +182,11 @@ class SearchController extends Controller
                 return $result;
             });
 
+        app(SearchAnalyticsRecorder::class)->record('nearby', 'nearby_grid', null,
+            isset($data['subjectId']) ? (int) $data['subjectId'] : null, $rows->count(),
+            (float) $data['lat'], (float) $data['lng'], (float) ($data['radiusKm'] ?? 7),
+            ($data['freeOnly'] ?? 'false') === 'true');
+
         return $this->providerResponse(['results' => $rows])
             ->header('Server-Timing', 'search;dur='.round((hrtime(true) - $started) / 1000000, 2));
     }
@@ -241,8 +250,11 @@ class SearchController extends Controller
             $bindings[] = '%'.$data['q'].'%';
         }
         $sql .= ' ORDER BY t.referral_points DESC, '.$this->weightedRating('t.rating_avg', 't.rating_count').' DESC, t.user_id ASC LIMIT 50';
+        $results = DB::select($sql, $bindings);
+        app(SearchAnalyticsRecorder::class)->record('other_city', 'city_or_country', $data['city'],
+            isset($data['subjectId']) ? (int) $data['subjectId'] : null, count($results));
 
-        return $this->providerResponse(['results' => DB::select($sql, $bindings)]);
+        return $this->providerResponse(['results' => $results]);
     }
 
     public function bySubject(Request $request, int $subjectId): JsonResponse
@@ -311,10 +323,13 @@ class SearchController extends Controller
 
                 return $result;
             }, DB::select($sql, $bindings));
+            $totalCount = (int) DB::selectOne($countSql, $countBindings)->total;
+            app(SearchAnalyticsRecorder::class)->record('subject', 'nearby_grid', null, $subjectId,
+                $totalCount, (float) $data['lat'], (float) $data['lng'], (float) ($data['radiusKm'] ?? 7));
 
             return $this->providerResponse([
                 'tier' => $tier,
-                'totalCount' => (int) DB::selectOne($countSql, $countBindings)->total,
+                'totalCount' => $totalCount,
                 'results' => $results,
             ]);
         }
@@ -325,9 +340,12 @@ class SearchController extends Controller
             $sql = $base." SELECT m.profile_type, m.user_id, u.full_name, CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url, m.price, m.rating_avg, m.rating_count, m.is_verified, m.trial_days, m.referral_points, m.city, m.state, m.country FROM matching m JOIN users u ON u.id = m.user_id WHERE lower(m.$column) = lower(?) ORDER BY m.referral_points DESC, ".$this->weightedRating('m.rating_avg', 'm.rating_count').' DESC, m.user_id ASC LIMIT 50';
             $countSql = $base." SELECT count(*) AS total FROM matching m WHERE lower(m.$column) = lower(?)";
 
+            $totalCount = (int) DB::selectOne($countSql, [$subjectId, $value])->total;
+            app(SearchAnalyticsRecorder::class)->record('subject', $tier, $value, $subjectId, $totalCount);
+
             return $this->providerResponse([
                 'tier' => $tier,
-                'totalCount' => (int) DB::selectOne($countSql, [$subjectId, $value])->total,
+                'totalCount' => $totalCount,
                 'results' => DB::select($sql, [$subjectId, $value]),
             ]);
         }
@@ -337,14 +355,18 @@ class SearchController extends Controller
                 $sql = $base.' SELECT m.profile_type, m.user_id, u.full_name, CASE WHEN u.avatar_status = \'approved\' THEN u.avatar_url ELSE NULL END AS avatar_url, m.price, m.rating_avg, m.rating_count, m.is_verified, m.trial_days, m.referral_points, m.city, m.country FROM matching m JOIN users u ON u.id = m.user_id WHERE lower(m.country) = lower(?) ORDER BY m.referral_points DESC, '.$this->weightedRating('m.rating_avg', 'm.rating_count').' DESC, m.user_id ASC LIMIT 50';
                 $countSql = $base.' SELECT count(*) AS total FROM matching m WHERE lower(m.country) = lower(?)';
 
+                $totalCount = (int) DB::selectOne($countSql, [$subjectId, $data['country']])->total;
+                app(SearchAnalyticsRecorder::class)->record('subject', 'country', $data['country'], $subjectId, $totalCount);
+
                 return $this->providerResponse([
                     'tier' => $tier,
                     'country' => $data['country'],
-                    'totalCount' => (int) DB::selectOne($countSql, [$subjectId, $data['country']])->total,
+                    'totalCount' => $totalCount,
                     'results' => DB::select($sql, [$subjectId, $data['country']]),
                 ]);
             }
             $countries = DB::select($base.' SELECT m.country, count(*) AS trainer_count FROM matching m WHERE m.country IS NOT NULL GROUP BY m.country ORDER BY trainer_count DESC', [$subjectId]);
+            app(SearchAnalyticsRecorder::class)->record('subject', 'other_countries', null, $subjectId, count($countries));
 
             return response()->json(['tier' => $tier, 'countries' => $countries]);
         }

@@ -510,23 +510,37 @@ class ProfilesController extends Controller
     public function setBslVerified(Request $request, int $id): JsonResponse
     {
         $data = $request->validate(['verified' => ['required', 'boolean']]);
-        $profile = DB::table('institute_profiles')->where('user_id', $id)->first();
+        $admin = $request->attributes->get('authenticated_user');
+        $result = DB::transaction(function () use ($admin, $data, $id): array {
+            $profile = DB::table('institute_profiles')->where('user_id', $id)->lockForUpdate()->first();
+            if ($profile === null) {
+                return ['error' => 'Profile not found', 'status' => 404];
+            }
+            if ($data['verified'] && $profile->institute_type !== 'bsl_direct') {
+                return [
+                    'error' => 'BSL Verified is reserved for directly-operated BSL centres. Franchise and MCP partners are not eligible.',
+                    'status' => 400,
+                ];
+            }
 
-        if ($profile === null) {
-            return response()->json(['error' => 'Profile not found'], 404);
-        }
-        if ($data['verified'] && $profile->institute_type !== 'bsl_direct') {
-            return response()->json([
-                'error' => 'BSL Verified is reserved for directly-operated BSL centres. Franchise and MCP partners are not eligible.',
-            ], 400);
-        }
+            $wasVerified = (bool) $profile->is_bsl_official;
+            if ($wasVerified !== (bool) $data['verified']) {
+                DB::table('institute_profiles')->where('user_id', $id)->update([
+                    'is_bsl_official' => $data['verified'],
+                    'bsl_official_since' => $data['verified'] ? ($profile->bsl_official_since ?? now()) : null,
+                    'updated_at' => now(),
+                ]);
+                app(BusinessActivityRecorder::class)->record('institute.bsl_verified_changed', (string) $profile->id,
+                    $admin->id, $id,
+                    before: ['is_bsl_official' => $wasVerified], after: ['is_bsl_official' => (bool) $data['verified']]);
+            }
 
-        DB::table('institute_profiles')->where('user_id', $id)->update([
-            'is_bsl_official' => $data['verified'],
-            'bsl_official_since' => $data['verified'] ? ($profile->bsl_official_since ?? now()) : null,
-        ]);
+            return ['profile' => DB::table('institute_profiles')->where('user_id', $id)->first()];
+        }, 3);
 
-        return response()->json(['profile' => DB::table('institute_profiles')->where('user_id', $id)->first()]);
+        return isset($result['error'])
+            ? response()->json(['error' => $result['error']], $result['status'])
+            : response()->json(['profile' => $result['profile']]);
     }
 
     private function appendField(array &$parts, array &$bindings, array $data, string $input, string $column, bool $uppercase = false): void

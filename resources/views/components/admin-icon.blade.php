@@ -19,6 +19,11 @@
         'close' => ['m6 6 12 12M6 18 18 6'],
         'logout' => ['M9 21H4V3h5M9 12h12m-5-5 5 5-5 5'],
         'check' => ['m5 12 4 4L19 6'],
+        'plus' => ['M12 5v14M5 12h14'],
+        'download' => ['M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3'],
+        'photo' => ['M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z', 'M8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z', 'm21 15-5-5L5 19'],
+        'flag' => ['M5 21V4m0 1c5-4 9 4 14 0v11c-5 4-9-4-14 0'],
+        'briefcase' => ['M3 7h18v14H3z', 'M8 7V4h8v3M3 12h18m-11 0v2h4v-2'],
     ];
 @endphp
 <svg {{ $attributes->class(['icon']) }} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">@foreach ($paths[$name] ?? $paths['document'] as $path)<path d="{{ $path }}"/>@endforeach</svg>

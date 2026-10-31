@@ -1,4 +1,20 @@
-<form method="get" class="panel panel-body">
+@php
+    $reportToday = now(config('app.timezone'))->startOfDay();
+    $reportPresets = [
+        'Today' => [$reportToday->toDateString(), $reportToday->toDateString()],
+        '7 days' => [$reportToday->copy()->subDays(6)->toDateString(), $reportToday->toDateString()],
+        '30 days' => [$reportToday->copy()->subDays(29)->toDateString(), $reportToday->toDateString()],
+        'This month' => [$reportToday->copy()->startOfMonth()->toDateString(), $reportToday->toDateString()],
+        'Last month' => [$reportToday->copy()->subMonthNoOverflow()->startOfMonth()->toDateString(), $reportToday->copy()->subMonthNoOverflow()->endOfMonth()->toDateString()],
+        '90 days' => [$reportToday->copy()->subDays(89)->toDateString(), $reportToday->toDateString()],
+        'This year' => [$reportToday->copy()->startOfYear()->toDateString(), $reportToday->toDateString()],
+        'Since launch' => [config('reporting.launch_date'), $reportToday->toDateString()],
+    ];
+@endphp
+<form method="get" class="panel panel-body report-filter-panel">
+    @if (!isset($report) || $timestamp !== null)
+        <fieldset class="date-presets"><legend>Quick date range</legend><div>@foreach ($reportPresets as $label => [$from, $to])<button type="button" class="date-preset" data-report-period data-from="{{ $from }}" data-to="{{ $to }}">{{ $label }}</button>@endforeach</div></fieldset>
+    @endif
     <div class="form-grid">
         <div class="field"><label for="q">Search</label><input id="q" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="{{ isset($report) ? 'Name, email, phone, record ID or report text' : 'Message text' }}"></div>
         @if (!empty($userColumns))
@@ -10,6 +26,6 @@
         <div class="field"><label for="to">Through date</label><input type="date" name="to" id="to" value="{{ $filters['to'] ?? '' }}"></div>
         @endif
     </div>
-    <div class="form-actions"><button class="btn btn-primary">Apply filters</button><a class="btn" href="{{ request()->url() }}">Reset</a><button class="btn" name="export" value="1">Export matching records CSV</button></div>
+    <div class="form-actions"><button class="btn btn-primary">Apply filters</button><a class="btn" href="{{ request()->url() }}">Reset</a><button class="btn" name="export" value="1">Export matching records CSV</button><a class="btn" href="{{ route('admin.reports.export-all', request()->only('q', 'user', 'type', 'from', 'to')) }}"><x-admin-icon name="download" />Download all reports (Excel)</a></div>
     <p class="help">Dates use {{ config('app.timezone') }}. Exports include every matching row, across all pages.</p>
 </form>

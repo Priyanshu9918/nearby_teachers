@@ -26,6 +26,7 @@ final class BusinessActivityRecorder
         'institute.profile_step_updated' => ['institute_profile', ['step', 'changed_fields']],
         'institute.profile_published' => ['institute_profile', ['status', 'terms_accepted', 'profile_complete']],
         'institute.avatar_submitted' => ['user', ['avatar_status']],
+        'avatar.reviewed' => ['user', ['avatar_status']],
         'teacher.profile_draft_saved' => ['teacher_profile', ['step', 'completed_steps', 'next_step']],
         'teacher.profile_step_updated' => ['teacher_profile', ['step', 'changed_fields']],
         'teacher.profile_published' => ['teacher_profile', ['status', 'terms_accepted', 'profile_complete']],
@@ -35,6 +36,10 @@ final class BusinessActivityRecorder
         'auth.logged_out' => ['user', ['auth_version', 'scope']],
         'user.blocked' => ['user', ['blocked']],
         'user.unblocked' => ['user', ['blocked']],
+        'user.suspended' => ['user', ['suspended', 'reason_set']],
+        'user.unsuspended' => ['user', ['suspended', 'reason_set']],
+        'user.suspension_reason_changed' => ['user', ['reason_set', 'reason_changed']],
+        'institute.bsl_verified_changed' => ['institute_profile', ['is_bsl_official']],
         'safety_report.submitted' => ['report', ['target_type', 'reason_category', 'status', 'has_screenshot', 'has_evidence_link']],
         'safety_report.status_changed' => ['report', ['status']],
         // Version 1 submission history excludes contact details; no follow-up/decision workflow exists yet.

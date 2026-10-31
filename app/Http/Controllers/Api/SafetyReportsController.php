@@ -12,7 +12,7 @@ final class SafetyReportsController extends Controller
     public function store(Request $request, SafetyReportCreator $reports): JsonResponse
     {
         $user = $request->attributes->get('authenticated_user');
-        abort_unless(in_array($user->account_type, ['learner', 'teacher', 'institute'], true), 403, 'User account required.');
+        abort_unless($user !== null && in_array($user->account_type, ['learner', 'teacher', 'institute'], true), 403, 'User account required.');
 
         $data = $request->validate([
             'targetType' => ['required', 'in:user,post,comment,message'],

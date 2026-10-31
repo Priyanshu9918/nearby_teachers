@@ -3,11 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Reporting\CsvExporter;
+use App\Reporting\OwnerMetrics;
 use App\Reporting\ReportAccessLog;
 use App\Reporting\ReportFilters;
 use App\Reporting\ReportQuery;
 use App\Reporting\ReportRegistry;
+use App\Reporting\XlsxExporter;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -21,11 +25,28 @@ class AdminReportController extends Controller
         private readonly ReportQuery $queries,
         private readonly ReportFilters $filters,
         private readonly CsvExporter $exports,
+        private readonly XlsxExporter $xlsx,
+        private readonly OwnerMetrics $ownerMetrics,
         private readonly ReportAccessLog $access,
     ) {}
 
-    public function dashboard(): View
+    public function dashboard(Request $request): View
     {
+        $this->access->record($request, 'dashboard', 'view');
+        $ownerFilters = $request->validate([
+            'from' => ['nullable', 'date_format:Y-m-d'],
+            'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
+        ]);
+        $timezone = config('app.timezone');
+        $dashboardTo = Carbon::parse($ownerFilters['to'] ?? now($timezone)->toDateString(), $timezone)->startOfDay();
+        $dashboardFrom = Carbon::parse($ownerFilters['from'] ?? $dashboardTo->copy()->subDays(6)->toDateString(), $timezone)->startOfDay();
+        $periodDays = (int) $dashboardFrom->diffInDays($dashboardTo) + 1;
+        $dashboardPreviousTo = $dashboardFrom->copy()->subDay();
+        $dashboardPreviousFrom = $dashboardPreviousTo->copy()->subDays($periodDays - 1);
+        $ownerPeriodMetrics = $this->ownerMetrics->summarize($dashboardFrom, $dashboardTo);
+        $ownerPreviousMetrics = $this->ownerMetrics->summarize($dashboardPreviousFrom, $dashboardPreviousTo);
+        $ownerSnapshot = $this->ownerMetrics->snapshot();
+        $queues = $this->ownerMetrics->queues();
         $counts = [];
         foreach ($this->registry->all() as $key => $definition) {
             $query = DB::table($definition->table);
@@ -37,6 +58,9 @@ class AdminReportController extends Controller
                     }
                 });
             }
+            if ($key === 'no-result-searches') {
+                $query->where('result_count', 0);
+            }
             $counts[$key] = ['label' => $definition->title, 'total' => $query->count()];
         }
         $types = DB::table('users')->select('account_type')->selectRaw('count(*) as total')->groupBy('account_type')->pluck('total', 'account_type');
@@ -46,8 +70,19 @@ class AdminReportController extends Controller
                     ->where(fn ($consent) => $consent->where('is_minor', false)->orWhereNotNull('parental_consent_confirmed_at'))))->count();
         $daily = DB::table('users')->where('created_at', '>=', now()->subDays(29)->startOfDay())
             ->selectRaw('DATE(created_at) as day, count(*) as total')->groupByRaw('DATE(created_at)')->orderBy('day')->get();
+        $workCounts = [
+            'open_safety' => DB::table('reports')->where('status', 'open')->count(),
+            'pending_photos' => DB::table('users')->where('avatar_status', 'pending')->count(),
+            'bsl_centres' => DB::table('institute_profiles')->where('is_bsl_official', true)->count(),
+            'suspended_users' => DB::table('users')->whereNotNull('suspended_at')->where('is_admin', false)->count(),
+            'call_backs' => $queues['new_leads'],
+            'possible_duplicates' => $queues['possible_duplicates'],
+            'referral_points' => (int) DB::table('users')->sum('referral_points'),
+        ];
 
-        return view('admin.reports.dashboard', compact('counts', 'types', 'registered', 'daily'));
+        return view('admin.reports.dashboard', compact('counts', 'types', 'registered', 'daily', 'workCounts',
+            'ownerPeriodMetrics', 'ownerPreviousMetrics', 'ownerSnapshot', 'queues', 'dashboardFrom', 'dashboardTo',
+            'dashboardPreviousFrom', 'dashboardPreviousTo'));
     }
 
     public function index(Request $request, string $report): View|StreamedResponse
@@ -55,13 +90,29 @@ class AdminReportController extends Controller
         $definition = $this->registry->get($report);
         $filters = $this->filters->validate($request);
         [$query, $columns] = $this->queries->build($definition, $filters);
-        if (in_array($report, ['seo-pages', 'seo-location-pages'], true)) {
-            $query->where(function ($scope): void {
-                foreach (config('seo.countries') as $country => $settings) {
-                    $scope->orWhere(fn ($countryScope) => $countryScope->where('r.country', $country)
-                        ->where('r.language', $settings['language']));
-                }
-            });
+        $this->scopeReport($query, $report);
+        $comparison = null;
+        if (! $request->boolean('export') && $definition->timestamp !== null
+            && ! empty($filters['from']) && ! empty($filters['to'])) {
+            $from = Carbon::parse($filters['from'], config('app.timezone'))->startOfDay();
+            $to = Carbon::parse($filters['to'], config('app.timezone'))->startOfDay();
+            $periodDays = (int) $from->diffInDays($to) + 1;
+            $previousTo = $from->copy()->subDay();
+            $previousFrom = $previousTo->copy()->subDays($periodDays - 1);
+            $previousFilters = $filters;
+            $previousFilters['from'] = $previousFrom->toDateString();
+            $previousFilters['to'] = $previousTo->toDateString();
+            [$previousQuery] = $this->queries->build($definition, $previousFilters);
+            $this->scopeReport($previousQuery, $report);
+            $comparison = [
+                'current' => (clone $query)->count(),
+                'previous' => (clone $previousQuery)->count(),
+                'from' => $from->toDateString(),
+                'to' => $to->toDateString(),
+                'previous_from' => $previousFrom->toDateString(),
+                'previous_to' => $previousTo->toDateString(),
+            ];
+            $comparison['difference'] = $comparison['current'] - $comparison['previous'];
         }
         $this->access->record($request, $report, $request->boolean('export') ? 'export' : 'view');
         if ($request->boolean('export')) {
@@ -73,7 +124,59 @@ class AdminReportController extends Controller
         $userColumns = $definition->participants;
         $availableReports = $this->registry->all();
 
-        return view('admin.reports.index', compact('report', 'title', 'columns', 'records', 'filters', 'userColumns', 'timestamp', 'availableReports'));
+        return view('admin.reports.index', compact('report', 'title', 'columns', 'records', 'filters', 'userColumns', 'timestamp', 'availableReports', 'comparison'));
+    }
+
+    public function exportAll(Request $request): BinaryFileResponse
+    {
+        $filters = $this->filters->validate($request);
+        $reports = $this->registry->all();
+        foreach (array_keys($reports) as $key) {
+            $this->access->record($request, $key, 'export');
+        }
+
+        return $this->xlsx->downloadAll($reports, function (string $key, $definition) use ($filters): array {
+            [$query, $columns] = $this->queries->build($definition, $filters);
+            $this->scopeReport($query, $key);
+
+            return [$query, $columns];
+        });
+    }
+
+    private function scopeReport(Builder $query, string $report): void
+    {
+        $this->scopeSeoReports($query, $report);
+        $this->scopeSafetyReports($query, $report);
+        if ($report === 'no-result-searches') {
+            $query->where('r.result_count', 0);
+        }
+    }
+
+    private function scopeSeoReports(Builder $query, string $report): void
+    {
+        if (! in_array($report, ['seo-pages', 'seo-location-pages'], true)) {
+            return;
+        }
+
+        $query->where(function ($scope): void {
+            foreach (config('seo.countries') as $country => $settings) {
+                $scope->orWhere(fn ($countryScope) => $countryScope->where('r.country', $country)
+                    ->where('r.language', $settings['language']));
+            }
+        });
+    }
+
+    private function scopeSafetyReports(Builder $query, string $report): void
+    {
+        if ($report !== 'reports') {
+            return;
+        }
+
+        $query->reorder()
+            ->orderByRaw("CASE WHEN r.status = 'open' THEN 0 ELSE 1 END")
+            ->orderByRaw("CASE WHEN r.reason_category = 'fraud' THEN 0 ELSE 1 END")
+            ->orderByDesc('r.created_at')
+            ->orderByDesc('r.id');
     }
 
     public function user(Request $request, int $id): View

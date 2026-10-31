@@ -151,6 +151,12 @@ return [
         'columns' => ['id', 'page_type', 'target', 'platform', 'referrer', 'user_agent', 'created_at'],
         'participants' => [], 'search' => ['page_type', 'target', 'platform'],
     ],
+    'no-result-searches' => [
+        'title' => 'Searches that found no providers', 'table' => 'search_analytics', 'timestamp' => 'created_at',
+        'columns' => ['id', 'search_type', 'location_type', 'location', 'latitude_band', 'longitude_band', 'radius_km', 'subject_id', 'result_count', 'free_only', 'created_at'],
+        'participants' => [], 'search' => ['search_type', 'location_type', 'location', 'subject_id'],
+        'computed' => ['subject_name' => '(SELECT name FROM subjects WHERE subjects.id = r.subject_id)'],
+    ],
     'teacher-profiles' => [
         'title' => 'Teacher profiles', 'table' => 'teacher_profiles', 'timestamp' => 'created_at',
         'columns' => ['id', 'user_id', 'listing_name', 'is_profile_complete', 'completed_profile_steps', 'profile_draft_saved_at', 'bio', 'rate_per_hour', 'currency', 'lesson_modes', 'latitude', 'longitude', 'address_text', 'city', 'state', 'country', 'country_code', 'linkedin_url', 'public_page_slug', 'seo_country', 'seo_city_slug', 'location_details', 'district', 'sub_district', 'locality', 'locality_type', 'postal_code', 'slug', 'is_verified', 'verified_at', 'trial_days', 'rating_avg', 'rating_count', 'created_at', 'updated_at'],

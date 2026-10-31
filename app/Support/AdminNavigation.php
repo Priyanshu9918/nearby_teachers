@@ -11,14 +11,15 @@ final class AdminNavigation
     public function groups(): array
     {
         $groups = [
-            'People' => ['icon' => 'users', 'reports' => ['users', 'logins', 'teacher-profiles', 'institute-profiles']],
-            'Enquiries & recruitment' => ['icon' => 'document', 'reports' => ['franchise-enquiries', 'job-applications', 'job-application-courses']],
-            'Public pages & SEO' => ['icon' => 'document', 'reports' => ['seo-pages', 'seo-location-pages', 'seo-subject-routes', 'seo-url-history']],
-            'Chat & lessons' => ['icon' => 'chat', 'reports' => ['conversations', 'messages', 'bookings', 'reviews']],
-            'Community & support' => ['icon' => 'shield', 'reports' => ['posts', 'comments', 'likes', 'comment-likes', 'support', 'suggestions', 'reports', 'blocks']],
-            'Learning catalog' => ['icon' => 'book', 'reports' => ['subjects', 'subject-domains', 'profile-subjects']],
-            'Insights & activity' => ['icon' => 'chart', 'reports' => ['activity', 'otp-delivery', 'referrals', 'phone-reveals', 'page-views']],
-            'Admin access logs' => ['icon' => 'lock', 'reports' => ['admin-access', 'api-chat-access', 'api-booking-access']],
+            'People & growth' => ['icon' => 'users', 'reports' => ['users', 'logins']],
+            'Teachers & institutes' => ['icon' => 'building', 'reports' => ['teacher-profiles', 'institute-profiles', 'subjects', 'subject-domains', 'profile-subjects']],
+            'Lessons & demand' => ['icon' => 'calendar', 'reports' => ['bookings', 'reviews']],
+            'Messages & community' => ['icon' => 'chat', 'reports' => ['conversations', 'messages', 'message-reactions', 'posts', 'comments', 'likes', 'comment-likes']],
+            'Website & downloads' => ['icon' => 'document', 'reports' => ['page-views', 'no-result-searches', 'seo-pages', 'seo-location-pages', 'seo-subject-routes', 'seo-url-history']],
+            'Referrals & posters' => ['icon' => 'chart', 'reports' => ['referrals', 'referral-clicks', 'phone-reveals']],
+            'Jobs, franchise & call-backs' => ['icon' => 'briefcase', 'reports' => ['job-applications', 'job-application-courses', 'franchise-enquiries']],
+            'Safety & support' => ['icon' => 'shield', 'reports' => ['reports', 'blocks', 'support', 'suggestions']],
+            'WhatsApp alerts & team' => ['icon' => 'chat', 'reports' => ['otp-delivery', 'activity', 'admin-access', 'api-chat-access', 'api-booking-access']],
         ];
         $currentReport = request()->route('report');
         if (request()->routeIs('admin.reports.user')) {

@@ -13,3 +13,6 @@ Schedule::call(fn () => DB::table('email_otp_codes')->where('expires_at', '<', n
     ->limit(1000)->delete())->name('prune-expired-email-codes')->everyFiveMinutes()->withoutOverlapping();
 
 Schedule::command('presence:prune')->everyMinute()->withoutOverlapping(5)->evenInMaintenanceMode();
+
+Schedule::command('reports:send-owner-weekly')->weeklyOn(1, '08:00')
+    ->timezone(config('app.timezone'))->withoutOverlapping();

@@ -4,16 +4,18 @@ namespace Tests\Feature;
 
 use App\Http\Middleware\TrackAuthActivity;
 use App\Reporting\BusinessActivityRecorder;
+use App\Reporting\OwnerMetrics;
 use App\Reporting\ReportRegistry;
+use App\Reporting\SearchAnalyticsRecorder;
 use App\Services\AuthenticationService;
 use App\Services\SafetyReportCreator;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Http\UploadedFile;
 use Tests\Support\NumericTestIds;
 use Tests\TestCase;
 
@@ -114,6 +116,95 @@ class AdminReportingTest extends TestCase
         $this->assertStringNotContainsString('private-consent-secret', $csv);
     }
 
+    public function test_report_pages_offer_quick_date_ranges_and_compare_adjacent_periods(): void
+    {
+        $this->withSession(['admin_authenticated' => true]);
+        $this->get('/admin/reports/users')->assertOk()->assertSee('Quick date range')->assertSee('Since launch');
+        $this->get('/admin/reports/users?from=2026-10-20&to=2026-10-20')
+            ->assertOk()->assertSee('Period comparison')->assertSee('Previous period');
+    }
+
+    public function test_empty_search_report_and_owner_metrics_use_privacy_safe_search_analytics(): void
+    {
+        $recorder = app(SearchAnalyticsRecorder::class);
+        $recorder->record('nearby', 'nearby_grid', null, null, 0, 28.6139, 77.2090, 7);
+        $recorder->record('subject', 'city', 'Gurugram', 1, 2);
+
+        $metrics = app(OwnerMetrics::class)->summarize(now()->startOfDay(), now()->startOfDay());
+        $this->assertSame(2, $metrics['searches']['value']);
+        $this->assertSame(1, $metrics['empty_searches']['value']);
+        $nearby = DB::table('search_analytics')->where('search_type', 'nearby')->first();
+        $this->assertSame(28.6, (float) $nearby->latitude_band);
+        $this->assertSame(77.2, (float) $nearby->longitude_band);
+        $this->assertArrayNotHasKey('q', (array) $nearby);
+        $this->assertArrayNotHasKey('search_query', (array) $nearby);
+
+        $this->withSession(['admin_authenticated' => true]);
+        $this->get('/admin/reports/no-result-searches')->assertOk()->assertSee('nearby_grid')->assertDontSee('Gurugram');
+    }
+
+    public function test_all_reports_export_as_one_filtered_excel_workbook(): void
+    {
+        $response = $this->withSession(['admin_authenticated' => true])
+            ->get('/admin/reports/export-all?from=2026-10-20&to=2026-10-20&type=teacher')
+            ->assertOk()
+            ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        $file = $response->baseResponse->getFile()->getPathname();
+        $this->assertFileExists($file);
+        $workbook = new \ZipArchive;
+        $this->assertNotFalse($workbook->open($file));
+        $workbookXml = $workbook->getFromName('xl/workbook.xml');
+        $this->assertStringContainsString('Users and registrations', $workbookXml);
+        $this->assertGreaterThan(10, $workbook->numFiles);
+        $sheets = simplexml_load_string($workbookXml);
+        $sheets->registerXPathNamespace('x', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main');
+        $userSheetIndex = 0;
+        foreach ($sheets->xpath('//x:sheet') as $index => $sheet) {
+            if ((string) $sheet['name'] === 'Users and registrations') {
+                $userSheetIndex = $index + 1;
+                break;
+            }
+        }
+        $userSheet = $workbook->getFromName('xl/worksheets/sheet'.$userSheetIndex.'.xml');
+        $this->assertStringContainsString('teacher@example.test', $userSheet);
+        $this->assertStringNotContainsString('learner@example.test', $userSheet);
+        $workbook->close();
+        $this->assertSame(count(app(ReportRegistry::class)->all()), DB::table('admin_report_access_log')->where('action', 'export')->count());
+    }
+
+    public function test_safety_report_queue_shows_open_fraud_reports_first(): void
+    {
+        foreach ([
+            ['category' => 'spam', 'status' => 'open', 'reason' => 'Open spam sentinel', 'created_at' => '2026-10-30 12:00:00'],
+            ['category' => 'fraud', 'status' => 'reviewed', 'reason' => 'Reviewed fraud sentinel', 'created_at' => '2026-10-31 12:00:00'],
+            ['category' => 'fraud', 'status' => 'open', 'reason' => 'Open fraud sentinel', 'created_at' => '2026-10-20 12:00:00'],
+        ] as $report) {
+            DB::table('reports')->insert([
+                'reporter_id' => $this->learner, 'target_type' => 'user', 'target_id' => $this->teacher,
+                'reason_category' => $report['category'], 'status' => $report['status'],
+                'reason' => $report['reason'], 'created_at' => $report['created_at'],
+            ]);
+        }
+
+        $html = $this->withSession(['admin_authenticated' => true])
+            ->get('/admin/reports/reports')->assertOk()->getContent();
+        $fraudPosition = strpos($html, 'Open fraud sentinel');
+        $spamPosition = strpos($html, 'Open spam sentinel');
+        $reviewedPosition = strpos($html, 'Reviewed fraud sentinel');
+        $this->assertNotFalse($fraudPosition);
+        $this->assertNotFalse($spamPosition);
+        $this->assertNotFalse($reviewedPosition);
+        $this->assertLessThan($spamPosition, $fraudPosition);
+        $this->assertLessThan($reviewedPosition, $spamPosition);
+
+        $reportId = DB::table('reports')->where('reason', 'Open fraud sentinel')->value('id');
+        $this->patch('/admin/moderation/safety-reports/'.$reportId.'/status', ['status' => 'reviewed'])
+            ->assertRedirect()->assertSessionHas('status', 'Safety report status updated.');
+        $this->assertSame('reviewed', DB::table('reports')->where('id', $reportId)->value('status'));
+        $this->assertSame(1, DB::table('business_activity')->where('event', 'safety_report.status_changed')->where('entity_id', $reportId)->count());
+        $this->assertSame(1, DB::table('admin_report_access_log')->where('report', 'reports')->where('action', 'safety-status')->where('record_id', $reportId)->count());
+    }
+
     public function test_referral_click_report_is_admin_only_and_never_exposes_visitor_hashes(): void
     {
         $visitorHash = str_repeat('f', 64);
@@ -130,6 +221,119 @@ class AdminReportingTest extends TestCase
         $this->assertStringContainsString('referrer_id', $csv);
         $this->assertStringNotContainsString($visitorHash, $csv);
         $this->assertSame(1, DB::table('admin_report_access_log')->where('report', 'referral-clicks')->where('action', 'export')->count());
+    }
+
+    public function test_admin_workspace_queues_require_admin_session_and_record_page_access(): void
+    {
+        foreach ([
+            '/admin/moderation/photos',
+            '/admin/moderation/bsl-centres',
+            '/admin/moderation/suspended-users',
+            '/admin/moderation/possible-duplicates',
+        ] as $url) {
+            $this->get($url)->assertRedirect(route('admin.login'));
+        }
+
+        $this->withSession(['admin_authenticated' => true]);
+        $this->get('/admin/dashboard')->assertOk()->assertSee('What would you like to do?')->assertSee('BSL admin overview');
+        $this->get('/admin/moderation/photos')->assertOk()->assertSee('Photos to approve');
+        $this->get('/admin/moderation/bsl-centres')->assertOk()->assertSee('BSL Verified centres');
+        $this->get('/admin/moderation/suspended-users')->assertOk()->assertSee('Suspended accounts');
+        $this->get('/admin/moderation/possible-duplicates')->assertOk()->assertSee('Possible duplicate teachers');
+
+        $this->assertSame(1, DB::table('admin_report_access_log')->where('report', 'dashboard')->where('action', 'view')->count());
+        $this->assertSame(1, DB::table('admin_report_access_log')->where('report', 'users')->where('action', 'photo-review-list')->count());
+        $this->assertSame(1, DB::table('admin_report_access_log')->where('report', 'institute-profiles')->where('action', 'bsl-list')->count());
+    }
+
+    public function test_photo_review_and_bsl_badge_mutations_are_logged_and_evented(): void
+    {
+        DB::table('users')->where('id', $this->teacher)->update([
+            'avatar_url' => 'https://images.example.test/pending.jpg', 'avatar_status' => 'pending',
+        ]);
+        DB::table('institute_profiles')->where('user_id', $this->institute)->update([
+            'institute_type' => 'bsl_direct', 'is_bsl_official' => false,
+        ]);
+        $this->withSession(['admin_authenticated' => true]);
+
+        $this->patch('/admin/moderation/photos/'.$this->teacher, ['status' => 'approved'])
+            ->assertRedirect()->assertSessionHas('status', 'Photo approved.');
+        $this->assertSame('approved', DB::table('users')->where('id', $this->teacher)->value('avatar_status'));
+        $this->assertSame(1, DB::table('business_activity')->where('event', 'avatar.reviewed')->where('entity_id', $this->teacher)->count());
+
+        $this->patch('/admin/moderation/bsl-centres/'.$this->institute, ['verified' => '1'])
+            ->assertRedirect()->assertSessionHas('status', 'BSL Verified badge granted.');
+        $this->assertSame(1, (int) DB::table('institute_profiles')->where('user_id', $this->institute)->value('is_bsl_official'));
+        $this->assertSame(1, DB::table('business_activity')->where('event', 'institute.bsl_verified_changed')->count());
+
+        DB::table('institute_profiles')->where('user_id', $this->institute)->update(['institute_type' => 'franchise']);
+        $this->patch('/admin/moderation/bsl-centres/'.$this->institute, ['verified' => '1'])->assertSessionHasErrors('verified');
+        $this->assertSame(1, DB::table('business_activity')->where('event', 'institute.bsl_verified_changed')->count());
+        $this->assertSame(1, DB::table('admin_report_access_log')->where('action', 'photo-review')->where('record_id', $this->teacher)->count());
+    }
+
+    public function test_failed_photo_history_write_rolls_back_the_photo_decision(): void
+    {
+        DB::table('users')->where('id', $this->teacher)->update(['avatar_status' => 'pending']);
+        $recorder = \Mockery::mock(BusinessActivityRecorder::class);
+        $recorder->shouldReceive('record')->once()->andThrow(new \RuntimeException('History write failed.'));
+        $this->app->instance(BusinessActivityRecorder::class, $recorder);
+        $this->withSession(['admin_authenticated' => true])->withoutExceptionHandling();
+
+        try {
+            $this->patch('/admin/moderation/photos/'.$this->teacher, ['status' => 'rejected']);
+            $this->fail('The failed history write should abort the request.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('History write failed.', $exception->getMessage());
+        }
+
+        $this->assertSame('pending', DB::table('users')->where('id', $this->teacher)->value('avatar_status'));
+        $this->assertSame(0, DB::table('business_activity')->where('event', 'avatar.reviewed')->count());
+    }
+
+    public function test_suspensions_require_a_reason_protect_admin_accounts_and_record_safe_history(): void
+    {
+        $this->withSession(['admin_authenticated' => true]);
+
+        $this->post('/admin/moderation/users/'.$this->teacher.'/suspend', ['reason' => 'Repeated fake listing reports'])
+            ->assertRedirect()->assertSessionHas('status', 'Account suspended.');
+        $teacher = DB::table('users')->where('id', $this->teacher)->first();
+        $this->assertNotNull($teacher->suspended_at);
+        $this->assertSame('Repeated fake listing reports', $teacher->suspended_reason);
+        $event = DB::table('business_activity')->where('event', 'user.suspended')->first();
+        $this->assertSame(['suspended' => true, 'reason_set' => true], json_decode($event->after_data, true));
+
+        DB::table('users')->where('id', $this->institute)->update(['is_admin' => true]);
+        $this->post('/admin/moderation/users/'.$this->institute.'/suspend', ['reason' => 'Not allowed'])
+            ->assertSessionHasErrors('user');
+        $this->assertNull(DB::table('users')->where('id', $this->institute)->value('suspended_at'));
+
+        $this->post('/admin/moderation/users/'.$this->teacher.'/unsuspend')->assertRedirect()->assertSessionHas('status', 'Account restored.');
+        $this->assertNull(DB::table('users')->where('id', $this->teacher)->value('suspended_at'));
+        $this->assertSame(1, DB::table('business_activity')->where('event', 'user.unsuspended')->count());
+        $this->assertSame(2, DB::table('admin_report_access_log')->whereIn('action', ['suspend', 'unsuspend'])->count());
+    }
+
+    public function test_existing_admin_api_moderation_writes_the_same_business_history(): void
+    {
+        DB::table('users')->where('id', $this->teacher)->update(['is_admin' => true, 'avatar_status' => 'pending']);
+        DB::table('institute_profiles')->where('user_id', $this->institute)->update([
+            'institute_type' => 'bsl_direct', 'is_bsl_official' => false,
+        ]);
+        $token = app(AuthenticationService::class)->issueSessionToken($this->teacher);
+        $this->withToken($token);
+
+        $this->patchJson('/moderation/photos/'.$this->teacher, ['status' => 'approved'])->assertOk();
+        $this->patchJson('/profiles/institute/'.$this->institute.'/bsl-verified', ['verified' => true])->assertOk();
+        $this->postJson('/moderation/users/'.$this->learner.'/suspend', ['reason' => 'First reason'])->assertOk();
+        $this->postJson('/moderation/users/'.$this->learner.'/suspend', ['reason' => 'Updated reason'])->assertOk();
+        $this->postJson('/moderation/users/'.$this->learner.'/unsuspend')->assertOk();
+
+        $this->assertSame($this->teacher, (int) DB::table('business_activity')->where('event', 'avatar.reviewed')->value('actor_user_id'));
+        $this->assertSame(1, DB::table('business_activity')->where('event', 'institute.bsl_verified_changed')->count());
+        $this->assertSame(1, DB::table('business_activity')->where('event', 'user.suspension_reason_changed')->count());
+        $this->assertSame(1, DB::table('business_activity')->where('event', 'user.unsuspended')->count());
+        $this->assertStringNotContainsString('Updated reason', json_encode(DB::table('business_activity')->get()));
     }
 
     public function test_chat_history_and_exports_are_audited_and_csv_formulas_are_escaped(): void
@@ -337,6 +541,31 @@ class AdminReportingTest extends TestCase
         $apiReports->assertDontSee('screenshot_path');
         $this->assertSame(1, DB::table('admin_report_access_log')
             ->where('report', 'reports')->where('action', 'api-view')->count());
+    }
+
+    public function test_legacy_safety_report_endpoint_accepts_all_account_types_and_screen_evidence(): void
+    {
+        Storage::fake('local');
+        $auth = app(AuthenticationService::class);
+        foreach ([['id' => $this->learner, 'target' => $this->teacher],
+            ['id' => $this->teacher, 'target' => $this->institute],
+            ['id' => $this->institute, 'target' => $this->learner]] as $case) {
+            $this->withToken($auth->issueSessionToken($case['id']))->postJson('/safety/reports', [
+                'targetType' => 'user', 'targetId' => $case['target'], 'reasonCategory' => 'fake_profile',
+                'additionalDetails' => 'This profile needs review.', 'evidenceLink' => 'https://example.test/profile',
+            ])->assertCreated()
+                ->assertJsonPath('report.reason', 'This profile needs review.')
+                ->assertJsonPath('report.evidence_link', 'https://example.test/profile');
+        }
+
+        $response = $this->withToken($auth->issueSessionToken($this->learner))->post('/safety/reports', [
+            'targetType' => 'user', 'targetId' => $this->teacher, 'reasonCategory' => 'spam',
+            'screenshot' => UploadedFile::fake()->image('report.png'),
+        ], ['Accept' => 'application/json'])->assertCreated();
+        $this->assertTrue($response->json('report.screenshot_available'));
+        $this->assertArrayNotHasKey('screenshot_path', $response->json('report'));
+        $storedScreenshot = DB::table('reports')->where('id', $response->json('report.id'))->value('screenshot_path');
+        Storage::disk('local')->assertExists($storedScreenshot);
     }
 
     public function test_report_screenshots_are_private_and_browser_admin_access_is_logged(): void

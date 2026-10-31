@@ -14,10 +14,10 @@ use App\Http\Controllers\Api\OperationsController;
 use App\Http\Controllers\Api\PasswordRecoveryController;
 use App\Http\Controllers\Api\PresenceController;
 use App\Http\Controllers\Api\ProfilesController;
-use App\Http\Controllers\Api\StudentProfilesController;
-use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SafetyReportsController;
+use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SocketIoController;
+use App\Http\Controllers\Api\StudentProfilesController;
 use App\Http\Controllers\Api\SubjectsController;
 use App\Http\Middleware\AttachOptionalApiUser;
 use App\Http\Middleware\RequireAdminApi;
@@ -129,7 +129,7 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
     Route::post('/feed/comments/{commentId}/like', [CommunityController::class, 'likeComment'])->where('commentId', RecordId::ROUTE_PATTERN);
     Route::delete('/feed/comments/{commentId}/like', [CommunityController::class, 'unlikeComment'])->where('commentId', RecordId::ROUTE_PATTERN);
 
-    Route::post('/safety/reports', [OperationsController::class, 'report']);
+    Route::post('/safety/reports', [OperationsController::class, 'report'])->middleware('throttle:10,1');
     Route::post('/safety/blocks/{userId}', [OperationsController::class, 'block'])->where('userId', RecordId::ROUTE_PATTERN);
     Route::delete('/safety/blocks/{userId}', [OperationsController::class, 'unblock'])->where('userId', RecordId::ROUTE_PATTERN);
     Route::post('/suggestions', [OperationsController::class, 'suggest']);

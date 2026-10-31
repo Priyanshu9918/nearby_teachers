@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Reporting\BusinessActivityRecorder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,15 +23,28 @@ class ModerationController extends Controller
     public function reviewPhoto(Request $request, int $userId): JsonResponse
     {
         $data = $request->validate(['status' => ['required', 'in:approved,rejected']]);
-        $updated = DB::table('users')->where('id', $userId)
-            ->where('avatar_status', 'pending')
-            ->update(['avatar_status' => $data['status'], 'updated_at' => now()]);
-        if ($updated === 0) {
+        $admin = $request->attributes->get('authenticated_user');
+        $user = DB::transaction(function () use ($admin, $data, $userId): ?object {
+            $user = DB::table('users')->where('id', $userId)->lockForUpdate()
+                ->first(['id', 'avatar_status']);
+            if ($user === null || $user->avatar_status !== 'pending') {
+                return null;
+            }
+
+            DB::table('users')->where('id', $userId)->update([
+                'avatar_status' => $data['status'], 'updated_at' => now(),
+            ]);
+            app(BusinessActivityRecorder::class)->record('avatar.reviewed', (string) $userId,
+                $admin->id, $userId,
+                before: ['avatar_status' => $user->avatar_status], after: ['avatar_status' => $data['status']]);
+
+            return DB::table('users')->where('id', $userId)->select('id', 'full_name', 'avatar_status')->first();
+        }, 3);
+        if ($user === null) {
             return response()->json(['error' => 'No pending photo found for that user (already reviewed, or no photo on file)'], 404);
         }
 
-        return response()->json(['user' => DB::table('users')->where('id', $userId)
-            ->select('id', 'full_name', 'avatar_status')->first()]);
+        return response()->json(['user' => $user]);
     }
 
     public function conversations(): JsonResponse
@@ -123,34 +137,81 @@ class ModerationController extends Controller
         if ($userId === $admin->id) {
             return response()->json(['error' => 'You cannot suspend your own account.'], 400);
         }
-        $updated = DB::table('users')->where('id', $userId)->update([
-            'suspended_at' => now(),
-            'suspended_reason' => $data['reason'] ?? null,
-            'suspended_by' => $admin->id,
-            'updated_at' => now(),
-        ]);
-        if ($updated === 0 && ! DB::table('users')->where('id', $userId)->exists()) {
+        $user = DB::transaction(function () use ($admin, $data, $userId): ?object {
+            $user = DB::table('users')->where('id', $userId)->lockForUpdate()
+                ->first(['id', 'is_admin', 'suspended_at', 'suspended_reason']);
+            if ($user === null || $user->is_admin) {
+                return null;
+            }
+
+            $reason = $data['reason'] ?? null;
+            $reasonChanged = $reason !== $user->suspended_reason;
+            if ($user->suspended_at === null || $reasonChanged) {
+                DB::table('users')->where('id', $userId)->update([
+                    'suspended_at' => $user->suspended_at ?? now(),
+                    'suspended_reason' => $reason,
+                    'suspended_by' => $admin->id,
+                    'updated_at' => now(),
+                ]);
+
+                if ($user->suspended_at === null) {
+                    app(BusinessActivityRecorder::class)->record('user.suspended', (string) $userId,
+                        $admin->id, $userId,
+                        before: ['suspended' => false, 'reason_set' => $user->suspended_reason !== null],
+                        after: ['suspended' => true, 'reason_set' => $reason !== null]);
+                } else {
+                    app(BusinessActivityRecorder::class)->record('user.suspension_reason_changed', (string) $userId,
+                        $admin->id, $userId,
+                        before: ['reason_set' => $user->suspended_reason !== null, 'reason_changed' => false],
+                        after: ['reason_set' => $reason !== null, 'reason_changed' => true]);
+                }
+            }
+
+            return DB::table('users')->where('id', $userId)
+                ->select('id', 'full_name', 'suspended_at', 'suspended_reason')->first();
+        }, 3);
+        if ($user === null && ! DB::table('users')->where('id', $userId)->exists()) {
             return response()->json(['error' => 'User not found'], 404);
         }
+        if ($user === null) {
+            return response()->json(['error' => 'Admin accounts cannot be suspended.'], 400);
+        }
 
-        return response()->json(['user' => DB::table('users')->where('id', $userId)
-            ->select('id', 'full_name', 'suspended_at', 'suspended_reason')->first()]);
+        return response()->json(['user' => $user]);
     }
 
-    public function unsuspend(int $userId): JsonResponse
+    public function unsuspend(Request $request, int $userId): JsonResponse
     {
-        $updated = DB::table('users')->where('id', $userId)->update([
-            'suspended_at' => null,
-            'suspended_reason' => null,
-            'suspended_by' => null,
-            'updated_at' => now(),
-        ]);
-        if ($updated === 0 && ! DB::table('users')->where('id', $userId)->exists()) {
+        $admin = $request->attributes->get('authenticated_user');
+        $user = DB::transaction(function () use ($admin, $userId): ?object {
+            $user = DB::table('users')->where('id', $userId)->lockForUpdate()
+                ->first(['id', 'full_name', 'is_admin', 'suspended_at', 'suspended_reason']);
+            if ($user === null || $user->is_admin) {
+                return null;
+            }
+            if ($user->suspended_at !== null) {
+                DB::table('users')->where('id', $userId)->update([
+                    'suspended_at' => null,
+                    'suspended_reason' => null,
+                    'suspended_by' => null,
+                    'updated_at' => now(),
+                ]);
+                app(BusinessActivityRecorder::class)->record('user.unsuspended', (string) $userId,
+                    $admin->id, $userId,
+                    before: ['suspended' => true, 'reason_set' => $user->suspended_reason !== null],
+                    after: ['suspended' => false, 'reason_set' => false]);
+            }
+
+            return (object) ['id' => $user->id, 'full_name' => $user->full_name];
+        }, 3);
+        if ($user === null && ! DB::table('users')->where('id', $userId)->exists()) {
             return response()->json(['error' => 'User not found'], 404);
         }
+        if ($user === null) {
+            return response()->json(['error' => 'Admin accounts cannot be changed here.'], 400);
+        }
 
-        return response()->json(['user' => DB::table('users')->where('id', $userId)
-            ->select('id', 'full_name')->first()]);
+        return response()->json(['user' => $user]);
     }
 
     public function suspendedUsers(): JsonResponse

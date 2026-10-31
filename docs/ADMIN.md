@@ -29,19 +29,25 @@ php artisan migrate --force
 php artisan optimize:clear
 ```
 
-`/admin/dashboard` shows platform totals, student/teacher/institute counts,
-completed registration count and user creation activity for the last 30 days.
+`/admin/dashboard` shows date-filtered owner metrics for new learners/providers,
+published pages, lessons, messages, searches with no results, page views,
+downloads, referrals, reviews, leads and safety reports. Each selected period is
+compared with the equally long period immediately before it. The dashboard also
+shows team queues and all-time platform totals.
 `/admin/reports/users` opens the report selector. Reports cover users and
 registrations, chat participants, authentication activity, bookings, reviews,
 feed posts/comments/likes, support, suggestions, safety reports, blocks,
-referrals, phone reveals, page views, provider profiles and subjects. Admin
-access logs are also available.
+referrals, referral clicks, phone reveals, page views, zero-result searches,
+provider profiles and subjects. Admin access logs are also available.
 
 Reports support text search, user UUID and participant account-type filters
-where applicable, date ranges for timestamped records, pagination and CSV
-export of all matching rows. Dates use the application timezone. CSV text
-starting with spreadsheet formula characters is escaped. Exports stream in
-chunks rather than loading the whole table into PHP memory.
+where applicable, quick and custom date ranges for timestamped records,
+previous-period comparisons, pagination and CSV export of all matching rows.
+Dates use the application timezone. **Download all reports (Excel)** creates
+one workbook with a worksheet for every registered report and applies the same
+filters as the current report. Long cells are continued on the workbook's
+`Long text` worksheet. Dates include Today, 7/30/90 days, this/last month, this
+year and Since launch. CSV and workbook exports read rows in chunks.
 
 Open a user report to inspect registration/contact/consent/status data,
 the provider profile and subject assignments. Related-report links filter
@@ -50,8 +56,9 @@ the learner and teacher/institute with names, emails, message count and last
 message timestamp. **Read messages** opens searchable, paginated history with
 sender identity and timestamps, plus CSV export.
 
-All these routes require the separate browser admin session. Report listings,
-user detail and chat history access, and CSV exports, are recorded in
+All these routes require the separate browser admin session. Dashboard and
+report listings, moderation queues, user detail and chat history access, and
+CSV/workbook exports, are recorded in
 `admin_report_access_log` using the configured browser admin email. This is
 separate from API admin audit records, whose actor is a database user.
 Admin responses use `Cache-Control: no-store, private`.
@@ -95,12 +102,22 @@ database `is_admin` user.
 
 The admin workspace uses the application's navy, soft-blue and white theme.
 Use **Find a page** in the sidebar to jump to management pages or reports.
-Reports are grouped under People, Chat & lessons, Community & support,
-Learning catalog, Insights & activity, and Admin access logs. New registry
-reports without a mapped group appear under Other reports.
+Owner reports are grouped under People & growth, Teachers & institutes,
+Lessons & demand, Messages & community, Website & downloads, Referrals &
+posters, Jobs/franchise/call-backs, Safety & support, and WhatsApp alerts &
+team. New registry reports without a mapped group appear under Other reports.
 
-The overview highlights user/chat/booking/message totals, account management
-shortcuts, registration activity and a searchable report library. The mobile
+The overview also includes safety-report triage (open fraud items first), photo
+approval, BSL Verified badge management, account suspension/restoration and
+possible duplicate teacher review. Search demand logs result counts, a rounded
+0.1-degree location area and optional subject; it does not store free-text name
+queries, exact coordinates, account IDs, IP addresses or user agents. The
+weekly owner email is sent Mondays at 08:00 in the application timezone when
+Laravel's scheduler and mail transport run. Set `OWNER_REPORT_EMAIL` to the
+recipient; it falls back to `ADMIN_EMAIL`. Support tickets count as callback
+requests, and phone reveals count as contact requests.
+
+The overview has a searchable report library. The mobile
 menu opens as a drawer with keyboard focus handling and Escape-to-close.
 Account/catalog creation forms collapse when browsing existing records and
 open for creation, editing or validation errors.

@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminReportController;
 use App\Http\Controllers\AdminSeoController;
+use App\Http\Controllers\AdminWorkspaceController;
 use App\Http\Controllers\DeveloperController;
 use App\Http\Controllers\InternationalSeoController;
 use App\Http\Controllers\LocationLookupController;
@@ -96,7 +97,23 @@ Route::middleware(RequireAdminSession::class)->prefix('admin')->name('admin.')->
     Route::get('/reports/conversations/{id}', [AdminReportController::class, 'conversation'])->where('id', RecordId::ROUTE_PATTERN)->name('reports.conversation');
     Route::get('/reports/safety/{id}/screenshot', [AdminReportController::class, 'screenshot'])
         ->where('id', '[A-Fa-f0-9-]{1,36}')->name('reports.safety-screenshot');
+    Route::get('/reports/export-all', [AdminReportController::class, 'exportAll'])->name('reports.export-all');
     Route::get('/reports/{report}', [AdminReportController::class, 'index'])->name('reports.index');
+
+    Route::get('/moderation/photos', [AdminWorkspaceController::class, 'photos'])->name('moderation.photos');
+    Route::patch('/moderation/photos/{userId}', [AdminWorkspaceController::class, 'reviewPhoto'])
+        ->where('userId', RecordId::ROUTE_PATTERN)->name('moderation.photos.review');
+    Route::get('/moderation/bsl-centres', [AdminWorkspaceController::class, 'bslCentres'])->name('moderation.bsl');
+    Route::patch('/moderation/bsl-centres/{userId}', [AdminWorkspaceController::class, 'setBslVerified'])
+        ->where('userId', RecordId::ROUTE_PATTERN)->name('moderation.bsl.update');
+    Route::get('/moderation/suspended-users', [AdminWorkspaceController::class, 'suspendedUsers'])->name('moderation.suspended');
+    Route::post('/moderation/users/{userId}/suspend', [AdminWorkspaceController::class, 'suspendUser'])
+        ->where('userId', RecordId::ROUTE_PATTERN)->name('moderation.users.suspend');
+    Route::post('/moderation/users/{userId}/unsuspend', [AdminWorkspaceController::class, 'unsuspendUser'])
+        ->where('userId', RecordId::ROUTE_PATTERN)->name('moderation.users.unsuspend');
+    Route::get('/moderation/possible-duplicates', [AdminWorkspaceController::class, 'possibleDuplicates'])->name('moderation.duplicates');
+    Route::patch('/moderation/safety-reports/{reportId}/status', [AdminWorkspaceController::class, 'updateSafetyReport'])
+        ->where('reportId', RecordId::ROUTE_PATTERN)->name('moderation.safety.update');
 
     Route::get('/{section}/create', [AdminController::class, 'create'])->name('create');
     Route::post('/{section}', [AdminController::class, 'store'])->name('store');

@@ -140,6 +140,10 @@ Tracked activity events include:
 | `referral.recorded` | One awarded point; the referred account is actor and the referrer is related user |
 | `referral.clicked` | One point for a new browser/referrer pair; the code owner is the related user |
 | `referral.joined` | `source: referral_code`; the referred account is actor and the code owner is related user |
+| `avatar.reviewed` | Previous/new moderation status only; API actions record the admin user ID and browser admin actions use the admin access log; image URL is excluded |
+| `institute.bsl_verified_changed` | Previous/new BSL Verified flag; API actions record the admin user ID and browser admin actions use the admin access log |
+| `user.suspended` / `user.unsuspended` | Previous/new suspension and reason-present flags; API actions record the admin user ID and browser admin actions use the admin access log; suspension text is excluded |
+| `user.suspension_reason_changed` | API moderation records a reason change and whether a reason remains present; the admin user ID is recorded, but reason text is excluded |
 | `teacher.profile_draft_saved` | Version 1: saved step, completed step numbers and next step only; emitted with section data and progress in the same transaction. No field values or credentials. |
 | `teacher.profile_step_updated` | Teacher profile step number and changed field names; values such as name, bio, and location are not copied into the event |
 | `teacher.profile_published` | Published status, terms acceptance and profile-completion flag, in the same transaction as page creation |
@@ -246,8 +250,11 @@ php artisan optimize
 php artisan queue:restart
 ```
 
-Reports use live MySQL data. Interactive pages are bounded; exports read in
-chunks of 500. Counts and text searches can still be expensive on large tables.
+Reports use live MySQL data. Interactive pages are bounded; CSV and workbook
+exports read in chunks of 500. The owner workbook places each registered report
+on its own worksheet and applies the same date, text, participant and SEO scopes
+as the report pages. Long values beyond Excel's per-cell limit are preserved on
+the workbook's `Long text` worksheet. Counts and text searches can still be expensive on large tables.
 Measure query plans and latency before adding indexes, cached aggregates,
 summary tables, read replicas or asynchronous exports. Do not call this an
 analytics warehouse or assume chunking removes query cost. Chunked exports are
@@ -260,8 +267,37 @@ need field-level review so tokens and unnecessary personal data are not copied.
 Tests accept `REPORTING_TEST_DATABASE` and `ONBOARDING_TEST_DATABASE` pointing
 to a disposable MySQL database ending in `_test`. They exercise report
 extension without controller changes, explicit columns, access control,
-search/date/participant filters, CSV output, transactional rollback, surviving
-source deletion and real booking/chat operations.
+search/date/participant filters, CSV and XLSX output, transactional rollback,
+surviving source deletion and real booking/chat operations.
+
+## Search demand and weekly owner report
+
+`search_analytics` records result counts for provider-search API calls. It stores
+search type, optional subject, a safe city/state/country label or coordinates
+rounded to a 0.1-degree area, radius, free-only flag and timestamp. It never
+stores a user's free-text name query, exact coordinates, account ID, IP address
+or user agent. `no-result-searches` explicitly filters this table to zero-result
+rows and uses the shared report filters, access logging and exports. These
+metrics start after the migration and API rollout; older searches are not
+reconstructed. The append-only table has time/location indexes and must be
+monitored for growth like page views.
+
+The admin overview compares a selected date range with the equally long period
+before it. Its metrics use users, profile-publication/business-activity events,
+bookings, messages, search analytics, page views, referrals, reviews, enquiries
+and safety reports. Signup, publication and action-event metrics begin when the
+respective feature started recording them. Average ratings are calculated from
+reviews created in the selected period. Contact requests count phone reveals;
+job applications, franchise enquiries and support tickets are reported
+separately. Support tickets are used for callback-request counts; contact
+requests are phone reveals.
+
+`reports:send-owner-weekly` emails the previous Monday–Sunday against the week
+before it. The scheduler runs it Mondays at 08:00 in the application timezone.
+Set `OWNER_REPORT_EMAIL` for the recipient; it falls back to `ADMIN_EMAIL`.
+`REPORTING_LAUNCH_DATE` controls the “Since launch” preset and defaults to
+22 July 2026. The scheduled email needs Laravel's scheduler and configured mail
+transport running in production.
 
 OTP delivery adds the `otp-delivery` registry report backed by append-only
 `otp_delivery_attempts`. Each per-channel result is paired transactionally with an

@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Jobs\SendNotificationEmail;
 use App\Reporting\BusinessActivityRecorder;
+use App\Reporting\ReportAccessLog;
 use App\Services\ChatBlocking;
+use App\Services\SafetyReportCreator;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,20 +16,37 @@ use Illuminate\Support\Facades\Log;
 
 class OperationsController extends Controller
 {
-    public function report(Request $request, \App\Services\SafetyReportCreator $reportCreator): JsonResponse
+    public function report(Request $request, SafetyReportCreator $reportCreator): JsonResponse
     {
         $data = $request->validate([
             'targetType' => ['required', 'in:user,post,comment,message'],
             'targetId' => ['required', 'integer', 'min:1', 'max:9007199254740991'],
             'reasonCategory' => ['required', 'in:fraud,fake_profile,inappropriate,spam,other'],
-            'reason' => ['nullable', 'string', 'max:5000'],
+            'reason' => ['sometimes', 'nullable', 'string', 'max:5000', 'prohibited_with:additionalDetails'],
+            'additionalDetails' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'evidenceLink' => ['sometimes', 'nullable', 'url:http,https', 'max:2048'],
+            'screenshot' => ['sometimes', 'nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
         ]);
         $user = $request->attributes->get('authenticated_user');
-        $reason = isset($data['reason']) ? trim($data['reason']) : null;
-        $report = $reportCreator->create((int) $user->id, $data['targetType'], (int) $data['targetId'],
-            $data['reasonCategory'], $reason === '' ? null : $reason);
+        abort_unless($user !== null && in_array($user->account_type, ['learner', 'teacher', 'institute'], true), 403, 'User account required.');
 
-        return response()->json(['report' => $report]);
+        $details = trim($data['additionalDetails'] ?? $data['reason'] ?? '');
+        $report = $reportCreator->create((int) $user->id, $data['targetType'], (int) $data['targetId'],
+            $data['reasonCategory'], $details === '' ? null : $details,
+            $data['evidenceLink'] ?? null, $data['screenshot'] ?? null);
+
+        return response()->json(['report' => [
+            'id' => $report->id,
+            'reporter_id' => $report->reporter_id,
+            'target_type' => $report->target_type,
+            'target_id' => $report->target_id,
+            'reason_category' => $report->reason_category,
+            'reason' => $report->reason,
+            'evidence_link' => $report->evidence_link,
+            'screenshot_available' => (bool) $report->screenshot_available,
+            'status' => $report->status,
+            'created_at' => $report->created_at,
+        ]], 201);
     }
 
     public function reports(Request $request): JsonResponse
@@ -39,7 +58,7 @@ class OperationsController extends Controller
         ]);
         $page = (int) ($data['page'] ?? 1);
         $perPage = (int) ($data['perPage'] ?? 30);
-        app(\App\Reporting\ReportAccessLog::class)->record($request, 'reports', 'api-view');
+        app(ReportAccessLog::class)->record($request, 'reports', 'api-view');
         $rows = DB::table('reports as r')
             ->join('users as u', 'u.id', '=', 'r.reporter_id')
             ->where('r.status', $data['status'] ?? 'open')

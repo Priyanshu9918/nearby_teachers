@@ -83,4 +83,14 @@
         });
         document.getElementById('report-library-empty').hidden = matches > 0;
     });
+    document.querySelectorAll('[data-report-period]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const form = button.closest('form');
+            const from = form?.querySelector('[name="from"]');
+            const to = form?.querySelector('[name="to"]');
+            if (from) from.value = button.dataset.from || '';
+            if (to) to.value = button.dataset.to || '';
+            form?.requestSubmit();
+        });
+    });
 })();
