@@ -23521,7 +23521,7 @@
                 "mine"
               ]
             },
-            "description": "Returns or creates caller referral code. Do not redeem your own code. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures."
+            "description": "Returns or creates caller referral code and points. A valid download link open awards one point per browser and code owner; redemption records the joined account without a second point. Do not redeem your own code. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures."
           },
           "response": [
             {
@@ -23544,7 +23544,7 @@
                     "mine"
                   ]
                 },
-                "description": "Returns or creates caller referral code. Do not redeem your own code. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures."
+                "description": "Returns or creates caller referral code and points. A valid download link open awards one point per browser and code owner; redemption records the joined account without a second point. Do not redeem your own code. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures."
               },
               "status": "OK",
               "code": 200,
@@ -23556,7 +23556,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"code\": \"MOCK7ABC\",\n  \"link\": \"https://example.com/download?ref=MOCK7ABC\",\n  \"referredCount\": 1,\n  \"referred\": [\n    {\n      \"id\": \"10000000-0000-4000-8000-000000000002\",\n      \"full_name\": \"Asha Sharma\",\n      \"created_at\": \"2026-10-21 10:00:00\"\n    }\n  ]\n}"
+              "body": "{\n  \"code\": \"MOCK7ABC\",\n  \"link\": \"https://example.com/download?ref=MOCK7ABC\",\n  \"referredCount\": 1,\n  \"referralPoints\": 1,\n  \"referred\": [\n    {\n      \"id\": \"10000000-0000-4000-8000-000000000002\",\n      \"full_name\": \"Asha Sharma\",\n      \"account_type\": \"learner\",\n      \"avatar_url\": null,\n      \"created_at\": \"2026-10-21 10:00:00\"\n    }\n  ]\n}"
             },
             {
               "name": "Fictional example — 401 Bearer missing",
@@ -23578,7 +23578,7 @@
                     "mine"
                   ]
                 },
-                "description": "Returns or creates caller referral code. Do not redeem your own code. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures."
+                "description": "Returns or creates caller referral code and points. A valid download link open awards one point per browser and code owner; redemption records the joined account without a second point. Do not redeem your own code. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures."
               },
               "status": "Unauthorized",
               "code": 401,
@@ -23618,7 +23618,7 @@
                 "redeem"
               ]
             },
-            "description": "Set referralCode to another user code. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures.",
+            "description": "Set referralCode to another user code after opening its referral link; redemption records the joined account but does not award another point. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"code\": \"{{referralCode}}\"\n}",
@@ -23654,7 +23654,7 @@
                     "redeem"
                   ]
                 },
-                "description": "Set referralCode to another user code. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures.",
+                "description": "Set referralCode to another user code after opening its referral link; redemption records the joined account but does not award another point. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures.",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"code\": \"{{referralCode}}\"\n}",
@@ -23675,7 +23675,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"referral\": {\n    \"id\": \"10000000-0000-4000-8000-000000000013\",\n    \"referrer_id\": \"10000000-0000-4000-8000-000000000002\",\n    \"referred_id\": \"10000000-0000-4000-8000-000000000001\",\n    \"created_at\": \"2026-10-21 10:00:00\"\n  }\n}"
+              "body": "{\n  \"referral\": {\n    \"id\": \"10000000-0000-4000-8000-000000000013\",\n    \"referrer_id\": \"10000000-0000-4000-8000-000000000002\",\n    \"referred_id\": \"10000000-0000-4000-8000-000000000001\",\n    \"created_at\": \"2026-10-21 10:00:00\"\n  },\n  \"referrerReferralPoints\": 1\n}"
             },
             {
               "name": "Fictional example — 409 This account has already been credited to a referrer",
@@ -23701,7 +23701,7 @@
                     "redeem"
                   ]
                 },
-                "description": "Set referralCode to another user code. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures.",
+                "description": "Set referralCode to another user code after opening its referral link; redemption records the joined account but does not award another point. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures.",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"code\": \"{{referralCode}}\"\n}",

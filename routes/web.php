@@ -38,7 +38,9 @@ Route::get('/location-lookup', [WebsiteController::class, 'locationLookup'])->na
 Route::post('/location-lookup/reverse', [LocationLookupController::class, 'reverse'])
     ->middleware(ThrottleRequests::class.':30,1')
     ->name('website.location-lookup.reverse');
-Route::get('/download', [WebsiteController::class, 'download'])->name('download');
+Route::get('/download', [WebsiteController::class, 'download'])
+    ->middleware(ThrottleRequests::class.':60,1')
+    ->name('download');
 Route::get('/sitemap.xml', [InternationalSeoController::class, 'sitemap'])->name('website.sitemap');
 Route::get('/directory', [InternationalSeoController::class, 'hub'])->name('seo.hub');
 Route::get('/sitemaps/{kind}-{number}.xml', [InternationalSeoController::class, 'sitemapPart'])->whereIn('kind', ['teachers', 'institutes', 'directory', 'locations'])->where('number', '[1-9][0-9]{0,6}')->name('seo.sitemap-part');

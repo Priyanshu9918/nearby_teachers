@@ -108,6 +108,25 @@ screenshot-available flag. Screenshot downloads use the protected admin session
 and access logging. History begins at deployment; earlier reports get no
 invented activity rows.
 
+Opening a valid `/download?ref=...` link awards one point to the code owner for
+each unique browser token and referrer. A one-year, HTTP-only cookie lets repeat
+opens from that browser avoid duplicate points; only its SHA-256 hash is stored
+in `referral_clicks`, and the click row, point increment and version 1
+`referral.clicked` activity commit together. No IP address, user agent, raw
+cookie or request is copied into referral history. Code redemption still
+records one joined account in `referrals`, but does not award another point;
+version 1 `referral.joined` records this attribution without a point delta.
+The unique referred-account constraint prevents duplicate joins. Existing
+`referral.recorded` version 1 entries retain their original meaning and are not
+rewritten. The points counter is initially seeded from existing referral rows,
+so previously credited referrals remain points; future points come from link
+opens. Referral activity history is not backfilled.
+
+The allowlisted `users` report exposes the current `referral_points` balance,
+the `referral-clicks` report exposes click IDs, referrer IDs and timestamps
+(never visitor hashes), and the activity report exposes each point increment
+after deployment.
+
 Tracked activity events include:
 
 | Event | Recorded metadata |
@@ -118,6 +137,9 @@ Tracked activity events include:
 | `auth.logged_out` | Previous/new auth version and `scope:all_sessions`; token revocation and history commit together |
 | `registration.submitted` | Previous/new account type and `registration_submitted_at`; the full form saved before learner DOB completion |
 | `registration.completed` | Previous/new account type and completion timestamp |
+| `referral.recorded` | One awarded point; the referred account is actor and the referrer is related user |
+| `referral.clicked` | One point for a new browser/referrer pair; the code owner is the related user |
+| `referral.joined` | `source: referral_code`; the referred account is actor and the code owner is related user |
 | `teacher.profile_draft_saved` | Version 1: saved step, completed step numbers and next step only; emitted with section data and progress in the same transaction. No field values or credentials. |
 | `teacher.profile_step_updated` | Teacher profile step number and changed field names; values such as name, bio, and location are not copied into the event |
 | `teacher.profile_published` | Published status, terms acceptance and profile-completion flag, in the same transaction as page creation |

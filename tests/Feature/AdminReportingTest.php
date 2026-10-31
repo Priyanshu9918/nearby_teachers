@@ -109,8 +109,27 @@ class AdminReportingTest extends TestCase
         $user = $this->get('/admin/reports/users/'.$this->teacher)->assertOk()->assertSee('Provider profile');
         $user->assertDontSee('private-consent-secret')->assertDontSee('password_hash')->assertDontSee('parental_consent_token');
         $csv = $this->get('/admin/reports/users?export=1')->streamedContent();
+        $this->assertStringContainsString('referral_points', $csv);
         $this->assertStringNotContainsString('password_hash', $csv);
         $this->assertStringNotContainsString('private-consent-secret', $csv);
+    }
+
+    public function test_referral_click_report_is_admin_only_and_never_exposes_visitor_hashes(): void
+    {
+        $visitorHash = str_repeat('f', 64);
+        DB::table('referral_clicks')->insert([
+            'id' => NumericTestIds::next(), 'referrer_id' => $this->teacher,
+            'visitor_hash' => $visitorHash, 'created_at' => now(),
+        ]);
+
+        $this->get('/admin/reports/referral-clicks')->assertRedirect(route('admin.login'));
+
+        $this->withSession(['admin_authenticated' => true]);
+        $this->get('/admin/reports/referral-clicks')->assertOk()->assertSee((string) $this->teacher)->assertDontSee($visitorHash);
+        $csv = $this->get('/admin/reports/referral-clicks?export=1')->assertOk()->streamedContent();
+        $this->assertStringContainsString('referrer_id', $csv);
+        $this->assertStringNotContainsString($visitorHash, $csv);
+        $this->assertSame(1, DB::table('admin_report_access_log')->where('report', 'referral-clicks')->where('action', 'export')->count());
     }
 
     public function test_chat_history_and_exports_are_audited_and_csv_formulas_are_escaped(): void

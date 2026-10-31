@@ -43,7 +43,7 @@ class SearchController extends Controller
                 ->whereRaw($bounds, $bindings)
                 ->whereNotNull('p.longitude')
                 ->select([
-                    'p.id', 'p.user_id', 'u.full_name', 'p.currency', 'p.lesson_modes',
+                    'p.id', 'p.user_id', 'u.full_name', 'u.referral_points', 'p.currency', 'p.lesson_modes',
                     'p.latitude', 'p.longitude', 'p.address_text', 'p.city', 'p.state',
                     'p.country', 'p.country_code', 'p.slug', 'p.is_verified', 'p.verified_at',
                     'p.trial_days', 'p.rating_avg', 'p.rating_count', 'p.created_at', 'p.updated_at',
@@ -74,6 +74,7 @@ class SearchController extends Controller
                 $profile->price = $profile->{$rate};
                 $profile->rating_avg = (float) $profile->rating_avg;
                 $profile->rating_count = (int) $profile->rating_count;
+                $profile->referral_points = (int) $profile->referral_points;
                 $profile->is_verified = (bool) $profile->is_verified;
                 $profile->trial_days = (int) $profile->trial_days;
                 if ($type === 'teacher') {
@@ -98,7 +99,7 @@ class SearchController extends Controller
             'instituteCount' => $counts['institute'],
             'totalCount' => $results->count(),
             'results' => $results->sortBy([
-                ['distance_km', 'asc'], ['profile_type', 'asc'], ['user_id', 'asc'],
+                ['referral_points', 'desc'], ['distance_km', 'asc'], ['profile_type', 'asc'], ['user_id', 'asc'],
             ])->values(),
         ]);
     }
@@ -120,8 +121,10 @@ class SearchController extends Controller
         $branches = [];
         foreach ([['teacher', 'teacher_profiles', 'rate_per_hour'], ['institute', 'institute_profiles', 'starting_rate']] as [$type, $table, $price]) {
             $query = DB::table($table.' as p')
+                ->join('users as u', 'u.id', '=', 'p.user_id')
                 ->selectRaw('? AS profile_type', [$type])
                 ->addSelect('p.id as profile_id')
+                ->addSelect('u.referral_points')
                 ->selectRaw('ST_Distance_Sphere(POINT(IF(p.longitude = -180, 180, p.longitude), p.latitude), POINT(?, ?)) AS distance_m', [$longitude, (float) $data['lat']])
                 ->whereRaw($bounds, $boundsBindings)
                 ->whereNotNull('p.longitude');
@@ -142,12 +145,12 @@ class SearchController extends Controller
             if (($data['freeOnly'] ?? 'false') === 'true') {
                 $query->where('p.'.$price, 0);
             }
-            // Each type contributes at most 50 rows to the global nearest 50.
+            // Each type contributes its highest-ranked 50 rows to the combined result set.
             $branches[] = $query->having('distance_m', '<=', $radiusMeters)
-                ->orderBy('distance_m')->orderBy('p.id')->limit(50);
+                ->orderByDesc('referral_points')->orderBy('distance_m')->orderBy('p.id')->limit(50);
         }
         $nearest = DB::query()->fromSub($branches[0]->unionAll($branches[1]), 'candidates')
-            ->orderBy('distance_m')->orderBy('profile_type')->orderBy('profile_id')->limit(50);
+            ->orderByDesc('referral_points')->orderBy('distance_m')->orderBy('profile_type')->orderBy('profile_id')->limit(50);
         $rows = DB::query()->fromSub($nearest, 'nearest')
             ->leftJoin('teacher_profiles as teacher', function ($join): void {
                 $join->on('teacher.id', '=', 'nearest.profile_id')->where('nearest.profile_type', 'teacher');
@@ -162,10 +165,13 @@ class SearchController extends Controller
                 COALESCE(teacher.rating_count, institute.rating_count) AS rating_count,
                 COALESCE(teacher.is_verified, institute.is_verified) AS is_verified,
                 COALESCE(teacher.trial_days, institute.trial_days) AS trial_days,
-                nearest.distance_m, u.full_name')
+                nearest.referral_points, nearest.distance_m, u.full_name')
             ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
-            ->orderBy('nearest.distance_m')->orderBy('nearest.profile_type')->orderBy('nearest.profile_id')
+            ->orderByDesc('nearest.referral_points')->orderBy('nearest.distance_m')->orderBy('nearest.profile_type')->orderBy('nearest.profile_id')
             ->get()->map(static function (object $result): object {
+                $result->referral_points = (int) $result->referral_points;
+                $result->rating_avg = (float) $result->rating_avg;
+                $result->rating_count = (int) $result->rating_count;
                 $result->distance_km = $result->distance_m / 1000;
                 unset($result->distance_m);
 
@@ -208,16 +214,18 @@ class SearchController extends Controller
         $sql = <<<'SQL'
             WITH t AS (
               SELECT 'teacher' AS profile_type, user_id, city, country, lesson_modes,
-                     rate_per_hour AS price, rating_avg, rating_count, is_verified, trial_days
-              FROM teacher_profiles
+                     rate_per_hour AS price, rating_avg, rating_count, is_verified, trial_days,
+                     referral_user.referral_points
+              FROM teacher_profiles JOIN users referral_user ON referral_user.id = teacher_profiles.user_id
               UNION ALL
               SELECT 'institute' AS profile_type, user_id, city, country, lesson_modes,
-                     starting_rate AS price, rating_avg, rating_count, is_verified, trial_days
-              FROM institute_profiles
+                     starting_rate AS price, rating_avg, rating_count, is_verified, trial_days,
+                     referral_user.referral_points
+              FROM institute_profiles JOIN users referral_user ON referral_user.id = institute_profiles.user_id
             )
             SELECT t.profile_type, t.user_id, u.full_name,
                    CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url,
-                   t.city, t.country, t.price, t.rating_avg, t.rating_count, t.is_verified, t.trial_days
+                   t.city, t.country, t.price, t.rating_avg, t.rating_count, t.is_verified, t.trial_days, t.referral_points
             FROM t
             JOIN users u ON u.id = t.user_id
             WHERE JSON_CONTAINS(t.lesson_modes, JSON_QUOTE('online')) = 1
@@ -232,7 +240,7 @@ class SearchController extends Controller
             $sql .= ' AND u.full_name LIKE ?';
             $bindings[] = '%'.$data['q'].'%';
         }
-        $sql .= ' ORDER BY '.$this->weightedRating('t.rating_avg', 't.rating_count').' DESC, (SELECT count(*) FROM referrals WHERE referrer_id = t.user_id) DESC LIMIT 50';
+        $sql .= ' ORDER BY t.referral_points DESC, '.$this->weightedRating('t.rating_avg', 't.rating_count').' DESC, t.user_id ASC LIMIT 50';
 
         return $this->providerResponse(['results' => DB::select($sql, $bindings)]);
     }
@@ -251,12 +259,14 @@ class SearchController extends Controller
         $base = <<<'SQL'
             WITH t AS (
               SELECT 'teacher' AS profile_type, user_id, latitude, longitude, city, state, country,
-                     rate_per_hour AS price, rating_avg, rating_count, is_verified, trial_days
-              FROM teacher_profiles
+                     rate_per_hour AS price, rating_avg, rating_count, is_verified, trial_days,
+                     referral_user.referral_points
+              FROM teacher_profiles JOIN users referral_user ON referral_user.id = teacher_profiles.user_id
               UNION ALL
               SELECT 'institute' AS profile_type, user_id, latitude, longitude, city, state, country,
-                     starting_rate AS price, rating_avg, rating_count, is_verified, trial_days
-              FROM institute_profiles
+                     starting_rate AS price, rating_avg, rating_count, is_verified, trial_days,
+                     referral_user.referral_points
+              FROM institute_profiles JOIN users referral_user ON referral_user.id = institute_profiles.user_id
             ), matching AS (
               SELECT t.* FROM t
               WHERE EXISTS (
@@ -270,18 +280,23 @@ class SearchController extends Controller
             $radiusMeters = ((float) ($data['radiusKm'] ?? 7)) * 1000;
             $data['lng'] = (float) $data['lng'] === -180.0 ? 180.0 : (float) $data['lng'];
             [$bounds, $boundsBindings] = GeoBounds::sql((float) $data['lat'], (float) $data['lng'], $radiusMeters);
-            $base = str_replace(['FROM teacher_profiles', 'FROM institute_profiles'],
-                ['FROM teacher_profiles WHERE '.$bounds, 'FROM institute_profiles WHERE '.$bounds], $base);
+            $base = str_replace(
+                ['FROM teacher_profiles JOIN users referral_user ON referral_user.id = teacher_profiles.user_id',
+                    'FROM institute_profiles JOIN users referral_user ON referral_user.id = institute_profiles.user_id'],
+                ['FROM teacher_profiles JOIN users referral_user ON referral_user.id = teacher_profiles.user_id WHERE '.$bounds,
+                    'FROM institute_profiles JOIN users referral_user ON referral_user.id = institute_profiles.user_id WHERE '.$bounds],
+                $base,
+            );
             $point = 'POINT(?, ?)';
             $sql = $base.sprintf(<<<'SQL'
                 SELECT m.profile_type, m.user_id, u.full_name,
                        CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url,
-                       m.price, m.rating_avg, m.rating_count, m.is_verified, m.trial_days,
+                       m.price, m.rating_avg, m.rating_count, m.is_verified, m.trial_days, m.referral_points,
                        ST_Distance_Sphere(POINT(IF(m.longitude = -180, 180, m.longitude), m.latitude), %s) AS distance_m
                 FROM matching m JOIN users u ON u.id = m.user_id
                 WHERE m.latitude IS NOT NULL AND m.longitude IS NOT NULL
                   AND ST_Distance_Sphere(POINT(IF(m.longitude = -180, 180, m.longitude), m.latitude), %s) <= ?
-                ORDER BY distance_m ASC LIMIT 50
+                ORDER BY m.referral_points DESC, distance_m ASC, m.user_id ASC LIMIT 50
                 SQL, $point, $point);
             $bindings = [
                 ...$boundsBindings, ...$boundsBindings, $subjectId,
@@ -307,7 +322,7 @@ class SearchController extends Controller
         if (in_array($tier, ['city', 'state', 'country'], true)) {
             $column = ['city' => 'city', 'state' => 'state', 'country' => 'country'][$tier];
             $value = $data[$column];
-            $sql = $base." SELECT m.profile_type, m.user_id, u.full_name, CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url, m.price, m.rating_avg, m.rating_count, m.is_verified, m.trial_days, m.city, m.state, m.country FROM matching m JOIN users u ON u.id = m.user_id WHERE lower(m.$column) = lower(?) ORDER BY ".$this->weightedRating('m.rating_avg', 'm.rating_count').' DESC, (SELECT count(*) FROM referrals WHERE referrer_id = m.user_id) DESC LIMIT 50';
+            $sql = $base." SELECT m.profile_type, m.user_id, u.full_name, CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url, m.price, m.rating_avg, m.rating_count, m.is_verified, m.trial_days, m.referral_points, m.city, m.state, m.country FROM matching m JOIN users u ON u.id = m.user_id WHERE lower(m.$column) = lower(?) ORDER BY m.referral_points DESC, ".$this->weightedRating('m.rating_avg', 'm.rating_count').' DESC, m.user_id ASC LIMIT 50';
             $countSql = $base." SELECT count(*) AS total FROM matching m WHERE lower(m.$column) = lower(?)";
 
             return $this->providerResponse([
@@ -319,7 +334,7 @@ class SearchController extends Controller
 
         if ($tier === 'other-countries') {
             if (isset($data['country'])) {
-                $sql = $base.' SELECT m.profile_type, m.user_id, u.full_name, CASE WHEN u.avatar_status = \'approved\' THEN u.avatar_url ELSE NULL END AS avatar_url, m.price, m.rating_avg, m.rating_count, m.is_verified, m.trial_days, m.city, m.country FROM matching m JOIN users u ON u.id = m.user_id WHERE lower(m.country) = lower(?) ORDER BY '.$this->weightedRating('m.rating_avg', 'm.rating_count').' DESC, (SELECT count(*) FROM referrals WHERE referrer_id = m.user_id) DESC LIMIT 50';
+                $sql = $base.' SELECT m.profile_type, m.user_id, u.full_name, CASE WHEN u.avatar_status = \'approved\' THEN u.avatar_url ELSE NULL END AS avatar_url, m.price, m.rating_avg, m.rating_count, m.is_verified, m.trial_days, m.referral_points, m.city, m.country FROM matching m JOIN users u ON u.id = m.user_id WHERE lower(m.country) = lower(?) ORDER BY m.referral_points DESC, '.$this->weightedRating('m.rating_avg', 'm.rating_count').' DESC, m.user_id ASC LIMIT 50';
                 $countSql = $base.' SELECT count(*) AS total FROM matching m WHERE lower(m.country) = lower(?)';
 
                 return $this->providerResponse([
@@ -342,6 +357,15 @@ class SearchController extends Controller
         $data['results'] = app(UserPresence::class)->decorate($data['results']);
         $teacherIds = [];
         foreach ($data['results'] as $row) {
+            if (property_exists($row, 'referral_points')) {
+                $row->referral_points = (int) $row->referral_points;
+            }
+            if (property_exists($row, 'rating_avg') && $row->rating_avg !== null) {
+                $row->rating_avg = (float) $row->rating_avg;
+            }
+            if (property_exists($row, 'rating_count')) {
+                $row->rating_count = (int) $row->rating_count;
+            }
             if (($row->profile_type ?? null) === 'teacher' && isset($row->user_id)) {
                 $teacherIds[] = $row->user_id;
             }

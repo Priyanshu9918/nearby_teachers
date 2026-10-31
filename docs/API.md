@@ -11,6 +11,10 @@ explorer use exactly five parts:
 [Auth](#auth), [Learner](#learner), [Teacher](#teacher),
 [Institute](#institute), [Common](#common).
 
+For referral codes, the joined-user list, referral-ranked search/feed results
+and the admin leaderboard, import the dedicated
+[Referral Points Postman collection](postman/referral-points.postman_collection.json).
+
 These categories organize app responsibilities; they do not add role permissions.
 Provider listing URLs appear in both Teacher and Institute. Shared chat, feed,
 comments, replies, booking status and safety APIs appear in each app role and
@@ -771,8 +775,9 @@ shown in this shared documentation category.
 | `POST` | `/suggestions` | Verified bearer | `suggestionType` (`course`, `city`, `state`, `country`), `name`; optional `notes` | Submits a suggestion. |
 | `POST` | `/support` | Verified bearer | `subject`, `message` | Creates a support ticket. |
 | `GET` | `/support/mine` | Verified bearer | — | Lists the caller's support tickets. |
-| `GET` | `/referrals/mine` | Verified bearer | — | Returns or creates the caller's referral code and referred users. |
-| `POST` | `/referrals/redeem` | Verified bearer | `code` | Redeems a referral code. Self-referrals are rejected; an already-credited account receives `409`. |
+| `GET` | `/download?ref=CODE` | Public referral link | `ref` | Opening a valid referral link awards one point per browser and code owner; repeat opens from the same browser are deduplicated. |
+| `GET` | `/referrals/mine` | Verified bearer | — | Returns or creates the caller's referral code, points and referred users. Opening a valid `/download?ref=CODE` link awards one point per browser and code owner; repeat opens from the same browser do not add points. |
+| `POST` | `/referrals/redeem` | Verified bearer | `code` | Records the referred account after link open and does not award an additional point. Self-referrals are rejected; an already-credited account receives `409`. |
 | `POST` | `/analytics/page-view` | Public | `pageType`; optional `target`, `platform`, `referrer` | Records a view. `pageType`: `institute`, `teacher`, `city_index`, `city_feed`, `city_directory`, `download`, `app_profile`. Limited to 120 requests/minute per IP. |
 
 ### Catalog and settings details

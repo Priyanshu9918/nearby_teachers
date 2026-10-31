@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class OperationsController extends Controller
 {
@@ -261,13 +262,15 @@ class OperationsController extends Controller
         $referred = DB::table('referrals as r')
             ->join('users as u', 'u.id', '=', 'r.referred_id')
             ->where('r.referrer_id', $user->id)
-            ->select('u.id', 'u.full_name', 'r.created_at')
-            ->orderByDesc('r.created_at')->get();
+            ->select('u.id', 'u.full_name', 'u.account_type', 'r.created_at')
+            ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
+            ->orderByDesc('r.created_at')->orderByDesc('r.id')->get();
 
         return response()->json([
             'code' => $code,
             'link' => rtrim(config('services.nearby_teacher.app_base_url', 'https://bsl.international'), '/').'/download?ref='.$code,
             'referredCount' => $referred->count(),
+            'referralPoints' => (int) DB::table('users')->where('id', $user->id)->value('referral_points'),
             'referred' => $referred,
         ]);
     }
@@ -284,11 +287,20 @@ class OperationsController extends Controller
             return response()->json(['error' => "You can't refer yourself"], 400);
         }
         try {
-            $id = DB::table('referrals')->insertGetId([
-                'referrer_id' => $referrer,
-                'referred_id' => $user->id,
-                'created_at' => now(),
-            ]);
+            $id = DB::transaction(function () use ($referrer, $user): int|string {
+                DB::table('users')->where('id', $referrer)->lockForUpdate()->first(['id']);
+                $id = (string) Str::uuid();
+                DB::table('referrals')->insert([
+                    'id' => $id,
+                    'referrer_id' => $referrer,
+                    'referred_id' => $user->id,
+                    'created_at' => now(),
+                ]);
+                app(BusinessActivityRecorder::class)->record('referral.joined', $id, $user->id, $referrer,
+                    after: ['source' => 'referral_code']);
+
+                return $id;
+            }, 3);
         } catch (QueryException $exception) {
             if (! $this->isUniqueConstraintViolation($exception)) {
                 throw $exception;
@@ -297,17 +309,19 @@ class OperationsController extends Controller
             return response()->json(['error' => 'This account has already been credited to a referrer'], 409);
         }
 
-        return response()->json(['referral' => DB::table('referrals')->where('id', $id)->first()]);
+        return response()->json([
+            'referral' => DB::table('referrals')->where('id', $id)->first(),
+            'referrerReferralPoints' => (int) DB::table('users')->where('id', $referrer)->value('referral_points'),
+        ]);
     }
 
     public function topReferrals(): JsonResponse
     {
         $top = DB::table('users as u')
-            ->join('referrals as r', 'r.referrer_id', '=', 'u.id')
-            ->select('u.id', 'u.full_name')
-            ->selectRaw('count(r.id) as referred_count')
-            ->groupBy('u.id', 'u.full_name')
-            ->orderByDesc('referred_count')
+            ->where('u.referral_points', '>', 0)
+            ->select('u.id', 'u.full_name', 'u.referral_points')
+            ->selectSub(DB::table('referrals')->selectRaw('count(*)')->whereColumn('referrer_id', 'u.id'), 'referred_count')
+            ->orderByDesc('u.referral_points')->orderByDesc('referred_count')
             ->limit(50)->get();
 
         return response()->json(['topReferrers' => $top]);

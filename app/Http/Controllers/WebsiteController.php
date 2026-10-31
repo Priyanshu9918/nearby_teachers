@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Reporting\BusinessActivityRecorder;
 use App\Services\SeoDirectory;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
@@ -178,6 +181,7 @@ class WebsiteController extends Controller
         $platform = $this->detectPlatform((string) $request->userAgent());
         $target = is_string($type) && is_string($slug) ? $type.':'.$slug : null;
         $this->logPageView($request, 'download', $target, $platform);
+        $visitorToken = $this->trackReferralClick($request, $referral);
 
         $deepLinkPath = is_string($type) && is_string($slug)
             ? '/'.rawurlencode($type).'/'.rawurlencode($slug)
@@ -191,18 +195,91 @@ class WebsiteController extends Controller
         $iosUrl = config('services.nearby_teacher.ios_app_store_url');
 
         if ($platform === 'android' && filled($androidUrl)) {
-            return redirect()->away($this->appendQueryParameter($androidUrl, 'referrer', $referrer));
+            return $this->attachReferralCookie(
+                redirect()->away($this->appendQueryParameter($androidUrl, 'referrer', $referrer)),
+                $visitorToken,
+                $request,
+            );
         }
         if ($platform === 'ios' && filled($iosUrl)) {
-            return redirect()->away($iosUrl);
+            return $this->attachReferralCookie(redirect()->away($iosUrl), $visitorToken, $request);
         }
 
-        return $this->renderWebsite($request, 'site.download', [
+        $response = $this->renderWebsite($request, 'site.download', [
             'iosUrl' => $iosUrl,
             'androidUrl' => $androidUrl,
             'deepLinkPath' => $deepLinkPath,
             'ref' => is_string($referral) ? $referral : null,
         ]);
+
+        return $this->attachReferralCookie($response, $visitorToken, $request);
+    }
+
+    private function trackReferralClick(Request $request, mixed $referral): ?string
+    {
+        if (! is_string($referral) || $referral === '' || strlen($referral) > 32) {
+            return null;
+        }
+
+        $referrerId = DB::table('users')->where('referral_code', $referral)->value('id');
+        if ($referrerId === null) {
+            return null;
+        }
+
+        $visitorToken = $request->cookie('nt_referral_visitor');
+        if (! is_string($visitorToken) || preg_match('/^[a-f0-9]{64}$/D', $visitorToken) !== 1) {
+            $visitorToken = bin2hex(random_bytes(32));
+        }
+
+        $visitorHash = hash('sha256', $visitorToken);
+        DB::transaction(function () use ($referrerId, $visitorHash): void {
+            if (DB::table('users')->where('id', $referrerId)->lockForUpdate()->first(['id']) === null) {
+                return;
+            }
+
+            $clickId = (string) Str::uuid();
+            try {
+                DB::table('referral_clicks')->insert([
+                    'id' => $clickId,
+                    'referrer_id' => $referrerId,
+                    'visitor_hash' => $visitorHash,
+                    'created_at' => now(),
+                ]);
+            } catch (QueryException $exception) {
+                if ($this->isUniqueConstraintViolation($exception)) {
+                    return;
+                }
+
+                throw $exception;
+            }
+
+            DB::table('users')->where('id', $referrerId)->update([
+                'referral_points' => DB::raw('referral_points + 1'),
+                'updated_at' => now(),
+            ]);
+            app(BusinessActivityRecorder::class)->record('referral.clicked', $clickId, null,
+                $referrerId, after: ['point_delta' => 1]);
+        }, 3);
+
+        return $visitorToken;
+    }
+
+    private function attachReferralCookie(RedirectResponse|Response $response, ?string $visitorToken, Request $request): RedirectResponse|Response
+    {
+        if ($visitorToken !== null) {
+            $response->headers->setCookie(cookie('nt_referral_visitor', $visitorToken, 60 * 24 * 365,
+                '/', null, $request->isSecure(), true, false, 'lax'));
+        }
+
+        return $response;
+    }
+
+    private function isUniqueConstraintViolation(QueryException $exception): bool
+    {
+        $sqlState = $exception->errorInfo[0] ?? '';
+        $driverCode = (int) ($exception->errorInfo[1] ?? 0);
+
+        return $sqlState === '23000' && $driverCode === 1062;
     }
 
     private function viewData(Request $request): array
@@ -272,6 +349,7 @@ class WebsiteController extends Controller
     {
         try {
             DB::table('page_views')->insert([
+                'id' => (string) Str::uuid(),
                 'page_type' => $pageType,
                 'target' => $target,
                 'platform' => $platform,

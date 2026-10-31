@@ -23,18 +23,28 @@ class CommunityController extends Controller
         $user = $request->attributes->get('authenticated_user');
         $posts = DB::table('posts as p')
             ->join('users as u', 'u.id', '=', 'p.author_id')
+            ->leftJoin('teacher_profiles as teacher', function ($join): void {
+                $join->on('teacher.user_id', '=', 'u.id')->where('u.account_type', 'teacher');
+            })
+            ->leftJoin('institute_profiles as institute', function ($join): void {
+                $join->on('institute.user_id', '=', 'u.id')->where('u.account_type', 'institute');
+            })
             ->leftJoin('subjects as s', 's.id', '=', 'p.subject_id')
             ->where('p.city', $data['city'])
             ->select('p.id', 'p.author_id', 'p.post_type', 'p.city', 'p.body', 'p.image_url', 'p.created_at',
-                'u.full_name as author_name', 's.name as subject')
+                'u.full_name as author_name', 'u.account_type as author_type', 'u.referral_points', 's.name as subject')
+            ->selectRaw('COALESCE(teacher.rating_avg, institute.rating_avg) AS rating_avg')
+            ->selectRaw('COALESCE(teacher.rating_count, institute.rating_count, 0) AS rating_count')
             ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS author_avatar")
             ->selectSub(DB::table('post_likes')->selectRaw('count(*)')->whereColumn('post_id', 'p.id'), 'like_count')
             ->selectSub(DB::table('post_comments')->selectRaw('count(*)')->whereColumn('post_id', 'p.id'), 'comment_count')
             ->selectRaw($user === null
                 ? '0 AS liked_by_me'
                 : 'EXISTS (SELECT 1 FROM post_likes WHERE post_id = p.id AND user_id = ?) AS liked_by_me',
-                $user === null ? [] : [$user->id])
-            ->orderByDesc('p.created_at')->orderByDesc('p.id');
+                $user === null ? [] : [$user->id]);
+        // Use an outer query so cursor pagination can compare the computed score as a normal column.
+        $posts = DB::query()->fromSub($posts, 'city_posts')->select('city_posts.*')
+            ->orderByDesc('referral_points')->orderByDesc('created_at')->orderByDesc('id');
 
         $timezone = $data['timezone'] ?? config('app.timezone', 'UTC');
         $sourceTimezone = config('app.timezone', 'UTC');
@@ -66,6 +76,9 @@ class CommunityController extends Controller
                     $post->likes = $likesByPost[$post->id] ?? [];
                     $post->liked_by_me = (bool) $post->liked_by_me;
                     $post->likedByMe = $post->liked_by_me;
+                    $post->referral_points = (int) $post->referral_points;
+                    $post->rating_avg = $post->rating_avg === null ? null : (float) $post->rating_avg;
+                    $post->rating_count = (int) $post->rating_count;
                     $post->created_at = Carbon::parse($post->created_at, $sourceTimezone)->timezone($timezone)->toIso8601String();
                     $post->created_at_timezone = $timezone;
                 }

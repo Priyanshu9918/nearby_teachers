@@ -3,6 +3,7 @@
 namespace App\Reporting;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 use LogicException;
 
@@ -43,6 +44,9 @@ final class BusinessActivityRecorder
         // Form submission and completion are distinct; learners complete after DOB and required parent approval.
         'registration.submitted' => ['user', ['account_type', 'registration_submitted_at']],
         'registration.completed' => ['user', ['account_type', 'profile_completed_at']],
+        'referral.recorded' => ['referral', ['point_delta']],
+        'referral.clicked' => ['referral_click', ['point_delta']],
+        'referral.joined' => ['referral', ['source']],
         // Age history stores flags, never birth dates, guardian contacts or consent tokens.
         'parental_consent.requested' => ['user', ['status']],
         'parental_consent.decided' => ['user', ['status']],
@@ -77,7 +81,8 @@ final class BusinessActivityRecorder
         if ($unexpected !== []) {
             throw new InvalidArgumentException('Business activity contains undeclared snapshot fields.');
         }
-        $id = DB::table('business_activity')->insertGetId(['event' => $event, 'entity_type' => $entityType, 'entity_id' => (string) $entityId,
+        $id = (string) Str::uuid();
+        DB::table('business_activity')->insert(['id' => $id, 'event' => $event, 'entity_type' => $entityType, 'entity_id' => (string) $entityId,
             'actor_user_id' => $actorUserId, 'related_user_id' => $relatedUserId, 'version' => 1,
             'before_data' => json_encode($before, JSON_THROW_ON_ERROR),
             'after_data' => json_encode($after, JSON_THROW_ON_ERROR), 'created_at' => now(),

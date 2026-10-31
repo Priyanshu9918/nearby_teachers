@@ -4,6 +4,9 @@ Updated: 22 October 2026. Read this with the [full endpoint reference](API.md),
 [saved response examples](API_MOCK_RESPONSES.md) and existing
 [app-team Postman collection](postman/app-team.postman_collection.json) and
 [Student profile collection](postman/student-profile.postman_collection.json).
+Referral code, joined-user list, referral-ranked listing and leaderboard requests
+are also available in the dedicated
+[Referral Points collection](postman/referral-points.postman_collection.json).
 Examples are fictional and response fragments omit unrelated fields; they are
 not live captures. Tokens are placeholders.
 
@@ -192,10 +195,10 @@ See [email recovery](EMAIL_AUTH.md) for code requirements.
 |---|---|---|---|---|
 | `POST` | `/auth/date-of-birth` | Verified bearer | `dateOfBirth` (`YYYY-MM-DD`); for ages 13–17 also `guardianName`, `guardianContact` | Rejects users under 13. Minors need guardian consent before messaging/booking. Returns parentalConsent.link, expiresAt and parent name/phone; app team sends the link. See [consent contract](PARENTAL_CONSENT.md). |
 | `POST` | `/auth/parental-consent/confirm` | Public, one-time token | `token`, optional `decision` (`approve`/`reject`) | Saves a one-time decision; returns `ok`, `parentalConsentStatus`. |
-| `GET` | `/search` | Public | Required `lat`, `lng`; optional `radiusKm` (default 7, max 500), `subjectId`, `q`, `freeOnly` (`true`/`false`) | Up to 50 nearby teacher/institute results with `distance_km`; uses MySQL `ST_Distance_Sphere`. |
+| `GET` | `/search` | Public | Required `lat`, `lng`; optional `radiusKm` (default 7, max 500), `subjectId`, `q`, `freeOnly` (`true`/`false`) | Up to 50 nearby teacher/institute results with `distance_km`, `referral_points`, `rating_avg` and `rating_count`; ordered by referral points descending, then distance. Uses MySQL `ST_Distance_Sphere`. |
 | `GET` | `/search/counts` | Public | Required `lat`, `lng`; optional `radiusKm` (default 7) | Teacher and institute counts in the radius. |
-| `GET` | `/search/other-city` | Public | Required `city`; optional `subjectId`, `q` | Up to 50 online providers matching city/country text. |
-| `GET` | `/search/by-subject/{subjectId}` | Public | Required `tier`: `nearby`, `city`, `state`, `country`, or `other-countries`; tier-specific location parameters | Subject results with tier/count. Nearby requires `lat` and `lng`; `city` tier requires `city`; `state` tier requires `state`; `country` tier requires `country`. `other-countries` returns matching countries unless a `country` is supplied. |
+| `GET` | `/search/other-city` | Public | Required `city`; optional `subjectId`, `q` | Up to 50 online providers matching city/country text, ordered by referral points descending; results include referral points and ratings. |
+| `GET` | `/search/by-subject/{subjectId}` | Public | Required `tier`: `nearby`, `city`, `state`, `country`, or `other-countries`; tier-specific location parameters | Provider results include referral points and ratings and rank by referral points descending. Nearby requires `lat` and `lng`; `city` tier requires `city`; `state` tier requires `state`; `country` tier requires `country`. `other-countries` returns matching countries unless a `country` is supplied. |
 | `GET` | `/profiles/{type}/{id}` | Public, optional bearer | `type`: `teacher` or `institute`; optional auth affects phone quota | Public listing profile. Suspended or not-yet-phone-verified optional tokens are treated as anonymous. |
 | `POST` | `/bookings` | Verified bearer | `providerId`, `mode`, `requestedTime`; optional `subjectId`, `price` | Creates a booking request. `mode`: `in_person`, `home_tuition`, `online`. Safety acknowledgement and minor-consent gates apply. |
 | `GET` | `/bookings/mine` | Verified bearer | `perPage`, `cursor` | Learner's bookings. |
@@ -204,7 +207,7 @@ See [email recovery](EMAIL_AUTH.md) for code requirements.
 | `GET` | `/reviews/for/{providerId}` | Public | `perPage`, `cursor` | Provider reviews. |
 | `POST` | `/franchise/enquiries` | Verified bearer; learner and teacher supported (institute also currently accepted) | `name`, `phone`, `location` | Submits a franchise enquiry for admin review; the signed-in account is linked automatically. |
 | `POST` | `/jobs/applications` | Verified bearer; learner and teacher supported (institute also currently accepted) | `name`, `phone`, `expectedSalary`, `courseIds` (1–5 BSL course IDs) | Submits a teaching job application for admin review; the signed-in account is linked automatically. |
-| `GET` | `/search/dashboard` | Public | Required `lat`, `lng`; optional `radiusKm` (default 7, maximum 500) | `{center,radiusKm,teacherCount,instituteCount,totalCount,results}`; all eligible nearby providers. |
+| `GET` | `/search/dashboard` | Public | Required `lat`, `lng`; optional `radiusKm` (default 7, maximum 500) | `{center,radiusKm,teacherCount,instituteCount,totalCount,results}`; all eligible nearby providers sorted by `referral_points` descending. Each result includes `rating_avg` and `rating_count`. |
 | `GET` | `/auth/safety-disclaimer` | Public | — | Returns the disclaimer text. |
 | `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging or booking. |
 | `PATCH` | `/bookings/{id}/status` | Verified bearer, participant | `status`: `accepted`, `declined`, `cancelled`, or `completed` | Updates a booking in which the caller participates. |
@@ -212,7 +215,7 @@ See [email recovery](EMAIL_AUTH.md) for code requirements.
 | `GET` | `/messages/{conversationId}` | Verified bearer, participant | `perPage`, `cursor` | Conversation messages. |
 | `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
 | `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
-| `GET` | `/feed` | Public; bearer optional | Required query `city`; optional `perPage`, `cursor`, `timezone` (IANA) | Paginated city posts with like/comment counts; `created_at` uses requested timezone, and `liked_by_me` is false for guests. |
+| `GET` | `/feed` | Public; bearer optional | Required query `city`; optional `perPage`, `cursor`, `timezone` (IANA) | Paginated city posts with like/comment counts, ordered by the author's `referral_points` descending, then newest first. Includes `author_type`, `referral_points`, `rating_avg` and `rating_count`; learner authors have null rating. `created_at` uses requested timezone, and `liked_by_me` is false for guests. |
 | `POST` | `/feed` | Verified bearer | `city`, `body` | Creates a city post; one post per account every 7 days. |
 | `POST` | `/feed/{postId}/like` | Verified bearer | — | Likes a post. |
 | `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
@@ -346,7 +349,7 @@ in that same subsection.
 | `GET` | `/messages/{conversationId}` | Verified bearer, participant | `perPage`, `cursor` | Conversation messages. |
 | `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
 | `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
-| `GET` | `/feed` | Public; bearer optional | Required query `city`; optional `perPage`, `cursor`, `timezone` (IANA) | Paginated city posts with like/comment counts; `created_at` uses requested timezone, and `liked_by_me` is false for guests. |
+| `GET` | `/feed` | Public; bearer optional | Required query `city`; optional `perPage`, `cursor`, `timezone` (IANA) | Paginated city posts with like/comment counts, ordered by the author's `referral_points` descending, then newest first. Includes `author_type`, `referral_points`, `rating_avg` and `rating_count`; learner authors have null rating. `created_at` uses requested timezone, and `liked_by_me` is false for guests. |
 | `POST` | `/feed` | Verified bearer | `city`, `body` | Creates a city post; one post per account every 7 days. |
 | `POST` | `/feed/{postId}/like` | Verified bearer | — | Likes a post. |
 | `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
@@ -546,7 +549,7 @@ in that same subsection.
 | `GET` | `/messages/{conversationId}` | Verified bearer, participant | `perPage`, `cursor` | Conversation messages. |
 | `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
 | `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
-| `GET` | `/feed` | Public; bearer optional | Required query `city`; optional `perPage`, `cursor`, `timezone` (IANA) | Paginated city posts with like/comment counts; `created_at` uses requested timezone, and `liked_by_me` is false for guests. |
+| `GET` | `/feed` | Public; bearer optional | Required query `city`; optional `perPage`, `cursor`, `timezone` (IANA) | Paginated city posts with like/comment counts, ordered by the author's `referral_points` descending, then newest first. Includes `author_type`, `referral_points`, `rating_avg` and `rating_count`; learner authors have null rating. `created_at` uses requested timezone, and `liked_by_me` is false for guests. |
 | `POST` | `/feed` | Verified bearer | `city`, `body` | Creates a city post; one post per account every 7 days. |
 | `POST` | `/feed/{postId}/like` | Verified bearer | — | Likes a post. |
 | `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
@@ -636,7 +639,7 @@ compatibility/system endpoints are here. Classification does not widen access.
 | `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
 | `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
 | `POST` | `/broadcasting/auth` | Verified bearer, conversation participant | `channel_name` | Legacy channel authorization; Socket.IO clients use the events below. |
-| `GET` | `/feed` | Public; bearer optional | Required query `city`; optional `perPage`, `cursor`, `timezone` (IANA) | Paginated city posts with like/comment counts; `created_at` uses requested timezone, and `liked_by_me` is false for guests. |
+| `GET` | `/feed` | Public; bearer optional | Required query `city`; optional `perPage`, `cursor`, `timezone` (IANA) | Paginated city posts with like/comment counts, ordered by the author's `referral_points` descending, then newest first. Includes `author_type`, `referral_points`, `rating_avg` and `rating_count`; learner authors have null rating. `created_at` uses requested timezone, and `liked_by_me` is false for guests. |
 | `POST` | `/feed` | Verified bearer | `city`, `body` | Creates a city post; one post per account every 7 days. |
 | `POST` | `/feed/{postId}/like` | Verified bearer | — | Likes a post. |
 | `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
@@ -650,8 +653,9 @@ compatibility/system endpoints are here. Classification does not widen access.
 | `POST` | `/suggestions` | Verified bearer | `suggestionType` (`course`, `city`, `state`, `country`), `name`; optional `notes` | Submits a suggestion. |
 | `POST` | `/support` | Verified bearer | `subject`, `message` | Creates a support ticket. |
 | `GET` | `/support/mine` | Verified bearer | — | Lists the caller's support tickets. |
-| `GET` | `/referrals/mine` | Verified bearer | — | Returns or creates the caller's referral code and referred users. |
-| `POST` | `/referrals/redeem` | Verified bearer | `code` | Redeems a referral code. Self-referrals are rejected; an already-credited account receives `409`. |
+| `GET` | `/download?ref=CODE` | Public referral link | `ref` | Opening a valid referral link awards one point per browser and code owner. Repeat opens in the same browser are deduplicated with a one-year cookie; this page redirects to the app store where configured. |
+| `GET` | `/referrals/mine` | Verified bearer | — | Returns or creates the caller's referral code and link, `referredCount`, `referralPoints`, and the joined-user list in `referred` (`id`, `full_name`, `account_type`, approved `avatar_url`, `created_at`). Opening a valid `/download?ref=CODE` link awards one point per browser and code owner; repeat opens from the same browser do not add more points. |
+| `POST` | `/referrals/redeem` | Verified bearer | `code` | Records this account as joined through the code. It does not award another point because the link open already did so. Self-referrals are rejected; an already-credited account receives `409`. Success includes the code owner's current `referrerReferralPoints`. |
 | `POST` | `/analytics/page-view` | Public | `pageType`; optional `target`, `platform`, `referrer` | Records a view. `pageType`: `institute`, `teacher`, `city_index`, `city_feed`, `city_directory`, `download`, `app_profile`. Limited to 120 requests/minute per IP. |
 | `GET` | `/health` | Public | — | `{ok:true}`. |
 | `GET` | `/up` | Public | — | Laravel health HTML; use `/health` for JSON. |
@@ -696,6 +700,13 @@ Provider search results expose boolean `isActive`. Integrate app lifecycle and
 real interaction events through `POST /presence/update`; automatic heartbeats
 never reset the idle clock. Multiple devices are independent. See
 [presence integration, errors and deployment](PRESENCE.md).
+
+Existing referral rows seed the initial points balance. After deployment, each
+valid referral link awards one point when opened in a browser, once per browser
+and code owner; redeeming the code records the joined account without awarding
+a second point. Search and city-feed results put higher-point accounts first;
+ratings remain available alongside points for teacher and institute providers.
+Learners can post to the city feed but do not have provider ratings.
 
 ### WhatsApp and call integration
 
@@ -768,7 +779,7 @@ provide this API permission. Keep admin tests in a separate admin environment.
 | `PATCH` | `/suggestions/{id}/status` | Admin bearer | `status`: `open`, `added`, `declined` | Updates suggestion status. |
 | `GET` | `/support` | Admin bearer | Optional `status`: `open`, `in_progress`, `resolved` | Lists support tickets (defaults to open). |
 | `PATCH` | `/support/{id}/status` | Admin bearer | `status`: `open`, `in_progress`, `resolved` | Updates ticket status. |
-| `GET` | `/referrals/top` | Admin bearer | — | Up to 50 top referrers. |
+| `GET` | `/referrals/top` | Admin bearer | — | Up to 50 top referrers with `referred_count` and `referral_points`. |
 | `GET` | `/analytics/summary` | Admin bearer | Optional `days` | Page-view summary for the requested period (default 30 days). |
 | `GET` | `/moderation/photos/pending` | Admin bearer | — | Lists photos awaiting review. |
 | `PATCH` | `/moderation/photos/{userId}` | Admin bearer | `status`: `approved` or `rejected` | Reviews a pending photo. |
