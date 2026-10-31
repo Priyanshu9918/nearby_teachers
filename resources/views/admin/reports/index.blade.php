@@ -16,6 +16,18 @@
         <span @class(['comparison-change', 'comparison-up' => $comparison['difference'] > 0, 'comparison-down' => $comparison['difference'] < 0])>{{ $comparison['difference'] > 0 ? '+' : '' }}{{ number_format($comparison['difference']) }} vs previous</span>
     </section>
 @endif
+@if (collect(['q', 'user', 'type', 'status', 'from', 'to'])->contains(fn ($key) => filled($filters[$key] ?? null)))
+<div class="filter-feedback" role="status">
+    <strong>{{ number_format($records->total()) }} matching records</strong>
+    @if (filled($filters['q'] ?? null))<span>Search: {{ $filters['q'] }}</span>@endif
+    @if (filled($filters['type'] ?? null))<span>Account: {{ ucfirst($filters['type']) }}</span>@endif
+    @if (filled($filters['user'] ?? null))<span>User ID: {{ $filters['user'] }}</span>@endif
+    @if (filled($filters['status'] ?? null))<span>Status: {{ ucfirst(str_replace('_', ' ', $filters['status'])) }}</span>@endif
+    @if (filled($filters['from'] ?? null))<span>From: {{ $filters['from'] }}</span>@endif
+    @if (filled($filters['to'] ?? null))<span>Through: {{ $filters['to'] }}</span>@endif
+    <a href="{{ request()->url() }}">Clear all</a>
+</div>
+@endif
 <section class="panel"><p class="table-hint">Scroll horizontally to view all columns. IDs are shown in full.</p><div class="table-wrap" tabindex="0" role="region" aria-label="{{ $title }} records"><table class="data-table"><thead><tr><th>Details</th>@foreach ($columns as $column)<th>{{ str_replace('_', ' ', $column) }}</th>@endforeach</tr></thead><tbody>
 @forelse ($records as $record)
     <tr><td>

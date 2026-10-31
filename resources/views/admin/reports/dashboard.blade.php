@@ -9,17 +9,7 @@
 </div>
 
 @php
-    $todayForReports = now(config('app.timezone'))->startOfDay();
-    $ownerReportPresets = [
-        'Today' => [$todayForReports->toDateString(), $todayForReports->toDateString()],
-        '7 days' => [$todayForReports->copy()->subDays(6)->toDateString(), $todayForReports->toDateString()],
-        '30 days' => [$todayForReports->copy()->subDays(29)->toDateString(), $todayForReports->toDateString()],
-        'This month' => [$todayForReports->copy()->startOfMonth()->toDateString(), $todayForReports->toDateString()],
-        'Last month' => [$todayForReports->copy()->subMonthNoOverflow()->startOfMonth()->toDateString(), $todayForReports->copy()->subMonthNoOverflow()->endOfMonth()->toDateString()],
-        '90 days' => [$todayForReports->copy()->subDays(89)->toDateString(), $todayForReports->toDateString()],
-        'This year' => [$todayForReports->copy()->startOfYear()->toDateString(), $todayForReports->toDateString()],
-        'Since launch' => [config('reporting.launch_date'), $todayForReports->toDateString()],
-    ];
+    $ownerReportPresets = \App\Reporting\ReportFilters::presets();
     $formatOwnerMetric = static function (array $metric): string {
         if ($metric['value'] === null) return '—';
         if ($metric['kind'] === 'percent') return number_format($metric['value'], 1).'%';
@@ -30,8 +20,8 @@
 <section class="owner-period-panel panel" aria-labelledby="owner-period-heading">
     <div class="panel-head"><div><h2 id="owner-period-heading">Owner report · compare activity</h2><p>Select a period to compare it with the same length immediately before it.</p></div><span class="count-pill">{{ $dashboardFrom->format('M j') }} – {{ $dashboardTo->format('M j, Y') }}</span></div>
     <div class="panel-body">
-        <form method="get" class="owner-period-form">
-            <fieldset class="date-presets"><legend>Quick date range</legend><div>@foreach ($ownerReportPresets as $label => [$from, $to])<button type="button" class="date-preset" data-report-period data-from="{{ $from }}" data-to="{{ $to }}">{{ $label }}</button>@endforeach</div></fieldset>
+        <form method="get" action="{{ route('admin.dashboard') }}" class="owner-period-form">
+            <fieldset class="date-presets"><legend>Quick date range</legend><div>@foreach ($ownerReportPresets as $key => $preset)<button type="submit" name="range" value="{{ $key }}" formnovalidate @class(['date-preset', 'date-preset-active' => $ownerRange === $key]) aria-pressed="{{ $ownerRange === $key ? 'true' : 'false' }}">{{ $preset['label'] }}</button>@endforeach</div></fieldset>
             <div class="owner-date-inputs"><div class="field"><label for="owner-from">From date</label><input type="date" id="owner-from" name="from" value="{{ $dashboardFrom->toDateString() }}" required></div><div class="field"><label for="owner-to">Through date</label><input type="date" id="owner-to" name="to" value="{{ $dashboardTo->toDateString() }}" required></div><button class="btn btn-primary" type="submit">Apply dates</button></div>
             <p class="help">Data is grouped by {{ config('app.timezone') }} dates. “Since launch” starts {{ \Illuminate\Support\Carbon::parse(config('reporting.launch_date'))->format('M j, Y') }}.</p>
         </form>

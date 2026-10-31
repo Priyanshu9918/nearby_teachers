@@ -51,6 +51,11 @@ Views receive descriptors from the registry and do not depend on controller
 constants. All report endpoints retain admin-session protection and no-store
 response headers.
 
+Quick date buttons submit allowlisted `range` values. `ReportFilters` resolves
+them to inclusive local dates on the server, and the same `from`/`to` bounds
+apply to report pages, CSV exports and the matching workbook sheet. Report
+forms submit the current search and date inputs to exports.
+
 `admin_report_access_log.id` is a UUID (`CHAR(36)`). Migration `000006`
 repairs deployed databases where this column was created as numeric, preserving
 existing access-log IDs as strings so UUID inserts from `ReportAccessLog` work.

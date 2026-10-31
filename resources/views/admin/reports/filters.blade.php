@@ -1,22 +1,21 @@
 @php
-    $reportToday = now(config('app.timezone'))->startOfDay();
-    $reportPresets = [
-        'Today' => [$reportToday->toDateString(), $reportToday->toDateString()],
-        '7 days' => [$reportToday->copy()->subDays(6)->toDateString(), $reportToday->toDateString()],
-        '30 days' => [$reportToday->copy()->subDays(29)->toDateString(), $reportToday->toDateString()],
-        'This month' => [$reportToday->copy()->startOfMonth()->toDateString(), $reportToday->toDateString()],
-        'Last month' => [$reportToday->copy()->subMonthNoOverflow()->startOfMonth()->toDateString(), $reportToday->copy()->subMonthNoOverflow()->endOfMonth()->toDateString()],
-        '90 days' => [$reportToday->copy()->subDays(89)->toDateString(), $reportToday->toDateString()],
-        'This year' => [$reportToday->copy()->startOfYear()->toDateString(), $reportToday->toDateString()],
-        'Since launch' => [config('reporting.launch_date'), $reportToday->toDateString()],
-    ];
+    $reportPresets = \App\Reporting\ReportFilters::presets();
+    $searchPlaceholder = match ($report ?? null) {
+        'seo-location-pages' => 'Path, country, district, village or ID',
+        'seo-pages' => 'Path, country, city or ID',
+        'users' => 'Name, email, phone or user ID',
+        'support' => 'Subject, message, user name or ID',
+        null => 'Message text',
+        default => 'Search text, name, email or record ID',
+    };
 @endphp
-<form method="get" class="panel panel-body report-filter-panel">
+<form method="get" action="{{ request()->url() }}" class="panel panel-body report-filter-panel">
+    @if (isset($filters['per_page']))<input type="hidden" name="per_page" value="{{ $filters['per_page'] }}">@endif
     @if (!isset($report) || $timestamp !== null)
-        <fieldset class="date-presets"><legend>Quick date range</legend><div>@foreach ($reportPresets as $label => [$from, $to])<button type="button" class="date-preset" data-report-period data-from="{{ $from }}" data-to="{{ $to }}">{{ $label }}</button>@endforeach</div></fieldset>
+        <fieldset class="date-presets"><legend>Quick date range</legend><div>@foreach ($reportPresets as $key => $preset)<button type="submit" name="range" value="{{ $key }}" formnovalidate @class(['date-preset', 'date-preset-active' => ($filters['range'] ?? null) === $key]) aria-pressed="{{ ($filters['range'] ?? null) === $key ? 'true' : 'false' }}">{{ $preset['label'] }}</button>@endforeach</div></fieldset>
     @endif
     <div class="form-grid">
-        <div class="field"><label for="q">Search</label><input id="q" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="{{ isset($report) ? 'Name, email, phone, record ID or report text' : 'Message text' }}"></div>
+        <div class="field"><label for="q">Search</label><input id="q" name="q" type="search" value="{{ $filters['q'] ?? '' }}" placeholder="{{ $searchPlaceholder }}"></div>
         @if (!empty($userColumns))
         <div class="field"><label for="type">Participant account type</label><select name="type" id="type"><option value="">All types</option>@foreach (['learner' => 'Student', 'teacher' => 'Teacher', 'institute' => 'Institute'] as $value => $label)<option value="{{ $value }}" @selected(($filters['type'] ?? '') === $value)>{{ $label }}</option>@endforeach</select></div>
         <div class="field"><label for="user">User ID</label><input name="user" id="user" value="{{ $filters['user'] ?? '' }}"></div>
@@ -29,6 +28,6 @@
         <div class="field"><label for="to">Through date</label><input type="date" name="to" id="to" value="{{ $filters['to'] ?? '' }}"></div>
         @endif
     </div>
-    <div class="form-actions"><button class="btn btn-primary">Apply filters</button><a class="btn" href="{{ request()->url() }}">Reset</a><button class="btn" name="export" value="1">Export matching records CSV</button><a class="btn" href="{{ route('admin.reports.export-all', request()->only('q', 'user', 'type', 'from', 'to', 'status')) }}"><x-admin-icon name="download" />Download all reports (Excel)</a></div>
-    <p class="help">Dates use {{ config('app.timezone') }}. Exports include every matching row, across all pages.</p>
+    <div class="form-actions"><button class="btn btn-primary" type="submit">Apply filters</button><a class="btn" href="{{ request()->url() }}">Clear filters</a><button class="btn" type="submit" name="export" value="1">Export matching records CSV</button><button class="btn" type="submit" formaction="{{ route('admin.reports.export-all') }}"><x-admin-icon name="download" />Download all reports (Excel)</button></div>
+    <p class="help">@if (!isset($report)) Dates filter messages by sent time. @elseif ($timestamp !== null) Dates filter by {{ str_replace('_', ' ', $timestamp) }}. @endif Timezone: {{ config('app.timezone') }}. Exports include every matching row, across all pages.</p>
 </form>

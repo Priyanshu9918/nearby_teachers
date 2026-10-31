@@ -33,10 +33,8 @@ class AdminReportController extends Controller
     public function dashboard(Request $request): View
     {
         $this->access->record($request, 'dashboard', 'view');
-        $ownerFilters = $request->validate([
-            'from' => ['nullable', 'date_format:Y-m-d'],
-            'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
-        ]);
+        $ownerFilters = $this->filters->validate($request);
+        $ownerRange = $ownerFilters['range'] ?? null;
         $timezone = config('app.timezone');
         $dashboardTo = Carbon::parse($ownerFilters['to'] ?? now($timezone)->toDateString(), $timezone)->startOfDay();
         $dashboardFrom = Carbon::parse($ownerFilters['from'] ?? $dashboardTo->copy()->subDays(6)->toDateString(), $timezone)->startOfDay();
@@ -81,7 +79,7 @@ class AdminReportController extends Controller
         ];
 
         return view('admin.reports.dashboard', compact('counts', 'types', 'registered', 'daily', 'workCounts',
-            'ownerPeriodMetrics', 'ownerPreviousMetrics', 'ownerSnapshot', 'queues', 'dashboardFrom', 'dashboardTo',
+            'ownerPeriodMetrics', 'ownerPreviousMetrics', 'ownerSnapshot', 'queues', 'dashboardFrom', 'dashboardTo', 'ownerRange',
             'dashboardPreviousFrom', 'dashboardPreviousTo'));
     }
 

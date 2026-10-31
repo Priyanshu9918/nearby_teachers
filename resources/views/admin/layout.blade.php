@@ -6,7 +6,7 @@
     <meta name="color-scheme" content="light">
     <title>@yield('title', 'Admin') · Nearby Teacher</title>
     <link rel="stylesheet" href="{{ asset('css/admin.css') }}?v={{ substr(hash_file('sha256', public_path('css/admin.css')), 0, 12) }}">
-    <script src="{{ asset('js/admin.js') }}" defer></script>
+    <script src="{{ asset('js/admin.js') }}?v={{ substr(hash_file('sha256', public_path('js/admin.js')), 0, 12) }}" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to content</a>
