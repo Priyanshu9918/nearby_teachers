@@ -7,7 +7,7 @@ const {spawnSync} = require('node:child_process');
 function portal({clipboard = true} = {}) {
     const elements = new Map();
     class Element {
-        value = ''; textContent = ''; hidden = false; dataset = {}; children = []; listeners = {};
+        value = ''; textContent = ''; hidden = false; dataset = {}; children = []; listeners = {}; files = [];
         classList = {toggle() {}};
         append(...children) { this.children.push(...children); }
         replaceChildren() { this.children = []; }
@@ -23,25 +23,28 @@ function portal({clipboard = true} = {}) {
     };
     const apis = [
         {id: 'one', method: 'POST', path: '/example', category: 'Auth', action: 'example', authMode: 'bearer', bodyExample: {name: "O'Brien $(printf INJECTED)"}, mockResponse: {status: 200, contentType: 'application/json', body: '{"token":"fictional-token"}'}},
-        {id: 'two', method: 'GET', path: '/health', category: 'Common', action: 'health', authMode: 'none', mockResponse: {status: 200, contentType: 'application/json', body: '{"ok":true}'}}
+        {id: 'two', method: 'GET', path: '/health', category: 'Common', action: 'health', authMode: 'none', mockResponse: {status: 200, contentType: 'application/json', body: '{"ok":true}'}},
+        {id: 'photo', method: 'POST', path: '/student/profile/photo', category: 'Common', action: 'upload', authMode: 'bearer', bodyMode: 'multipart', fileField: 'image', fileRequired: true, bodyExample: {}, mockResponse: {status: 200, contentType: 'application/json', body: '{"ok":true}'}},
+        {id: 'report', method: 'POST', path: '/reports', category: 'Common', action: 'report', authMode: 'bearer', bodyMode: 'multipart', fileField: 'screenshot', fileRequired: false, bodyExample: {reasonCategory: 'spam'}, mockResponse: {status: 201, contentType: 'application/json', body: '{"ok":true}'}}
     ];
     let pending;
     let fetches = 0;
     let copied = '';
+    let lastRequest;
     const context = {
-        URL, URLSearchParams, Headers, AbortController, performance, setTimeout, clearTimeout,
+        URL, URLSearchParams, Headers, FormData, AbortController, performance, setTimeout, clearTimeout,
         CSS: {escape: (s) => s},
         window: {location: {origin: 'https://example.test', hash: '', search: ''}, history: {replaceState() {}}},
         navigator: {clipboard: {async writeText(text) { if (!clipboard) throw Error('unavailable'); copied = text; }}},
         document: {getElementById: element, querySelector: () => null, querySelectorAll: () => [], createElement: () => new Element(), execCommand: () => false},
-        fetch: () => { fetches++; return new Promise((resolve, reject) => { pending = {resolve, reject}; }); }
+        fetch: (url, options) => { fetches++; lastRequest = {url, options}; return new Promise((resolve, reject) => { pending = {resolve, reject}; }); }
     };
     element('request-headers').value = '{"Accept":"application/json"}';
     let script = fs.readFileSync('resources/views/developer/portal.blade.php', 'utf8').split('<script>')[1].split('</script>')[0];
     script = script.replace("@js(rtrim($baseUrl, '/').'/')", JSON.stringify('https://example.test/app/public/'))
         .replace('@js($catalog)', JSON.stringify(apis)).replace('@js($categories)', '["Auth","Common"]');
     vm.runInNewContext(script, context);
-    return {element, apis, get fetches() { return fetches; }, get copied() { return copied; },
+    return {element, apis, get fetches() { return fetches; }, get copied() { return copied; }, get lastRequest() { return lastRequest; },
         send: () => element('api-form').listeners.submit({preventDefault() {}}),
         select: (id) => element('endpoint-list').listeners.click({target: {closest: () => ({dataset: {endpoint: id}})}}),
         resolve: (body, status = 200) => pending.resolve({text: async () => body, status, statusText: status === 200 ? 'OK' : 'Bad Request', headers: new Headers({'content-type': 'application/json'})}),
@@ -121,4 +124,42 @@ test('Copy cURL offers manual copy when clipboard is unavailable', async () => {
     await p.element('copy-curl').listeners.click();
     assert.equal(p.element('curl-preview').hidden, false);
     assert.match(p.element('curl-feedback').textContent, /Copy the selected text/);
+});
+
+test('photo endpoints require an image and send multipart without a Content-Type override', async () => {
+    const p = portal();
+    p.select('photo');
+    p.element('bearer-token').value = 'real-test-token';
+    await p.send();
+    assert.equal(p.fetches, 0);
+    assert.equal(p.element('response-status').textContent, 'Image required');
+    const photo = new Blob(['image'], {type: 'image/jpeg'});
+    p.element('request-file').files = [photo];
+    p.element('request-body').value = '{"caption":"hello"}';
+    const sending = p.send();
+    assert.equal(p.fetches, 1);
+    assert.equal(p.lastRequest.options.headers.has('Content-Type'), false);
+    assert.equal(p.lastRequest.options.body.get('caption'), 'hello');
+    assert.equal(p.lastRequest.options.body.get('image').type, 'image/jpeg');
+    p.resolve('{"ok":true}');
+    await sending;
+    await p.element('copy-curl').listeners.click();
+    assert.match(p.copied, /--form 'image=@\/path\/to\/blob'/);
+    assert.doesNotMatch(p.copied, /--data-raw|content-type:/i);
+});
+
+test('report endpoint sends form fields with an optional screenshot', async () => {
+    const p = portal();
+    p.select('report');
+    p.element('bearer-token').value = 'real-test-token';
+    const sending = p.send();
+    assert.equal(p.lastRequest.options.body.get('reasonCategory'), 'spam');
+    assert.equal(p.lastRequest.options.body.has('screenshot'), false);
+    p.resolve('{"ok":true}', 201);
+    await sending;
+    const screenshot = new Blob(['image'], {type: 'image/png'});
+    p.element('request-file').files = [screenshot];
+    await p.element('copy-curl').listeners.click();
+    assert.match(p.copied, /--form-string 'reasonCategory=spam'/);
+    assert.match(p.copied, /--form 'screenshot=@\/path\/to\/blob'/);
 });

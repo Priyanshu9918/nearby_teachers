@@ -31,7 +31,7 @@ frontend WhatsApp and call actions.
 | Protected calls | `Authorization: Bearer <Laravel-issued token>` |
 | Live chat | Separate deployment Socket.IO URL; local default port 6001 |
 
-Provider IDs mean user UUIDs from `user_id`, not the listing row UUID. Subject
+Provider IDs mean numeric user IDs from `user_id`, not the listing row ID. Subject
 IDs are numeric. Request fields usually use camelCase; raw records usually
 snake_case. Decimals/booleans can arrive as strings or `0/1`, and raw listing
 `lesson_modes` can be JSON text. Normalize these on the client. Raw timestamps
@@ -205,7 +205,7 @@ See [email recovery](EMAIL_AUTH.md) for code requirements.
 | `GET` | `/profiles/{type}/{id}` | Public, optional bearer | `type`: `teacher` or `institute`; optional auth affects phone quota | Public listing profile. Suspended or not-yet-phone-verified optional tokens are treated as anonymous. |
 | `POST` | `/bookings` | Verified bearer | `providerId`, `mode`, `requestedTime`; optional `subjectId`, `price` | Creates a booking request. `mode`: `in_person`, `home_tuition`, `online`. Safety acknowledgement and minor-consent gates apply. |
 | `GET` | `/bookings/mine` | Verified bearer | `perPage`, `cursor` | Learner's bookings. |
-| `POST` | `/messages/start` | Verified bearer, learner | `providerId`; optional `body` | Starts/reuses a provider conversation and optionally sends the first message. Safety and guardian-consent gates apply. |
+| `POST` | `/messages/start` | Verified bearer | `providerId` (another numeric user ID); optional `body` | Starts/reuses a conversation and optionally sends the first message. Safety and guardian-consent gates apply. |
 | `POST` | `/reviews` | Verified bearer | `bookingId`, `rating` (1–5); optional `comment` | Adds a review for a booking belonging to the caller. |
 | `GET` | `/reviews/for/{providerId}` | Public | `perPage`, `cursor` | Provider reviews. |
 | `POST` | `/franchise/enquiries` | Verified bearer; learner and teacher supported (institute also currently accepted) | `name`, `phone`, `location` | Submits a franchise enquiry for admin review; the signed-in account is linked automatically. |
@@ -229,8 +229,8 @@ See [email recovery](EMAIL_AUTH.md) for code requirements.
 
 ### Student profile
 
-Student profile requests also appear under the dedicated **Student** category in
-the developer explorer and in `student-profile.postman_collection.json`.
+Student profile requests appear under **Learner** in the developer explorer and
+app-team collection, and in `student-profile.postman_collection.json`.
 
 | Method | Path | Access | Request / query | Result / notes |
 |---|---|---|---|---|
@@ -239,8 +239,8 @@ the developer explorer and in `student-profile.postman_collection.json`.
 | `POST` | `/student/profile/photo` | Verified student bearer | Multipart `image` or `profile_image`, JPEG/PNG/WebP, max 5 MB | Uploads the profile image for moderation; returns `profileImage` and `profileImageStatus`. |
 | `POST` | `/auth/date-of-birth` | Verified bearer | `dateOfBirth` (`YYYY-MM-DD`) | Sets learner DOB through age/guardian checks; DOB is read-only in profile PATCH. |
 
-The saved request and response examples for these APIs are under **Student** in
-the Postman collection. Profile images use multipart upload; base64 image data
+The saved request and response examples for these APIs are under **Learner** in
+the app-team Postman collection. Profile images use multipart upload; base64 image data
 is not required.
 
 ### Student DOB page and guardian consent
@@ -298,9 +298,9 @@ Quota exhaustion still returns `200` with phone omitted and quota metadata.
 Invalid/unverified optional bearer can be treated as anonymous.
 
 A booking has mode in_person/home_tuition/online, requestedTime with timezone,
-provider user UUID and optional subject/price. Safety and guardian gates apply;
+provider user ID and optional subject/price. Safety and guardian gates apply;
 price is not a payment. Mine filters caller's learner_id without a separate
-role gate. Message start explicitly requires learner role; shared reply APIs
+role gate. Message start accepts any verified account; shared reply APIs
 are listed in each role and Common.
 Review creation requires booking ownership as learner and rating 1–5; no
 completed-status gate exists. No review update/delete API exists.
@@ -349,6 +349,7 @@ in that same subsection.
 | `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging or booking. |
 | `PATCH` | `/bookings/{id}/status` | Verified bearer, participant | `status`: `accepted`, `declined`, `cancelled`, or `completed` | Updates a booking in which the caller participates. |
 | `GET` | `/messages` | Verified bearer | `perPage`, `cursor` | Conversations for the signed-in participant. |
+| `POST` | `/messages/start` | Verified bearer | `providerId`; optional `body` | Starts or reuses a conversation with another account. Safety and guardian-consent gates apply. |
 | `GET` | `/messages/{conversationId}` | Verified bearer, participant | `perPage`, `cursor` | Conversation messages. |
 | `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
 | `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
@@ -451,8 +452,8 @@ in Common.
    replies. Sending requires safety acknowledgement. Socket.IO uses the same
    participant checks through the listed authorization endpoint.
 
-`POST /messages/start` remains learner-only. Teacher access here lets the
-provider read/reply to an existing conversation; it does not open new chats.
+`POST /messages/start` accepts any verified account. A teacher can start a
+conversation or read and reply to one where it participates.
 
 For city posts use `GET /feed?city=Delhi`, then `POST /feed` to create an offer:
 
@@ -549,6 +550,7 @@ in that same subsection.
 | `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging or booking. |
 | `PATCH` | `/bookings/{id}/status` | Verified bearer, participant | `status`: `accepted`, `declined`, `cancelled`, or `completed` | Updates a booking in which the caller participates. |
 | `GET` | `/messages` | Verified bearer | `perPage`, `cursor` | Conversations for the signed-in participant. |
+| `POST` | `/messages/start` | Verified bearer | `providerId`; optional `body` | Starts or reuses a conversation with another account. Safety and guardian-consent gates apply. |
 | `GET` | `/messages/{conversationId}` | Verified bearer, participant | `perPage`, `cursor` | Conversation messages. |
 | `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
 | `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
@@ -601,7 +603,7 @@ set their own verification badge through profile PUT.
 
 The institute loads `GET /messages`, opens `GET /messages/{conversationId}` and
 replies with `POST /messages/{conversationId}` using its own bearer. It must be
-a conversation participant. `POST /messages/start` remains learner-only. Listed
+a conversation participant. `POST /messages/start` accepts any verified account. Listed
 Socket.IO authorization and safety APIs support the same existing chat flow.
 
 The institute can read city feed, publish an offer, like/unlike, comment and
@@ -635,10 +637,13 @@ compatibility/system endpoints are here. Classification does not widen access.
 | `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging or booking. |
 | `GET` | `/subjects` | Public | — | Subject domains with their subjects and BSL catalog data. |
 | `GET` | `/contact-info` | Public | — | Current WhatsApp number/link, support email and LinkedIn contact. |
+| `POST` | `/franchise/enquiries` | Verified bearer; learner and teacher supported (institute also currently accepted) | `name`, `phone`, `location` | Submits a franchise enquiry for admin review; the signed-in account is linked automatically. |
+| `POST` | `/jobs/applications` | Verified bearer; learner and teacher supported (institute also currently accepted) | `name`, `phone`, `expectedSalary`, `courseIds` (1–5 BSL course IDs) | Submits a teaching job application for admin review; the signed-in account is linked automatically. |
 | `GET` | `/i18n/languages` | Public | — | Supported language metadata. |
 | `GET` | `/i18n/{lang}` | Public | Language code in path | Returns translations; unsupported language codes serve English and identify the requested/served language. |
 | `PATCH` | `/bookings/{id}/status` | Verified bearer, participant | `status`: `accepted`, `declined`, `cancelled`, or `completed` | Updates a booking in which the caller participates. |
 | `GET` | `/messages` | Verified bearer | `perPage`, `cursor` | Conversations for the signed-in participant. |
+| `POST` | `/messages/start` | Verified bearer | `providerId`; optional `body` | Starts or reuses a conversation with another account. Safety and guardian-consent gates apply. |
 | `GET` | `/messages/{conversationId}` | Verified bearer, participant | `perPage`, `cursor` | Conversation messages. |
 | `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
 | `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
@@ -808,14 +813,18 @@ by the admin session and recorded in the admin report access log.
 
 ### Developer workbench and Postman
 
-Open `/developer/login`, then choose Auth, Learner, Student, Teacher, Institute or Common.
+Open `/developer/login`, then choose Auth, Learner, Teacher, Institute or Common.
 The explorer uses the complete deployment base path and same-origin request
 restriction. Common admin-only calls retain admin checks. Request examples
-use fictional UUIDs/codes; supply real records for manual testing.
+use fictional IDs/codes; supply real records for manual testing.
 Normal OTP examples omit Authorization even if the explorer token field is
 populated. Google OTP examples require the saved Google bearer. Use the role
 selector for student, Google student, teacher or institute registration examples
 and the matching teacher/institute listing example on shared provider URLs.
+For profile photos and report screenshots, the explorer selects multipart mode;
+choose the image file before sending. The Copy cURL action includes form fields
+and a placeholder image path to replace on your computer. Developer login only
+opens the workbench; protected requests still need a valid API bearer.
 
 Import the existing [app-team collection](postman/app-team.postman_collection.json).
 Set baseUrl, phone, email/password, firebaseIdToken and existing subjectId.

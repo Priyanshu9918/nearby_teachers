@@ -351,6 +351,11 @@ class DeveloperController extends Controller
                 unset($variant);
             }
 
+            foreach ($variants as &$variant) {
+                $variant['suffix'] .= '::'.strtolower($category);
+            }
+            unset($variant);
+
             return $variants;
         }
         if ($key === 'PATCH /teacher/profile/steps/{step}') {
@@ -557,6 +562,10 @@ class DeveloperController extends Controller
                 'body' => ['conversationId' => 3],
                 'guide' => 'Socket.IO uses this API for bearer and room authorization. Omit conversationId to check connection identity only.',
             ],
+            'POST /feed/socket/authorize' => [
+                'body' => ['postId' => 1],
+                'guide' => 'Use a real feed post ID with a signed-in bearer to obtain its Socket.IO room.',
+            ],
             'GET /auth/onboarding' => [
                 'guide' => 'Load the Welcome / complete-profile draft. Wait for mobileVerified=true before enabling Continue.',
             ],
@@ -641,6 +650,7 @@ class DeveloperController extends Controller
             'POST /reports' => ['body' => ['targetType' => 'message', 'targetId' => 1, 'reasonCategory' => 'spam',
                 'additionalDetails' => 'Unwanted repeated messages.', 'evidenceLink' => 'https://example.test/evidence'],
                 'guide' => 'Learner, teacher and institute accounts can submit a report with a category, details and optional evidence. targetType and targetId are optional; missing or unsupported targets are saved unlinked. Optional multipart fields: additionalDetails (500 chars), evidenceLink (HTTP/HTTPS URL) and screenshot (JPEG/PNG/WebP up to 5 MB). Send as multipart/form-data when attaching an image. Categories: fraud = Fraud or scam, fake_profile = Fake profile / not who they claim, inappropriate = Inappropriate behavior, spam = Spam, other = Other. Returns 201. Rate limit: 10/minute.'],
+            'POST /student/profile/photo' => ['guide' => 'Upload the learner profile image using multipart/form-data field image. JPEG, PNG and WebP up to 5 MB are accepted.'],
             'POST /presence/update' => [
                 'body' => ['deviceId' => 'app-device-unique-id', 'event' => 'foreground'],
                 'guide' => 'Database-backed presence for this authenticated device; no Redis required. Send foreground/activity/heartbeat/background. Heartbeat every 30 seconds; foreground/activity reset the five-minute idle timer. Background removes the device immediately; a missing heartbeat expires it in 90 seconds. Only current state is retained; the Laravel scheduler prunes expired rows in bounded batches.',
@@ -723,6 +733,13 @@ class DeveloperController extends Controller
             'queryExample' => $example['query'] ?? '',
             'pathDefaults' => $pathDefaults,
             'guide' => $example['guide'] ?? null,
+            'bodyMode' => in_array($key, [
+                'POST /student/profile/photo', 'POST /profiles/me/photo', 'POST /teacher/profile/photo',
+                'POST /safety/reports', 'POST /reports',
+            ], true) ? 'multipart' : 'json',
+            'fileField' => in_array($key, ['POST /safety/reports', 'POST /reports'], true) ? 'screenshot'
+                : (in_array($key, ['POST /student/profile/photo', 'POST /profiles/me/photo', 'POST /teacher/profile/photo'], true) ? 'image' : null),
+            'fileRequired' => in_array($key, ['POST /student/profile/photo', 'POST /profiles/me/photo', 'POST /teacher/profile/photo'], true),
         ];
     }
 

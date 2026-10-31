@@ -2,7 +2,7 @@
 
 return [
     // Workflow groups describe intended use; middleware and controllers enforce access.
-    'groups' => ['Auth', 'Learner', 'Student', 'Teacher Profile', 'Teacher', 'Institute', 'Common'],
+    'groups' => ['Auth', 'Learner', 'Teacher', 'Institute', 'Common'],
 
     // Keep method/path pairs explicit so documentation coverage can be checked against routes.
     // Shared capabilities appear in each applicable role and in Common for reference.
@@ -38,12 +38,12 @@ return [
         'PATCH /auth/link-phone' => ['Auth'],
         'PATCH /auth/link-google' => ['Auth'],
 
-        'POST /auth/date-of-birth' => ['Learner', 'Student'],
+        'POST /auth/date-of-birth' => ['Learner'],
         'POST /auth/guardian-details' => ['Learner'],
         'GET /auth/parental-consent/status' => ['Learner'],
-        'GET /student/profile' => ['Student'],
-        'PATCH /student/profile' => ['Student'],
-        'POST /student/profile/photo' => ['Student'],
+        'GET /student/profile' => ['Learner'],
+        'PATCH /student/profile' => ['Learner'],
+        'POST /student/profile/photo' => ['Learner'],
         'POST /auth/parental-consent/confirm' => ['Learner'],
         'GET /search/dashboard' => ['Learner'],
         'GET /search/counts' => ['Learner'],
@@ -59,16 +59,16 @@ return [
         'POST /franchise/enquiries' => ['Learner', 'Teacher', 'Common'],
         'POST /jobs/applications' => ['Learner', 'Teacher', 'Common'],
 
-        'GET /profiles/me' => ['Teacher Profile', 'Teacher', 'Institute'],
-        'PATCH /profiles/me/steps/{step}' => ['Teacher Profile', 'Teacher', 'Institute'],
-        'POST /profiles/me/photo' => ['Teacher Profile', 'Teacher', 'Institute'],
-        'POST /profiles/me/publish' => ['Teacher Profile', 'Teacher', 'Institute'],
-        'PUT /profiles/me' => ['Teacher Profile', 'Teacher', 'Institute'],
-        'GET /profiles/me/stats' => ['Teacher Profile', 'Teacher', 'Institute'],
-        'GET /teacher/profile' => ['Teacher Profile'],
-        'PATCH /teacher/profile/steps/{step}' => ['Teacher Profile'],
-        'POST /teacher/profile/photo' => ['Teacher Profile'],
-        'POST /teacher/profile/publish' => ['Teacher Profile'],
+        'GET /profiles/me' => ['Teacher', 'Institute'],
+        'PATCH /profiles/me/steps/{step}' => ['Teacher', 'Institute'],
+        'POST /profiles/me/photo' => ['Teacher', 'Institute'],
+        'POST /profiles/me/publish' => ['Teacher', 'Institute'],
+        'PUT /profiles/me' => ['Teacher', 'Institute'],
+        'GET /profiles/me/stats' => ['Teacher', 'Institute'],
+        'GET /teacher/profile' => ['Teacher'],
+        'PATCH /teacher/profile/steps/{step}' => ['Teacher'],
+        'POST /teacher/profile/photo' => ['Teacher'],
+        'POST /teacher/profile/publish' => ['Teacher'],
         'GET /bookings/incoming' => ['Teacher', 'Institute'],
 
         'GET /auth/safety-disclaimer' => ['Learner', 'Teacher', 'Institute', 'Common'],
@@ -87,6 +87,7 @@ return [
         'GET /messages/{conversationId}' => ['Learner', 'Teacher', 'Institute', 'Common'],
         'POST /messages/{conversationId}' => ['Learner', 'Teacher', 'Institute', 'Common'],
         'POST /chat/socket/authorize' => ['Learner', 'Teacher', 'Institute', 'Common'],
+        'POST /feed/socket/authorize' => ['Learner'],
         'GET /feed' => ['Learner', 'Teacher', 'Institute', 'Common'],
         'POST /feed' => ['Learner', 'Teacher', 'Institute', 'Common'],
         'POST /feed/{postId}/like' => ['Learner', 'Teacher', 'Institute', 'Common'],
@@ -96,6 +97,7 @@ return [
         'POST /feed/comments/{commentId}/like' => ['Common'],
         'DELETE /feed/comments/{commentId}/like' => ['Common'],
         'POST /safety/reports' => ['Common'],
+        'POST /reports' => ['Common'],
         'POST /safety/blocks/{userId}' => ['Common'],
         'DELETE /safety/blocks/{userId}' => ['Common'],
         'POST /suggestions' => ['Common'],

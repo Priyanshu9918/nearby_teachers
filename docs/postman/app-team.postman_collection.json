@@ -5219,6 +5219,70 @@
       "name": "Learner",
       "item": [
         {
+          "name": "GET /student/profile — My learner profile",
+          "request": {"method": "GET", "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/student/profile", "host": ["{{baseUrl}}"], "path": ["student", "profile"]},
+            "description": "Learner bearer required. Returns saved profile fields and profileComplete."}
+        },
+        {
+          "name": "PATCH /student/profile — Update learner profile",
+          "request": {"method": "PATCH", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/student/profile", "host": ["{{baseUrl}}"], "path": ["student", "profile"]},
+            "body": {"mode": "raw", "raw": "{\n  \"name\": \"Example Learner\"\n}", "options": {"raw": {"language": "json"}}},
+            "description": "Learner bearer required. Update name, email, phone or phone_pin; DOB and photos use their separate APIs."}
+        },
+        {
+          "name": "POST /student/profile/photo — Upload learner photo",
+          "request": {"method": "POST", "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/student/profile/photo", "host": ["{{baseUrl}}"], "path": ["student", "profile", "photo"]},
+            "body": {"mode": "formdata", "formdata": [{"key": "image", "type": "file", "src": ""}]},
+            "description": "Learner bearer required. Choose a JPEG, PNG or WebP image up to 5 MB for the image field."}
+        },
+        {
+          "name": "POST /franchise/enquiries — Learner enquiry",
+          "request": {"method": "POST", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/franchise/enquiries", "host": ["{{baseUrl}}"], "path": ["franchise", "enquiries"]},
+            "body": {"mode": "raw", "raw": "{\n  \"name\": \"Example Learner\",\n  \"phone\": \"+919876543210\",\n  \"location\": \"New Delhi\"\n}", "options": {"raw": {"language": "json"}}},
+            "description": "Verified learner bearer required. Submit a BSL franchise enquiry."}
+        },
+        {
+          "name": "POST /jobs/applications — Learner teaching application",
+          "request": {"method": "POST", "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/jobs/applications", "host": ["{{baseUrl}}"], "path": ["jobs", "applications"]},
+            "body": {"mode": "raw", "raw": "{\n  \"name\": \"Example Learner\",\n  \"phone\": \"+919876543210\",\n  \"expectedSalary\": 25000,\n  \"courseIds\": [1]\n}", "options": {"raw": {"language": "json"}}},
+            "description": "Verified learner bearer required. Replace courseIds with BSL subject IDs from GET /subjects."}
+        },
+        {
+          "name": "POST /feed/socket/authorize — Join a feed post room",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Accept", "value": "application/json"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/feed/socket/authorize",
+              "host": ["{{baseUrl}}"],
+              "path": ["feed", "socket", "authorize"]
+            },
+            "description": "Signed-in bearer required. Replace postId with an existing feed post ID to receive its Socket.IO room.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"postId\": 1\n}",
+              "options": {"raw": {"language": "json"}}
+            }
+          },
+          "response": [
+            {
+              "name": "200 Feed room authorized",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"userId\": 1,\n  \"postId\": 1,\n  \"room\": \"feed-post.1\",\n  \"expiresInSeconds\": 900,\n  \"authVersion\": 0\n}"
+            }
+          ]
+        },
+        {
           "name": "POST /auth/date-of-birth",
           "request": {
             "method": "POST",
@@ -10924,6 +10988,212 @@
       "name": "Teacher",
       "item": [
         {
+          "name": "POST /messages/start — Teacher starts conversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/messages/start",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "messages",
+                "start"
+              ]
+            },
+            "description": "Learner/student only. Starts or returns a conversation with a teacher/institute after safety acknowledgement and guardian consent gates. Save returned conversationId. Saved examples are fictional contract illustrations, not live captures.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"providerId\": \"{{providerId}}\",\n  \"body\": \"Hello, are you available for lessons?\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Fictional example — 200 Conversation started or reused",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/messages/start",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "messages",
+                    "start"
+                  ]
+                },
+                "description": "Learner/student only. Starts or returns a conversation with a teacher/institute after safety acknowledgement and guardian consent gates. Save returned conversationId. Saved examples are fictional contract illustrations, not live captures.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"providerId\": \"{{providerId}}\",\n  \"body\": \"Hello, are you available for lessons?\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"conversationId\": \"10000000-0000-4000-8000-000000000003\"\n}"
+            },
+            {
+              "name": "Fictional example — 401 Bearer missing",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/messages/start",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "messages",
+                    "start"
+                  ]
+                },
+                "description": "Learner/student only. Starts or returns a conversation with a teacher/institute after safety acknowledgement and guardian consent gates. Save returned conversationId. Saved examples are fictional contract illustrations, not live captures.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"providerId\": \"{{providerId}}\",\n  \"body\": \"Hello, are you available for lessons?\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Missing Authorization header\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST /franchise/enquiries — Teacher enquiry",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/franchise/enquiries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "franchise",
+                "enquiries"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Example Learner\",\n  \"phone\": \"+919876543210\",\n  \"location\": \"New Delhi\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Verified learner bearer required. Submit a BSL franchise enquiry."
+          },
+          "response": []
+        },
+        {
+          "name": "POST /jobs/applications — Teacher application",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/jobs/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "jobs",
+                "applications"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Example Learner\",\n  \"phone\": \"+919876543210\",\n  \"expectedSalary\": 25000,\n  \"courseIds\": [1]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Verified learner bearer required. Replace courseIds with BSL subject IDs from GET /subjects."
+          },
+          "response": []
+        },
+        {
   "name": "Profile",
   "item": [
     {
@@ -15895,6 +16165,138 @@
       "name": "Institute",
       "item": [
         {
+          "name": "POST /messages/start — Institute starts conversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/messages/start",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "messages",
+                "start"
+              ]
+            },
+            "description": "Learner/student only. Starts or returns a conversation with a teacher/institute after safety acknowledgement and guardian consent gates. Save returned conversationId. Saved examples are fictional contract illustrations, not live captures.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"providerId\": \"{{providerId}}\",\n  \"body\": \"Hello, are you available for lessons?\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Fictional example — 200 Conversation started or reused",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/messages/start",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "messages",
+                    "start"
+                  ]
+                },
+                "description": "Learner/student only. Starts or returns a conversation with a teacher/institute after safety acknowledgement and guardian consent gates. Save returned conversationId. Saved examples are fictional contract illustrations, not live captures.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"providerId\": \"{{providerId}}\",\n  \"body\": \"Hello, are you available for lessons?\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"conversationId\": \"10000000-0000-4000-8000-000000000003\"\n}"
+            },
+            {
+              "name": "Fictional example — 401 Bearer missing",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/messages/start",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "messages",
+                    "start"
+                  ]
+                },
+                "description": "Learner/student only. Starts or returns a conversation with a teacher/institute after safety acknowledgement and guardian consent gates. Save returned conversationId. Saved examples are fictional contract illustrations, not live captures.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"providerId\": \"{{providerId}}\",\n  \"body\": \"Hello, are you available for lessons?\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Missing Authorization header\"\n}"
+            }
+          ]
+        },
+        {
           "name": "PUT /profiles/me — institute",
           "request": {
             "method": "PUT",
@@ -20162,6 +20564,217 @@
     {
       "name": "Common",
       "item": [
+        {
+          "name": "POST /messages/start — Shared conversation start",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/messages/start",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "messages",
+                "start"
+              ]
+            },
+            "description": "Learner/student only. Starts or returns a conversation with a teacher/institute after safety acknowledgement and guardian consent gates. Save returned conversationId. Saved examples are fictional contract illustrations, not live captures.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"providerId\": \"{{providerId}}\",\n  \"body\": \"Hello, are you available for lessons?\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [
+            {
+              "name": "Fictional example — 200 Conversation started or reused",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/messages/start",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "messages",
+                    "start"
+                  ]
+                },
+                "description": "Learner/student only. Starts or returns a conversation with a teacher/institute after safety acknowledgement and guardian consent gates. Save returned conversationId. Saved examples are fictional contract illustrations, not live captures.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"providerId\": \"{{providerId}}\",\n  \"body\": \"Hello, are you available for lessons?\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"conversationId\": \"10000000-0000-4000-8000-000000000003\"\n}"
+            },
+            {
+              "name": "Fictional example — 401 Bearer missing",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/messages/start",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "messages",
+                    "start"
+                  ]
+                },
+                "description": "Learner/student only. Starts or returns a conversation with a teacher/institute after safety acknowledgement and guardian consent gates. Save returned conversationId. Saved examples are fictional contract illustrations, not live captures.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"providerId\": \"{{providerId}}\",\n  \"body\": \"Hello, are you available for lessons?\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Missing Authorization header\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "GET /contact-info — App contact links",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/contact-info",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "contact-info"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /admin/contact-info — Admin contact settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/contact-info",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "contact-info"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /admin/contact-info — Update contact settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/contact-info",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "contact-info"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"whatsappNumber\": \"+919876543210\", \"email\": \"help@example.com\", \"linkedinUrl\": \"https://www.linkedin.com/in/example\", \"linkedinName\": \"Example Contact\", \"linkedinTitle\": \"Executive Director\"}"
+            }
+          },
+          "response": []
+        },
         {
           "name": "GET /geo/countries",
           "request": {

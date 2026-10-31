@@ -130,8 +130,10 @@
                                 <div class="endpoint-guide" id="endpoint-guide" hidden></div>
                                 <div class="field"><label for="request-query">Query string <span class="hint">optional, e.g. lat=28.6&amp;lng=77.2</span></label><input id="request-query" class="control" type="text" placeholder="key=value&amp;another=value" autocomplete="off"></div>
                                 <div class="field"><label for="bearer-token">Bearer token <span class="hint">kept only in this page; never saved</span></label><input id="bearer-token" class="control" type="password" autocomplete="off" placeholder="Paste a user or admin API token"></div>
-                                <div class="field"><label for="request-headers">Additional headers <span class="hint">JSON object</span></label><textarea id="request-headers" spellcheck="false">{"Accept":"application/json","Content-Type":"application/json"}</textarea></div>
-                                <div class="field" id="request-body-field"><label for="request-body">JSON body <span class="hint">omit for GET/DELETE with no body</span></label><textarea id="request-body" spellcheck="false">{}</textarea></div>
+                                <div class="field"><label for="request-headers">Additional headers <span class="hint">JSON object</span></label><textarea id="request-headers" spellcheck="false">{"Accept":"application/json"}</textarea></div>
+                                <div class="field" id="request-mode-field"><label for="request-mode">Body type</label><select id="request-mode" class="control"><option value="json">JSON</option><option value="multipart">Multipart form with image</option></select></div>
+                                <div class="field" id="request-body-field"><label for="request-body"><span id="request-body-label">JSON body</span> <span class="hint">omit for GET/DELETE with no body</span></label><textarea id="request-body" spellcheck="false">{}</textarea></div>
+                                <div class="field" id="request-file-field" hidden><label for="request-file">Image file <span class="hint" id="request-file-hint">Select a file to upload</span></label><input id="request-file" class="control" type="file" accept="image/*"></div>
                                 <div class="request-controls"><button class="btn btn-primary" id="send-request" type="submit">▶ Send request</button><button class="btn" id="clear-response" type="button">Clear response</button><button class="btn" id="copy-curl" type="button">Copy cURL</button><span class="request-tip">Requests are sent to this application only.</span></div>
                             </form>
                         </section>
@@ -213,6 +215,12 @@
     const headersInput = document.getElementById('request-headers');
     const body = document.getElementById('request-body');
     const bodyField = document.getElementById('request-body-field');
+    const bodyLabel = document.getElementById('request-body-label');
+    const bodyMode = document.getElementById('request-mode');
+    const bodyModeField = document.getElementById('request-mode-field');
+    const fileField = document.getElementById('request-file-field');
+    const fileInput = document.getElementById('request-file');
+    const fileHint = document.getElementById('request-file-hint');
     const paramWrap = document.getElementById('path-params-wrap');
     const params = document.getElementById('path-params');
     const selectedCategory = document.getElementById('selected-category');
@@ -318,12 +326,14 @@
         path.value = api.path;
         query.value = api.queryExample || '';
         body.value = JSON.stringify(api.bodyExample ?? {}, null, 2);
+        bodyMode.value = api.bodyMode || 'json';
+        fileInput.value = '';
         selectedCategory.textContent = api.category;
         selectedAccess.textContent = api.access;
         description.textContent = `${api.label ? `${api.label} · ` : ''}${api.action} · registered API route`;
         endpointGuide.textContent = api.guide || '';
         endpointGuide.hidden = !api.guide;
-        bodyField.hidden = ['GET', 'DELETE'].includes(api.method);
+        updateBodyFields();
         updateParams();
         renderCatalog();
         const mock = api.mockResponse;
@@ -357,7 +367,16 @@
         });
     });
     path.addEventListener('input', updateParams);
-    method.addEventListener('change', () => { bodyField.hidden = ['GET', 'DELETE'].includes(method.value); });
+    function updateBodyFields() {
+        const hasBody = !['GET', 'DELETE'].includes(method.value);
+        bodyModeField.hidden = !hasBody;
+        bodyField.hidden = !hasBody;
+        fileField.hidden = !hasBody || bodyMode.value !== 'multipart';
+        bodyLabel.textContent = bodyMode.value === 'multipart' ? 'Form fields (JSON object)' : 'JSON body';
+        fileHint.textContent = currentApi?.fileRequired ? 'Required image' : 'Optional image';
+    }
+    method.addEventListener('change', updateBodyFields);
+    bodyMode.addEventListener('change', updateBodyFields);
     renderCatalog();
     if (apis.length) selectApi(apis[0]);
 
@@ -412,15 +431,11 @@
             }
         }
         if (!requestHeaders.has('Accept')) requestHeaders.set('Accept', 'application/json');
-        if (!['GET', 'DELETE'].includes(method.value) && !requestHeaders.has('Content-Type')) {
-            requestHeaders.set('Content-Type', 'application/json');
-        }
         let requestBody;
         let parsedBody;
         if (!['GET', 'DELETE'].includes(method.value) && body.value.trim()) {
             try {
                 parsedBody = JSON.parse(body.value);
-                requestBody = body.value;
             } catch {
                 showResponse('The request body must be valid JSON.', 'Invalid JSON body', null, '');
                 return;
@@ -430,6 +445,30 @@
         const selectedApi = currentApi?.path === requestPath && currentApi?.method === method.value
             ? currentApi
             : apis.find((api) => api.path === requestPath && api.method === method.value);
+        if (!['GET', 'DELETE'].includes(method.value)) {
+            if (bodyMode.value === 'multipart') {
+                if (parsedBody !== undefined && (!parsedBody || Array.isArray(parsedBody) || typeof parsedBody !== 'object')) {
+                    showResponse('Form fields must be a JSON object.', 'Invalid form fields', null, '');
+                    return;
+                }
+                if (selectedApi?.fileRequired && !fileInput.files?.length) {
+                    showResponse('Select an image file before sending this request.', 'Image required', null, '');
+                    return;
+                }
+                const form = new FormData();
+                for (const [name, value] of Object.entries(parsedBody ?? {})) {
+                    if (value === null || value === undefined) continue;
+                    if (Array.isArray(value)) value.forEach((item) => form.append(`${name}[]`, String(item)));
+                    else form.append(name, typeof value === 'object' ? JSON.stringify(value) : String(value));
+                }
+                if (fileInput.files?.length) form.append(selectedApi?.fileField || 'image', fileInput.files[0]);
+                requestHeaders.delete('Content-Type');
+                requestBody = form;
+            } else {
+                requestBody = body.value.trim() ? body.value : undefined;
+                if (!requestHeaders.has('Content-Type')) requestHeaders.set('Content-Type', 'application/json');
+            }
+        }
         let authMode = selectedApi?.authMode ?? 'optional';
         if (method.value === 'POST' && ['/auth/otp/request', '/auth/otp/verify'].includes(requestPath)) {
             authMode = parsedBody?.authMethod === 'google' ? 'bearer' : 'none';
@@ -507,7 +546,11 @@
 
         const command = [`curl --globoff --request ${shellQuote(request.method)}`, `--url ${shellQuote(request.url.href)}`];
         request.headers.forEach((value, name) => command.push(`--header ${shellQuote(`${name}: ${value}`)}`));
-        if (request.body !== undefined) command.push(`--data-raw ${shellQuote(request.body)}`);
+        if (request.body instanceof FormData) {
+            request.body.forEach((value, name) => command.push(typeof value === 'string'
+                ? `--form-string ${shellQuote(`${name}=${value}`)}`
+                : `--form ${shellQuote(`${name}=@/path/to/${value.name}`)}`));
+        } else if (request.body !== undefined) command.push(`--data-raw ${shellQuote(request.body)}`);
         curlOutput.value = command.join(' \\\n  ');
         curlPreview.hidden = false;
         copyCurlButton.disabled = true;

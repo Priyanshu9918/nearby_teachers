@@ -104,6 +104,16 @@ class ApiCatalogTest extends TestCase
         $this->assertArrayHasKey('startingRate', $institute);
         $this->assertArrayNotHasKey('bio', $institute);
         $this->assertSame('Learner', $entries['POST /auth/date-of-birth']['category']);
+        foreach (['POST /student/profile/photo', 'POST /teacher/profile/photo::teacher', 'POST /profiles/me/photo::teacher', 'POST /profiles/me/photo::institute'] as $key) {
+            $this->assertSame('multipart', $entries[$key]['bodyMode']);
+            $this->assertSame('image', $entries[$key]['fileField']);
+            $this->assertTrue($entries[$key]['fileRequired']);
+        }
+        foreach (['POST /reports', 'POST /safety/reports'] as $key) {
+            $this->assertSame('multipart', $entries[$key]['bodyMode']);
+            $this->assertSame('screenshot', $entries[$key]['fileField']);
+            $this->assertFalse($entries[$key]['fileRequired']);
+        }
     }
 
     public function test_existing_postman_collection_covers_every_group_and_has_valid_safe_examples(): void
@@ -124,6 +134,7 @@ class ApiCatalogTest extends TestCase
                 $rawPath = explode('?', $request['url']['raw'])[0];
                 $this->assertStringStartsWith('{{baseUrl}}/', $rawPath, $item['name']);
                 $signature = $request['method'].' '.preg_replace('/\{\{[^}]+\}\}/', '{}', substr($rawPath, strlen('{{baseUrl}}')));
+                $signature = preg_replace('#(/(?:teacher/profile|profiles/me)/steps/)\d+$#', '$1{}', $signature);
                 $this->assertArrayHasKey($signature, $bySignature, $item['name']);
                 $key = $bySignature[$signature];
                 $this->assertContains($folder['name'], $routes[$key], $item['name']);
@@ -150,10 +161,6 @@ class ApiCatalogTest extends TestCase
         }
         $this->assertEqualsCanonicalizing(array_keys($routes), array_keys($coverage));
         foreach ($routes as $key => $groups) {
-            // This saved collection predates role-independent conversation starts.
-            if ($key === 'POST /messages/start') {
-                $groups = ['Learner'];
-            }
             $this->assertEqualsCanonicalizing($groups, array_keys($coverage[$key]), $key);
         }
     }
@@ -191,7 +198,7 @@ class ApiCatalogTest extends TestCase
         }
     }
 
-    public function test_frozen_api_guides_keep_valid_groups_for_published_operations(): void
+    public function test_api_guides_keep_valid_groups_for_published_operations(): void
     {
         $groups = config('api_catalog.groups');
         $routes = config('api_catalog.route_groups');
@@ -212,15 +219,11 @@ class ApiCatalogTest extends TestCase
                     }
                 }
             }
-            // Owner freezes Markdown guides; runtime catalog and Postman above must
-            // still cover every route. Validate existing published rows here.
+            // The runtime catalog and Postman cover every route; validate each
+            // published Markdown row against its documented workflow group.
             $this->assertNotEmpty($coverage, $file);
             foreach ($coverage as $key => $publishedGroups) {
                 $expectedGroups = $routes[$key];
-                // Published guides stay unchanged per owner request; runtime groups are checked above.
-                if ($key === 'POST /messages/start') {
-                    $expectedGroups = ['Learner'];
-                }
                 $this->assertEqualsCanonicalizing($expectedGroups, array_keys($coverage[$key]), $file.': '.$key);
             }
         }
@@ -244,7 +247,6 @@ class ApiCatalogTest extends TestCase
                     $replyExamples++;
                 }
                 if (in_array($folder['name'], ['Teacher', 'Institute'], true)) {
-                    $this->assertNotSame('{{baseUrl}}/messages/start', $path);
                     if ($request['method'] === 'POST' && $path === '{{baseUrl}}/feed') {
                         foreach ($item['response'] ?? [] as $example) {
                             $response = json_decode($example['body'], true, flags: JSON_THROW_ON_ERROR);

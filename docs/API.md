@@ -260,7 +260,7 @@ for configuration and detailed failures.
 Includes student age/guardian flow, discovery, public provider details,
 booking creation/history and reviews. Public discovery is available without
 sign-in. Category placement does not imply an additional learner-only guard:
-`POST /messages/start` explicitly requires a learner; booking creation instead
+`POST /messages/start` accepts any verified account; booking creation
 checks authenticated identity, contact gates and a teacher/institute target.
 
 | Method | Path | Access | Request / query | Result / notes |
@@ -274,7 +274,7 @@ checks authenticated identity, contact gates and a teacher/institute target.
 | `GET` | `/profiles/{type}/{id}` | Public, optional bearer | `type`: `teacher` or `institute`; optional auth affects phone quota | Public listing profile. Suspended or not-yet-phone-verified optional tokens are treated as anonymous. |
 | `POST` | `/bookings` | Verified bearer | `providerId`, `mode`, `requestedTime`; optional `subjectId`, `price` | Creates a booking request. `mode`: `in_person`, `home_tuition`, `online`. Safety acknowledgement and minor-consent gates apply. |
 | `GET` | `/bookings/mine` | Verified bearer | `perPage`, `cursor` | Learner's bookings. |
-| `POST` | `/messages/start` | Verified bearer, learner | `providerId`; optional `body` | Starts/reuses a provider conversation and optionally sends the first message. Safety and guardian-consent gates apply. |
+| `POST` | `/messages/start` | Verified bearer | `providerId` (another numeric user ID); optional `body` | Starts/reuses a conversation and optionally sends the first message. Safety and guardian-consent gates apply. |
 | `POST` | `/reviews` | Verified bearer | `bookingId`, `rating` (1–5); optional `comment` | Adds a review for a booking belonging to the caller. |
 | `GET` | `/reviews/for/{providerId}` | Public | `perPage`, `cursor` | Provider reviews. |
 | `GET` | `/search/dashboard` | Public | Required `lat`, `lng`; optional `radiusKm` (default 7, maximum 500) | `{center,radiusKm,teacherCount,instituteCount,totalCount,results}`; all eligible nearby providers. |
@@ -292,8 +292,6 @@ checks authenticated identity, contact gates and a teacher/institute target.
 | `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
 | `GET` | `/feed/{postId}/comments` | Public | `perPage`, `cursor` | Lists comments. |
 | `POST` | `/feed/{postId}/comments` | Verified bearer | `body`; optional `parentCommentId` | Adds a comment or reply. |
-| `POST` | `/feed/comments/{commentId}/like` | Verified bearer | Optional `postId` | Likes a comment or reply; a supplied postId must match the comment. |
-| `DELETE` | `/feed/comments/{commentId}/like` | Verified bearer | Optional `postId` | Removes the caller's comment/reply like. |
 | `GET` | `/broadcasting/auth` | Verified bearer, conversation participant | Same inputs as query parameters | Legacy broadcasting compatibility; not new mobile chat setup. |
 | `POST` | `/broadcasting/auth` | Verified bearer, conversation participant | `channel_name`; `socket_id` as required by configured broadcaster | Legacy channel authorization; Socket.IO clients use the events below. |
 
@@ -472,7 +470,7 @@ price, status and timestamps. Booking prices are not payments or revenue.
 `GET /bookings/mine` filters by caller as learner and adds provider/subject names;
 it has no separate role guard. Cursor pagination is described in Common.
 
-`POST /messages/start` requires learner role, provider user UUID and optional
+`POST /messages/start` requires a verified account, recipient user ID and optional
 `body` (max 5,000); it returns `{conversationId}` and reuses the existing pair.
 Booking creation and message start/send enforce safety acknowledgement and
 minor guardian consent. Conversation APIs listed here and in Common provide
@@ -519,6 +517,7 @@ feed reading, likes, comments and replies.
 | `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging or booking. |
 | `PATCH` | `/bookings/{id}/status` | Verified bearer, participant | `status`: `accepted`, `declined`, `cancelled`, or `completed` | Updates a booking in which the caller participates. |
 | `GET` | `/messages` | Verified bearer | `perPage`, `cursor` | Conversations for the signed-in participant. |
+| `POST` | `/messages/start` | Verified bearer | `providerId`; optional `body` | Starts or reuses a conversation with another account. Safety and guardian-consent gates apply. |
 | `GET` | `/messages/{conversationId}` | Verified bearer, participant | `perPage`, `cursor` | Conversation messages. |
 | `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
 | `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
@@ -597,8 +596,8 @@ can submit any documented status; there is no provider-only transition matrix.
 Load `GET /messages` for the teacher's inbox, open
 `GET /messages/{conversationId}`, and reply with
 `POST /messages/{conversationId}` and `{body:"Yes, this lesson slot is available."}`.
-The teacher must already be a participant. `POST /messages/start` remains
-learner-only; provider categorization does not add a new initiation permission.
+The teacher must already be a participant to read or reply. `POST /messages/start`
+can create a conversation with another account after the contact gates pass.
 The Socket.IO authorization and legacy broadcasting routes above retain the
 same participant checks. Safety acknowledgement is required for sending.
 
@@ -654,6 +653,7 @@ feed reading, likes, comments and replies.
 | `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging or booking. |
 | `PATCH` | `/bookings/{id}/status` | Verified bearer, participant | `status`: `accepted`, `declined`, `cancelled`, or `completed` | Updates a booking in which the caller participates. |
 | `GET` | `/messages` | Verified bearer | `perPage`, `cursor` | Conversations for the signed-in participant. |
+| `POST` | `/messages/start` | Verified bearer | `providerId`; optional `body` | Starts or reuses a conversation with another account. Safety and guardian-consent gates apply. |
 | `GET` | `/messages/{conversationId}` | Verified bearer, participant | `perPage`, `cursor` | Conversation messages. |
 | `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
 | `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
@@ -718,7 +718,7 @@ Chat/replies and participant booking status updates are listed here and in Commo
 Use the institute's bearer with `GET /messages` to load existing conversations,
 `GET /messages/{conversationId}` for history, and
 `POST /messages/{conversationId}` with a message body to reply. Membership is
-required; `POST /messages/start` remains learner-only. Shared socket routes use
+required; `POST /messages/start` accepts any verified account. Shared socket routes use
 the same identity/room checks, and sending requires safety acknowledgement.
 
 The institute can read city feed, create an offer post, like/unlike posts, add
@@ -760,6 +760,7 @@ shown in this shared documentation category.
 | `GET` | `/i18n/{lang}` | Public | Language code in path | Returns translations; unsupported language codes serve English and identify the requested/served language. |
 | `PATCH` | `/bookings/{id}/status` | Verified bearer, participant | `status`: `accepted`, `declined`, `cancelled`, or `completed` | Updates a booking in which the caller participates. |
 | `GET` | `/messages` | Verified bearer | `perPage`, `cursor` | Conversations for the signed-in participant. |
+| `POST` | `/messages/start` | Verified bearer | `providerId`; optional `body` | Starts or reuses a conversation with another account. Safety and guardian-consent gates apply. |
 | `GET` | `/messages/{conversationId}` | Verified bearer, participant | `perPage`, `cursor` | Conversation messages. |
 | `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
 | `POST` | `/chat/socket/authorize` | Verified bearer | Optional `conversationId` | Socket.IO server checks connection identity or private room membership. |
@@ -771,6 +772,8 @@ shown in this shared documentation category.
 | `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
 | `GET` | `/feed/{postId}/comments` | Public | `perPage`, `cursor` | Lists comments. |
 | `POST` | `/feed/{postId}/comments` | Verified bearer | `body`; optional `parentCommentId` | Adds a comment or reply. |
+| `POST` | `/feed/comments/{commentId}/like` | Verified bearer | Optional `postId` | Likes a comment or reply; a supplied postId must match the comment. |
+| `DELETE` | `/feed/comments/{commentId}/like` | Verified bearer | Optional `postId` | Removes the caller's comment/reply like. |
 | `POST` | `/safety/reports` | Verified learner, teacher or institute bearer | Required `reasonCategory`; optional `targetType`/`targetId`, legacy `reason` (max 5000) or `additionalDetails` (max 500), `evidenceLink` (HTTP/HTTPS), `screenshot` (JPEG/PNG/WebP, max 5 MB) | Returns 201 and creates an open report. Missing, unsupported or unavailable targets are saved unlinked. Use JSON without an image or multipart/form-data with one. Limited to 10/minute. |
 | `POST` | `/reports` | Verified learner, teacher or institute bearer | Required `reasonCategory`; optional `targetType`/`targetId`, `additionalDetails` (max 500), `evidenceLink` (HTTP/HTTPS), `screenshot` (JPEG/PNG/WebP, max 5 MB) | Returns 201 and creates an open confidential report. Missing, unsupported or unavailable targets are saved unlinked. Use JSON without an image or multipart/form-data with one. Limited to 10/minute. |
 | `POST` | `/presence/update` | Verified bearer | `deviceId`, `event` (`foreground`, `activity`, `heartbeat`, `background`) | Returns `{isActive}`. Five-minute inactivity and 90-second heartbeat expiry; [presence contract](PRESENCE.md). |
