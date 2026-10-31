@@ -459,10 +459,6 @@ class ProfilesController extends Controller
         $days = $requestedDays !== false && $requestedDays > 0 ? min($requestedDays, 365) : 30;
         $since = now()->subDays($days);
 
-        $newRequests = DB::table('bookings')
-            ->where('provider_id', $user->id)
-            ->where('status', 'requested')
-            ->count();
         $profileViews = DB::table('page_views')
             ->where('page_type', 'app_profile')
             ->where('target', $user->id)
@@ -471,7 +467,6 @@ class ProfilesController extends Controller
 
         return response()->json([
             'sinceDays' => $days,
-            'newRequests' => $newRequests,
             'profileViews' => $profileViews,
         ]);
     }

@@ -261,14 +261,7 @@ router.patch('/institute/:id/bsl-verified', requireAuth, requireAdmin, async (re
   res.json({ profile: result.rows[0] });
 });
 
-// Powers the two stat cards on the Requests dashboard screen ("New
-// requests" and "Profile views") — both are real counts, not
-// placeholders. Profile views come from the logPageView('app_profile')
-// call in the public profile GET route above; new-request count comes
-// from bookings still awaiting a response. Windowed to the last 30 days
-// by default so the number reflects recent activity, not
-// all-time-since-launch — a teacher who joined a year ago and got 3
-// views on day one shouldn't see "3 views" forever.
+// Profile-view stats remain available while the booking request dashboard is paused.
 router.get('/me/stats', requireAuth, async (req, res) => {
   if (!['teacher', 'institute'].includes(req.user.account_type)) {
     return res.status(400).json({ error: 'Only teacher or institute accounts have stats' });
@@ -276,23 +269,15 @@ router.get('/me/stats', requireAuth, async (req, res) => {
   const daysNum = Number(req.query.days);
   const days = Number.isFinite(daysNum) && daysNum > 0 ? Math.min(Math.floor(daysNum), 365) : 30;
 
-  const [newRequests, profileViews] = await Promise.all([
-    query(
-      `SELECT count(*) AS total FROM bookings
-       WHERE provider_id = $1 AND status = 'requested'`,
-      [req.user.id]
-    ),
-    query(
-      `SELECT count(*) AS total FROM page_views
-       WHERE page_type = 'app_profile' AND target = $1
-         AND created_at > now() - interval '${days} days'`,
-      [req.user.id]
-    ),
-  ]);
+  const profileViews = await query(
+    `SELECT count(*) AS total FROM page_views
+     WHERE page_type = 'app_profile' AND target = $1
+       AND created_at > now() - interval '${days} days'`,
+    [req.user.id]
+  );
 
   res.json({
     sinceDays: days,
-    newRequests: Number(newRequests.rows[0].total),
     profileViews: Number(profileViews.rows[0].total),
   });
 });

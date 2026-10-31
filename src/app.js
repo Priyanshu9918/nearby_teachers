@@ -8,7 +8,6 @@ const authRoutes = require('./routes/auth.routes');
 const profilesRoutes = require('./routes/profiles.routes');
 const searchRoutes = require('./routes/search.routes');
 const messagesRoutes = require('./routes/messages.routes');
-const bookingsRoutes = require('./routes/bookings.routes');
 const reviewsRoutes = require('./routes/reviews.routes');
 const feedRoutes = require('./routes/feed.routes');
 const safetyRoutes = require('./routes/safety.routes');
@@ -110,7 +109,8 @@ app.use('/auth', authRoutes);
 app.use('/profiles', profilesRoutes);
 app.use('/search', searchRoutes);
 app.use('/messages', messagesRoutes);
-app.use('/bookings', bookingsRoutes);
+// Booking API is temporarily paused. Keep the historical admin audit route.
+// app.use('/bookings', bookingsRoutes);
 app.use('/reviews', reviewsRoutes);
 app.use('/feed', feedRoutes);
 app.use('/safety', safetyRoutes);

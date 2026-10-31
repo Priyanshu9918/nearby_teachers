@@ -4,9 +4,13 @@ Updated: 22 October 2026. Generated from the saved request/response examples in 
 [existing app-team Postman collection](postman/app-team.postman_collection.json).
 Use with the [full API reference](API.md) and [app integration guide](APP_TEAM_API.md).
 
+**Temporary feature pause:** booking request/list/status APIs and booking-based
+review submission are disabled. Any booking examples retained below are archived
+contract examples and cannot be run against the current API.
+
 The five sections match the developer explorer and collection: Auth, Learner,
-Teacher, Institute and Common. Shared chat, feed, comments/replies, booking status
-and safety examples appear in each app role and Common. Provider lookup for
+Teacher, Institute and Common. Shared chat, feed, comments/replies and safety
+examples appear in each app role and Common. Provider lookup for
 frontend call/WhatsApp actions appears in Learner, Teacher and Institute.
 Provider listing examples remain in both provider sections. Categories do not
 change permissions: providers reply in existing conversations, while message
@@ -5769,7 +5773,7 @@ Content-Type: `application/json`
 
 ### GET /profiles/me/stats — teacher
 
-Teacher/institute accounts only, same endpoint in both provider folders. Returns sinceDays, newRequests and profileViews. The controller does not require completed registration for stats. days defaults to 30. Saved examples are fictional contract illustrations, not live captures.
+Teacher/institute accounts only, same endpoint in both provider folders. Returns sinceDays and profileViews; booking request counts are paused. The controller does not require completed registration for stats. days defaults to 30. Saved examples are fictional contract illustrations, not live captures.
 
 Request:
 
@@ -5789,7 +5793,6 @@ Content-Type: `application/json`
 ```json
 {
   "sinceDays": 30,
-  "newRequests": 2,
   "profileViews": 45
 }
 ```
@@ -7107,7 +7110,7 @@ Content-Type: `application/json`
 
 ### GET /profiles/me/stats — institute
 
-Teacher/institute accounts only, same endpoint in both provider folders. Returns sinceDays, newRequests and profileViews. The controller does not require completed registration for stats. days defaults to 30. Saved examples are fictional contract illustrations, not live captures.
+Teacher/institute accounts only, same endpoint in both provider folders. Returns sinceDays and profileViews; booking request counts are paused. The controller does not require completed registration for stats. days defaults to 30. Saved examples are fictional contract illustrations, not live captures.
 
 Request:
 
@@ -7127,7 +7130,6 @@ Content-Type: `application/json`
 ```json
 {
   "sinceDays": 30,
-  "newRequests": 2,
   "profileViews": 45
 }
 ```

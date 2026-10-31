@@ -628,11 +628,6 @@ class DeveloperController extends Controller
             'PATCH /profiles/institute/{id}/bsl-verified' => ['body' => ['verified' => false], 'pathDefaults' => ['id' => 1]],
             'GET /profiles/{type}/{id}' => ['pathDefaults' => ['type' => 'teacher', 'id' => 1]],
             'GET /profiles/me/stats' => ['query' => 'days=30'],
-            'POST /bookings' => [
-                'body' => ['providerId' => 1, 'mode' => 'online', 'requestedTime' => '2030-01-15T10:00:00Z', 'subjectId' => 1, 'price' => 500],
-                'guide' => 'Requires an existing teacher/institute ID, a valid subject ID, safety acknowledgement, and guardian consent for minors.',
-            ],
-            'PATCH /bookings/{id}/status' => ['body' => ['status' => 'accepted'], 'pathDefaults' => ['id' => 2]],
             'POST /messages/start' => [
                 'body' => ['providerId' => 1, 'body' => 'Hello, I would like to ask about your lessons.'],
                 'guide' => 'Any account can start a conversation. Set providerId to the other user ID (learner, teacher or institute). Starting from either side reuses the same conversation.',
@@ -641,7 +636,6 @@ class DeveloperController extends Controller
             'GET /messages/{conversationId}' => ['pathDefaults' => ['conversationId' => 3]],
             'GET /broadcasting/auth' => ['query' => 'socket_id=123456.789012&channel_name=private-conversation.3', 'guide' => 'Laravel broadcasting compatibility endpoint; bearer and conversation membership required. Socket.IO uses POST /chat/socket/authorize.'],
             'POST /broadcasting/auth' => ['body' => ['socket_id' => '123456.789012', 'channel_name' => 'private-conversation.3'], 'guide' => 'Laravel broadcasting compatibility endpoint; bearer and conversation membership required. Socket.IO uses POST /chat/socket/authorize.'],
-            'POST /reviews' => ['body' => ['bookingId' => 2, 'rating' => 5, 'comment' => 'Great lesson.']],
             'GET /feed' => ['query' => 'city=New%20Delhi'],
             'POST /feed' => ['body' => ['city' => 'New Delhi', 'body' => 'Looking for a BSL teacher for beginner classes.']],
             'POST /feed/{postId}/comments' => ['body' => ['body' => 'Thanks for sharing.'], 'pathDefaults' => ['postId' => 4]],
@@ -712,7 +706,7 @@ class DeveloperController extends Controller
         }
 
         if ($method === 'GET' && in_array($examplePath, [
-            '/messages', '/messages/{conversationId}', '/bookings/incoming', '/bookings/mine',
+            '/messages', '/messages/{conversationId}',
             '/reviews/for/{providerId}', '/feed', '/feed/{postId}/comments',
         ], true)) {
             $example['query'] = ltrim(($example['query'] ?? '').'&perPage=50', '&');

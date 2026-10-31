@@ -5,6 +5,13 @@ and the health, reverse-location and broadcasting compatibility surfaces. The
 legacy Express API is separate. All examples are fictional; token placeholders
 cannot authenticate.
 
+**Temporary feature pause:** learner/provider booking endpoints and booking-based
+review submission are disabled. The paused routes are `POST /bookings`,
+`GET /bookings/mine`, `GET /bookings/incoming`, `PATCH /bookings/{id}/status`,
+and `POST /reviews`. This pause applies to both Laravel and legacy Express APIs.
+Existing booking/review records remain available in admin reports; public review
+reads remain enabled.
+
 The reference, [app integration guide](APP_TEAM_API.md), [saved response examples](API_MOCK_RESPONSES.md),
 [Postman collection](postman/app-team.postman_collection.json) and developer
 explorer use exactly five parts:
@@ -20,8 +27,8 @@ or read the [support contract](CONTACT_BSL_SUPPORT.md).
 
 These categories organize app responsibilities; they do not add role permissions.
 Provider listing URLs appear in both Teacher and Institute. Shared chat, feed,
-comments, replies, booking status and safety APIs appear in each app role and
-in Common. Settings and admin-only APIs remain in Common, with their real access
+comments, replies and safety APIs appear in each app role and in Common. Booking
+actions are paused. Settings and admin-only APIs remain in Common, with their real access
 requirements. Provider contact lookup appears in Learner, Teacher and Institute.
 
 For live feed comments, replies and likes, see the [Socket.IO event guide](FEED_SOCKET_IO.md)
@@ -257,30 +264,25 @@ for configuration and detailed failures.
 
 ## Learner
 
-Includes student age/guardian flow, discovery, public provider details,
-booking creation/history and reviews. Public discovery is available without
-sign-in. Category placement does not imply an additional learner-only guard:
-`POST /messages/start` accepts any verified account; booking creation
-checks authenticated identity, contact gates and a teacher/institute target.
+Includes student age/guardian flow, discovery and public provider details.
+Public discovery is available without sign-in. Category placement does not
+imply an additional learner-only guard: `POST /messages/start` accepts any
+verified account. Booking actions and review submission are temporarily paused.
 
 | Method | Path | Access | Request / query | Result / notes |
 |---|---|---|---|---|
-| `POST` | `/auth/date-of-birth` | Verified bearer | `dateOfBirth` (`YYYY-MM-DD`); for ages 13–17 also `guardianName`, `guardianContact` | Rejects users under 13. Minors need guardian consent before messaging/booking. Returns parentalConsent.link, expiresAt and parent name/phone; app team sends the link. See [consent contract](PARENTAL_CONSENT.md). |
+| `POST` | `/auth/date-of-birth` | Verified bearer | `dateOfBirth` (`YYYY-MM-DD`); for ages 13–17 also `guardianName`, `guardianContact` | Rejects users under 13. Minors need guardian consent before messaging; booking is paused. Returns parentalConsent.link, expiresAt and parent name/phone; app team sends the link. See [consent contract](PARENTAL_CONSENT.md). |
 | `POST` | `/auth/parental-consent/confirm` | Public, one-time token | `token`, optional `decision` (`approve`/`reject`) | Saves a one-time decision; returns `ok`, `parentalConsentStatus`. |
 | `GET` | `/search` | Public | Required `lat`, `lng`; optional `radiusKm` (default 7, max 500), `subjectId`, `q`, `freeOnly` (`true`/`false`) | Up to 50 nearby teacher/institute results with `distance_km`; uses MySQL `ST_Distance_Sphere`. |
 | `GET` | `/search/counts` | Public | Required `lat`, `lng`; optional `radiusKm` (default 7) | Teacher and institute counts in the radius. |
 | `GET` | `/search/other-city` | Public | Required `city`; optional `subjectId`, `q` | Up to 50 online providers matching city/country text. |
 | `GET` | `/search/by-subject/{subjectId}` | Public | Required `tier`: `nearby`, `city`, `state`, `country`, or `other-countries`; tier-specific location parameters | Subject results with tier/count. Nearby requires `lat` and `lng`; `city` tier requires `city`; `state` tier requires `state`; `country` tier requires `country`. `other-countries` returns matching countries unless a `country` is supplied. |
 | `GET` | `/profiles/{type}/{id}` | Public, optional bearer | `type`: `teacher` or `institute`; optional auth affects phone quota | Public listing profile. Suspended or not-yet-phone-verified optional tokens are treated as anonymous. |
-| `POST` | `/bookings` | Verified bearer | `providerId`, `mode`, `requestedTime`; optional `subjectId`, `price` | Creates a booking request. `mode`: `in_person`, `home_tuition`, `online`. Safety acknowledgement and minor-consent gates apply. |
-| `GET` | `/bookings/mine` | Verified bearer | `perPage`, `cursor` | Learner's bookings. |
 | `POST` | `/messages/start` | Verified bearer | `providerId` (another numeric user ID); optional `body` | Starts/reuses a conversation and optionally sends the first message. Safety and guardian-consent gates apply. |
-| `POST` | `/reviews` | Verified bearer | `bookingId`, `rating` (1–5); optional `comment` | Adds a review for a booking belonging to the caller. |
 | `GET` | `/reviews/for/{providerId}` | Public | `perPage`, `cursor` | Provider reviews. |
 | `GET` | `/search/dashboard` | Public | Required `lat`, `lng`; optional `radiusKm` (default 7, maximum 500) | `{center,radiusKm,teacherCount,instituteCount,totalCount,results}`; all eligible nearby providers. |
 | `GET` | `/auth/safety-disclaimer` | Public | — | Returns the disclaimer text. |
-| `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging or booking. |
-| `PATCH` | `/bookings/{id}/status` | Verified bearer, participant | `status`: `accepted`, `declined`, `cancelled`, or `completed` | Updates a booking in which the caller participates. |
+| `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging; booking is paused. |
 | `GET` | `/messages` | Verified bearer | `perPage`, `cursor` | Conversations for the signed-in participant. |
 | `GET` | `/messages/{conversationId}` | Verified bearer, participant | `perPage`, `cursor` | Conversation messages. |
 | `POST` | `/messages/{conversationId}` | Verified bearer, participant | `body` (maximum 5,000 characters) | Sends a message; safety and guardian-consent gates apply. |
@@ -411,7 +413,7 @@ which does not apply these publication checks.
 | `teacherCount`, `instituteCount`, `totalCount` | Counts of returned listings. |
 | `results` | Combined provider array; empty array when no matches exist. |
 | `results[].profile_type` | `teacher` or `institute`; choose marker style using this field. |
-| `results[].id`, `user_id` | Listing UUID and provider user UUID; use `user_id` for profile navigation and bookings. |
+| `results[].id`, `user_id` | Listing UUID and provider user UUID; use `user_id` for profile navigation. Booking actions are paused. |
 | `results[].latitude`, `longitude`, `distance_km` | Numbers ready for map markers and distance labels. |
 | `results[].full_name`, `avatar_url` | Display name and approved image URL (otherwise null). |
 | `results[].price`, `currency` | Numeric rate (or null) and currency. |
@@ -460,26 +462,20 @@ Full teacher/institute success, empty and validation JSON examples are saved
 under **Learner → GET /search/dashboard — home and map** in the
 Postman collection, and in the [mock response guide](API_MOCK_RESPONSES.md).
 
-### Learner booking, review and contact rules
+### Learner messaging, reviews and contact rules
 
-Bookings require `providerId`, mode (`in_person`, `home_tuition`, `online`) and
-`requestedTime` with an explicit timezone; `subjectId` and nonnegative `price`
-are optional. Self-booking is `400`. Success returns `{booking}` with initial
-`status:"requested"`; rows include learner/provider IDs, mode, requested time,
-price, status and timestamps. Booking prices are not payments or revenue.
-`GET /bookings/mine` filters by caller as learner and adds provider/subject names;
-it has no separate role guard. Cursor pagination is described in Common.
+Booking request/list/status routes and review submission are temporarily
+unavailable. Existing records remain available to admin reports, and provider
+review reads remain public.
 
 `POST /messages/start` requires a verified account, recipient user ID and optional
 `body` (max 5,000); it returns `{conversationId}` and reuses the existing pair.
-Booking creation and message start/send enforce safety acknowledgement and
-minor guardian consent. Conversation APIs listed here and in Common provide
+Message start/send enforce safety acknowledgement and minor guardian consent.
+Conversation APIs listed here and in Common provide
 inbox, history and replies for the signed-in participant.
 
-Reviews require caller ownership as the booking's learner, rating 1–5 and
-optional comment (max 5,000). There is no completed-booking status gate.
-Public review lists add learner name and use cursors. No review update/delete
-endpoint exists.
+Public review lists add learner name and use cursors. Review submission remains
+paused with bookings.
 
 ### Learner posts, comments, replies and contact actions
 
@@ -495,8 +491,8 @@ profile lookup; see [WhatsApp and call actions](#whatsapp-and-call-actions).
 Teacher signup uses Auth `/auth/register` with `accountType:"teacher"`, city
 and primary subject. Form success completes registration; DOB is not required.
 The category includes listing management, existing-conversation chat, city
-posts/comments/replies, booking status and provider contact lookup. Use the
-teacher's bearer for its own data. Shared URLs also appear in Institute and
+posts/comments/replies and provider contact lookup. Booking actions are paused.
+Use the teacher's bearer for its own data. Shared URLs also appear in Institute and
 Common where applicable; each endpoint retains its access rules.
 
 To add a teacher post in the developer explorer or Postman, open
@@ -510,12 +506,10 @@ feed reading, likes, comments and replies.
 | `POST` | `/profiles/me/photo` | Verified teacher/institute bearer | Multipart `image`, JPEG/PNG/WebP up to 5 MB | Submits photo for moderation; no step progress change. |
 | `POST` | `/profiles/me/publish` | Verified teacher/institute bearer, completed registration | `agreeToTerms:true` | Step 6: validates required fields, records terms and completion, returns provider page links. |
 | `PUT` | `/profiles/me` | Verified provider bearer, completed registration | Provider fields described below | Updates the signed-in teacher/institute listing and its subject assignments. |
-| `GET` | `/profiles/me/stats` | Verified bearer | Optional `days` (default 30, maximum 365) | Provider listing views and new booking-request counts. |
-| `GET` | `/bookings/incoming` | Verified bearer | `perPage`, `cursor` | Provider's incoming bookings. |
+| `GET` | `/profiles/me/stats` | Verified bearer | Optional `days` (default 30, maximum 365) | Provider listing views; booking request counts are paused. |
 | `GET` | `/profiles/{type}/{id}` | Public, optional bearer | `type`: `teacher` or `institute`; optional auth affects phone quota | Public listing profile. Suspended or not-yet-phone-verified optional tokens are treated as anonymous. |
 | `GET` | `/auth/safety-disclaimer` | Public | — | Returns the disclaimer text. |
-| `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging or booking. |
-| `PATCH` | `/bookings/{id}/status` | Verified bearer, participant | `status`: `accepted`, `declined`, `cancelled`, or `completed` | Updates a booking in which the caller participates. |
+| `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging; booking is paused. |
 | `GET` | `/messages` | Verified bearer | `perPage`, `cursor` | Conversations for the signed-in participant. |
 | `POST` | `/messages/start` | Verified bearer | `providerId`; optional `body` | Starts or reuses a conversation with another account. Safety and guardian-consent gates apply. |
 | `GET` | `/messages/{conversationId}` | Verified bearer, participant | `perPage`, `cursor` | Conversation messages. |
@@ -581,15 +575,12 @@ valid coordinates and the normal publication checks in Learner discovery.
 | `POST` | `/chat/events/history` | chat:history · Fetch chat history |
 | `POST` | `/chat/events/unread_count` | chat:unread_count · Unread message count |
 
-Supplying `countryCode` derives currency when `currency` is omitted. Stats accepts `days` 1–365 (default
-30) and returns `{sinceDays,newRequests,profileViews}`. `newRequests` counts
-all currently requested bookings, independent of days. Stats requires provider
-role but does not have a separate registration-completion gate.
+Supplying `countryCode` derives currency when `currency` is omitted. Stats accepts
+`days` 1–365 (default 30) and returns `{sinceDays,profileViews}`. Stats requires
+provider role but does not have a separate registration-completion gate.
 
-Incoming bookings filter caller as provider and add learner/subject names;
-there is no additional role guard on that list. Reply/chat and booking status
-updates are listed here and in Common and require participation. Either booking participant
-can submit any documented status; there is no provider-only transition matrix.
+Booking request/list/status actions are temporarily paused. Chat replies remain
+participant-scoped and are listed here and in Common.
 
 ### Teacher chat, posts, comments and replies
 
@@ -632,8 +623,8 @@ provide a teacher-to-student phone lookup from chat.
 Institute signup uses Auth `/auth/register` with institute name, city and
 `contactPerson`. Form success completes registration; DOB is not required.
 This category includes the institute's listing, participant chat, city posts,
-comments/replies, booking status and provider contact lookup. Shared URLs have
-the same access rules as in Teacher/Common, with institute-specific listing fields.
+comments/replies and provider contact lookup. Booking actions are paused. Shared
+URLs have the same access rules as in Teacher/Common, with institute-specific listing fields.
 
 To add an institute post in the developer explorer or Postman, open
 **Institute → Feed / Posts → POST /feed — Add post**. The same subsection includes
@@ -646,12 +637,10 @@ feed reading, likes, comments and replies.
 | `POST` | `/profiles/me/photo` | Verified teacher/institute bearer | Multipart `image`, JPEG/PNG/WebP up to 5 MB | Submits photo for moderation; no step progress change. |
 | `POST` | `/profiles/me/publish` | Verified teacher/institute bearer, completed registration | `agreeToTerms:true` | Step 6: validates required fields, records terms and completion, returns provider page links. |
 | `PUT` | `/profiles/me` | Verified provider bearer, completed registration | Provider fields described below | Updates the signed-in teacher/institute listing and its subject assignments. |
-| `GET` | `/profiles/me/stats` | Verified bearer | Optional `days` (default 30, maximum 365) | Provider listing views and new booking-request counts. |
-| `GET` | `/bookings/incoming` | Verified bearer | `perPage`, `cursor` | Provider's incoming bookings. |
+| `GET` | `/profiles/me/stats` | Verified bearer | Optional `days` (default 30, maximum 365) | Provider listing views; booking request counts are paused. |
 | `GET` | `/profiles/{type}/{id}` | Public, optional bearer | `type`: `teacher` or `institute`; optional auth affects phone quota | Public listing profile. Suspended or not-yet-phone-verified optional tokens are treated as anonymous. |
 | `GET` | `/auth/safety-disclaimer` | Public | — | Returns the disclaimer text. |
-| `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging or booking. |
-| `PATCH` | `/bookings/{id}/status` | Verified bearer, participant | `status`: `accepted`, `declined`, `cancelled`, or `completed` | Updates a booking in which the caller participates. |
+| `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging; booking is paused. |
 | `GET` | `/messages` | Verified bearer | `perPage`, `cursor` | Conversations for the signed-in participant. |
 | `POST` | `/messages/start` | Verified bearer | `providerId`; optional `body` | Starts or reuses a conversation with another account. Safety and guardian-consent gates apply. |
 | `GET` | `/messages/{conversationId}` | Verified bearer, participant | `perPage`, `cursor` | Conversation messages. |
@@ -707,11 +696,11 @@ feed reading, likes, comments and replies.
 | `POST` | `/chat/events/unread_count` | chat:unread_count · Unread message count |
 
 Shared field validation, listing-completion requirements, subject replacement,
-stats semantics and incoming-booking pagination are the same as Teacher.
+profile-view stats are the same as Teacher; booking actions are paused.
 The endpoint selects the current account's provider table; teacher and institute
 field names are not interchangeable. Verification/classification is admin-only
 under Common; institutes cannot set their own verification badge through PUT.
-Chat/replies and participant booking status updates are listed here and in Common.
+Chat and replies are listed here and in Common; booking actions are paused.
 
 ### Institute chat, posts, comments and replies
 
@@ -752,13 +741,12 @@ shown in this shared documentation category.
 | `PATCH` | `/auth/preferred-language` | Verified bearer | `language`: `en`, `hi`, `es`, `fr`, `ar`, `zh`, `pt`, or `ru` | Updates the account language. |
 | `PATCH` | `/auth/avatar` | Verified bearer | `avatarUrl` (URL) | Updates the photo URL and marks it pending moderation. |
 | `GET` | `/auth/safety-disclaimer` | Public | — | Returns the disclaimer text. |
-| `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging or booking. |
+| `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging; booking is paused. |
 | `GET` | `/subjects` | Public | — | Subject domains with their subjects and BSL catalog data. |
 | `GET` | `/contact-info` | Public | — | Current BSL WhatsApp, email and LinkedIn actions for the app. |
 | `GET` | `/geo/countries`, `/geo/states`, `/geo/cities` | Public | Optional `search`; states require `country_id`; cities require `state_id` and accept `page`, `perPage` | Imported SQL country list, country-scoped states and state-scoped paginated cities. See [Geography API](GEOGRAPHY_API.md). |
 | `GET` | `/i18n/languages` | Public | — | Supported language metadata. |
 | `GET` | `/i18n/{lang}` | Public | Language code in path | Returns translations; unsupported language codes serve English and identify the requested/served language. |
-| `PATCH` | `/bookings/{id}/status` | Verified bearer, participant | `status`: `accepted`, `declined`, `cancelled`, or `completed` | Updates a booking in which the caller participates. |
 | `GET` | `/messages` | Verified bearer | `perPage`, `cursor` | Conversations for the signed-in participant. |
 | `POST` | `/messages/start` | Verified bearer | `providerId`; optional `body` | Starts or reuses a conversation with another account. Safety and guardian-consent gates apply. |
 | `GET` | `/messages/{conversationId}` | Verified bearer, participant | `perPage`, `cursor` | Conversation messages. |
@@ -815,14 +803,13 @@ directions through REST and Socket.IO. Responses add `userId`, `blocked` and
 Show Block/Unblock using these fields and disable sending when unavailable.
 Old history remains readable; a sender can delete their own old content.
 Blocked chat writes return `403` with `code:CHAT_BLOCKED`; unknown block targets
-return `404`, self-targets `400`. Discovery, phone reveal and bookings retain
-their existing behavior. See [chat blocking](CHAT_EVENTS.md#block-and-unblock-messages).
+return `404`, self-targets `400`. Discovery and phone reveal retain their
+existing behavior; booking actions are paused. See [chat blocking](CHAT_EVENTS.md#block-and-unblock-messages).
 
-### Shared bookings, feed and support
+### Shared feed and support
 
-Booking status updates require the caller to be learner/provider participant,
-otherwise `404`. Either participant can set `accepted`, `declined`, `cancelled`
-or `completed`. There is no stricter transition matrix at this endpoint.
+Booking request/list/status APIs are temporarily unavailable. Existing booking
+history remains accessible through authorized admin reports.
 
 Feed requires city, supports one post per account per seven days, and returns
 `429` with `nextAllowedAt` when too soon. Post types are `request` for learners
@@ -880,10 +867,9 @@ records do not include learner phone numbers.
 
 ### Cursor pagination
 
-`GET /messages`, `/messages/{conversationId}`, `/bookings/incoming`,
-`/bookings/mine`, `/reviews/for/{providerId}`, `/feed`, and
+`GET /messages`, `/messages/{conversationId}`, `/reviews/for/{providerId}`, `/feed`, and
 `/feed/{postId}/comments` return bounded pages. The existing result array
-(`messages`, `conversations`, `bookings`, `reviews`, `posts`, or `comments`)
+(`messages`, `conversations`, `reviews`, `posts`, or `comments`)
 is preserved, with an additional `pagination` object:
 
 ```json
@@ -906,13 +892,13 @@ entire history in one response and do not execute full-table total counts.
 
 Messages fetch the **latest** page first and return that page in chronological
 order. The next cursor fetches older messages; prepend those pages in chat.
-Comments are oldest first; bookings, reviews and feed posts are newest first.
+Comments are oldest first; reviews and feed posts are newest first.
 Inbox is ordered by latest message time (creation time for an empty conversation).
 Concurrent new messages can move conversations between inbox pages; refresh
 the first page and deduplicate by conversation ID. Equal timestamps use IDs
 as a deterministic tie-breaker.
 
-Email notifications (booking, reply, support and guardian consent) run on the
+Reply, support and guardian-consent notifications run on the
 `notifications` queue. Chat broadcasts run on the separate `broadcasts` queue.
 Run persistent queue workers as described in [PERFORMANCE.md](PERFORMANCE.md).
 

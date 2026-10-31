@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\BookingsController;
 use App\Http\Controllers\Api\ChatEventsController;
 use App\Http\Controllers\Api\CommunityController;
 use App\Http\Controllers\Api\EnquiriesController;
@@ -106,10 +105,14 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
     });
     Route::get('/profiles/me/stats', [ProfilesController::class, 'stats']);
 
+    // Booking flow is temporarily disabled. Historical bookings and admin
+    // reporting stay available; restore these routes when the feature returns.
+    /*
     Route::post('/bookings', [BookingsController::class, 'create']);
     Route::get('/bookings/incoming', [BookingsController::class, 'incoming']);
     Route::get('/bookings/mine', [BookingsController::class, 'mine']);
     Route::patch('/bookings/{id}/status', [BookingsController::class, 'updateStatus'])->where('id', RecordId::ROUTE_PATTERN);
+    */
     Route::get('/messages', [MessagesController::class, 'index']);
     foreach (['send', 'delivered', 'read', 'typing', 'stop_typing', 'delete', 'edit', 'reply', 'reaction', 'history', 'unread_count'] as $chatAction) {
         Route::post('/chat/events/'.$chatAction, [ChatEventsController::class, 'dispatch'])
@@ -120,7 +123,8 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
     Route::post('/messages/start', [MessagesController::class, 'start']);
     Route::get('/messages/{conversationId}', [MessagesController::class, 'show'])->where('conversationId', RecordId::ROUTE_PATTERN);
     Route::post('/messages/{conversationId}', [MessagesController::class, 'send'])->where('conversationId', RecordId::ROUTE_PATTERN)->middleware('throttle:chat-send');
-    Route::post('/reviews', [CommunityController::class, 'createReview']);
+    // Review submission depends on booking completion; public review reads stay enabled.
+    // Route::post('/reviews', [CommunityController::class, 'createReview']);
     Route::post('/reports', [SafetyReportsController::class, 'store'])->middleware('throttle:10,1');
 
     // Feed / Posts: shared by learner, teacher and institute accounts.

@@ -1,10 +1,10 @@
 const express = require('express');
-const { requireAuth } = require('../middleware/auth');
 const { query } = require('../db/pool');
 
 const router = express.Router();
 
-// Submit a review after a completed lesson ("Leave a review" screen).
+// Review submission is paused with booking flow; public review reads stay enabled.
+/*
 router.post('/', requireAuth, async (req, res) => {
   const { bookingId, rating, comment } = req.body;
 
@@ -39,6 +39,7 @@ router.post('/', requireAuth, async (req, res) => {
 
   res.json({ review: inserted.rows[0] });
 });
+*/
 
 router.get('/for/:providerId', async (req, res) => {
   const result = await query(
