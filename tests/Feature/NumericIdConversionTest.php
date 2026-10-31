@@ -64,6 +64,8 @@ class NumericIdConversionTest extends TestCase
         DB::table('reports')->insert(['id' => $old(51), 'reporter_id' => $old(1), 'target_type' => null, 'target_id' => null,
             'reason_category' => 'other', 'reason' => 'Unlinked report']);
         DB::table('admin_report_access_log')->insert(['id' => $old(60), 'admin_email' => 'admin@example.test', 'report' => 'conversation-messages', 'record_id' => $old(10), 'action' => 'view']);
+        DB::table('support_tickets')->insert(['id' => $old(61), 'user_id' => $old(1), 'subject' => 'Legacy support ticket',
+            'message' => 'Keep this ticket identifier stable.', 'status' => 'pending']);
         DB::table('business_activity')->insert([
             ['id' => $old(70), 'event' => 'message.replied', 'entity_type' => 'message', 'entity_id' => $old(21),
                 'actor_user_id' => $old(2), 'related_user_id' => $old(1), 'version' => 1, 'before_data' => '{}',
@@ -107,8 +109,12 @@ class NumericIdConversionTest extends TestCase
         $this->assertNull(DB::table('reports')->where('reason', 'Unlinked report')->value('target_type'));
         $this->assertNull(DB::table('reports')->where('reason', 'Unlinked report')->value('target_id'));
         $this->assertSame(1, DB::table('admin_report_access_log')->value('record_id'));
+        $this->assertSame($old(60), DB::table('admin_report_access_log')->value('id'));
+        $this->assertSame($old(61), DB::table('support_tickets')->value('id'));
+        $this->assertSame(1, DB::table('support_tickets')->value('user_id'));
         $this->assertSame('2', DB::table('page_views')->value('target'));
         $history = DB::table('business_activity')->where('event', 'message.replied')->first();
+        $this->assertSame($old(70), $history->id);
         $this->assertSame(2, $history->entity_id);
         $snapshot = json_decode($history->after_data, true);
         $this->assertSame(1, $snapshot['conversation_id']);

@@ -791,7 +791,7 @@ provide this API permission. Keep admin tests in a separate admin environment.
 | `GET` | `/admin/contact-info` | Admin bearer | — | Reads public Contact BSL settings; access logged. |
 | `PUT` | `/admin/contact-info` | Admin bearer | `whatsappNumber`, `email`, `linkedinUrl`, `linkedinName`, `linkedinTitle` | Updates Contact BSL links; access logged and changes recorded. |
 | `GET` | `/support` | Admin bearer | Optional `status` (`pending`, `in_progress`, `resolved`, `rejected`, `all`), `q`, `page`, `perPage` | Lists tickets; defaults to pending. `open` is accepted as an alias for pending. |
-| `PATCH` | `/support/{ticketUuid}/status` | Admin bearer | `status`: `pending`, `in_progress`, `resolved`, `rejected` | Updates status; the app reads it from `/support/mine`. |
+| `PATCH` | `/support/{ticketId}/status` | Admin bearer | `status`: `pending`, `in_progress`, `resolved`, `rejected` | Updates status; new ticket IDs are UUIDs and older converted numeric IDs remain accepted. The app reads status from `/support/mine`. |
 | `GET` | `/referrals/top` | Admin bearer | — | Up to 50 top referrers with `referred_count` and `referral_points`. |
 | `GET` | `/analytics/summary` | Admin bearer | Optional `days` | Page-view summary for the requested period (default 30 days). |
 | `GET` | `/moderation/photos/pending` | Admin bearer | — | Lists photos awaiting review. |

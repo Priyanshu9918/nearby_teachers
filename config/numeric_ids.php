@@ -80,7 +80,7 @@ return [
         'profile_user_id' => 'users',
     ],
     'support_tickets' => [
-        'id' => 'support_tickets',
+        // Ticket IDs stay UUIDs; only the user reference is converted.
         'user_id' => 'users',
     ],
     'suggestions' => [
@@ -106,11 +106,11 @@ return [
         'user_id' => 'users',
     ],
     'admin_report_access_log' => [
-        'id' => 'admin_report_access_log',
+        // Access-log IDs stay UUIDs; only polymorphic record references change.
         'record_id' => null,
     ],
     'business_activity' => [
-        'id' => 'business_activity',
+        // Append-only event IDs stay UUIDs; actor references use numeric users.
         'actor_user_id' => 'users',
         'related_user_id' => 'users',
         'entity_id' => null,

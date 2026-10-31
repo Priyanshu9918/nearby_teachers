@@ -25,6 +25,7 @@ use App\Http\Middleware\RequireAdminApi;
 use App\Http\Middleware\RequireApiAuthentication;
 use App\Http\Middleware\ThrottlePresence;
 use App\Support\RecordId;
+use App\Support\SupportTicketId;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/auth/otp/request', [AuthController::class, 'requestOtp'])
@@ -153,7 +154,7 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
         Route::get('/suggestions', [OperationsController::class, 'suggestions']);
         Route::patch('/suggestions/{id}/status', [OperationsController::class, 'updateSuggestion'])->where('id', RecordId::ROUTE_PATTERN);
         Route::get('/support', [OperationsController::class, 'tickets']);
-        Route::patch('/support/{id}/status', [OperationsController::class, 'updateTicket'])->whereUuid('id');
+        Route::patch('/support/{id}/status', [OperationsController::class, 'updateTicket'])->where('id', SupportTicketId::ROUTE_PATTERN);
         Route::get('/admin/contact-info', [SupportContactController::class, 'adminShow']);
         Route::put('/admin/contact-info', [SupportContactController::class, 'update']);
         Route::get('/referrals/top', [OperationsController::class, 'topReferrals']);

@@ -59,6 +59,11 @@ forms submit the current search and date inputs to exports.
 `admin_report_access_log.id` is a UUID (`CHAR(36)`). Migration `000006`
 repairs deployed databases where this column was created as numeric, preserving
 existing access-log IDs as strings so UUID inserts from `ReportAccessLog` work.
+Migration `000007` repairs the UUID columns for `business_activity.id` and
+`support_tickets.id`, and rechecks the admin access-log column. Existing
+converted numeric IDs stay unchanged as strings; new log, activity and ticket
+writes use UUIDs as their schema and writers require. The ID conversion allowlist
+leaves these three primary keys unchanged on future conversions.
 
 ## Add a report
 

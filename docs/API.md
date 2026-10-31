@@ -971,7 +971,7 @@ admin portal's `ADMIN_EMAIL`/`ADMIN_PASSWORD_HASH` login.
 | `GET` | `/admin/contact-info` | Admin bearer | — | Reads the public Contact BSL settings; access logged. |
 | `PUT` | `/admin/contact-info` | Admin bearer | `whatsappNumber`, `email`, `linkedinUrl`, `linkedinName`, `linkedinTitle` | Updates public Contact BSL actions; access logged and changes recorded. |
 | `GET` | `/support` | Admin bearer; optional `status` (`pending`, `in_progress`, `resolved`, `rejected`, `all`), `q`, `page`, `perPage` (default 30, max 100) | Lists support tickets; reads are access logged. `open` is accepted as an alias for `pending`. |
-| `PATCH` | `/support/{ticketUuid}/status` | Admin bearer; `status`: `pending`, `in_progress`, `resolved`, `rejected` | Updates ticket status and records the change in activity history. |
+| `PATCH` | `/support/{ticketId}/status` | Admin bearer; `status`: `pending`, `in_progress`, `resolved`, `rejected` | Updates ticket status and records the change in activity history. New ticket IDs are UUIDs; existing converted numeric IDs remain accepted. |
 | `GET` | `/referrals/top` | — | Up to 50 top referrers. |
 | `GET` | `/analytics/summary` | Optional `days` | Page-view summary for the requested period (default 30 days). |
 | `GET` | `/moderation/photos/pending` | — | Lists photos awaiting review. |

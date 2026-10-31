@@ -13,6 +13,7 @@ use App\Http\Controllers\WebsiteController;
 use App\Http\Middleware\RequireAdminSession;
 use App\Http\Middleware\RequireDeveloperSession;
 use App\Support\RecordId;
+use App\Support\SupportTicketId;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Route;
 
@@ -104,7 +105,7 @@ Route::middleware(RequireAdminSession::class)->prefix('admin')->name('admin.')->
     Route::get('/support/contact-details', [AdminSupportController::class, 'contactDetails'])->name('support.contact');
     Route::put('/support/contact-details', [AdminSupportController::class, 'updateContactDetails'])->name('support.contact.update');
     Route::patch('/support/tickets/{id}/status', [AdminSupportController::class, 'updateTicketStatus'])
-        ->whereUuid('id')->name('support.tickets.status');
+        ->where('id', SupportTicketId::ROUTE_PATTERN)->name('support.tickets.status');
 
     Route::get('/moderation/photos', [AdminWorkspaceController::class, 'photos'])->name('moderation.photos');
     Route::patch('/moderation/photos/{userId}', [AdminWorkspaceController::class, 'reviewPhoto'])
