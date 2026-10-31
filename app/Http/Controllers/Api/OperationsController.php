@@ -11,7 +11,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 
 class OperationsController extends Controller
 {
@@ -289,9 +288,7 @@ class OperationsController extends Controller
         try {
             $id = DB::transaction(function () use ($referrer, $user): int|string {
                 DB::table('users')->where('id', $referrer)->lockForUpdate()->first(['id']);
-                $id = (string) Str::uuid();
-                DB::table('referrals')->insert([
-                    'id' => $id,
+                $id = DB::table('referrals')->insertGetId([
                     'referrer_id' => $referrer,
                     'referred_id' => $user->id,
                     'created_at' => now(),

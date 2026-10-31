@@ -237,8 +237,8 @@ class WebsiteController extends Controller
                 return;
             }
 
-            $clickId = (string) Str::uuid();
             try {
+                $clickId = (string) Str::uuid();
                 DB::table('referral_clicks')->insert([
                     'id' => $clickId,
                     'referrer_id' => $referrerId,
@@ -349,7 +349,6 @@ class WebsiteController extends Controller
     {
         try {
             DB::table('page_views')->insert([
-                'id' => (string) Str::uuid(),
                 'page_type' => $pageType,
                 'target' => $target,
                 'platform' => $platform,
