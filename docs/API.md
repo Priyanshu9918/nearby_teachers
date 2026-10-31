@@ -832,7 +832,7 @@ code (`404`) and an already credited account (`409`). Page-view types are
 | Feed `city`, `body`, `imageUrl` | City max 160; body max 5,000; optional URL max 2048 |
 | Comment `body`, `parentCommentId` | Body max 5,000; optional parent UUID must belong to the same post |
 | Safety `targetType`, `targetId` | user/post/comment/message; target record ID |
-| Safety `reasonCategory`, `reason` | fraud/fake_profile/inappropriate/spam/other; optional reason max 5,000 |
+| Safety `reasonCategory`, `reason` | Accepts the API codes (`fraud`, `fake_profile`, `inappropriate`, `spam`, `other`) or the matching screen labels (`Fraud or scam`, `Fake profile / not who they claim`, `Inappropriate behavior`, `Spam`, `Other`); saved as the API code. Optional legacy reason max 5,000. |
 | Suggestion `suggestionType`, `name`, `notes` | course/city/state/country; name max 255; optional notes max 5,000 |
 | Support `subject`, `message` | Max 255 / 10,000 |
 | Referral `code` | Required, max 32 |

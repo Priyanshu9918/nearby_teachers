@@ -543,6 +543,19 @@ class AdminReportingTest extends TestCase
             ->where('report', 'reports')->where('action', 'api-view')->count());
     }
 
+    public function test_displayed_report_category_label_is_normalized_to_the_saved_category(): void
+    {
+        $auth = app(AuthenticationService::class);
+        $response = $this->withToken($auth->issueSessionToken($this->learner))->postJson('/reports', [
+            'targetType' => 'user', 'targetId' => $this->teacher,
+            'reasonCategory' => 'Fake profile / not who they claim',
+        ])->assertCreated()->assertJsonPath('report.reasonCategory', 'fake_profile');
+
+        $this->assertDatabaseHas('reports', [
+            'id' => $response->json('report.id'), 'reason_category' => 'fake_profile',
+        ]);
+    }
+
     public function test_legacy_safety_report_endpoint_accepts_all_account_types_and_screen_evidence(): void
     {
         Storage::fake('local');

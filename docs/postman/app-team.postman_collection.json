@@ -22754,10 +22754,10 @@
                 "reports"
               ]
             },
-            "description": " See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures.",
+            "description": "Verified learner, teacher and institute accounts can report users, posts, comments, or messages in their conversations. Use legacy reason (max 5000) or additionalDetails (max 500), plus optional HTTP/HTTPS evidenceLink. Attach screenshot as JPEG/PNG/WebP up to 5 MB with multipart/form-data. Categories: fraud = Fraud or scam, fake_profile = Fake profile / not who they claim, inappropriate = Inappropriate behavior, spam = Spam, other = Other. Returns 201; limited to 10/minute. See docs/APP_TEAM_API.md.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"targetType\": \"user\",\n  \"targetId\": \"{{userId}}\",\n  \"reasonCategory\": \"spam\",\n  \"reason\": \"Repeated unwanted contact.\"\n}",
+              "raw": "{\n  \"targetType\": \"user\",\n  \"targetId\": \"{{userId}}\",\n  \"reasonCategory\": \"spam\",\n  \"additionalDetails\": \"Repeated unwanted contact.\",\n  \"evidenceLink\": \"https://example.test/evidence\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -22767,7 +22767,7 @@
           },
           "response": [
             {
-              "name": "Fictional example — 200 Report created",
+              "name": "Fictional example — 201 Report created",
               "originalRequest": {
                 "method": "POST",
                 "header": [
@@ -22790,10 +22790,10 @@
                     "reports"
                   ]
                 },
-                "description": " See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures.",
+                "description": "Verified learner, teacher and institute accounts can report users, posts, comments, or messages in their conversations. Use legacy reason (max 5000) or additionalDetails (max 500), plus optional HTTP/HTTPS evidenceLink. Attach screenshot as JPEG/PNG/WebP up to 5 MB with multipart/form-data. Categories: fraud = Fraud or scam, fake_profile = Fake profile / not who they claim, inappropriate = Inappropriate behavior, spam = Spam, other = Other. Returns 201; limited to 10/minute. See docs/APP_TEAM_API.md.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"targetType\": \"user\",\n  \"targetId\": \"{{userId}}\",\n  \"reasonCategory\": \"spam\",\n  \"reason\": \"Repeated unwanted contact.\"\n}",
+                  "raw": "{\n  \"targetType\": \"user\",\n  \"targetId\": \"{{userId}}\",\n  \"reasonCategory\": \"spam\",\n  \"additionalDetails\": \"Repeated unwanted contact.\",\n  \"evidenceLink\": \"https://example.test/evidence\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -22801,8 +22801,8 @@
                   }
                 }
               },
-              "status": "OK",
-              "code": 200,
+              "status": "Created",
+              "code": 201,
               "_postman_previewlanguage": "json",
               "header": [
                 {
@@ -22811,7 +22811,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"report\": {\n    \"id\": \"10000000-0000-4000-8000-000000000011\",\n    \"reporter_id\": \"10000000-0000-4000-8000-000000000001\",\n    \"target_type\": \"user\",\n    \"target_id\": \"10000000-0000-4000-8000-000000000002\",\n    \"reason_category\": \"spam\",\n    \"reason\": \"Repeated unwanted contact.\",\n    \"status\": \"open\",\n    \"created_at\": \"2026-10-21 10:00:00\"\n  }\n}"
+              "body": "{\n  \"report\": {\n    \"id\": \"100000000000011\",\n    \"reporter_id\": \"100000000000001\",\n    \"target_type\": \"user\",\n    \"target_id\": \"100000000000002\",\n    \"reason_category\": \"spam\",\n    \"reason\": \"Repeated unwanted contact.\",\n    \"status\": \"open\",\n    \"created_at\": \"2026-10-21 10:00:00\",\n    \"evidence_link\": \"https://example.test/evidence\",\n    \"screenshot_available\": false\n  }\n}"
             },
             {
               "name": "Fictional example — 401 Bearer missing",
@@ -22837,10 +22837,10 @@
                     "reports"
                   ]
                 },
-                "description": " See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures.",
+                "description": "Verified learner, teacher and institute accounts can report users, posts, comments, or messages in their conversations. Use legacy reason (max 5000) or additionalDetails (max 500), plus optional HTTP/HTTPS evidenceLink. Attach screenshot as JPEG/PNG/WebP up to 5 MB with multipart/form-data. Categories: fraud = Fraud or scam, fake_profile = Fake profile / not who they claim, inappropriate = Inappropriate behavior, spam = Spam, other = Other. Returns 201; limited to 10/minute. See docs/APP_TEAM_API.md.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"targetType\": \"user\",\n  \"targetId\": \"{{userId}}\",\n  \"reasonCategory\": \"spam\",\n  \"reason\": \"Repeated unwanted contact.\"\n}",
+                  "raw": "{\n  \"targetType\": \"user\",\n  \"targetId\": \"{{userId}}\",\n  \"reasonCategory\": \"spam\",\n  \"additionalDetails\": \"Repeated unwanted contact.\",\n  \"evidenceLink\": \"https://example.test/evidence\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -22881,7 +22881,7 @@
                 "reports"
               ]
             },
-            "description": "Learner, teacher and institute accounts can report a user, post, comment or message. Categories: fraud, fake_profile, inappropriate, spam, other. additionalDetails is optional, max 500 characters. evidenceLink and screenshot are optional; screenshot accepts JPEG/PNG/WebP up to 5 MB. This request uses multipart/form-data; remove the screenshot part to send without an image. Limited to 10/minute.",
+            "description": "Learner, teacher and institute accounts can report a user, post, comment or message. Categories: fraud = Fraud or scam, fake_profile = Fake profile / not who they claim, inappropriate = Inappropriate behavior, spam = Spam, other = Other. additionalDetails is optional, max 500 characters. evidenceLink and screenshot are optional; screenshot accepts JPEG/PNG/WebP up to 5 MB. This request uses multipart/form-data; remove the screenshot part to send without an image. Returns 201; limited to 10/minute.",
             "body": {
               "mode": "formdata",
               "formdata": [

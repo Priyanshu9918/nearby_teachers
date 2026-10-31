@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\SafetyReportCreator;
+use App\Support\SafetyReportCategory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -14,10 +15,11 @@ final class SafetyReportsController extends Controller
         $user = $request->attributes->get('authenticated_user');
         abort_unless($user !== null && in_array($user->account_type, ['learner', 'teacher', 'institute'], true), 403, 'User account required.');
 
+        $request->merge(['reasonCategory' => SafetyReportCategory::normalize($request->input('reasonCategory'))]);
         $data = $request->validate([
             'targetType' => ['required', 'in:user,post,comment,message'],
             'targetId' => ['required', 'integer', 'min:1', 'max:9007199254740991'],
-            'reasonCategory' => ['required', 'in:fraud,fake_profile,inappropriate,spam,other'],
+            'reasonCategory' => ['required', 'string', 'in:fraud,fake_profile,inappropriate,spam,other'],
             'additionalDetails' => ['sometimes', 'nullable', 'string', 'max:500'],
             'evidenceLink' => ['sometimes', 'nullable', 'url:http,https', 'max:2048'],
             'screenshot' => ['sometimes', 'nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120'],

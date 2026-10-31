@@ -8,6 +8,7 @@ use App\Reporting\BusinessActivityRecorder;
 use App\Reporting\ReportAccessLog;
 use App\Services\ChatBlocking;
 use App\Services\SafetyReportCreator;
+use App\Support\SafetyReportCategory;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,10 +19,11 @@ class OperationsController extends Controller
 {
     public function report(Request $request, SafetyReportCreator $reportCreator): JsonResponse
     {
+        $request->merge(['reasonCategory' => SafetyReportCategory::normalize($request->input('reasonCategory'))]);
         $data = $request->validate([
             'targetType' => ['required', 'in:user,post,comment,message'],
             'targetId' => ['required', 'integer', 'min:1', 'max:9007199254740991'],
-            'reasonCategory' => ['required', 'in:fraud,fake_profile,inappropriate,spam,other'],
+            'reasonCategory' => ['required', 'string', 'in:fraud,fake_profile,inappropriate,spam,other'],
             'reason' => ['sometimes', 'nullable', 'string', 'max:5000', 'prohibited_with:additionalDetails'],
             'additionalDetails' => ['sometimes', 'nullable', 'string', 'max:500'],
             'evidenceLink' => ['sometimes', 'nullable', 'url:http,https', 'max:2048'],
