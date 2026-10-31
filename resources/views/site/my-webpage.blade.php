@@ -24,7 +24,7 @@
         <h1>Your web page</h1>
         <div class="web-card">
             <div class="web-owner">
-                <div class="web-avatar">@if($provider->avatar_url)<img src="{{ $provider->avatar_url }}" alt="">@else{{ mb_strtoupper(mb_substr($provider->full_name, 0, 2)) }}@endif</div>
+                <div class="web-avatar">@if($provider->avatar_url)<img src="{{ \App\Support\PublicMediaUrl::resolve($provider->avatar_url) }}" alt="">@else{{ mb_strtoupper(mb_substr($provider->full_name, 0, 2)) }}@endif</div>
                 <div><h2>{{ $provider->full_name }}</h2><p>Your page is live</p></div>
                 <span class="web-status">● Live</span>
             </div>
@@ -54,7 +54,7 @@
         <article class="poster">
             <header class="poster-brand"><strong>मुझे Nearby Teacher पर ढूँढें</strong><small>{{ $provider->full_name }} · {{ $place }}</small></header>
             <div class="poster-main">
-                <div class="web-avatar">@if($provider->avatar_url)<img src="{{ $provider->avatar_url }}" alt="">@else{{ mb_strtoupper(mb_substr($provider->full_name, 0, 2)) }}@endif</div>
+                <div class="web-avatar">@if($provider->avatar_url)<img src="{{ \App\Support\PublicMediaUrl::resolve($provider->avatar_url) }}" alt="">@else{{ mb_strtoupper(mb_substr($provider->full_name, 0, 2)) }}@endif</div>
                 <h2>{{ $provider->full_name }}</h2><p>{{ $place }}</p>
                 @if($subjectNames)<p class="subjects">{{ $subjectNames }}</p>@endif
                 <div class="poster-qr"><img src="{{ $qrUrl }}" alt="QR code linking to {{ $url }}"><div><strong>ऐप से मुझे ढूँढें या WhatsApp करें</strong><small>{{ $url }}</small></div></div>

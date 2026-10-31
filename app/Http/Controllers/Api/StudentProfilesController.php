@@ -5,10 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Reporting\BusinessActivityRecorder;
 use App\Services\OnboardingState;
+use App\Support\PublicMediaUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use libphonenumber\NumberParseException;
@@ -123,7 +123,7 @@ class StudentProfilesController extends Controller
         ]);
 
         $path = ($data['profile_image'] ?? $data['image'])->store('student-photos', 'public');
-        $url = url(Storage::disk('public')->url($path));
+        $url = PublicMediaUrl::fromStoragePath($path);
         DB::transaction(function () use ($user, $url): void {
             DB::table('users')->where('id', $user->id)->update([
                 'avatar_url' => $url,

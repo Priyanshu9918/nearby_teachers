@@ -50,6 +50,9 @@ final class ReportQuery
                 }
             });
         }
+        if ($report->key === 'support' && ! empty($filters['status'])) {
+            $query->where('r.status', $filters['status']);
+        }
         $this->filters->dates($query, $report->timestamp ? 'r.'.$report->timestamp : null, $filters);
         if ($report->timestamp) {
             $query->orderByDesc('r.'.$report->timestamp);

@@ -278,12 +278,23 @@ CREATE TABLE phone_reveals (
   CONSTRAINT phone_reveals_profile_fk FOREIGN KEY (profile_user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE support_contact_settings (
+  id TINYINT UNSIGNED NOT NULL PRIMARY KEY,
+  whatsapp_number VARCHAR(32) NULL,
+  email VARCHAR(254) NULL,
+  linkedin_url VARCHAR(2048) NULL,
+  linkedin_name VARCHAR(160) NULL,
+  linkedin_title VARCHAR(160) NULL,
+  created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE support_tickets (
   id CHAR(36) NOT NULL PRIMARY KEY,
   user_id CHAR(36) NOT NULL,
   subject VARCHAR(255) NOT NULL,
   message TEXT NOT NULL,
-  status ENUM('open', 'in_progress', 'resolved') NOT NULL DEFAULT 'open',
+  status VARCHAR(24) NOT NULL DEFAULT 'pending',
   created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
   INDEX idx_support_tickets_status (status, created_at),

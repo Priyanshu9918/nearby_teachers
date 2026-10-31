@@ -1,0 +1,118 @@
+{
+  "info": {
+    "name": "Nearby Teacher — Contact BSL & Support",
+    "description": "Contact details shown in the app, authenticated support tickets, ticket status tracking, and admin controls. Set baseUrl to the application root (including any deployment subdirectory, with no trailing slash). This collection uses fictional request data.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000", "type": "string" },
+    { "key": "userToken", "value": "", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" },
+    { "key": "ticketId", "value": "50000000-0000-4000-8000-000000000001", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "App",
+      "item": [
+        {
+          "name": "GET /contact-info — Contact BSL links",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{baseUrl}}/contact-info",
+            "description": "Public endpoint. Returns the current WhatsApp number and wa.me URL, support email, and LinkedIn profile/name/title for the Contact BSL screen."
+          }
+        },
+        {
+          "name": "POST /support — Submit a query",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }] },
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subject\": \"Booking help\",\n  \"message\": \"Please help me with my booking.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/support",
+            "description": "Learner, teacher or institute bearer required. Creates a UUID support ticket with status pending and returns 201."
+          }
+        },
+        {
+          "name": "GET /support/mine — Track my queries",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{baseUrl}}/support/mine?page=1&perPage=20",
+            "description": "Returns only this user's tickets, including pending, in_progress, resolved or rejected status. Pagination is bounded to 50 tickets per page."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin API",
+      "item": [
+        {
+          "name": "GET /admin/contact-info — Read Contact BSL settings",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{baseUrl}}/admin/contact-info",
+            "description": "Admin bearer required. Access is logged."
+          }
+        },
+        {
+          "name": "PUT /admin/contact-info — Update Contact BSL settings",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"whatsappNumber\": \"+919876543210\",\n  \"email\": \"support@example.test\",\n  \"linkedinUrl\": \"https://www.linkedin.com/in/example-profile\",\n  \"linkedinName\": \"Prateek Gupta\",\n  \"linkedinTitle\": \"Executive Director\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/admin/contact-info",
+            "description": "Admin bearer required. All five fields must be sent; nullable fields can be null. Change history stores only changed field names."
+          }
+        },
+        {
+          "name": "GET /support — List and filter tickets",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": "{{baseUrl}}/support?status=pending&page=1&perPage=30",
+            "description": "Admin bearer required. Filter status by pending, in_progress, resolved, rejected or all. Supports q search and pagination; reads are access logged."
+          }
+        },
+        {
+          "name": "PATCH /support/{{ticketId}}/status — Update ticket status",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"resolved\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": "{{baseUrl}}/support/{{ticketId}}/status",
+            "description": "Admin bearer required. Status must be pending, in_progress, resolved or rejected. The app sees the updated status on its next GET /support/mine; each change is recorded in business activity history."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -11,7 +11,7 @@
         'address' => ['@type' => 'PostalAddress', 'addressLocality' => $institute->city,
             'addressRegion' => $institute->state, 'addressCountry' => $institute->country]];
     if ($institute->website_url) $organization['sameAs'] = [$institute->website_url];
-    if ($institute->avatar_url) $organization['image'] = $institute->avatar_url;
+    if ($institute->avatar_url) $organization['image'] = \App\Support\PublicMediaUrl::resolve($institute->avatar_url);
     $schema = ['@context' => 'https://schema.org', '@type' => 'WebPage', 'name' => $title, 'url' => $url,
         'description' => $description, 'mainEntity' => $organization];
 @endphp
@@ -23,7 +23,7 @@
 @include('seo.partials.header', ['headerCountry' => $institute->seo_country, 'providerType' => 'institute', 'providerSlug' => $institute->slug])
 <main class="teacher-shell">
 <nav class="teacher-crumbs" aria-label="Breadcrumb"><a href="{{ \App\Services\SeoDirectory::url('/directory') }}">{{ $labels['directory'] }}</a><span aria-hidden="true">/</span><span>{{ $institute->city }}</span><span aria-hidden="true">/</span><span aria-current="page">{{ $institute->full_name }}</span></nav>
-<header class="teacher-hero"><div class="avatar" aria-hidden="true">@if ($institute->avatar_url)<img src="{{ $institute->avatar_url }}" alt="" width="96" height="96">@else{{ mb_substr($institute->full_name, 0, 1) }}@endif</div><div><p class="teacher-kicker">Institute</p><h1>{{ $institute->full_name }}</h1><p class="teacher-subtitle">{{ $subjectNames }}</p><p class="teacher-location">{{ collect([$institute->city, $institute->state, $institute->country])->filter()->unique()->implode(', ') }}</p></div></header>
+<header class="teacher-hero"><div class="avatar" aria-hidden="true">@if ($institute->avatar_url)<img src="{{ \App\Support\PublicMediaUrl::resolve($institute->avatar_url) }}" alt="" width="96" height="96">@else{{ mb_substr($institute->full_name, 0, 1) }}@endif</div><div><p class="teacher-kicker">Institute</p><h1>{{ $institute->full_name }}</h1><p class="teacher-subtitle">{{ $subjectNames }}</p><p class="teacher-location">{{ collect([$institute->city, $institute->state, $institute->country])->filter()->unique()->implode(', ') }}</p></div></header>
 <div class="teacher-columns"><div>
 @if ($institute->description)<section class="teacher-panel"><h2>About</h2><p class="bio">{{ $institute->description }}</p></section>@endif
 <section class="teacher-panel"><h2>{{ $labels['subjects'] }}</h2><div class="tags">@foreach ($subjects as $subject)<span class="tag">{{ $subject->name }}</span>@endforeach</div>

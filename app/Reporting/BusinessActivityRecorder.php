@@ -3,6 +3,7 @@
 namespace App\Reporting;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 use LogicException;
 
@@ -42,6 +43,9 @@ final class BusinessActivityRecorder
         'institute.bsl_verified_changed' => ['institute_profile', ['is_bsl_official']],
         'safety_report.submitted' => ['report', ['target_type', 'reason_category', 'status', 'has_screenshot', 'has_evidence_link']],
         'safety_report.status_changed' => ['report', ['status']],
+        'support_ticket.submitted' => ['support_ticket', ['status']],
+        'support_ticket.status_changed' => ['support_ticket', ['status']],
+        'support.contact_details_updated' => ['support_contact_settings', ['changed_fields']],
         // Version 1 submission history excludes contact details; no follow-up/decision workflow exists yet.
         'franchise_enquiry.submitted' => ['franchise_enquiry', ['status']],
         'teaching_job_application.submitted' => ['teaching_job_application', ['status', 'course_ids', 'expected_salary', 'currency', 'salary_period']],
@@ -85,7 +89,8 @@ final class BusinessActivityRecorder
         if ($unexpected !== []) {
             throw new InvalidArgumentException('Business activity contains undeclared snapshot fields.');
         }
-        $id = (string) DB::table('business_activity')->insertGetId(['event' => $event, 'entity_type' => $entityType, 'entity_id' => (string) $entityId,
+        $id = (string) Str::uuid();
+        DB::table('business_activity')->insert(['id' => $id, 'event' => $event, 'entity_type' => $entityType, 'entity_id' => (string) $entityId,
             'actor_user_id' => $actorUserId, 'related_user_id' => $relatedUserId, 'version' => 1,
             'before_data' => json_encode($before, JSON_THROW_ON_ERROR),
             'after_data' => json_encode($after, JSON_THROW_ON_ERROR), 'created_at' => now(),

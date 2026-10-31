@@ -115,6 +115,11 @@ return [
         'columns' => ['id', 'user_id', 'subject', 'message', 'status', 'created_at', 'updated_at'],
         'participants' => ['user_id'], 'search' => ['subject', 'message', 'status'],
     ],
+    'support-contact-settings' => [
+        'title' => 'Support contact settings', 'table' => 'support_contact_settings', 'timestamp' => 'updated_at',
+        'columns' => ['id', 'whatsapp_number', 'email', 'linkedin_url', 'linkedin_name', 'linkedin_title', 'updated_at'],
+        'participants' => [], 'search' => ['whatsapp_number', 'email', 'linkedin_url', 'linkedin_name', 'linkedin_title'],
+    ],
     'suggestions' => [
         'title' => 'Suggestions', 'table' => 'suggestions', 'timestamp' => 'created_at',
         'columns' => ['id', 'submitted_by', 'suggestion_type', 'name', 'notes', 'status', 'created_at'],

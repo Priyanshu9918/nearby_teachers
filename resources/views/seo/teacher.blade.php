@@ -8,7 +8,7 @@
     $description = \Illuminate\Support\Str::limit($tr('city_description', ['subject' => $subjectNames, 'city' => $teacher->city]), 160);
     $canonicalUrl = $url;
     $person = ['@type' => 'Person', 'name' => $teacher->full_name, 'url' => $url, 'knowsAbout' => $subjects->pluck('name')->all()];
-    if ($teacher->avatar_url) $person['image'] = $teacher->avatar_url;
+    if ($teacher->avatar_url) $person['image'] = \App\Support\PublicMediaUrl::resolve($teacher->avatar_url);
     if ($teacher->linkedin_url) $person['sameAs'] = [$teacher->linkedin_url];
     $schema = ['@context' => 'https://schema.org', '@type' => 'WebPage', 'name' => $title, 'url' => $url, 'mainEntity' => $person];
 @endphp
@@ -20,7 +20,7 @@
 @include('seo.partials.header', ['headerCountry' => $teacher->seo_country, 'providerType' => 'teacher', 'providerSlug' => $teacher->slug])
 <main class="teacher-shell">
 <nav class="teacher-crumbs" aria-label="Breadcrumb"><a href="{{ \App\Services\SeoDirectory::url('/directory') }}">{{ $labels['teachers'] }}</a><span aria-hidden="true">/</span><span>{{ $teacher->city }}</span><span aria-hidden="true">/</span><span aria-current="page">{{ $teacher->full_name }}</span></nav>
-<header class="teacher-hero"><div class="avatar" aria-hidden="true">@if ($teacher->avatar_url)<img src="{{ $teacher->avatar_url }}" alt="" width="96" height="96">@else{{ mb_substr($teacher->full_name, 0, 1) }}@endif</div><div><p class="teacher-kicker">{{ $labels['profile'] }}</p><h1>{{ $teacher->full_name }}</h1><p class="teacher-subtitle">{{ $subjectNames }}</p><p class="teacher-location">{{ collect([$teacher->city, $teacher->state, $teacher->country])->filter()->unique()->implode(', ') }}</p></div></header>
+<header class="teacher-hero"><div class="avatar" aria-hidden="true">@if ($teacher->avatar_url)<img src="{{ \App\Support\PublicMediaUrl::resolve($teacher->avatar_url) }}" alt="" width="96" height="96">@else{{ mb_substr($teacher->full_name, 0, 1) }}@endif</div><div><p class="teacher-kicker">{{ $labels['profile'] }}</p><h1>{{ $teacher->full_name }}</h1><p class="teacher-subtitle">{{ $subjectNames }}</p><p class="teacher-location">{{ collect([$teacher->city, $teacher->state, $teacher->country])->filter()->unique()->implode(', ') }}</p></div></header>
 <div class="teacher-columns"><div>
 @if ($teacher->bio)<section class="teacher-panel"><h2>{{ $labels['about'] }}</h2><p class="bio">{{ $teacher->bio }}</p></section>@endif
 <section class="teacher-panel"><h2>{{ $labels['subjects'] }}</h2><div class="tags">@foreach ($subjects as $subject)<span class="tag">{{ $subject->name }}</span>@endforeach</div><h2 class="mode-heading">{{ $labels['modes'] }}</h2><div class="tags">@foreach (json_decode($teacher->lesson_modes ?: '[]', true) as $mode)@if (isset($labels[$mode]))<span class="tag">{{ $labels[$mode] }}</span>@endif @endforeach</div><div class="teacher-stats"><div class="teacher-stat"><strong>{{ $teacher->lessons_completed }}</strong><span>{{ $labels['lessons'] }}</span></div><div class="teacher-stat">@if ($teacher->rating_count > 0)<strong>★ {{ $teacher->rating_avg }}</strong><span>{{ $teacher->rating_count }} {{ $labels['reviews'] }}</span>@else<span>{{ $labels['no_reviews'] }}</span>@endif</div></div></section>

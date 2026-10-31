@@ -4,7 +4,15 @@
 @section('title', $title)
 @section('description', $description)
 @php
-    $schema = ['@context' => 'https://schema.org', '@type' => 'CollectionPage', 'name' => $title, 'url' => $canonicalUrl, 'description' => $description];
+    $schema = ['@context' => 'https://schema.org', '@type' => 'CollectionPage', 'name' => $title,
+        'url' => $canonicalUrl, 'description' => $description,
+        'mainEntity' => ['@type' => 'ItemList', 'numberOfItems' => $providers->count(),
+            'itemListElement' => $providers->getCollection()->values()->map(fn ($item, $index) => [
+                '@type' => 'ListItem',
+                'position' => (($providers->currentPage() - 1) * $providers->perPage()) + $index + 1,
+                'name' => $item->full_name,
+                'url' => \App\Services\SeoDirectory::url('/'.$item->provider_type.'/'.$item->public_page_slug),
+            ])->all()]];
 @endphp
 @section('meta')@include('seo.meta')@endsection
 @section('content')
@@ -17,7 +25,7 @@
 @php($profilePath = '/'.$item->provider_type.'/'.$item->public_page_slug)
 <article class="directory-card">
     <div class="directory-card-heading">
-        <div class="directory-avatar" aria-hidden="true">@if ($item->avatar_url)<img src="{{ $item->avatar_url }}" alt="" loading="lazy" width="48" height="48">@else{{ mb_substr($item->full_name, 0, 1) }}@endif</div>
+        <div class="directory-avatar" aria-hidden="true">@if ($item->avatar_url)<img src="{{ \App\Support\PublicMediaUrl::resolve($item->avatar_url) }}" alt="" loading="lazy" width="48" height="48">@else{{ mb_substr($item->full_name, 0, 1) }}@endif</div>
         <div><h2><a href="{{ \App\Services\SeoDirectory::url($profilePath) }}">{{ $item->full_name }}</a></h2><span class="directory-kind">{{ $item->provider_type === 'institute' ? 'Institute' : 'Teacher' }}</span></div>
     </div>
     <p class="directory-place">@if ($item->rating_count > 0)★ {{ number_format((float) $item->rating_avg, 1) }} ({{ $item->rating_count }}) <span>·</span> @else{{ $labels['no_reviews'] }} <span>·</span> @endif{{ $item->city }}</p>

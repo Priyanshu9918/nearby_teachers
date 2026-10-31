@@ -32,6 +32,8 @@
         <a href="{{ route('admin.moderation.suspended') }}" @class(['nav-link', 'active' => request()->routeIs('admin.moderation.suspended')]) data-nav-item><x-admin-icon name="shield" /><span>Suspended accounts</span></a>
         <a href="{{ route('admin.moderation.duplicates') }}" @class(['nav-link', 'active' => request()->routeIs('admin.moderation.duplicates')]) data-nav-item><x-admin-icon name="users" /><span>Possible duplicates</span></a>
         <a href="{{ route('admin.reports.index', ['report' => 'reports']) }}" @class(['nav-link', 'active' => request()->route('report') === 'reports']) data-nav-item><x-admin-icon name="flag" /><span>Safety reports</span></a>
+        <a href="{{ route('admin.reports.index', ['report' => 'support']) }}" @class(['nav-link', 'active' => request()->route('report') === 'support']) data-nav-item><x-admin-icon name="chat" /><span>Support tickets</span></a>
+        <a href="{{ route('admin.support.contact') }}" @class(['nav-link', 'active' => request()->routeIs('admin.support.contact*')]) data-nav-item><x-admin-icon name="chat" /><span>Contact BSL links</span></a>
 
         <div class="nav-section-label">Owner reports</div>
         @foreach ($navigationGroups as $label => $group)

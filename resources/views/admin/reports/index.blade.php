@@ -31,6 +31,18 @@
                     <form method="post" action="{{ route('admin.moderation.safety.update', ['reportId' => $record->id]) }}">@csrf @method('patch')<input type="hidden" name="status" value="open"><button class="btn btn-small" type="submit">Reopen</button></form>
                 @endif
             </div>
+        @elseif ($report === 'support')
+            <div class="table-actions">
+                @foreach (['pending' => 'Pending', 'in_progress' => 'In progress', 'resolved' => 'Resolved', 'rejected' => 'Rejected'] as $status => $label)
+                    @if ($record->status !== $status)
+                        <form method="post" action="{{ route('admin.support.tickets.status', ['id' => $record->id]) }}">
+                            @csrf @method('patch')
+                            <input type="hidden" name="status" value="{{ $status }}">
+                            <button class="btn btn-small {{ $status === 'rejected' ? 'btn-danger' : '' }}" type="submit">{{ $label }}</button>
+                        </form>
+                    @endif
+                @endforeach
+            </div>
         @elseif ($report === 'conversations')<a class="btn btn-small" href="{{ route('admin.reports.conversation', $record->id) }}">Read messages</a>
         @elseif ($report === 'messages')<a class="btn btn-small" href="{{ route('admin.reports.conversation', $record->conversation_id) }}">Conversation</a>
         @elseif ($report === 'teacher-profiles' && $record->seo_public)<a class="btn btn-small" href="{{ \App\Services\SeoDirectory::url('/teacher/'.$record->public_page_slug) }}" target="_blank" rel="noopener noreferrer">Open teacher page <x-admin-icon name="arrow" /></a>

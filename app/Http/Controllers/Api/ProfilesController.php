@@ -12,11 +12,11 @@ use App\Services\ProfileEditor;
 use App\Services\TeacherAddress;
 use App\Services\TeacherLocation;
 use App\Services\TeacherPublicPages;
+use App\Support\PublicMediaUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Throwable;
@@ -369,7 +369,7 @@ class ProfilesController extends Controller
         $user = $request->attributes->get('authenticated_user');
         $data = $request->validate(['image' => ['required', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120']]);
         $path = $data['image']->store($type.'-photos', 'public');
-        $url = url(Storage::disk('public')->url($path));
+        $url = PublicMediaUrl::fromStoragePath($path);
         DB::transaction(function () use ($user, $url, $type): void {
             DB::table('users')->where('id', $user->id)->update(['avatar_url' => $url, 'avatar_status' => 'pending', 'updated_at' => now()]);
             app(BusinessActivityRecorder::class)->record($type.'.avatar_submitted', $user->id, $user->id,

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\RequireApiAuthentication;
+use App\Http\Middleware\NormalizePublicMediaUrls;
 use App\Http\Middleware\TrackAuthActivity;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -20,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->api(prepend: [TrackAuthActivity::class]);
+        $middleware->api(append: [NormalizePublicMediaUrls::class]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

@@ -101,6 +101,9 @@ return [
         'POST /suggestions' => ['Common'],
         'POST /support' => ['Common'],
         'GET /support/mine' => ['Common'],
+        'GET /contact-info' => ['Common'],
+        'GET /admin/contact-info' => ['Common'],
+        'PUT /admin/contact-info' => ['Common'],
         'GET /referrals/mine' => ['Common'],
         'POST /referrals/redeem' => ['Common'],
 

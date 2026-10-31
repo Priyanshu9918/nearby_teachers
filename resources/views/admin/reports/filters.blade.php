@@ -21,11 +21,14 @@
         <div class="field"><label for="type">Participant account type</label><select name="type" id="type"><option value="">All types</option>@foreach (['learner' => 'Student', 'teacher' => 'Teacher', 'institute' => 'Institute'] as $value => $label)<option value="{{ $value }}" @selected(($filters['type'] ?? '') === $value)>{{ $label }}</option>@endforeach</select></div>
         <div class="field"><label for="user">User ID</label><input name="user" id="user" value="{{ $filters['user'] ?? '' }}"></div>
         @endif
+        @if (($report ?? null) === 'support')
+        <div class="field"><label for="status">Ticket status</label><select name="status" id="status"><option value="">All statuses</option>@foreach (['pending' => 'Pending', 'in_progress' => 'In progress', 'resolved' => 'Resolved', 'rejected' => 'Rejected'] as $value => $label)<option value="{{ $value }}" @selected(($filters['status'] ?? '') === $value)>{{ $label }}</option>@endforeach</select></div>
+        @endif
         @if (!isset($report) || $timestamp !== null)
         <div class="field"><label for="from">From date</label><input type="date" name="from" id="from" value="{{ $filters['from'] ?? '' }}"></div>
         <div class="field"><label for="to">Through date</label><input type="date" name="to" id="to" value="{{ $filters['to'] ?? '' }}"></div>
         @endif
     </div>
-    <div class="form-actions"><button class="btn btn-primary">Apply filters</button><a class="btn" href="{{ request()->url() }}">Reset</a><button class="btn" name="export" value="1">Export matching records CSV</button><a class="btn" href="{{ route('admin.reports.export-all', request()->only('q', 'user', 'type', 'from', 'to')) }}"><x-admin-icon name="download" />Download all reports (Excel)</a></div>
+    <div class="form-actions"><button class="btn btn-primary">Apply filters</button><a class="btn" href="{{ request()->url() }}">Reset</a><button class="btn" name="export" value="1">Export matching records CSV</button><a class="btn" href="{{ route('admin.reports.export-all', request()->only('q', 'user', 'type', 'from', 'to', 'status')) }}"><x-admin-icon name="download" />Download all reports (Excel)</a></div>
     <p class="help">Dates use {{ config('app.timezone') }}. Exports include every matching row, across all pages.</p>
 </form>

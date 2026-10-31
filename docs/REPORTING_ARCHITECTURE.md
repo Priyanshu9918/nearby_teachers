@@ -375,3 +375,15 @@ values into six explicitly allowlisted `steps[].data` objects for form prefillin
 This is a response projection, not a new business mutation or historical snapshot.
 Business-activity events continue to contain progress metadata only. No draft
 field values, credentials or complete user objects are added to history.
+
+Contact BSL settings and support-ticket status workflow: `support` and
+`support-contact-settings` use explicit report columns, participant fields,
+search fields and timestamps in `config/reports.php`; browser views and exports
+continue through the shared access logger and bounded/streamed report pipeline.
+Version 1 `support_ticket.submitted` and `support_ticket.status_changed` events
+record only status values inside the ticket transaction. Version 1
+`support.contact_details_updated` records changed field names only. Ticket text,
+WhatsApp/email/LinkedIn values are not copied into business history. Tracking
+starts at deployment; existing ticket statuses are migrated from `open` to
+`pending` without inventing earlier status events. See
+[`CONTACT_BSL_SUPPORT.md`](CONTACT_BSL_SUPPORT.md).

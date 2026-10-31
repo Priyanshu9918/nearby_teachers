@@ -18,7 +18,7 @@ final class AdminNavigation
             'Website & downloads' => ['icon' => 'document', 'reports' => ['page-views', 'no-result-searches', 'seo-pages', 'seo-location-pages', 'seo-subject-routes', 'seo-url-history']],
             'Referrals & posters' => ['icon' => 'chart', 'reports' => ['referrals', 'referral-clicks', 'phone-reveals']],
             'Jobs, franchise & call-backs' => ['icon' => 'briefcase', 'reports' => ['job-applications', 'job-application-courses', 'franchise-enquiries']],
-            'Safety & support' => ['icon' => 'shield', 'reports' => ['reports', 'blocks', 'support', 'suggestions']],
+            'Safety & support' => ['icon' => 'shield', 'reports' => ['reports', 'blocks', 'support', 'support-contact-settings', 'suggestions']],
             'WhatsApp alerts & team' => ['icon' => 'chat', 'reports' => ['otp-delivery', 'activity', 'admin-access', 'api-chat-access', 'api-booking-access']],
         ];
         $currentReport = request()->route('report');

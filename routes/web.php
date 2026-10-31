@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminReportController;
+use App\Http\Controllers\AdminSupportController;
 use App\Http\Controllers\AdminSeoController;
 use App\Http\Controllers\AdminWorkspaceController;
 use App\Http\Controllers\DeveloperController;
@@ -99,6 +100,11 @@ Route::middleware(RequireAdminSession::class)->prefix('admin')->name('admin.')->
         ->where('id', '[A-Fa-f0-9-]{1,36}')->name('reports.safety-screenshot');
     Route::get('/reports/export-all', [AdminReportController::class, 'exportAll'])->name('reports.export-all');
     Route::get('/reports/{report}', [AdminReportController::class, 'index'])->name('reports.index');
+
+    Route::get('/support/contact-details', [AdminSupportController::class, 'contactDetails'])->name('support.contact');
+    Route::put('/support/contact-details', [AdminSupportController::class, 'updateContactDetails'])->name('support.contact.update');
+    Route::patch('/support/tickets/{id}/status', [AdminSupportController::class, 'updateTicketStatus'])
+        ->whereUuid('id')->name('support.tickets.status');
 
     Route::get('/moderation/photos', [AdminWorkspaceController::class, 'photos'])->name('moderation.photos');
     Route::patch('/moderation/photos/{userId}', [AdminWorkspaceController::class, 'reviewPhoto'])

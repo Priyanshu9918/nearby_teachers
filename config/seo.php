@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'public_url' => env('SEO_PUBLIC_URL', 'http://157.245.125.79/nearby_teachers/public'),
+    'public_url' => env('SEO_PUBLIC_URL', config('app.url')),
     'language_names' => ['en' => 'English', 'hi' => 'हिन्दी', 'bn' => 'বাংলা', 'ur' => 'اردو', 'es' => 'Español', 'ar' => 'العربية', 'ru' => 'Русский', 'zh' => '中文', 'ja' => '日本語', 'fr' => 'Français', 'pt' => 'Português'],
     'city_slugs' => [
         'कानपुर' => 'kanpur', 'नई दिल्ली' => 'new-delhi', 'दिल्ली' => 'delhi',

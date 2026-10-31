@@ -8,6 +8,8 @@ use App\Reporting\BusinessActivityRecorder;
 use App\Reporting\ReportAccessLog;
 use App\Services\ChatBlocking;
 use App\Services\SafetyReportCreator;
+use App\Services\SupportContactDetails;
+use App\Services\SupportTicketManager;
 use App\Support\SafetyReportCategory;
 use App\Support\SafetyReportTarget;
 use Illuminate\Database\QueryException;
@@ -195,68 +197,95 @@ class OperationsController extends Controller
         return response()->json(['suggestion' => DB::table('suggestions')->where('id', $id)->first()]);
     }
 
-    public function createTicket(Request $request): JsonResponse
+    public function createTicket(Request $request, SupportTicketManager $tickets, SupportContactDetails $contact): JsonResponse
     {
         $data = $request->validate([
             'subject' => ['required', 'string', 'max:255'],
-            'message' => ['required', 'string', 'max:10000'],
+            'message' => ['required', 'string', 'max:5000'],
         ]);
         $user = $request->attributes->get('authenticated_user');
-        $id = DB::table('support_tickets')->insertGetId([
-            'user_id' => $user->id,
-            'subject' => $data['subject'],
-            'message' => $data['message'],
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        abort_unless($user !== null && in_array($user->account_type, ['learner', 'teacher', 'institute'], true), 403,
+            'Learner, teacher or institute account required.');
+        $ticket = $tickets->create((string) $user->id, trim($data['subject']), trim($data['message']));
 
-        $to = config('services.nearby_teacher.support_email');
+        $to = $contact->current()->email;
         if (! filled($to)) {
-            Log::warning('Support ticket email was not sent because SUPPORT_EMAIL is not configured.');
+            Log::warning('Support ticket email was not sent because no support email is configured.');
         } else {
             SendNotificationEmail::dispatch(
                 $to,
                 'New support ticket: '.$data['subject'],
                 "From: {$user->full_name} (".($user->email ?? $user->phone).")\n\n{$data['message']}"
-            );
+            )->afterCommit();
         }
 
-        return response()->json(['ticket' => DB::table('support_tickets')->where('id', $id)->first()]);
+        return response()->json(['ticket' => $ticket], 201)->header('Cache-Control', 'no-store, private');
     }
 
     public function mineTickets(Request $request): JsonResponse
     {
-        $tickets = DB::table('support_tickets')
+        $data = $request->validate([
+            'page' => ['sometimes', 'integer', 'between:1,100000'],
+            'perPage' => ['sometimes', 'integer', 'between:1,50'],
+        ]);
+        $page = (int) ($data['page'] ?? 1);
+        $perPage = (int) ($data['perPage'] ?? 20);
+        $rows = DB::table('support_tickets')
             ->where('user_id', $request->attributes->get('authenticated_user')->id)
-            ->orderByDesc('created_at')->get();
+            ->select('id', 'subject', 'message', 'status', 'created_at', 'updated_at')
+            ->orderByDesc('created_at')->orderByDesc('id')
+            ->offset(($page - 1) * $perPage)->limit($perPage + 1)->get();
+        $hasMore = $rows->count() > $perPage;
 
-        return response()->json(['tickets' => $tickets]);
+        return response()->json([
+            'tickets' => $rows->take($perPage)->values(),
+            'pagination' => ['page' => $page, 'perPage' => $perPage, 'hasMore' => $hasMore],
+        ])->header('Cache-Control', 'no-store, private');
     }
 
     public function tickets(Request $request): JsonResponse
     {
-        $data = $request->validate(['status' => ['sometimes', 'in:open,in_progress,resolved']]);
-        $tickets = DB::table('support_tickets as t')
+        $data = $request->validate([
+            'status' => ['sometimes', 'in:pending,open,in_progress,resolved,rejected,all'],
+            'q' => ['sometimes', 'nullable', 'string', 'max:200'],
+            'page' => ['sometimes', 'integer', 'between:1,100000'],
+            'perPage' => ['sometimes', 'integer', 'between:1,100'],
+        ]);
+        $status = ($data['status'] ?? 'pending') === 'open' ? 'pending' : ($data['status'] ?? 'pending');
+        $page = (int) ($data['page'] ?? 1);
+        $perPage = (int) ($data['perPage'] ?? 30);
+        app(ReportAccessLog::class)->record($request, 'support', 'api-view');
+        $query = DB::table('support_tickets as t')
             ->join('users as u', 'u.id', '=', 't.user_id')
-            ->where('t.status', $data['status'] ?? 'open')
+            ->when($status !== 'all', fn ($tickets) => $tickets->where('t.status', $status))
+            ->when(filled($data['q'] ?? null), fn ($tickets) => $tickets->where(function ($search) use ($data): void {
+                $term = '%'.trim($data['q']).'%';
+                $search->where('t.subject', 'like', $term)->orWhere('t.message', 'like', $term)
+                    ->orWhere('u.full_name', 'like', $term)->orWhere('u.email', 'like', $term)->orWhere('u.phone', 'like', $term);
+            }))
             ->select('t.*', 'u.full_name as user_name', 'u.email as user_email', 'u.phone as user_phone')
-            ->orderByDesc('t.created_at')->get();
+            ->orderByDesc('t.created_at')->orderByDesc('t.id')
+            ->offset(($page - 1) * $perPage)->limit($perPage + 1)->get();
+        $hasMore = $query->count() > $perPage;
 
-        return response()->json(['tickets' => $tickets]);
+        return response()->json([
+            'tickets' => $query->take($perPage)->values(),
+            'pagination' => ['page' => $page, 'perPage' => $perPage, 'hasMore' => $hasMore],
+        ])->header('Cache-Control', 'no-store, private');
     }
 
-    public function updateTicket(Request $request, int $id): JsonResponse
+    public function updateTicket(Request $request, string $id, SupportTicketManager $tickets): JsonResponse
     {
-        $data = $request->validate(['status' => ['required', 'in:open,in_progress,resolved']]);
-        $updated = DB::table('support_tickets')->where('id', $id)->update([
-            'status' => $data['status'],
-            'updated_at' => now(),
-        ]);
-        if ($updated === 0 && ! DB::table('support_tickets')->where('id', $id)->exists()) {
+        $data = $request->validate(['status' => ['required', 'in:open,pending,in_progress,resolved,rejected']]);
+        $admin = $request->attributes->get('authenticated_user');
+        $status = $data['status'] === 'open' ? 'pending' : $data['status'];
+        $ticket = $tickets->updateStatus($id, $status, (string) $admin->id);
+        if ($ticket === null) {
             return response()->json(['error' => 'Ticket not found'], 404);
         }
+        app(ReportAccessLog::class)->record($request, 'support', 'api-status', $id);
 
-        return response()->json(['ticket' => DB::table('support_tickets')->where('id', $id)->first()]);
+        return response()->json(['ticket' => $ticket])->header('Cache-Control', 'no-store, private');
     }
 
     public function referralMine(Request $request): JsonResponse

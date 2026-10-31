@@ -13,7 +13,7 @@
             <table class="data-table moderation-table"><thead><tr><th scope="col">Photo</th><th scope="col">Account</th><th scope="col">Profile last updated</th><th scope="col">Decision</th></tr></thead><tbody>
             @foreach ($photos as $photo)
                 <tr>
-                    <td class="photo-preview">@if ($photo->avatar_url)<img src="{{ $photo->avatar_url }}" alt="Submitted profile photo for {{ $photo->full_name }}" loading="lazy" referrerpolicy="no-referrer">@else<span class="photo-placeholder" aria-label="No photo preview">No preview</span>@endif</td>
+                    <td class="photo-preview">@if ($photo->avatar_url)<img src="{{ \App\Support\PublicMediaUrl::resolve($photo->avatar_url) }}" alt="Submitted profile photo for {{ $photo->full_name }}" loading="lazy" referrerpolicy="no-referrer">@else<span class="photo-placeholder" aria-label="No photo preview">No preview</span>@endif</td>
                     <td><strong class="record-name">{{ $photo->full_name }}</strong><span class="record-sub">{{ ucfirst($photo->account_type) }} · ID {{ $photo->id }}</span><a class="inline-link" href="{{ route('admin.reports.user', $photo->id) }}">Open user report</a></td>
                     <td>{{ $photo->updated_at ? \Illuminate\Support\Carbon::parse($photo->updated_at)->format('M j, Y · g:i A') : '—' }}</td>
                     <td><div class="table-actions">

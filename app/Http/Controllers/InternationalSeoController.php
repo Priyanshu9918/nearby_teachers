@@ -338,10 +338,12 @@ class InternationalSeoController extends Controller
         $filters = $request->validate([
             'page' => ['sometimes', 'integer', 'min:1'],
             'lang' => ['sometimes', 'string', 'in:'.implode(',', config('seo.countries.'.$page->country.'.languages'))],
-            'q' => ['sometimes', 'string', 'max:100'],
-            'mode' => ['sometimes', 'in:online,home_tuition,in_person'],
+            'q' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'mode' => ['sometimes', 'nullable', 'in:online,home_tuition,in_person'],
             'trial' => ['sometimes', 'boolean'],
         ]);
+        $searchTerm = trim((string) ($filters['q'] ?? ''));
+        $trialOnly = in_array($filters['trial'] ?? null, [true, 1, '1'], true);
         $query = $this->directory->locationProviders($page)
             ->select('providers.provider_type', 'providers.user_id', 'providers.public_page_slug', 'providers.city',
                 'providers.district', 'providers.locality', 'providers.rate', 'providers.currency', 'providers.rating_avg',
@@ -350,15 +352,20 @@ class InternationalSeoController extends Controller
             ->orderByDesc('providers.is_bsl_official')->orderByDesc('providers.referral_points')
             ->orderByDesc('providers.rating_count')->orderByDesc('providers.rating_avg')->orderBy('providers.provider_type')
             ->orderBy('providers.user_id');
-        if (isset($filters['q']) && trim($filters['q']) !== '') {
-            $term = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], trim($filters['q'])).'%';
-            $query->where(fn (Builder $search) => $search->where('providers.full_name', 'like', $term)
-                ->orWhere('providers.description', 'like', $term)->orWhere('providers.subject_names', 'like', $term));
+        if ($searchTerm !== '') {
+            $term = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], mb_strtolower($searchTerm)).'%';
+            $query->where(fn (Builder $search) => $search
+                ->whereRaw('LOWER(COALESCE(providers.full_name, \'\')) LIKE ?', [$term])
+                ->orWhereRaw('LOWER(COALESCE(providers.description, \'\')) LIKE ?', [$term])
+                ->orWhereRaw('LOWER(COALESCE(providers.subject_names, \'\')) LIKE ?', [$term]));
         }
         if (isset($filters['mode'])) {
-            $query->whereJsonContains('providers.lesson_modes', $filters['mode']);
+            $query->whereRaw(
+                'JSON_CONTAINS(COALESCE(providers.lesson_modes, JSON_ARRAY()), JSON_QUOTE(?)) = 1',
+                [$filters['mode']]
+            );
         }
-        if (($filters['trial'] ?? null) === true || ($filters['trial'] ?? null) === '1') {
+        if ($trialOnly) {
             $query->where('providers.trial_days', '>', 0);
         }
         $providers = $query->paginate(20)->withQueryString();
@@ -375,6 +382,17 @@ class InternationalSeoController extends Controller
         $title = SeoDirectory::text($copy, $titleKey, $values);
         $description = $title.'. '.SeoDirectory::text($copy, 'browse', $values);
         $variants = [];
+        $url = SeoDirectory::url($page->path);
+        $hasActiveFilters = $searchTerm !== '' || isset($filters['mode']) || $trialOnly;
+        $canonicalUrl = $url;
+        if (! $hasActiveFilters && $providers->currentPage() > 1) {
+            $canonicalUrl .= '?page='.$providers->currentPage();
+        }
+        $robots = $hasActiveFilters ? 'noindex,follow' : 'index,follow';
+        $clearFiltersUrl = $request->url();
+        if (($filters['lang'] ?? null) !== null && $language !== SeoDirectory::language($page->country)) {
+            $clearFiltersUrl .= '?lang='.rawurlencode($language);
+        }
         $children = $this->locationChildren($page);
         $breadcrumbs = [['label' => config('seo.countries.'.$page->country.'.name'), 'url' => SeoDirectory::url('/'.$page->country)]];
         if ($page->kind !== 'country') {
@@ -388,10 +406,9 @@ class InternationalSeoController extends Controller
         if ($page->kind === 'subject_village') {
             $breadcrumbs[] = ['label' => $subject, 'url' => null];
         }
-        $url = SeoDirectory::url($page->path);
         $this->logView($request, 'seo_'.$page->kind, $page->path);
 
-        return response()->view('seo.location', compact('page', 'providers', 'title', 'description', 'variants', 'children', 'url', 'subject', 'values', 'breadcrumbs')
+        return response()->view('seo.location', compact('page', 'providers', 'title', 'description', 'variants', 'children', 'url', 'subject', 'values', 'breadcrumbs', 'filters', 'searchTerm', 'trialOnly', 'hasActiveFilters', 'canonicalUrl', 'robots', 'clearFiltersUrl')
             + ['language' => $language, 'labels' => SeoDirectory::labels($language), 'lang' => $language,
                 't' => [], 'direction' => in_array($language, ['ar', 'ur'], true) ? 'rtl' : 'ltr']);
     }

@@ -88,7 +88,7 @@ class AdminReportController extends Controller
     public function index(Request $request, string $report): View|StreamedResponse
     {
         $definition = $this->registry->get($report);
-        $filters = $this->filters->validate($request);
+        $filters = $this->filters->validate($request, $report);
         [$query, $columns] = $this->queries->build($definition, $filters);
         $this->scopeReport($query, $report);
         $comparison = null;
@@ -129,7 +129,9 @@ class AdminReportController extends Controller
 
     public function exportAll(Request $request): BinaryFileResponse
     {
-        $filters = $this->filters->validate($request);
+        // The combined workbook includes the support status filter for its
+        // support sheet while applying shared filters to every report.
+        $filters = $this->filters->validate($request, 'support');
         $reports = $this->registry->all();
         foreach (array_keys($reports) as $key) {
             $this->access->record($request, $key, 'export');

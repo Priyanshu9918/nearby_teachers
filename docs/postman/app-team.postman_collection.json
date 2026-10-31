@@ -23305,7 +23305,7 @@
           },
           "response": [
             {
-              "name": "Fictional example — 200 Support ticket created",
+              "name": "Fictional example — 201 Support ticket created",
               "originalRequest": {
                 "method": "POST",
                 "header": [
@@ -23339,7 +23339,7 @@
                 }
               },
               "status": "OK",
-              "code": 200,
+              "code": 201,
               "_postman_previewlanguage": "json",
               "header": [
                 {
@@ -23348,7 +23348,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"ticket\": {\n    \"id\": \"10000000-0000-4000-8000-000000000010\",\n    \"user_id\": \"10000000-0000-4000-8000-000000000001\",\n    \"subject\": \"Booking help\",\n    \"message\": \"Please help me with my booking.\",\n    \"status\": \"open\",\n    \"created_at\": \"2026-10-21 10:00:00\",\n    \"updated_at\": \"2026-10-21 10:00:00\"\n  }\n}"
+              "body": "{\n  \"ticket\": {\n    \"id\": \"10000000-0000-4000-8000-000000000010\",\n    \"user_id\": \"10000000-0000-4000-8000-000000000001\",\n    \"subject\": \"Booking help\",\n    \"message\": \"Please help me with my booking.\",\n    \"status\": \"pending\",\n    \"created_at\": \"2026-10-21 10:00:00\",\n    \"updated_at\": \"2026-10-21 10:00:00\"\n  }\n}"
             },
             {
               "name": "Fictional example — 401 Bearer missing",
@@ -23453,7 +23453,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"tickets\": [\n    {\n      \"id\": \"10000000-0000-4000-8000-000000000010\",\n      \"user_id\": \"10000000-0000-4000-8000-000000000001\",\n      \"subject\": \"Booking help\",\n      \"message\": \"Please help me with my booking.\",\n      \"status\": \"open\",\n      \"created_at\": \"2026-10-21 10:00:00\",\n      \"updated_at\": \"2026-10-21 10:00:00\"\n    }\n  ]\n}"
+              "body": "{\n  \"tickets\": [\n    {\n      \"id\": \"10000000-0000-4000-8000-000000000010\",\n      \"subject\": \"Booking help\",\n      \"message\": \"Please help me with my booking.\",\n      \"status\": \"pending\",\n      \"created_at\": \"2026-10-21 10:00:00\",\n      \"updated_at\": \"2026-10-21 10:00:00\"\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"perPage\": 20,\n    \"hasMore\": false\n  }\n}"
             },
             {
               "name": "Fictional example — 401 Bearer missing",
@@ -25554,7 +25554,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/support?status=open",
+                  "raw": "{{baseUrl}}/support?status=pending",
                   "host": [
                     "{{baseUrl}}"
                   ],
@@ -25564,11 +25564,11 @@
                   "query": [
                     {
                       "key": "status",
-                      "value": "open"
+                      "value": "pending"
                     }
                   ]
                 },
-                "description": "Admin only. status filter is open (default), in_progress or resolved. Saved examples are fictional contract illustrations, not live captures."
+                "description": "Admin only. status filter is pending (default), in_progress, resolved, rejected or all. Saved examples are fictional contract illustrations, not live captures."
               },
               "response": [
                 {
@@ -25582,7 +25582,7 @@
                       }
                     ],
                     "url": {
-                      "raw": "{{baseUrl}}/support?status=open",
+                      "raw": "{{baseUrl}}/support?status=pending",
                       "host": [
                         "{{baseUrl}}"
                       ],
@@ -25592,11 +25592,11 @@
                       "query": [
                         {
                           "key": "status",
-                          "value": "open"
+                          "value": "pending"
                         }
                       ]
                     },
-                    "description": "Admin only. status filter is open (default), in_progress or resolved. Saved examples are fictional contract illustrations, not live captures."
+                    "description": "Admin only. status filter is pending (default), in_progress, resolved, rejected or all. Saved examples are fictional contract illustrations, not live captures."
                   },
                   "status": "OK",
                   "code": 200,
@@ -25621,7 +25621,7 @@
                       }
                     ],
                     "url": {
-                      "raw": "{{baseUrl}}/support?status=open",
+                      "raw": "{{baseUrl}}/support?status=pending",
                       "host": [
                         "{{baseUrl}}"
                       ],
@@ -25631,11 +25631,11 @@
                       "query": [
                         {
                           "key": "status",
-                          "value": "open"
+                          "value": "pending"
                         }
                       ]
                     },
-                    "description": "Admin only. status filter is open (default), in_progress or resolved. Saved examples are fictional contract illustrations, not live captures."
+                    "description": "Admin only. status filter is pending (default), in_progress, resolved, rejected or all. Saved examples are fictional contract illustrations, not live captures."
                   },
                   "status": "Forbidden",
                   "code": 403,
@@ -25676,7 +25676,7 @@
                     "status"
                   ]
                 },
-                "description": "Admin only. status is open, in_progress or resolved. Saved examples are fictional contract illustrations, not live captures.",
+                "description": "Admin only. status is pending, in_progress, resolved or rejected. Saved examples are fictional contract illustrations, not live captures.",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"status\": \"resolved\"\n}",
@@ -25713,7 +25713,7 @@
                         "status"
                       ]
                     },
-                    "description": "Admin only. status is open, in_progress or resolved. Saved examples are fictional contract illustrations, not live captures.",
+                    "description": "Admin only. status is pending, in_progress, resolved or rejected. Saved examples are fictional contract illustrations, not live captures.",
                     "body": {
                       "mode": "raw",
                       "raw": "{\n  \"status\": \"resolved\"\n}",

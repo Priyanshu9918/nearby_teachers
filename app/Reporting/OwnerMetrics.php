@@ -51,7 +51,7 @@ final class OwnerMetrics
     {
         $jobs = DB::table('teaching_job_applications')->where('status', 'submitted')->count();
         $franchises = DB::table('franchise_enquiries')->where('status', 'submitted')->count();
-        $support = DB::table('support_tickets')->whereIn('status', ['open', 'in_progress'])->count();
+        $support = DB::table('support_tickets')->whereIn('status', ['pending', 'in_progress'])->count();
 
         return [
             'safety_reports' => DB::table('reports')->where('status', 'open')->count(),

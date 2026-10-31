@@ -7,6 +7,9 @@ Updated: 22 October 2026. Read this with the [full endpoint reference](API.md),
 Referral code, joined-user list, referral-ranked listing and leaderboard requests
 are also available in the dedicated
 [Referral Points collection](postman/referral-points.postman_collection.json).
+For dynamic Contact BSL actions and support-ticket status tracking, use the
+[Contact & Support collection](postman/contact-support.postman_collection.json)
+and [support contract](CONTACT_BSL_SUPPORT.md).
 Examples are fictional and response fragments omit unrelated fields; they are
 not live captures. Tokens are placeholders.
 
@@ -631,6 +634,7 @@ compatibility/system endpoints are here. Classification does not widen access.
 | `GET` | `/auth/safety-disclaimer` | Public | — | Returns the disclaimer text. |
 | `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging or booking. |
 | `GET` | `/subjects` | Public | — | Subject domains with their subjects and BSL catalog data. |
+| `GET` | `/contact-info` | Public | — | Current WhatsApp number/link, support email and LinkedIn contact. |
 | `GET` | `/i18n/languages` | Public | — | Supported language metadata. |
 | `GET` | `/i18n/{lang}` | Public | Language code in path | Returns translations; unsupported language codes serve English and identify the requested/served language. |
 | `PATCH` | `/bookings/{id}/status` | Verified bearer, participant | `status`: `accepted`, `declined`, `cancelled`, or `completed` | Updates a booking in which the caller participates. |
@@ -653,8 +657,8 @@ compatibility/system endpoints are here. Classification does not widen access.
 | `POST` | `/presence/update` | Verified bearer | `deviceId`, `event` (`foreground`, `activity`, `heartbeat`, `background`) | Returns `{isActive}`. Five-minute inactivity and 90-second heartbeat expiry; [integration details](PRESENCE.md). |
 | `DELETE` | `/safety/blocks/{userId}` | Verified bearer | — | Unblocks a user. |
 | `POST` | `/suggestions` | Verified bearer | `suggestionType` (`course`, `city`, `state`, `country`), `name`; optional `notes` | Submits a suggestion. |
-| `POST` | `/support` | Verified bearer | `subject`, `message` | Creates a support ticket. |
-| `GET` | `/support/mine` | Verified bearer | — | Lists the caller's support tickets. |
+| `POST` | `/support` | Verified learner, teacher or institute bearer | `subject`, `message` | Creates a UUID ticket with `pending` status; returns 201. |
+| `GET` | `/support/mine` | Verified bearer | Optional `page`, `perPage` (default 20, max 50) | Lists the caller's tickets with status and timestamps. |
 | `GET` | `/download?ref=CODE` | Public referral link | `ref` | Opening a valid referral link awards one point per browser and code owner. Repeat opens in the same browser are deduplicated with a one-year cookie; this page redirects to the app store where configured. |
 | `GET` | `/referrals/mine` | Verified bearer | — | Returns or creates the caller's referral code and link, `referredCount`, `referralPoints`, and the joined-user list in `referred` (`id`, `full_name`, `account_type`, approved `avatar_url`, `created_at`). Opening a valid `/download?ref=CODE` link awards one point per browser and code owner; repeat opens from the same browser do not add more points. |
 | `POST` | `/referrals/redeem` | Verified bearer | `code` | Records this account as joined through the code. It does not award another point because the link open already did so. Self-referrals are rejected; an already-credited account receives `409`. Success includes the code owner's current `referrerReferralPoints`. |
@@ -779,8 +783,10 @@ provide this API permission. Keep admin tests in a separate admin environment.
 | `GET` | `/admin/reports/safety/{id}/screenshot` | Browser admin session | Report ID | Streams a report screenshot from private storage and logs the read. |
 | `GET` | `/suggestions` | Admin bearer | Optional `status`: `open`, `added`, `declined` | Lists suggestions (defaults to open). |
 | `PATCH` | `/suggestions/{id}/status` | Admin bearer | `status`: `open`, `added`, `declined` | Updates suggestion status. |
-| `GET` | `/support` | Admin bearer | Optional `status`: `open`, `in_progress`, `resolved` | Lists support tickets (defaults to open). |
-| `PATCH` | `/support/{id}/status` | Admin bearer | `status`: `open`, `in_progress`, `resolved` | Updates ticket status. |
+| `GET` | `/admin/contact-info` | Admin bearer | — | Reads public Contact BSL settings; access logged. |
+| `PUT` | `/admin/contact-info` | Admin bearer | `whatsappNumber`, `email`, `linkedinUrl`, `linkedinName`, `linkedinTitle` | Updates Contact BSL links; access logged and changes recorded. |
+| `GET` | `/support` | Admin bearer | Optional `status` (`pending`, `in_progress`, `resolved`, `rejected`, `all`), `q`, `page`, `perPage` | Lists tickets; defaults to pending. `open` is accepted as an alias for pending. |
+| `PATCH` | `/support/{ticketUuid}/status` | Admin bearer | `status`: `pending`, `in_progress`, `resolved`, `rejected` | Updates status; the app reads it from `/support/mine`. |
 | `GET` | `/referrals/top` | Admin bearer | — | Up to 50 top referrers with `referred_count` and `referral_points`. |
 | `GET` | `/analytics/summary` | Admin bearer | Optional `days` | Page-view summary for the requested period (default 30 days). |
 | `GET` | `/moderation/photos/pending` | Admin bearer | — | Lists photos awaiting review. |

@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\SafetyReportsController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SocketIoController;
 use App\Http\Controllers\Api\StudentProfilesController;
+use App\Http\Controllers\Api\SupportContactController;
 use App\Http\Controllers\Api\SubjectsController;
 use App\Http\Middleware\AttachOptionalApiUser;
 use App\Http\Middleware\RequireAdminApi;
@@ -41,6 +42,7 @@ Route::get('/auth/safety-disclaimer', [AuthController::class, 'safetyDisclaimer'
 Route::get('/i18n/languages', [I18nController::class, 'languages']);
 Route::get('/i18n/{lang}', [I18nController::class, 'translations']);
 Route::get('/subjects', SubjectsController::class);
+Route::get('/contact-info', [SupportContactController::class, 'show'])->middleware('throttle:60,1');
 Route::prefix('geo')->middleware('throttle:60,1')->group(function (): void {
     Route::get('/countries', [GeographyController::class, 'countries']);
     Route::get('/states', [GeographyController::class, 'states']);
@@ -151,7 +153,9 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
         Route::get('/suggestions', [OperationsController::class, 'suggestions']);
         Route::patch('/suggestions/{id}/status', [OperationsController::class, 'updateSuggestion'])->where('id', RecordId::ROUTE_PATTERN);
         Route::get('/support', [OperationsController::class, 'tickets']);
-        Route::patch('/support/{id}/status', [OperationsController::class, 'updateTicket'])->where('id', RecordId::ROUTE_PATTERN);
+        Route::patch('/support/{id}/status', [OperationsController::class, 'updateTicket'])->whereUuid('id');
+        Route::get('/admin/contact-info', [SupportContactController::class, 'adminShow']);
+        Route::put('/admin/contact-info', [SupportContactController::class, 'update']);
         Route::get('/referrals/top', [OperationsController::class, 'topReferrals']);
         Route::get('/analytics/summary', [OperationsController::class, 'analyticsSummary']);
 

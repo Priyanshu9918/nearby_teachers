@@ -14,6 +14,9 @@ explorer use exactly five parts:
 For referral codes, the joined-user list, referral-ranked search/feed results
 and the admin leaderboard, import the dedicated
 [Referral Points Postman collection](postman/referral-points.postman_collection.json).
+For Contact BSL links and ticket-status tracking, import the dedicated
+[Contact & Support Postman collection](postman/contact-support.postman_collection.json)
+or read the [support contract](CONTACT_BSL_SUPPORT.md).
 
 These categories organize app responsibilities; they do not add role permissions.
 Provider listing URLs appear in both Teacher and Institute. Shared chat, feed,
@@ -751,6 +754,7 @@ shown in this shared documentation category.
 | `GET` | `/auth/safety-disclaimer` | Public | — | Returns the disclaimer text. |
 | `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging or booking. |
 | `GET` | `/subjects` | Public | — | Subject domains with their subjects and BSL catalog data. |
+| `GET` | `/contact-info` | Public | — | Current BSL WhatsApp, email and LinkedIn actions for the app. |
 | `GET` | `/geo/countries`, `/geo/states`, `/geo/cities` | Public | Optional `search`; states require `country_id`; cities require `state_id` and accept `page`, `perPage` | Imported SQL country list, country-scoped states and state-scoped paginated cities. See [Geography API](GEOGRAPHY_API.md). |
 | `GET` | `/i18n/languages` | Public | — | Supported language metadata. |
 | `GET` | `/i18n/{lang}` | Public | Language code in path | Returns translations; unsupported language codes serve English and identify the requested/served language. |
@@ -773,8 +777,8 @@ shown in this shared documentation category.
 | `POST` | `/safety/blocks/{userId}` | Verified bearer | — | Blocks a user. |
 | `DELETE` | `/safety/blocks/{userId}` | Verified bearer | — | Unblocks a user. |
 | `POST` | `/suggestions` | Verified bearer | `suggestionType` (`course`, `city`, `state`, `country`), `name`; optional `notes` | Submits a suggestion. |
-| `POST` | `/support` | Verified bearer | `subject`, `message` | Creates a support ticket. |
-| `GET` | `/support/mine` | Verified bearer | — | Lists the caller's support tickets. |
+| `POST` | `/support` | Verified learner, teacher or institute bearer | `subject`, `message` | Creates a UUID ticket with `pending` status; returns 201. |
+| `GET` | `/support/mine` | Verified bearer | Optional `page`, `perPage` (default 20, max 50) | Lists the caller's tickets with status and timestamps. |
 | `GET` | `/download?ref=CODE` | Public referral link | `ref` | Opening a valid referral link awards one point per browser and code owner; repeat opens from the same browser are deduplicated. |
 | `GET` | `/referrals/mine` | Verified bearer | — | Returns or creates the caller's referral code, points and referred users. Opening a valid `/download?ref=CODE` link awards one point per browser and code owner; repeat opens from the same browser do not add points. |
 | `POST` | `/referrals/redeem` | Verified bearer | `code` | Records the referred account after link open and does not award an additional point. Self-referrals are rejected; an already-credited account receives `409`. |
@@ -961,8 +965,10 @@ admin portal's `ADMIN_EMAIL`/`ADMIN_PASSWORD_HASH` login.
 | `PATCH` | `/safety/reports/{id}/status` | Admin bearer | `status`: `open`, `reviewed`, `dismissed` | Updates status and records the change in business activity history. |
 | `GET` | `/suggestions` | Optional `status`: `open`, `added`, `declined` | Lists suggestions (defaults to open). |
 | `PATCH` | `/suggestions/{id}/status` | `status`: `open`, `added`, `declined` | Updates suggestion status. |
-| `GET` | `/support` | Optional `status`: `open`, `in_progress`, `resolved` | Lists support tickets (defaults to open). |
-| `PATCH` | `/support/{id}/status` | `status`: `open`, `in_progress`, `resolved` | Updates ticket status. |
+| `GET` | `/admin/contact-info` | Admin bearer | — | Reads the public Contact BSL settings; access logged. |
+| `PUT` | `/admin/contact-info` | Admin bearer | `whatsappNumber`, `email`, `linkedinUrl`, `linkedinName`, `linkedinTitle` | Updates public Contact BSL actions; access logged and changes recorded. |
+| `GET` | `/support` | Admin bearer; optional `status` (`pending`, `in_progress`, `resolved`, `rejected`, `all`), `q`, `page`, `perPage` (default 30, max 100) | Lists support tickets; reads are access logged. `open` is accepted as an alias for `pending`. |
+| `PATCH` | `/support/{ticketUuid}/status` | Admin bearer; `status`: `pending`, `in_progress`, `resolved`, `rejected` | Updates ticket status and records the change in activity history. |
 | `GET` | `/referrals/top` | — | Up to 50 top referrers. |
 | `GET` | `/analytics/summary` | Optional `days` | Page-view summary for the requested period (default 30 days). |
 | `GET` | `/moderation/photos/pending` | — | Lists photos awaiting review. |

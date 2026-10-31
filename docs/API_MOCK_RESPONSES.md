@@ -9758,7 +9758,7 @@ Request body:
 ```
 
 <details>
-<summary>Fictional example — 200 Support ticket created — HTTP 200</summary>
+<summary>Fictional example — 201 Support ticket created — HTTP 201</summary>
 
 Content-Type: `application/json`
 
@@ -9769,7 +9769,7 @@ Content-Type: `application/json`
     "user_id": "10000000-0000-4000-8000-000000000001",
     "subject": "Booking help",
     "message": "Please help me with my booking.",
-    "status": "open",
+    "status": "pending",
     "created_at": "2026-10-21 10:00:00",
     "updated_at": "2026-10-21 10:00:00"
   }
@@ -9815,14 +9815,18 @@ Content-Type: `application/json`
   "tickets": [
     {
       "id": "10000000-0000-4000-8000-000000000010",
-      "user_id": "10000000-0000-4000-8000-000000000001",
       "subject": "Booking help",
       "message": "Please help me with my booking.",
-      "status": "open",
+      "status": "pending",
       "created_at": "2026-10-21 10:00:00",
       "updated_at": "2026-10-21 10:00:00"
     }
-  ]
+  ],
+  "pagination": {
+    "page": 1,
+    "perPage": 20,
+    "hasMore": false
+  }
 }
 ```
 
@@ -10710,12 +10714,12 @@ Content-Type: `application/json`
 
 #### GET /support — List support tickets
 
-Admin only. status filter is open (default), in_progress or resolved. Saved examples are fictional contract illustrations, not live captures.
+Admin only. status filter is pending (default), in_progress, resolved, rejected or all. Results include pagination.hasMore. Saved examples are fictional contract illustrations, not live captures.
 
 Request:
 
 ```http
-GET {{baseUrl}}/support?status=open
+GET {{baseUrl}}/support?status=pending
 Accept: application/json
 Authorization: Bearer {{adminToken}}
 ```
@@ -10729,7 +10733,25 @@ Content-Type: `application/json`
 
 ```json
 {
-  "tickets": []
+  "tickets": [
+    {
+      "id": "50000000-0000-4000-8000-000000000001",
+      "user_id": "10000000-0000-4000-8000-000000000001",
+      "subject": "Booking help",
+      "message": "Please help me with my booking.",
+      "status": "pending",
+      "created_at": "2026-10-21 10:00:00",
+      "updated_at": "2026-10-21 10:00:00",
+      "user_name": "Asha Learner",
+      "user_email": "asha@example.test",
+      "user_phone": "+919876543210"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "perPage": 30,
+    "hasMore": false
+  }
 }
 ```
 
@@ -10750,7 +10772,7 @@ Content-Type: `application/json`
 
 #### PATCH /support/{{ticketId}}/status — Update support ticket
 
-Admin only. status is open, in_progress or resolved. Saved examples are fictional contract illustrations, not live captures.
+Admin only. status is pending, in_progress, resolved or rejected. Saved examples are fictional contract illustrations, not live captures.
 
 Request:
 

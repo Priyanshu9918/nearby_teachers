@@ -20,7 +20,7 @@
 <main class="wrap">
     <article class="card profile-card {{ $isInstitute ? 'institute' : '' }}">
         <div class="avatar">
-            @if ($provider->avatar_url)<img src="{{ $provider->avatar_url }}" alt="{{ $provider->full_name }}">
+            @if ($provider->avatar_url)<img src="{{ \App\Support\PublicMediaUrl::resolve($provider->avatar_url) }}" alt="{{ $provider->full_name }}">
             @else{{ $initials }}@endif
         </div>
         <h1>{{ $provider->full_name }}</h1>
