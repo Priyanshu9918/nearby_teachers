@@ -46,6 +46,7 @@
     </td>
     @foreach ($columns as $column)
         @php($value = $record->$column ?? null)
+        @if ($report === 'reports' && $column === 'target_type' && $value === null) @php($value = 'general') @endif
         <x-admin-table-cell :column="$column" :value="$value" :user-link="in_array($column, $userColumns, true)" />
     @endforeach</tr>
 @empty <tr><td colspan="{{ count($columns) + 1 }}" class="empty-state">No matching records.</td></tr> @endforelse

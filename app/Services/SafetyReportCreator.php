@@ -6,7 +6,6 @@ use App\Reporting\BusinessActivityRecorder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
 use Throwable;
 
 final class SafetyReportCreator
@@ -20,13 +19,18 @@ final class SafetyReportCreator
 
     public function create(
         int $reporterId,
-        string $targetType,
-        int $targetId,
+        ?string $targetType,
+        ?int $targetId,
         string $reasonCategory,
         ?string $details = null,
         ?string $evidenceLink = null,
         ?UploadedFile $screenshot = null,
     ): object {
+        if (! isset(self::TARGET_TABLES[$targetType ?? '']) || $targetId === null) {
+            $targetType = null;
+            $targetId = null;
+        }
+        $targetTable = $targetType === null ? null : self::TARGET_TABLES[$targetType];
         $storedPath = $screenshot?->store('reports', 'local');
         if ($screenshot !== null && (! is_string($storedPath) || $storedPath === '')) {
             throw new \RuntimeException('Report screenshot could not be stored.');
@@ -34,30 +38,26 @@ final class SafetyReportCreator
 
         try {
             return DB::transaction(function () use (
-                $reporterId, $targetType, $targetId, $reasonCategory, $details, $evidenceLink, $screenshot, $storedPath
+                $reporterId, $targetType, $targetId, $targetTable, $reasonCategory, $details, $evidenceLink, $screenshot, $storedPath
             ): object {
-                $targetTable = self::TARGET_TABLES[$targetType] ?? null;
-                if ($targetTable === null) {
-                    throw ValidationException::withMessages(['targetType' => 'Choose a supported report target.']);
-                }
+                if ($targetTable !== null && $targetId !== null) {
+                    if ($targetType === 'message') {
+                        $target = DB::table('messages as m')
+                            ->join('conversations as c', 'c.id', '=', 'm.conversation_id')
+                            ->where('m.id', $targetId)
+                            ->where('m.sender_id', '!=', $reporterId)
+                            ->where(fn ($query) => $query->where('c.learner_id', $reporterId)
+                                ->orWhere('c.provider_id', $reporterId))
+                            ->lockForUpdate()
+                            ->first(['m.id']);
+                    } else {
+                        $target = DB::table($targetTable)->where('id', $targetId)->lockForUpdate()->first(['id']);
+                    }
 
-                if ($targetType === 'message') {
-                    $target = DB::table('messages as m')
-                        ->join('conversations as c', 'c.id', '=', 'm.conversation_id')
-                        ->where('m.id', $targetId)
-                        ->where('m.sender_id', '!=', $reporterId)
-                        ->where(fn ($query) => $query->where('c.learner_id', $reporterId)
-                            ->orWhere('c.provider_id', $reporterId))
-                        ->lockForUpdate()
-                        ->first(['m.id']);
-                } else {
-                    $target = DB::table($targetTable)->where('id', $targetId)->lockForUpdate()->first(['id']);
-                }
-                if ($target === null) {
-                    throw ValidationException::withMessages(['targetId' => 'The item you are reporting could not be found.']);
-                }
-                if ($targetType === 'user' && $targetId === $reporterId) {
-                    throw ValidationException::withMessages(['targetId' => 'You cannot report your own account.']);
+                    if ($target === null || ($targetType === 'user' && $targetId === $reporterId)) {
+                        $targetType = null;
+                        $targetId = null;
+                    }
                 }
 
                 $reportId = DB::table('reports')->insertGetId([

@@ -9,6 +9,7 @@ use App\Reporting\ReportAccessLog;
 use App\Services\ChatBlocking;
 use App\Services\SafetyReportCreator;
 use App\Support\SafetyReportCategory;
+use App\Support\SafetyReportTarget;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -20,9 +21,8 @@ class OperationsController extends Controller
     public function report(Request $request, SafetyReportCreator $reportCreator): JsonResponse
     {
         $request->merge(['reasonCategory' => SafetyReportCategory::normalize($request->input('reasonCategory'))]);
+        [$targetType, $targetId] = SafetyReportTarget::normalize($request->input('targetType'), $request->input('targetId'));
         $data = $request->validate([
-            'targetType' => ['required', 'in:user,post,comment,message'],
-            'targetId' => ['required', 'integer', 'min:1', 'max:9007199254740991'],
             'reasonCategory' => ['required', 'string', 'in:fraud,fake_profile,inappropriate,spam,other'],
             'reason' => ['sometimes', 'nullable', 'string', 'max:5000', 'prohibited_with:additionalDetails'],
             'additionalDetails' => ['sometimes', 'nullable', 'string', 'max:500'],
@@ -33,7 +33,7 @@ class OperationsController extends Controller
         abort_unless($user !== null && in_array($user->account_type, ['learner', 'teacher', 'institute'], true), 403, 'User account required.');
 
         $details = trim($data['additionalDetails'] ?? $data['reason'] ?? '');
-        $report = $reportCreator->create((int) $user->id, $data['targetType'], (int) $data['targetId'],
+        $report = $reportCreator->create((int) $user->id, $targetType, $targetId,
             $data['reasonCategory'], $details === '' ? null : $details,
             $data['evidenceLink'] ?? null, $data['screenshot'] ?? null);
 

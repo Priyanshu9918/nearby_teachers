@@ -99,8 +99,9 @@ below; typing hints remain transient.
 Current event coverage starts when migration `000029` is deployed. Safety reports
 submitted through `/reports` or `/safety/reports` record version 1
 `safety_report.submitted` activity in the same transaction as the report. The
-event stores only target type, category, initial status and evidence-presence
-flags; details, evidence URLs and private screenshot paths are excluded. The
+target link is optional; reports without a usable target are stored as general
+reports. The event stores only target type, category, initial status and
+evidence-presence flags; details, evidence URLs and private screenshot paths are excluded. The
 admin status API records `safety_report.status_changed` with previous and new
 status in the same transaction. The
 reports registry explicitly exposes report details and evidence links plus a

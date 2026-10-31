@@ -61,6 +61,8 @@ class NumericIdConversionTest extends TestCase
         DB::table('message_reactions')->insert(['id' => $old(30), 'conversation_id' => $old(10), 'message_id' => $old(20),
             'user_id' => $old(2), 'reaction' => '👍', 'created_at' => now(), 'updated_at' => now()]);
         DB::table('reports')->insert(['id' => $old(50), 'reporter_id' => $old(1), 'target_type' => 'message', 'target_id' => $old(21), 'reason_category' => 'spam']);
+        DB::table('reports')->insert(['id' => $old(51), 'reporter_id' => $old(1), 'target_type' => null, 'target_id' => null,
+            'reason_category' => 'other', 'reason' => 'Unlinked report']);
         DB::table('admin_report_access_log')->insert(['id' => $old(60), 'admin_email' => 'admin@example.test', 'report' => 'conversation-messages', 'record_id' => $old(10), 'action' => 'view']);
         DB::table('business_activity')->insert([
             ['id' => $old(70), 'event' => 'message.replied', 'entity_type' => 'message', 'entity_id' => $old(21),
@@ -102,6 +104,8 @@ class NumericIdConversionTest extends TestCase
         $this->assertSame(2, DB::table('messages')->where('id', 2)->value('sender_id'));
         $this->assertSame(2, DB::table('profile_subjects')->value('profile_id'));
         $this->assertSame(2, DB::table('reports')->value('target_id'));
+        $this->assertNull(DB::table('reports')->where('reason', 'Unlinked report')->value('target_type'));
+        $this->assertNull(DB::table('reports')->where('reason', 'Unlinked report')->value('target_id'));
         $this->assertSame(1, DB::table('admin_report_access_log')->value('record_id'));
         $this->assertSame('2', DB::table('page_views')->value('target'));
         $history = DB::table('business_activity')->where('event', 'message.replied')->first();

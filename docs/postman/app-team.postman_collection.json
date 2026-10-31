@@ -22881,23 +22881,13 @@
                 "reports"
               ]
             },
-            "description": "Learner, teacher and institute accounts can report a user, post, comment or message. Categories: fraud = Fraud or scam, fake_profile = Fake profile / not who they claim, inappropriate = Inappropriate behavior, spam = Spam, other = Other. additionalDetails is optional, max 500 characters. evidenceLink and screenshot are optional; screenshot accepts JPEG/PNG/WebP up to 5 MB. This request uses multipart/form-data; remove the screenshot part to send without an image. Returns 201; limited to 10/minute.",
+            "description": "Learner, teacher and institute accounts can submit with reason and optional evidence. targetType and targetId are optional; omit them for an unlinked report. Categories accept API codes or the screen labels shown below. additionalDetails is optional, max 500 characters. evidenceLink and screenshot are optional; screenshot accepts JPEG/PNG/WebP up to 5 MB. This request uses multipart/form-data; remove the screenshot part to send without an image. Returns 201; limited to 10/minute.",
             "body": {
               "mode": "formdata",
               "formdata": [
                 {
-                  "key": "targetType",
-                  "value": "user",
-                  "type": "text"
-                },
-                {
-                  "key": "targetId",
-                  "value": "{{userId}}",
-                  "type": "text"
-                },
-                {
                   "key": "reasonCategory",
-                  "value": "fake_profile",
+                  "value": "Fake profile / not who they claim",
                   "type": "text"
                 },
                 {

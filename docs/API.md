@@ -767,8 +767,8 @@ shown in this shared documentation category.
 | `DELETE` | `/feed/{postId}/like` | Verified bearer | — | Removes the caller's like. |
 | `GET` | `/feed/{postId}/comments` | Public | `perPage`, `cursor` | Lists comments. |
 | `POST` | `/feed/{postId}/comments` | Verified bearer | `body`; optional `parentCommentId` | Adds a comment or reply. |
-| `POST` | `/safety/reports` | Verified learner, teacher or institute bearer | `targetType` (`user`, `post`, `comment`, `message`), `targetId`, `reasonCategory` (`fraud`, `fake_profile`, `inappropriate`, `spam`, `other`); optional legacy `reason` (max 5000) or `additionalDetails` (max 500), `evidenceLink` (HTTP/HTTPS), `screenshot` (JPEG/PNG/WebP, max 5 MB) | Returns 201 and creates an open report. Messages can only be reported by the other participant in that conversation. Use JSON without an image or multipart/form-data with one. Limited to 10/minute. |
-| `POST` | `/reports` | Verified learner, teacher or institute bearer | `targetType`, `targetId`, `reasonCategory`; optional `additionalDetails` (max 500), `evidenceLink` (HTTP/HTTPS), `screenshot` (JPEG/PNG/WebP, max 5 MB) | Returns 201 and creates an open confidential report. Use JSON without an image or multipart/form-data with one. Limited to 10/minute. |
+| `POST` | `/safety/reports` | Verified learner, teacher or institute bearer | Required `reasonCategory`; optional `targetType`/`targetId`, legacy `reason` (max 5000) or `additionalDetails` (max 500), `evidenceLink` (HTTP/HTTPS), `screenshot` (JPEG/PNG/WebP, max 5 MB) | Returns 201 and creates an open report. Missing, unsupported or unavailable targets are saved unlinked. Use JSON without an image or multipart/form-data with one. Limited to 10/minute. |
+| `POST` | `/reports` | Verified learner, teacher or institute bearer | Required `reasonCategory`; optional `targetType`/`targetId`, `additionalDetails` (max 500), `evidenceLink` (HTTP/HTTPS), `screenshot` (JPEG/PNG/WebP, max 5 MB) | Returns 201 and creates an open confidential report. Missing, unsupported or unavailable targets are saved unlinked. Use JSON without an image or multipart/form-data with one. Limited to 10/minute. |
 | `POST` | `/presence/update` | Verified bearer | `deviceId`, `event` (`foreground`, `activity`, `heartbeat`, `background`) | Returns `{isActive}`. Five-minute inactivity and 90-second heartbeat expiry; [presence contract](PRESENCE.md). |
 | `POST` | `/safety/blocks/{userId}` | Verified bearer | — | Blocks a user. |
 | `DELETE` | `/safety/blocks/{userId}` | Verified bearer | — | Unblocks a user. |
@@ -831,7 +831,7 @@ code (`404`) and an already credited account (`409`). Page-view types are
 | Chat `body` | Required for send, optional for start; max 5,000 characters |
 | Feed `city`, `body`, `imageUrl` | City max 160; body max 5,000; optional URL max 2048 |
 | Comment `body`, `parentCommentId` | Body max 5,000; optional parent UUID must belong to the same post |
-| Safety `targetType`, `targetId` | user/post/comment/message; target record ID |
+| Safety `targetType`, `targetId` | Optional target link. A valid user/post/comment/message ID is linked when available; absent, unsupported or unavailable targets save as an unlinked report. |
 | Safety `reasonCategory`, `reason` | Accepts the API codes (`fraud`, `fake_profile`, `inappropriate`, `spam`, `other`) or the matching screen labels (`Fraud or scam`, `Fake profile / not who they claim`, `Inappropriate behavior`, `Spam`, `Other`); saved as the API code. Optional legacy reason max 5,000. |
 | Suggestion `suggestionType`, `name`, `notes` | course/city/state/country; name max 255; optional notes max 5,000 |
 | Support `subject`, `message` | Max 255 / 10,000 |

@@ -604,18 +604,41 @@ class AdminReportingTest extends TestCase
             ->where('record_id', (string) $reportId)->where('action', 'evidence')->count());
     }
 
-    public function test_message_report_requires_conversation_participation_and_other_sender(): void
+    public function test_invalid_message_target_is_saved_as_an_unlinked_report(): void
     {
         $messageId = DB::table('messages')->where('conversation_id', $this->conversation)->value('id');
         $auth = app(AuthenticationService::class);
 
         $this->withToken($auth->issueSessionToken($this->institute))->postJson('/reports', [
             'targetType' => 'message', 'targetId' => $messageId, 'reasonCategory' => 'spam',
-        ])->assertUnprocessable();
+        ])->assertCreated()->assertJsonPath('report.targetType', null)->assertJsonPath('report.targetId', null);
+        $this->assertDatabaseHas('reports', ['reporter_id' => $this->institute, 'target_type' => null, 'target_id' => null]);
 
-        $this->withToken($auth->issueSessionToken($this->teacher))->postJson('/reports', [
+        $response = $this->withToken($auth->issueSessionToken($this->teacher))->postJson('/reports', [
             'targetType' => 'message', 'targetId' => $messageId, 'reasonCategory' => 'spam',
-        ])->assertCreated();
+        ])->assertCreated()->assertJsonPath('report.targetType', 'message');
+        $this->assertDatabaseHas('reports', [
+            'id' => $response->json('report.id'), 'target_type' => 'message', 'target_id' => $messageId,
+        ]);
+    }
+
+    public function test_report_can_be_added_with_reason_and_image_without_a_target(): void
+    {
+        Storage::fake('local');
+        $auth = app(AuthenticationService::class);
+        $response = $this->withToken($auth->issueSessionToken($this->learner))->post('/reports', [
+            'reasonCategory' => 'spam', 'additionalDetails' => 'Please review this report.',
+            'screenshot' => UploadedFile::fake()->image('report.png'),
+        ], ['Accept' => 'application/json'])->assertCreated()
+            ->assertJsonPath('report.targetType', null)
+            ->assertJsonPath('report.targetId', null)
+            ->assertJsonPath('report.additionalDetails', 'Please review this report.')
+            ->assertJsonPath('report.screenshotAttached', true);
+
+        $report = DB::table('reports')->where('id', $response->json('report.id'))->first();
+        $this->assertNull($report->target_type);
+        $this->assertNull($report->target_id);
+        Storage::disk('local')->assertExists($report->screenshot_path);
     }
 
     public function test_report_and_submission_history_roll_back_together(): void

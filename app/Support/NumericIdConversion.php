@@ -162,6 +162,10 @@ final class NumericIdConversion
     private function polymorphic(string $table, object $row): array
     {
         if ($table === 'reports') {
+            if ($row->target_type === null) {
+                return [];
+            }
+
             return ['target_id' => self::ENTITIES[$row->target_type] ?? throw new RuntimeException('Unknown report target type.')];
         }
         if ($table === 'business_activity') {
