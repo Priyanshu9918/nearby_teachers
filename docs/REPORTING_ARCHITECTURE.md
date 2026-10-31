@@ -51,6 +51,10 @@ Views receive descriptors from the registry and do not depend on controller
 constants. All report endpoints retain admin-session protection and no-store
 response headers.
 
+`admin_report_access_log.id` is a UUID (`CHAR(36)`). Migration `000006`
+repairs deployed databases where this column was created as numeric, preserving
+existing access-log IDs as strings so UUID inserts from `ReportAccessLog` work.
+
 ## Add a report
 
 For example, to offer a focused booking timeline, add a config entry:
