@@ -9,8 +9,8 @@ async function main() {
   let subscriber;
   const chat = createChatServer({
     secret: process.env.SOCKET_IO_SHARED_SECRET,
-    apiUrl: process.env.SOCKET_IO_LARAVEL_URL || 'http://127.0.0.1:8000',
-    origins: (process.env.SOCKET_IO_CORS_ORIGINS || process.env.APP_URL || 'http://localhost:8000')
+    apiUrl: process.env.SOCKET_IO_LARAVEL_URL || 'http://157.245.125.79/nearby_teachers/public/',
+    origins: (process.env.SOCKET_IO_CORS_ORIGINS || 'http://157.245.125.79')
       .split(',').map((origin) => origin.trim()).filter(Boolean),
     isReady: () => !process.env.SOCKET_IO_REDIS_URL || (publisher?.isReady && subscriber?.isReady),
   });
@@ -26,9 +26,10 @@ async function main() {
     chat.io.adapter(createAdapter(publisher, subscriber));
   }
   const port = Number(process.env.SOCKET_IO_PORT || 6001);
+  const host = process.env.SOCKET_IO_HOST || '127.0.0.1';
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid SOCKET_IO_PORT');
-  chat.server.listen(port, process.env.SOCKET_IO_HOST || '127.0.0.1', () => {
-    process.stdout.write(`Socket.IO listening on port ${port}\n`);
+  chat.server.listen(port, host, () => {
+    process.stdout.write(`Socket.IO listening on ${host}:${port}\n`);
   });
   chat.server.on('error', () => {
     process.stderr.write('Unable to start Socket.IO listener\n');

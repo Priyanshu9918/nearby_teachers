@@ -26,18 +26,20 @@ The workspace is already configured. On another deployment set:
 BROADCAST_CONNECTION=socketio
 QUEUE_CONNECTION=database
 SOCKET_IO_INTERNAL_URL=http://127.0.0.1:6001
-SOCKET_IO_LARAVEL_URL=http://127.0.0.1:8000
+SOCKET_IO_LARAVEL_URL=http://157.245.125.79/nearby_teachers/public/
 SOCKET_IO_SHARED_SECRET=your_random_server_only_secret_at_least_32_characters
 SOCKET_IO_HOST=127.0.0.1
 SOCKET_IO_PORT=6001
-SOCKET_IO_CORS_ORIGINS=http://localhost:8000,http://127.0.0.1:8000
+SOCKET_IO_CORS_ORIGINS=http://157.245.125.79
 SOCKET_IO_REDIS_URL=
 ```
 
 Generate the shared secret with `php -r 'echo bin2hex(random_bytes(32)), PHP_EOL;'`.
 Use the same value in Laravel and Node. Do not put it in the mobile app.
 Node reads the project's `.env`; environment variables can override the file.
-`SOCKET_IO_LARAVEL_URL` must reach the Laravel API from Node. Laravel's
+`SOCKET_IO_LARAVEL_URL` defaults to the deployed Laravel base URL above and
+must be reachable from Node. For a deliberate local development setup only,
+override it with the local Laravel URL. Laravel's
 `SOCKET_IO_INTERNAL_URL` must reach the Socket.IO process from queue workers.
 
 Start each in its own terminal/process:
@@ -55,10 +57,14 @@ changes. Keep these processes alive with your deployment process manager.
 `composer run dev` starts Laravel, the queue listener, logs and Socket.IO for
 local development. Health check: `GET http://127.0.0.1:6001/health`.
 
-For a physical phone on your LAN, set `SOCKET_IO_HOST=0.0.0.0`, restart Node,
-and connect to `http://YOUR_COMPUTER_LAN_IP:6001`. Android emulator uses
-`http://10.0.2.2:6001`. The Socket.IO public URL is separate from the REST
-API URL on port 8000. Browser origins must be listed in
+The deployed mobile endpoint is `http://157.245.125.79` with path
+`/socket.io/`; Apache proxies this path to Node on `127.0.0.1:6001`. Do not
+connect the app to port `6001` directly or append Laravel's
+`/nearby_teachers/public` path to the Socket.IO origin. Android emulator uses
+`http://10.0.2.2:6001` only when testing a Node service running directly on the
+development computer. For a TLS endpoint, use `https://` as the Socket.IO
+origin only after a valid certificate is installed; keep Node bound to
+`127.0.0.1` behind the same-host proxy. Browser origins must be listed in
 `SOCKET_IO_CORS_ORIGINS`; native clients without an Origin header are allowed
 but still must authenticate.
 

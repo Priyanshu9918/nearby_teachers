@@ -122,9 +122,13 @@ Laravel logs:
 journalctl -u nearby-teacher-chat -u nearby-teacher-broadcasts -u nearby-teacher-notifications -f
 ```
 
-The deploy script requires all three services to be installed and active. Your
-existing Apache/PHP-FPM configuration and Socket.IO reverse proxy remain
-responsible for HTTP traffic; the installer does not create them.
+The deploy script requires all three services to be installed and active. Keep
+Node bound to `127.0.0.1`; Apache proxies the public `/socket.io/` path to
+`127.0.0.1:6001`. The mobile app connects to origin
+`http://157.245.125.79` with path `/socket.io/`; do not expose or use port
+`6001` directly. The Node service itself serves plain HTTP. A production
+`wss://` endpoint requires a valid TLS certificate on the reverse proxy; the
+installer does not configure Apache or certificates.
 
 ## 3. Allow GitHub Actions to connect
 

@@ -5,6 +5,9 @@ The Socket.IO service authenticates users, accepts feed actions, and delivers
 committed updates to clients that joined the same post room. REST feed and
 comment reads remain the recovery path after reconnecting.
 
+For the Android connection-timeout diagnosis and Flutter setup, see the
+[app team handoff](APP_TEAM_FEED_SOCKET_TIMEOUT.md).
+
 ## Connect and ping
 
 The Socket.IO public URL is separate from the Laravel REST base URL. Use the
