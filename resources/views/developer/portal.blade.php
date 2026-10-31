@@ -130,12 +130,12 @@
                                 <div class="field" id="path-params-wrap" hidden><label>Path parameters</label><div class="param-grid" id="path-params"></div></div>
                                 <div class="endpoint-guide" id="endpoint-guide" hidden></div>
                                 <div class="field"><label for="request-query">Query string <span class="hint">optional, e.g. lat=28.6&amp;lng=77.2</span></label><input id="request-query" class="control" type="text" placeholder="key=value&amp;another=value" autocomplete="off"></div>
-                                <div class="field"><label for="bearer-token">Bearer token <span class="hint">kept only in this page; never saved</span></label><input id="bearer-token" class="control" type="password" autocomplete="off" placeholder="Paste a user or admin API token"></div>
+                                <div class="field"><label for="bearer-token">Bearer token <span class="hint">included in cURL; kept only in this page</span></label><input id="bearer-token" class="control" type="password" autocomplete="off" placeholder="Paste token or full ‘Bearer …’ value"><span class="hint">If blank, protected cURL examples include a replaceable token placeholder.</span></div>
                                 <div class="field"><label for="request-headers">Additional headers <span class="hint">JSON object</span></label><textarea id="request-headers" spellcheck="false">{"Accept":"application/json"}</textarea></div>
                                 <div class="field" id="request-mode-field"><label for="request-mode">Body type</label><select id="request-mode" class="control"><option value="json">JSON</option><option value="multipart">Multipart form with image</option></select></div>
                                 <div class="field" id="request-body-field"><label for="request-body"><span id="request-body-label">JSON body</span> <span class="hint">omit for GET/DELETE with no body</span></label><textarea id="request-body" spellcheck="false">{}</textarea></div>
                                 <div class="field" id="request-file-field" hidden><label for="request-file">Image file <span class="hint" id="request-file-hint">Select a file to upload</span></label><input id="request-file" class="control" type="file" accept="image/*"></div>
-                                <div class="request-controls"><button class="btn btn-primary" id="send-request" type="submit">▶ Send request</button><button class="btn" id="clear-response" type="button">Clear response</button><button class="btn" id="copy-curl" type="button">Copy cURL</button><span class="request-tip">Requests are sent to this application only.</span></div>
+                                <div class="request-controls"><button class="btn btn-primary" id="send-request" type="submit">▶ Send request</button><button class="btn" id="clear-response" type="button">Clear response</button><button class="btn" id="copy-curl" type="button">Copy full cURL</button><span class="request-tip">Requests are sent to this application only.</span></div>
                             </form>
                         </section>
                         <section class="panel response-panel" aria-labelledby="response-heading">
@@ -388,7 +388,7 @@
     renderCatalog();
     if (apis.length) selectApi(apis[0]);
 
-    function prepareRequest() {
+    function prepareRequest({forCurl = false} = {}) {
         const requestPath = path.value.trim();
         if (!requestPath.startsWith('/') || requestPath.startsWith('//') || requestPath.includes('\\')) {
             showResponse('Path must begin with one slash and remain on this application.', 'Request not sent', null, '');
@@ -459,7 +459,7 @@
                     showResponse('Form fields must be a JSON object.', 'Invalid form fields', null, '');
                     return;
                 }
-                if (selectedApi?.fileRequired && !fileInput.files?.length) {
+                if (selectedApi?.fileRequired && !fileInput.files?.length && !forCurl) {
                     showResponse('Select an image file before sending this request.', 'Image required', null, '');
                     return;
                 }
@@ -484,14 +484,26 @@
         if (authMode === 'none') {
             requestHeaders.delete('Authorization');
         } else {
-            if (token.value.trim()) requestHeaders.set('Authorization', `Bearer ${token.value.trim()}`);
+            const bearerToken = token.value.trim().replace(/^Bearer\s+/i, '');
+            if (bearerToken) requestHeaders.set('Authorization', `Bearer ${bearerToken}`);
             if (authMode === 'bearer' && !requestHeaders.has('Authorization')) {
-                showResponse('This request requires an API bearer token. Google OTP requires the Google sign-in response token.', 'Token required', null, '');
-                return;
+                if (forCurl) {
+                    const placeholder = parsedBody?.authMethod === 'google'
+                        ? '<GOOGLE_SIGN_IN_RESPONSE_TOKEN>'
+                        : '<YOUR_API_BEARER_TOKEN>';
+                    requestHeaders.set('Authorization', `Bearer ${placeholder}`);
+                } else {
+                    showResponse('This request requires an API bearer token. Google OTP requires the Google sign-in response token.', 'Token required', null, '');
+                    return;
+                }
             }
         }
 
-        return {url, method: method.value, headers: requestHeaders, body: requestBody};
+        const filePlaceholder = forCurl && bodyMode.value === 'multipart'
+            && selectedApi?.fileRequired && !fileInput.files?.length
+            ? selectedApi.fileField || 'image'
+            : null;
+        return {url, method: method.value, headers: requestHeaders, body: requestBody, filePlaceholder};
     }
 
     document.getElementById('api-form').addEventListener('submit', async (event) => {
@@ -549,7 +561,7 @@
 
     copyCurlButton.addEventListener('click', async () => {
         clearCurlPreview();
-        const request = prepareRequest();
+        const request = prepareRequest({forCurl: true});
         if (!request) return;
 
         const command = [`curl --globoff --request ${shellQuote(request.method)}`, `--url ${shellQuote(request.url.href)}`];
@@ -558,11 +570,19 @@
             request.body.forEach((value, name) => command.push(typeof value === 'string'
                 ? `--form-string ${shellQuote(`${name}=${value}`)}`
                 : `--form ${shellQuote(`${name}=@/path/to/${value.name}`)}`));
+            if (request.filePlaceholder) {
+                command.push(`--form ${shellQuote(`${request.filePlaceholder}=@/path/to/your-image.jpg`)}`);
+            }
         } else if (request.body !== undefined) command.push(`--data-raw ${shellQuote(request.body)}`);
         curlOutput.value = command.join(' \\\n  ');
         curlPreview.hidden = false;
         copyCurlButton.disabled = true;
-        const copiedMessage = 'cURL copied. In Postman, choose Import → Raw text and paste it.';
+        const authorization = request.headers.get('Authorization');
+        const copiedMessage = authorization?.includes('<')
+            ? 'Full cURL copied with a replaceable bearer placeholder. Replace it with your API token before running.'
+            : authorization
+                ? 'Full cURL copied with the Authorization bearer included.'
+                : 'Full cURL copied. This request has no bearer token.';
         try {
             await navigator.clipboard.writeText(curlOutput.value);
             curlFeedback.textContent = copiedMessage;
