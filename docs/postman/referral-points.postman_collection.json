@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "8fcbdd89-b89a-4afd-9ced-e62e7e275aec",
     "name": "Nearby Teacher — Referral Points APIs",
-    "description": "Dedicated referral code, link click tracking, referral redemption, referral-ranked provider/feed searches and admin leaderboard collection. Opening a valid /download?ref=CODE awards one point per browser and code owner; repeat opens from the same browser are deduplicated. Set baseUrl and token before using user referral requests; set adminToken for the admin leaderboard. GET /referrals/mine returns the joined count/list and current points for the Refer a friend screen. All saved responses are fictional examples.",
+    "description": "Dedicated referral code, link click tracking, referral redemption, referral-ranked provider/feed searches and admin leaderboard collection. Opening /download?ref=CODE records an analytics click but awards no points. The code owner gets one point only after a new account successfully redeems the code. Set baseUrl and token before using user referral requests; set adminToken for the admin leaderboard. GET /referrals/mine returns the joined count/list and current points for the Refer a friend screen. All saved responses are fictional examples.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -79,7 +79,7 @@
                 "mine"
               ]
             },
-            "description": "Verified bearer required. Returns your referral code/link, referralPoints, referredCount and referred list. Opening the link awards one point to its owner per browser; repeat opens from the same browser do not add points. Each joined user has id, full_name, account_type, approved avatar_url and created_at. Use the empty-list response to show the no-friends-yet state.",
+            "description": "Verified bearer required. Returns your referral code/link, referralPoints, referredCount and referred list. Link opens are analytics only. The code owner gets one point after a new account successfully redeems the code. Each joined user has id, full_name, account_type, approved avatar_url and created_at. Use the empty-list response to show the no-friends-yet state.",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -224,7 +224,7 @@
           ]
         },
         {
-          "name": "GET /download?ref={{referralCode}} — Open referral link and award point",
+          "name": "GET /download?ref={{referralCode}} — Referral landing page and click analytics",
           "request": {
             "method": "GET",
             "header": [
@@ -248,7 +248,7 @@
                 }
               ]
             },
-            "description": "Public referral-link open. A valid code owner gets one point the first time this browser opens the link. The response sets a one-year cookie so repeat opens from that browser do not award another point. Postman must retain cookies between requests to verify deduplication."
+            "description": "Public referral landing page. Valid referral clicks are stored for analytics only and award no points. The response sets a one-year cookie so repeat opens from that browser are deduplicated in click reporting."
           },
           "response": []
         },
@@ -276,7 +276,7 @@
                 "redeem"
               ]
             },
-            "description": "Verified bearer required. Call after the signed-in account opens a referral link. Send the owner’s referral code to record the joined account; the link open already awarded the point, so redemption does not add another. Self-referrals return 400 and a previously credited account returns 409.",
+            "description": "Verified bearer required after registration. Send the code owner's referral code to record the joined account and award the code owner one point. Self-referrals return 400 and a previously credited account returns 409.",
             "auth": {
               "type": "bearer",
               "bearer": [

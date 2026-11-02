@@ -3,9 +3,9 @@
 namespace Tests\Feature;
 
 use App\Services\AuthenticationService;
+use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Cookie\Middleware\EncryptCookies;
 use Mockery;
 use RuntimeException;
 use Tests\Support\NumericTestIds;
@@ -50,15 +50,15 @@ class ReferralPointsTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_successful_redemption_records_join_without_awarding_a_second_point(): void
+    public function test_successful_redemption_records_join_and_awards_one_point_only_once(): void
     {
         $referrer = $this->user('teacher', 'Referrer');
         $referred = $this->user('learner', 'Referred');
         DB::table('users')->where('id', $referrer)->update(['referral_code' => 'REFERRER01']);
 
         $this->postJson('/referrals/redeem', ['code' => 'REFERRER01'], $this->bearerFor($referred))
-            ->assertOk()->assertJsonPath('referrerReferralPoints', 0);
-        $this->assertSame(0, (int) DB::table('users')->where('id', $referrer)->value('referral_points'));
+            ->assertOk()->assertJsonPath('referrerReferralPoints', 1);
+        $this->assertSame(1, (int) DB::table('users')->where('id', $referrer)->value('referral_points'));
         $this->assertSame(1, DB::table('referrals')->where('referrer_id', $referrer)->count());
 
         $activity = DB::table('business_activity')->where('event', 'referral.joined')->first();
@@ -66,20 +66,24 @@ class ReferralPointsTest extends TestCase
         $this->assertSame((string) $referred, (string) $activity->actor_user_id);
         $this->assertSame((string) $referrer, (string) $activity->related_user_id);
         $this->assertSame(['source' => 'referral_code'], json_decode($activity->after_data, true, 512, JSON_THROW_ON_ERROR));
+        $pointActivity = DB::table('business_activity')->where('event', 'referral.recorded')->first();
+        $this->assertNotNull($pointActivity);
+        $this->assertSame(['point_delta' => 1], json_decode($pointActivity->after_data, true, 512, JSON_THROW_ON_ERROR));
 
         $this->postJson('/referrals/redeem', ['code' => 'REFERRER01'], $this->bearerFor($referred))
             ->assertStatus(409);
-        $this->assertSame(0, (int) DB::table('users')->where('id', $referrer)->value('referral_points'));
+        $this->assertSame(1, (int) DB::table('users')->where('id', $referrer)->value('referral_points'));
         $this->assertSame(1, DB::table('business_activity')->where('event', 'referral.joined')->count());
+        $this->assertSame(1, DB::table('business_activity')->where('event', 'referral.recorded')->count());
 
         $this->getJson('/referrals/mine', $this->bearerFor($referrer))
-            ->assertOk()->assertJsonPath('referralPoints', 0)->assertJsonPath('referredCount', 1)
+            ->assertOk()->assertJsonPath('referralPoints', 1)->assertJsonPath('referredCount', 1)
             ->assertJsonPath('referred.0.full_name', 'Referred')
             ->assertJsonPath('referred.0.account_type', 'learner')
             ->assertJsonPath('referred.0.avatar_url', null);
     }
 
-    public function test_valid_link_open_awards_once_per_browser_and_referrer(): void
+    public function test_valid_link_open_tracks_analytics_without_awarding_points(): void
     {
         $referrer = $this->user('teacher', 'Referrer');
         DB::table('users')->where('id', $referrer)->update(['referral_code' => 'CLICK123']);
@@ -87,29 +91,30 @@ class ReferralPointsTest extends TestCase
         $this->withoutMiddleware(EncryptCookies::class);
 
         $firstOpen = $this->withHeader('User-Agent', 'Android')
-            ->get('/download?ref=CLICK123')->assertRedirect();
+            ->get('/download?ref=CLICK123')->assertOk()
+            ->assertViewIs('site.referral')->assertSee('CLICK123')->assertSee('Redeem referral');
         $cookie = collect($firstOpen->headers->getCookies())
             ->first(static fn ($cookie): bool => $cookie->getName() === 'nt_referral_visitor');
         $this->assertNotNull($cookie);
         $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/D', $cookie->getValue());
-        $this->assertSame(1, (int) DB::table('users')->where('id', $referrer)->value('referral_points'));
+        $this->assertSame(0, (int) DB::table('users')->where('id', $referrer)->value('referral_points'));
         $this->assertSame(1, DB::table('referral_clicks')->where('referrer_id', $referrer)->count());
         $this->assertSame(1, DB::table('business_activity')->where('event', 'referral.clicked')->count());
 
         $this->withCookie('nt_referral_visitor', $cookie->getValue())
-            ->get('/download?ref=CLICK123')->assertRedirect();
-        $this->assertSame(1, (int) DB::table('users')->where('id', $referrer)->value('referral_points'));
+            ->get('/download?ref=CLICK123')->assertOk();
+        $this->assertSame(0, (int) DB::table('users')->where('id', $referrer)->value('referral_points'));
         $this->assertSame(1, DB::table('referral_clicks')->where('referrer_id', $referrer)->count());
         $this->assertSame(1, DB::table('business_activity')->where('event', 'referral.clicked')->count());
 
         $this->withCookie('nt_referral_visitor', str_repeat('b', 64))
-            ->get('/download?ref=CLICK123')->assertRedirect();
-        $this->assertSame(2, (int) DB::table('users')->where('id', $referrer)->value('referral_points'));
+            ->get('/download?ref=CLICK123')->assertOk();
+        $this->assertSame(0, (int) DB::table('users')->where('id', $referrer)->value('referral_points'));
         $this->assertSame(2, DB::table('referral_clicks')->where('referrer_id', $referrer)->count());
         $this->assertSame(2, DB::table('business_activity')->where('event', 'referral.clicked')->count());
     }
 
-    public function test_click_point_and_history_roll_back_together(): void
+    public function test_click_analytics_and_history_roll_back_together_without_points(): void
     {
         $referrer = $this->user('institute', 'Referrer');
         DB::table('users')->where('id', $referrer)->update(['referral_code' => 'ROLLCLICK']);
@@ -126,13 +131,14 @@ class ReferralPointsTest extends TestCase
         $this->assertSame(0, DB::table('business_activity')->where('event', 'referral.clicked')->count());
     }
 
-    public function test_join_row_and_activity_roll_back_together(): void
+    public function test_join_and_point_roll_back_together_when_point_history_fails(): void
     {
         $referrer = $this->user('institute', 'Referrer');
         $referred = $this->user('learner', 'Referred');
         DB::table('users')->where('id', $referrer)->update(['referral_code' => 'ROLLBACK01']);
         DB::listen(static function ($query): void {
-            if (str_contains(strtolower($query->sql), 'insert into `business_activity`')) {
+            if (str_contains(strtolower($query->sql), 'insert into `business_activity`')
+                && in_array('referral.recorded', $query->bindings, true)) {
                 throw new RuntimeException('Activity write failed');
             }
         });

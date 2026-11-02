@@ -181,21 +181,42 @@ class WebsiteController extends Controller
         $target = is_string($type) && is_string($slug) ? $type.':'.$slug : null;
         $this->logPageView($request, 'download', $target, $platform);
         $visitorToken = $this->trackReferralClick($request, $referral);
+        $referralLinkOpened = is_string($referral) && $referral !== '';
 
         $deepLinkPath = is_string($type) && is_string($slug)
             ? '/'.rawurlencode($type).'/'.rawurlencode($slug)
             : '/';
         $referrer = 'deep_link_path='.$deepLinkPath;
-        if (is_string($referral) && $referral !== '') {
+        if ($visitorToken !== null && is_string($referral) && $referral !== '') {
             $referrer .= '&ref='.rawurlencode($referral);
         }
 
         $androidUrl = config('services.nearby_teacher.android_play_store_url');
         $iosUrl = config('services.nearby_teacher.ios_app_store_url');
+        $androidReferralUrl = filled($androidUrl)
+            ? $this->appendQueryParameter($androidUrl, 'referrer', $referrer)
+            : null;
+
+        if ($referralLinkOpened) {
+            [$downloadUrl, $downloadStore] = match ($platform) {
+                'ios' => [$iosUrl ?: $androidReferralUrl, $iosUrl ? 'iOS' : 'Android'],
+                'android' => [$androidReferralUrl ?: $iosUrl, $androidReferralUrl ? 'Android' : 'iOS'],
+                default => [$androidReferralUrl ?: $iosUrl, $androidReferralUrl ? 'Android' : 'iOS'],
+            };
+
+            $response = $this->renderWebsite($request, 'site.referral', [
+                'ref' => $referral,
+                'referralValid' => $visitorToken !== null,
+                'downloadUrl' => $downloadUrl,
+                'downloadStore' => $downloadStore,
+            ]);
+
+            return $this->attachReferralCookie($response, $visitorToken, $request);
+        }
 
         if ($platform === 'android' && filled($androidUrl)) {
             return $this->attachReferralCookie(
-                redirect()->away($this->appendQueryParameter($androidUrl, 'referrer', $referrer)),
+                redirect()->away($androidReferralUrl),
                 $visitorToken,
                 $request,
             );
@@ -250,12 +271,8 @@ class WebsiteController extends Controller
                 throw $exception;
             }
 
-            DB::table('users')->where('id', $referrerId)->update([
-                'referral_points' => DB::raw('referral_points + 1'),
-                'updated_at' => now(),
-            ]);
             app(BusinessActivityRecorder::class)->record('referral.clicked', $clickId, null,
-                $referrerId, after: ['point_delta' => 1]);
+                $referrerId, after: ['point_delta' => 0]);
         }, 3);
 
         return $visitorToken;

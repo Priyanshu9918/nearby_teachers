@@ -345,6 +345,9 @@ class OperationsController extends Controller
                 ]);
                 app(BusinessActivityRecorder::class)->record('referral.joined', $id, $user->id, $referrer,
                     after: ['source' => 'referral_code']);
+                DB::table('users')->where('id', $referrer)->increment('referral_points', 1, ['updated_at' => now()]);
+                app(BusinessActivityRecorder::class)->record('referral.recorded', $id, $user->id, $referrer,
+                    after: ['point_delta' => 1]);
 
                 return $id;
             }, 3);

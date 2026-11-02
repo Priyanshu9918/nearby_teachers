@@ -18,7 +18,7 @@ final class NumericIdConversion
         'booking' => 'bookings', 'message' => 'messages',
         'message_reaction' => 'message_reactions', 'otp_delivery' => 'otp_delivery_attempts',
         'post' => 'posts', 'comment' => 'post_comments', 'report' => 'reports',
-        'support_ticket' => 'support_tickets', 'referral_click' => 'referral_clicks',
+        'support_ticket' => 'support_tickets', 'referral' => 'referrals', 'referral_click' => 'referral_clicks',
         'push_device' => 'push_devices', 'push_campaign' => 'push_campaigns', 'push_delivery' => 'push_deliveries'];
 
     public function __construct()

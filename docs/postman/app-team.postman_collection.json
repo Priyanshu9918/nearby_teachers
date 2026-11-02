@@ -22782,7 +22782,7 @@
                 "mine"
               ]
             },
-            "description": "Returns or creates caller referral code and points. A valid download link open awards one point per browser and code owner; redemption records the joined account without a second point. Do not redeem your own code. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures."
+            "description": "Returns or creates caller referral code and points. Download-link opens are analytics only; the code owner gets one point after a new account successfully redeems the code. Do not redeem your own code. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures."
           },
           "response": [
             {
@@ -22805,7 +22805,7 @@
                     "mine"
                   ]
                 },
-                "description": "Returns or creates caller referral code and points. A valid download link open awards one point per browser and code owner; redemption records the joined account without a second point. Do not redeem your own code. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures."
+                "description": "Returns or creates caller referral code and points. Download-link opens are analytics only; the code owner gets one point after a new account successfully redeems the code. Do not redeem your own code. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures."
               },
               "status": "OK",
               "code": 200,
@@ -22839,7 +22839,7 @@
                     "mine"
                   ]
                 },
-                "description": "Returns or creates caller referral code and points. A valid download link open awards one point per browser and code owner; redemption records the joined account without a second point. Do not redeem your own code. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures."
+                "description": "Returns or creates caller referral code and points. Download-link opens are analytics only; the code owner gets one point after a new account successfully redeems the code. Do not redeem your own code. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures."
               },
               "status": "Unauthorized",
               "code": 401,
@@ -22879,7 +22879,7 @@
                 "redeem"
               ]
             },
-            "description": "Set referralCode to another user code after opening its referral link; redemption records the joined account but does not award another point. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures.",
+            "description": "After registration, send another user's referral code to record the joined account and award its owner one point. Self-referrals are rejected. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"code\": \"{{referralCode}}\"\n}",
@@ -22915,7 +22915,7 @@
                     "redeem"
                   ]
                 },
-                "description": "Set referralCode to another user code after opening its referral link; redemption records the joined account but does not award another point. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures.",
+                "description": "After registration, send another user's referral code to record the joined account and award its owner one point. Self-referrals are rejected. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures.",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"code\": \"{{referralCode}}\"\n}",
@@ -22962,7 +22962,7 @@
                     "redeem"
                   ]
                 },
-                "description": "Set referralCode to another user code after opening its referral link; redemption records the joined account but does not award another point. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures.",
+                "description": "After registration, send another user's referral code to record the joined account and award its owner one point. Self-referrals are rejected. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures.",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"code\": \"{{referralCode}}\"\n}",

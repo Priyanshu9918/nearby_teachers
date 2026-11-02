@@ -774,9 +774,9 @@ shown in this shared documentation category.
 | `POST` | `/suggestions` | Verified bearer | `suggestionType` (`course`, `city`, `state`, `country`), `name`; optional `notes` | Submits a suggestion. |
 | `POST` | `/support` | Verified learner, teacher or institute bearer | `subject`, `message` | Creates a numeric-ID ticket with `pending` status; returns 201. |
 | `GET` | `/support/mine` | Verified bearer | Optional `page`, `perPage` (default 20, max 50) | Lists the caller's tickets with status and timestamps. |
-| `GET` | `/download?ref=CODE` | Public referral link | `ref` | Opening a valid referral link awards one point per browser and code owner; repeat opens from the same browser are deduplicated. |
-| `GET` | `/referrals/mine` | Verified bearer | — | Returns or creates the caller's referral code, points and referred users. Opening a valid `/download?ref=CODE` link awards one point per browser and code owner; repeat opens from the same browser do not add points. |
-| `POST` | `/referrals/redeem` | Verified bearer | `code` | Records the referred account after link open and does not award an additional point. Self-referrals are rejected; an already-credited account receives `409`. |
+| `GET` | `/download?ref=CODE` | Public referral link | `ref` | Shows referral code, registration/redeem instructions and an app download button. Clicks are analytics only and do not award points. Android carries the code through Play Install Referrer. |
+| `GET` | `/referrals/mine` | Verified bearer | — | Returns or creates the caller's referral code, points and referred users. Points are awarded to code owners only after successful redemption. |
+| `POST` | `/referrals/redeem` | Verified bearer | `code` | Links the authenticated account to the code owner and awards the owner one point in the same transaction. Self-referrals are rejected; an already-credited account receives `409`. |
 | `POST` | `/analytics/page-view` | Public | `pageType`; optional `target`, `platform`, `referrer` | Records a view. `pageType`: `institute`, `teacher`, `city_index`, `city_feed`, `city_directory`, `download`, `app_profile`. Limited to 120 requests/minute per IP. |
 
 ### Catalog and settings details
@@ -1021,7 +1021,7 @@ request is also available in the developer portal's **Common** category.
 | `GET` | `/site/teacher/{slug}` | Public | Teacher landing page and assigned subjects; returns a localized 404 page if unavailable. |
 | `GET` | `/site/city/{city}` | Public | Published city listings and subjects. |
 | `GET` | `/site/feed/{city}` | Public | Read-only city feed, limited to the latest 50 posts. |
-| `GET` | `/download` | Public | Redirects Android/iOS visitors to configured app-store URLs; desktop visitors see store links. Supports `type`, `slug`, and `ref` query parameters. Android carries the destination and referral through Play Install Referrer. |
+| `GET` | `/download` | Public | Normal app links redirect Android/iOS visitors to configured app-store URLs; desktop visitors see store links. A referral URL (`ref`) shows a landing page with registration/redeem instructions and an app download button. Android carries the referral through Play Install Referrer. |
 | `GET` | `/sitemap.xml` | Public | Generates sitemap entries for directory, published cities, city feeds, and published teacher/institute pages. |
 | `GET` | `/robots.txt` | Public | Allows public pages, disallows `/admin`, and advertises the sitemap URL. |
 

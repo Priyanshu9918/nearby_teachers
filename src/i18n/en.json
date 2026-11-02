@@ -113,7 +113,17 @@
     "title": "Refer a friend",
     "subtitle": "Help a friend find a nearby teacher",
     "shareLink": "Share your link",
-    "friendsJoined": "{count} friends joined using your link"
+    "friendsJoined": "{count} friends joined using your link",
+    "landingTitle": "A friend invited you",
+    "landingIntro": "Download Nearby Teacher, complete registration, and apply your friend's referral code.",
+    "codeLabel": "Your referral code",
+    "stepDownload": "Download the app using the button below.",
+    "stepRegister": "Create your account and complete registration in the app.",
+    "stepRedeem": "Open Referrals → Redeem referral in the app and apply this code.",
+    "pointMessage": "Your friend receives one point after you successfully apply the code.",
+    "downloadButton": "Download the app",
+    "invalidCode": "This referral code is not valid. You can still download the app.",
+    "downloadUnavailable": "The app download link is not available yet."
   },
   "contactBsl": {
     "title": "Contact BSL",
