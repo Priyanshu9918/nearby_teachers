@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Events\ChatActivity;
 use App\Events\ChatMessageSent;
+use App\Jobs\QueueChatMessagePush;
 use App\Http\Controllers\Controller;
 use App\Reporting\BusinessActivityRecorder;
 use App\Services\ChatBlocking;
@@ -165,6 +166,13 @@ class MessagesController extends Controller
         }, 3);
         $message = $this->savedMessage($id);
         event(new ChatMessageSent($message));
+        $recipientId = (int) ($conversation->learner_id === $user->id ? $conversation->provider_id : $conversation->learner_id);
+        QueueChatMessagePush::dispatch($recipientId, (int) $user->id)->afterCommit();
+        $unreadCount = DB::table('messages as m')->join('conversations as c', 'c.id', '=', 'm.conversation_id')
+            ->where(fn ($q) => $q->where('c.learner_id', $recipientId)->orWhere('c.provider_id', $recipientId))
+            ->where('m.sender_id', '<>', $recipientId)->whereNull('m.read_at')->whereNull('m.deleted_at')->count();
+        event(new ChatActivity('chat:unread_count', ['conversationId' => $conversationId,
+            'userId' => $recipientId, 'unreadCount' => $unreadCount]));
         if (! empty($data['replyToId'])) {
             event(new ChatActivity('chat:reply', ['conversationId' => $conversationId, 'message' => $message]));
         }

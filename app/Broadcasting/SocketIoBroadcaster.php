@@ -54,7 +54,7 @@ class SocketIoBroadcaster extends Broadcaster
 
             return;
         }
-        $supported = ['chat:delivered', 'chat:read', 'chat:typing', 'chat:stop_typing', 'chat:delete', 'chat:edit', 'chat:reply', 'chat:reaction'];
+        $supported = ['chat:delivered', 'chat:read', 'chat:unread_count', 'chat:typing', 'chat:stop_typing', 'chat:delete', 'chat:edit', 'chat:reply', 'chat:reaction'];
         $legacy = $event === 'message.sent';
         $conversationId = $legacy ? ($message['conversation_id'] ?? null) : ($data['conversationId'] ?? null);
         if ((! $legacy && ! in_array($event, $supported, true)) || ! RecordId::valid($conversationId)

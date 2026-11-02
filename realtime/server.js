@@ -94,7 +94,7 @@ function createChatServer(config) {
         return respond(200, { ok: true });
       }
       if (packet.event) {
-        const supported = new Set(['chat:delivered', 'chat:read', 'chat:typing', 'chat:stop_typing', 'chat:delete', 'chat:edit', 'chat:reply', 'chat:reaction']);
+        const supported = new Set(['chat:delivered', 'chat:read', 'chat:unread_count', 'chat:typing', 'chat:stop_typing', 'chat:delete', 'chat:edit', 'chat:reply', 'chat:reaction']);
         const { event, data, recipientIds } = packet;
         if (!supported.has(event) || !data || !isId(data.conversationId) ||
             !Array.isArray(recipientIds) || recipientIds.length !== 2 || !recipientIds.every(isId) ||
@@ -104,11 +104,12 @@ function createChatServer(config) {
           return respond(422, {error: 'Invalid chat event'});
         }
         const needsMessage = ['chat:edit', 'chat:delete', 'chat:reply'].includes(event);
-        const needsActor = ['chat:delivered', 'chat:read', 'chat:typing', 'chat:stop_typing', 'chat:reaction'].includes(event);
+        const needsActor = ['chat:delivered', 'chat:read', 'chat:unread_count', 'chat:typing', 'chat:stop_typing', 'chat:reaction'].includes(event);
         if ((needsMessage && (!data.message || typeof data.message.body !== 'string' || Array.from(data.message.body).length > 5000)) ||
             (needsActor && !isId(data.userId)) ||
             (['chat:delivered', 'chat:read', 'chat:reaction'].includes(event) && !isId(data.messageId)) ||
             (event === 'chat:reaction' && data.reaction !== null && !['👍', '👎', '❤️', '😂', '😮', '😢', '🙏', '🎉'].includes(data.reaction)) ||
+            (event === 'chat:unread_count' && (!Number.isSafeInteger(data.unreadCount) || data.unreadCount < 0)) ||
             (['chat:typing', 'chat:stop_typing'].includes(event) && data.typing !== (event === 'chat:typing'))) {
           return respond(422, {error: 'Invalid chat event'});
         }

@@ -19,6 +19,7 @@
           "name": "GET /student/profile — View my profile",
           "request": {
             "method": "GET",
+            "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{studentToken}}", "type": "string"}]},
             "header": [{"key": "Accept", "value": "application/json"}],
             "url": {"raw": "{{baseUrl}}/student/profile", "host": ["{{baseUrl}}"], "path": ["student", "profile"]},
             "description": "Verified student bearer required. Returns the signed-in student's name, email, DOB, phone, phone_pin, profile image and completion state."
@@ -35,6 +36,7 @@
           "name": "PATCH /student/profile — Update profile fields",
           "request": {
             "method": "PATCH",
+            "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{studentToken}}", "type": "string"}]},
             "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}],
             "body": {"mode": "raw", "raw": "{\n  \"name\": \"Asha Sharma\",\n  \"email\": \"asha@example.com\",\n  \"phone\": \"+919876543211\",\n  \"phone_pin\": \"226010\"\n}", "options": {"raw": {"language": "json"}}},
             "url": {"raw": "{{baseUrl}}/student/profile", "host": ["{{baseUrl}}"], "path": ["student", "profile"]},
@@ -52,6 +54,7 @@
           "name": "POST /student/profile/photo — Upload profile image",
           "request": {
             "method": "POST",
+            "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "{{studentToken}}", "type": "string"}]},
             "header": [{"key": "Accept", "value": "application/json"}],
             "body": {"mode": "formdata", "formdata": [{"key": "profile_image", "type": "file", "src": ""}]},
             "url": {"raw": "{{baseUrl}}/student/profile/photo", "host": ["{{baseUrl}}"], "path": ["student", "profile", "photo"]},

@@ -13,6 +13,7 @@ safety acknowledgement and guardian consent gates continue to apply. Existing
 | `chat:new` | No publish endpoint | Server alias of the same new-message notification |
 | `chat:delivered` | `POST /chat/events/delivered` | Recipient confirms receipt; server notifies participants |
 | `chat:read` | `POST /chat/events/read` | Recipient confirms reading; implies delivery |
+| `chat:unread_count` | `POST /chat/events/unread_count` | Server pushes the recipient's updated total after a new message or read receipt |
 | `chat:typing` | `POST /chat/events/typing` | Participant sends an ephemeral typing hint |
 | `chat:stop_typing` | `POST /chat/events/stop_typing` | Participant clears their typing hint |
 | `chat:delete` | `POST /chat/events/delete` | Sender clears the body and leaves a tombstone |
@@ -26,7 +27,10 @@ safety acknowledgement and guardian consent gates continue to apply. Existing
 They are listen-only events, not new HTTP mutations. REST history is the durable
 receive/recovery API. Delivery and reading are explicit client acknowledgements;
 connection presence never marks a message delivered or read automatically.
-Unread counts are requested, not automatically pushed on every state change.
+The server pushes `chat:unread_count` to the conversation room after a message is
+saved and after a read is recorded. The payload includes `userId`; clients should
+update the badge only when it matches the signed-in user. The count is global
+across that user's conversations, matching the no-conversation unread endpoint.
 
 ## Payloads and acknowledgements
 
@@ -55,6 +59,9 @@ socket.on('chat:receive', ({ message }) => {
   // Upsert by message.id and ignore revisions older than the current one.
 });
 socket.on('chat:read', (receipt) => { /* messageId, userId, readAt, deliveredAt */ });
+socket.on('chat:unread_count', (data) => {
+  if (data.userId === currentUserId) setUnreadBadge(data.unreadCount);
+});
 socket.on('chat:edit', ({ message }) => { /* upsert current revision */ });
 socket.on('chat:delete', ({ message }) => { /* show tombstone, clear text/reactions */ });
 socket.on('chat:reaction', (reaction) => { /* upsert by messageId + userId */ });

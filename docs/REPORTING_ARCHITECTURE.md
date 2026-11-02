@@ -108,6 +108,12 @@ for historical uptime/latency reporting. Conversation start/leave/end remains wi
 is not reconstructed. Named persistent chat mutations are recorded as described
 below; typing hints remain transient.
 
+After a message commits, the other conversation participant's active registered
+devices receive a queued FCM push when Firebase messaging is enabled. The push
+contains fixed generic text and never copies message content. Queueing and
+per-device delivery outcomes use the existing `push.campaign_queued` and
+`push.delivery_result` events and reporting tables.
+
 Current event coverage starts when migration `000029` is deployed. Safety reports
 submitted through `/reports` or `/safety/reports` record version 1
 `safety_report.submitted` activity in the same transaction as the report. The

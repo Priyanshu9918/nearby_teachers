@@ -138,6 +138,16 @@ class ChatEventsController extends Controller
             }
             if ($changed) {
                 DB::afterCommit(fn () => event(new ChatActivity($event, $payload)));
+                if ($event === 'chat:read') {
+                    $recipientId = (int) $user->id;
+                    DB::afterCommit(function () use ($recipientId, $conversationId): void {
+                        $unreadCount = DB::table('messages as m')->join('conversations as c', 'c.id', '=', 'm.conversation_id')
+                            ->where(fn ($q) => $q->where('c.learner_id', $recipientId)->orWhere('c.provider_id', $recipientId))
+                            ->where('m.sender_id', '<>', $recipientId)->whereNull('m.read_at')->whereNull('m.deleted_at')->count();
+                        event(new ChatActivity('chat:unread_count', ['conversationId' => $conversationId,
+                            'userId' => $recipientId, 'unreadCount' => $unreadCount]));
+                    });
+                }
             }
 
             return $payload;
