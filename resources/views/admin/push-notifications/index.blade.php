@@ -59,15 +59,15 @@
     const state = document.getElementById('state');
     const city = document.getElementById('city');
     const geographyUrls = {
-        countries: @json(url('/geo/countries')),
-        states: @json(url('/geo/states')),
-        cities: @json(url('/geo/cities')),
+        countries: {{ Illuminate\Support\Js::from(url('/geo/countries')) }},
+        states: {{ Illuminate\Support\Js::from(url('/geo/states')) }},
+        cities: {{ Illuminate\Support\Js::from(url('/geo/cities')) }},
     };
-    const initialLocation = @json([
-        'country' => old('country'),
-        'state' => old('state'),
-        'city' => old('city'),
-    ]);
+    const initialLocation = {
+        country: {{ Illuminate\Support\Js::from(old('country')) }},
+        state: {{ Illuminate\Support\Js::from(old('state')) }},
+        city: {{ Illuminate\Support\Js::from(old('city')) }},
+    };
     let currentController;
     let stateController;
     let cityController;
