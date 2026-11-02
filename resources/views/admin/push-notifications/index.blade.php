@@ -14,9 +14,12 @@
         <div class="form-grid">
             <div class="field"><label for="target-type">Audience</label>
                 <select name="target_type" id="target-type" required>
-                    @foreach (['all' => 'All active devices', 'segment' => 'Account type or location', 'user' => 'Every device for one user', 'device' => 'One specific device'] as $value => $label)
-                        <option value="{{ $value }}" @selected(old('target_type', 'all') === $value)>{{ $label }}</option>
-                    @endforeach
+                    <option value="all" @selected(old('target_type', 'all') === 'all')>All active devices</option>
+                    <option value="segment" @selected(old('target_type') === 'segment')>Account type or location</option>
+                    {{-- Temporarily hidden; backend support remains available for later re-enablement.
+                    <option value="user" @selected(old('target_type') === 'user')>Every device for one user</option>
+                    <option value="device" @selected(old('target_type') === 'device')>One specific device</option>
+                    --}}
                 </select>
             </div>
             <div class="field audience-id-field"><label for="target-id" id="target-id-label">Target ID</label><input id="target-id" name="target_id" value="{{ old('target_id') }}" maxlength="36" autocomplete="off"><small id="target-id-help">Paste a user ID or a device ID from the Registered push devices report.</small></div>
