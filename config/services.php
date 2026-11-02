@@ -64,7 +64,7 @@ return [
         'firebase_service_account_path' => env('FIREBASE_SERVICE_ACCOUNT_PATH'),
         'firebase_service_account_json' => env('FIREBASE_SERVICE_ACCOUNT_JSON'),
         'firebase_messaging_enabled' => env('FIREBASE_MESSAGING_ENABLED', false),
-        'app_base_url' => env('APP_BASE_URL', 'https://bsl.international'),
+        'app_base_url' => env('APP_BASE_URL', 'http://157.245.125.79/nearby_teachers/public'),
         'ios_app_store_url' => env('IOS_APP_STORE_URL'),
         'android_play_store_url' => env('ANDROID_PLAY_STORE_URL'),
         'support_email' => env('SUPPORT_EMAIL'),

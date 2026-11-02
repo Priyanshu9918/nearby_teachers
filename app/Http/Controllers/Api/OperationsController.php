@@ -317,7 +317,7 @@ class OperationsController extends Controller
 
         return response()->json([
             'code' => $code,
-            'link' => rtrim(config('services.nearby_teacher.app_base_url', 'https://bsl.international'), '/').'/download?ref='.$code,
+            'link' => rtrim(config('services.nearby_teacher.app_base_url', 'http://157.245.125.79/nearby_teachers/public'), '/').'/download?ref='.$code,
             'referredCount' => $referred->count(),
             'referralPoints' => (int) DB::table('users')->where('id', $user->id)->value('referral_points'),
             'referred' => $referred,
