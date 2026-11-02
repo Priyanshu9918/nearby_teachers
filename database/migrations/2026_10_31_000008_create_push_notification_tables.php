@@ -8,7 +8,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('push_devices', function (Blueprint $table): void {
+        $this->createTableUnlessPresent('push_devices', [
+            'id', 'user_id', 'fid_hash', 'fid_ciphertext', 'platform', 'location_city', 'location_state',
+            'location_country', 'location_consent', 'location_source', 'last_registered_at', 'last_seen_at',
+            'disabled_at', 'created_at', 'updated_at',
+        ], function (Blueprint $table): void {
             $table->char('id', 36)->primary();
             $table->char('user_id', 36);
             $table->char('fid_hash', 64)->unique();
@@ -30,7 +34,10 @@ return new class extends Migration
             $table->foreign('user_id', 'push_devices_user_fk')->references('id')->on('users')->cascadeOnDelete();
         });
 
-        Schema::create('push_campaigns', function (Blueprint $table): void {
+        $this->createTableUnlessPresent('push_campaigns', [
+            'id', 'title', 'body', 'data', 'target_type', 'target_filters', 'recipient_count', 'status',
+            'created_by_email', 'queued_at', 'started_at', 'finished_at', 'created_at', 'updated_at',
+        ], function (Blueprint $table): void {
             $table->char('id', 36)->primary();
             $table->string('title', 120);
             $table->text('body');
@@ -48,7 +55,10 @@ return new class extends Migration
             $table->index(['status', 'created_at'], 'push_campaigns_status_created');
         });
 
-        Schema::create('push_deliveries', function (Blueprint $table): void {
+        $this->createTableUnlessPresent('push_deliveries', [
+            'id', 'campaign_id', 'device_id', 'status', 'provider_message_id', 'error_code', 'attempt_count',
+            'attempted_at', 'created_at', 'updated_at',
+        ], function (Blueprint $table): void {
             $table->char('id', 36)->primary();
             $table->char('campaign_id', 36);
             // A plain ID preserves delivery history if the app later removes a device row.
@@ -64,6 +74,32 @@ return new class extends Migration
             $table->index(['campaign_id', 'status'], 'push_delivery_campaign_status');
             $table->foreign('campaign_id', 'push_delivery_campaign_fk')->references('id')->on('push_campaigns')->restrictOnDelete();
         });
+    }
+
+    /**
+     * MySQL keeps successful DDL statements when a later statement in a migration fails.
+     * Preserve a matching table on retry, but fail clearly if its columns do not match.
+     */
+    private function createTableUnlessPresent(string $name, array $requiredColumns, \Closure $definition): void
+    {
+        if (! Schema::hasTable($name)) {
+            Schema::create($name, $definition);
+
+            return;
+        }
+
+        $missingColumns = array_values(array_filter(
+            $requiredColumns,
+            static fn (string $column): bool => ! Schema::hasColumn($name, $column),
+        ));
+
+        if ($missingColumns !== []) {
+            throw new \RuntimeException(sprintf(
+                'Existing table [%s] is missing required columns: %s. Inspect and reconcile its schema before retrying this migration.',
+                $name,
+                implode(', ', $missingColumns),
+            ));
+        }
     }
 
     public function down(): void
