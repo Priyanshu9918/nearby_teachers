@@ -31,7 +31,9 @@ final class RepairSeoDirectory extends Command
                 $this->info('SEO backup: '.Storage::disk('local')->path($path));
             }
             $wording = $maintenance->repairWording();
-            $profiles = $directory->sync();
+            // Temporarily disabled: repair must not regenerate profile URLs.
+            // $profiles = $directory->sync();
+            $profiles = 0;
             $removed = $maintenance->prune();
             if ($this->option('apply')) {
                 DB::commit();

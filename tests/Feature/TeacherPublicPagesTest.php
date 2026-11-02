@@ -208,6 +208,18 @@ class TeacherPublicPagesTest extends TestCase
         $this->get('/in/unknown/maths-tuition')->assertNotFound();
     }
 
+    public function test_seo_reports_handle_older_definitions_without_route_enabled(): void
+    {
+        $this->institute();
+        foreach (['seo-pages', 'seo-location-pages'] as $report) {
+            $computed = config('reports.'.$report.'.computed');
+            unset($computed['route_enabled']);
+            config(['reports.'.$report.'.computed' => $computed]);
+            $this->withSession(['admin_authenticated' => true])
+                ->get('/admin/reports/'.$report)->assertOk()->assertDontSee('Open page');
+        }
+    }
+
     public function test_location_wording_changes_keep_aliases_and_disabling_removes_sitemap_entries(): void
     {
         $this->institute();

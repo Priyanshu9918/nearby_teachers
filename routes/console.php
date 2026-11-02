@@ -18,4 +18,5 @@ Schedule::command('reports:send-owner-weekly')->weeklyOn(1, '08:00')
     ->timezone(config('app.timezone'))->withoutOverlapping();
 
 // Reconcile generated SEO metadata after provider/subject changes; keep a private pre-repair backup.
-Schedule::command('seo:repair --apply')->dailyAt('03:15')->withoutOverlapping();
+// Temporarily disabled: SEO generation runs only on profile publication/updates.
+// Schedule::command('seo:repair --apply')->dailyAt('03:15')->withoutOverlapping();

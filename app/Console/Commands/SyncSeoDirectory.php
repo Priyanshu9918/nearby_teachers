@@ -13,8 +13,9 @@ class SyncSeoDirectory extends Command
 
     public function handle(SeoDirectory $directory): int
     {
-        $count = $directory->sync();
-        $this->info('Processed '.$count.' teacher and institute profiles. Only eligible profiles with supported countries are published.');
+        // Temporarily disabled: generate SEO URLs only on profile publication/updates.
+        // $count = $directory->sync();
+        $this->info('SEO sync is temporarily disabled. URLs generate on profile publication or update.');
 
         return self::SUCCESS;
     }

@@ -66,12 +66,15 @@ class AdminSeoController extends Controller
                 app(BusinessActivityRecorder::class)->record('seo.route_configured', (int) $id, null,
                     before: $old ? ['city_slug' => $old->city_slug, 'online_slug' => $old->online_slug, 'enabled' => (bool) $old->enabled] : [],
                     after: $values);
+                // Temporarily disabled: generate SEO URLs only on profile publication/updates.
+                /*
                 foreach (DB::table('teacher_profiles')->where('is_profile_complete', true)->where('seo_country', $data['country'])->orderBy('user_id')->lazyById(100, 'user_id') as $profile) {
                     app(TeacherPublicPages::class)->publish((int) $profile->user_id);
                 }
                 foreach (DB::table('institute_profiles')->where('is_profile_complete', true)->where('seo_country', $data['country'])->orderBy('user_id')->lazyById(100, 'user_id') as $profile) {
                     app(InstitutePublicPages::class)->publish((int) $profile->user_id);
                 }
+                */
 
                 return (int) $id;
             });
@@ -83,14 +86,15 @@ class AdminSeoController extends Controller
         }
         app(ReportAccessLog::class)->record($request, 'seo-subject-routes', 'update', $id);
 
-        return redirect()->route('admin.seo.edit', ['id' => $id])->with('status', 'SEO mapping saved. Existing listing URLs keep redirects.');
+        return redirect()->route('admin.seo.edit', ['id' => $id])->with('status', 'SEO mapping saved. Pages will synchronize on profile publication or update.');
     }
 
     public function sync(Request $request): RedirectResponse
     {
-        $count = app(SeoDirectory::class)->sync();
+        // Temporarily disabled: generate SEO URLs only on profile publication/updates.
+        // $count = app(SeoDirectory::class)->sync();
         app(ReportAccessLog::class)->record($request, 'seo-pages', 'sync');
 
-        return redirect()->route('admin.reports.index', ['report' => 'seo-pages'])->with('status', 'Processed '.$count.' teacher and institute profiles.');
+        return redirect()->route('admin.reports.index', ['report' => 'seo-pages'])->with('status', 'SEO sync is temporarily disabled. URLs generate on profile publication or update.');
     }
 }
