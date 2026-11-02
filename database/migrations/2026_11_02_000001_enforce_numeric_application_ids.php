@@ -67,9 +67,12 @@ return new class extends Migration
         $used = [];
         $map = [];
         foreach ($ids as $id) {
-            if (preg_match('/^[1-9][0-9]*$/D', $id) === 1 && (int) $id <= PHP_INT_MAX) {
-                $used[(int) $id] = true;
-                $map[$id] = (int) $id;
+            $candidate = preg_match('/^[1-9][0-9]*$/D', $id) === 1
+                ? (int) $id
+                : (preg_match('/^~([1-9][0-9]*)$/D', $id, $matches) === 1 ? (int) $matches[1] : null);
+            if ($candidate !== null && ! isset($used[$candidate])) {
+                $used[$candidate] = true;
+                $map[$id] = $candidate;
             }
         }
         $next = $used === [] ? 0 : max(array_keys($used));
@@ -103,7 +106,10 @@ return new class extends Migration
         }
 
         foreach ($map as $old => $new) {
-            DB::table($table)->where('id', $old)->update(['id' => '~'.$new]);
+            // PHP converts numeric-string array keys to integers. Bind the old
+            // value as a string so MySQL does not numerically compare a legacy
+            // CHAR column containing both numeric values and UUIDs.
+            DB::table($table)->where('id', (string) $old)->update(['id' => '~'.$new]);
         }
         DB::statement("UPDATE `{$table}` SET `id` = SUBSTRING(`id`, 2) WHERE `id` LIKE '~%'");
         DB::statement("ALTER TABLE `{$table}` MODIFY `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT");
@@ -121,7 +127,7 @@ return new class extends Migration
         if (Schema::hasTable('business_activity') && ! $this->isNumeric('business_activity', 'entity_id')) {
             foreach ($activities as $table => $type) {
                 foreach ($this->maps[$table] ?? [] as $old => $new) {
-                    DB::table('business_activity')->where('entity_type', $type)->where('entity_id', $old)
+                    DB::table('business_activity')->where('entity_type', $type)->where('entity_id', (string) $old)
                         ->update(['entity_id' => $new]);
                 }
             }
@@ -137,7 +143,7 @@ return new class extends Migration
         if (Schema::hasTable('admin_report_access_log') && ! $this->isNumeric('admin_report_access_log', 'record_id')) {
             foreach ($reports as $table => $names) {
                 foreach ($this->maps[$table] ?? [] as $old => $new) {
-                    DB::table('admin_report_access_log')->whereIn('report', $names)->where('record_id', $old)
+                    DB::table('admin_report_access_log')->whereIn('report', $names)->where('record_id', (string) $old)
                         ->update(['record_id' => $new]);
                 }
             }
@@ -151,7 +157,7 @@ return new class extends Migration
             return;
         }
         foreach ($map as $old => $new) {
-            DB::table($table)->where($column, $old)->update([$column => $new]);
+            DB::table($table)->where($column, (string) $old)->update([$column => $new]);
         }
     }
 
