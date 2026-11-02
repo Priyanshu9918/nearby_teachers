@@ -130,7 +130,7 @@
                                 <div class="field" id="path-params-wrap" hidden><label>Path parameters</label><div class="param-grid" id="path-params"></div></div>
                                 <div class="endpoint-guide" id="endpoint-guide" hidden></div>
                                 <div class="field"><label for="request-query">Query string <span class="hint">optional, e.g. lat=28.6&amp;lng=77.2</span></label><input id="request-query" class="control" type="text" placeholder="key=value&amp;another=value" autocomplete="off"></div>
-                                <div class="field"><label for="bearer-token">Bearer token <span class="hint">included in cURL; kept only in this page</span></label><input id="bearer-token" class="control" type="password" autocomplete="off" placeholder="Paste token or full ‘Bearer …’ value"><span class="hint">If blank, protected cURL examples include a replaceable token placeholder.</span></div>
+                                <div class="field"><label for="bearer-token">Bearer token <span class="hint">auto-filled after login · included in cURL; kept only in this page</span></label><input id="bearer-token" class="control" type="password" autocomplete="off" placeholder="Paste token or full ‘Bearer …’ value"><span class="hint">A successful POST /auth/login applies its token to authenticated requests. If blank, protected cURL examples include a replaceable placeholder.</span></div>
                                 <div class="field"><label for="request-headers">Additional headers <span class="hint">JSON object</span></label><textarea id="request-headers" spellcheck="false">{"Accept":"application/json"}</textarea></div>
                                 <div class="field" id="request-mode-field"><label for="request-mode">Body type</label><select id="request-mode" class="control"><option value="json">JSON</option><option value="multipart">Multipart form with image</option></select></div>
                                 <div class="field" id="request-body-field"><label for="request-body"><span id="request-body-label">JSON body</span> <span class="hint">omit for GET/DELETE with no body</span></label><textarea id="request-body" spellcheck="false">{}</textarea></div>
@@ -503,7 +503,14 @@
             && selectedApi?.fileRequired && !fileInput.files?.length
             ? selectedApi.fileField || 'image'
             : null;
-        return {url, method: method.value, headers: requestHeaders, body: requestBody, filePlaceholder};
+        return {
+            url,
+            method: method.value,
+            headers: requestHeaders,
+            body: requestBody,
+            filePlaceholder,
+            autoApplyBearerToken: method.value === 'POST' && requestPath === '/auth/login',
+        };
     }
 
     document.getElementById('api-form').addEventListener('submit', async (event) => {
@@ -529,13 +536,24 @@
             const raw = await response.text();
             const contentType = response.headers.get('content-type') || 'unknown';
             let display = raw;
+            let loginTokenApplied = false;
             try {
-                display = JSON.stringify(JSON.parse(raw), null, 2);
+                const responseData = JSON.parse(raw);
+                display = JSON.stringify(responseData, null, 2);
+                if (response.ok && request.autoApplyBearerToken
+                    && typeof responseData?.token === 'string' && responseData.token.trim() !== '') {
+                    token.value = responseData.token.trim();
+                    loginTokenApplied = true;
+                }
             } catch {
                 if (raw === '') display = '(empty response body)';
             }
             if (version !== responseVersion) return;
             showResponse(display, `${response.status} ${response.statusText || ''}`.trim(), `${Math.round(performance.now() - started)} ms`, contentType);
+            if (loginTokenApplied) {
+                tokenActions.hidden = true;
+                responseType.textContent = `Content-Type: ${contentType} · Bearer token applied for authenticated API requests.`;
+            }
         } catch (error) {
             const message = error.name === 'AbortError'
                 ? 'Request timed out after 45 seconds.'
