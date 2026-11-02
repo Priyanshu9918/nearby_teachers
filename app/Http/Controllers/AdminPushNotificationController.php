@@ -11,7 +11,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Throwable;
@@ -65,21 +64,19 @@ class AdminPushNotificationController extends Controller
         if ($recipientCount < 1) {
             throw ValidationException::withMessages(['audience' => 'No active, push-enabled devices match this audience.']);
         }
-        $campaignId = (string) Str::uuid();
         $data = filled($message['deep_link'] ?? null) ? ['deep_link' => $message['deep_link']] : null;
         $payload = json_encode(['message' => [
             'token' => str_repeat('x', 128),
             'notification' => ['title' => trim($message['title']), 'body' => trim($message['body'])],
-            'data' => ['campaign_id' => $campaignId] + ($data ?? []),
+            'data' => ['campaign_id' => (string) PHP_INT_MAX] + ($data ?? []),
         ]], JSON_THROW_ON_ERROR);
         if (strlen($payload) > 4096) {
             throw ValidationException::withMessages(['body' => 'Keep the notification title and message within Firebase Cloud Messaging’s 4 KB payload limit.']);
         }
         $adminEmail = filled(config('admin.email')) ? (string) config('admin.email') : null;
 
-        DB::transaction(function () use ($campaignId, $target, $filters, $message, $data, $recipientCount, $adminEmail, $activity, $request): void {
-            DB::table('push_campaigns')->insert([
-                'id' => $campaignId,
+        DB::transaction(function () use ($target, $filters, $message, $data, $recipientCount, $adminEmail, $activity, $request): void {
+            $campaignId = DB::table('push_campaigns')->insertGetId([
                 'title' => trim($message['title']),
                 'body' => trim($message['body']),
                 'data' => $data === null ? null : json_encode($data, JSON_THROW_ON_ERROR),

@@ -657,7 +657,7 @@ compatibility/system endpoints are here. Classification does not widen access.
 | `DELETE` | `/push/devices/current` | Verified bearer | JSON body `firebaseInstallationId` | Unregister before `/auth/logout` or when notifications are disabled. |
 | `DELETE` | `/safety/blocks/{userId}` | Verified bearer | — | Unblocks a user. |
 | `POST` | `/suggestions` | Verified bearer | `suggestionType` (`course`, `city`, `state`, `country`), `name`; optional `notes` | Submits a suggestion. |
-| `POST` | `/support` | Verified learner, teacher or institute bearer | `subject`, `message` | Creates a UUID ticket with `pending` status; returns 201. |
+| `POST` | `/support` | Verified learner, teacher or institute bearer | `subject`, `message` | Creates a numeric-ID ticket with `pending` status; returns 201. |
 | `GET` | `/support/mine` | Verified bearer | Optional `page`, `perPage` (default 20, max 50) | Lists the caller's tickets with status and timestamps. |
 | `GET` | `/download?ref=CODE` | Public referral link | `ref` | Opening a valid referral link awards one point per browser and code owner. Repeat opens in the same browser are deduplicated with a one-year cookie; this page redirects to the app store where configured. |
 | `GET` | `/referrals/mine` | Verified bearer | — | Returns or creates the caller's referral code and link, `referredCount`, `referralPoints`, and the joined-user list in `referred` (`id`, `full_name`, `account_type`, approved `avatar_url`, `created_at`). Opening a valid `/download?ref=CODE` link awards one point per browser and code owner; repeat opens from the same browser do not add more points. |
@@ -785,7 +785,7 @@ provide this API permission. Keep admin tests in a separate admin environment.
 | `GET` | `/admin/contact-info` | Admin bearer | — | Reads public Contact BSL settings; access logged. |
 | `PUT` | `/admin/contact-info` | Admin bearer | `whatsappNumber`, `email`, `linkedinUrl`, `linkedinName`, `linkedinTitle` | Updates Contact BSL links; access logged and changes recorded. |
 | `GET` | `/support` | Admin bearer | Optional `status` (`pending`, `in_progress`, `resolved`, `rejected`, `all`), `q`, `page`, `perPage` | Lists tickets; defaults to pending. `open` is accepted as an alias for pending. |
-| `PATCH` | `/support/{ticketId}/status` | Admin bearer | `status`: `pending`, `in_progress`, `resolved`, `rejected` | Updates status; new ticket IDs are UUIDs and older converted numeric IDs remain accepted. The app reads status from `/support/mine`. |
+| `PATCH` | `/support/{ticketId}/status` | Admin bearer | `status`: `pending`, `in_progress`, `resolved`, `rejected` | Updates status; ticket IDs are numeric. The app reads status from `/support/mine`. |
 | `GET` | `/referrals/top` | Admin bearer | — | Up to 50 top referrers with `referred_count` and `referral_points`. |
 | `GET` | `/analytics/summary` | Admin bearer | Optional `days` | Page-view summary for the requested period (default 30 days). |
 | `GET` | `/moderation/photos/pending` | Admin bearer | — | Lists photos awaiting review. |

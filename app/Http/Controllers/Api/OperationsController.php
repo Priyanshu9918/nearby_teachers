@@ -206,7 +206,7 @@ class OperationsController extends Controller
         $user = $request->attributes->get('authenticated_user');
         abort_unless($user !== null && in_array($user->account_type, ['learner', 'teacher', 'institute'], true), 403,
             'Learner, teacher or institute account required.');
-        $ticket = $tickets->create((string) $user->id, trim($data['subject']), trim($data['message']));
+        $ticket = $tickets->create((int) $user->id, trim($data['subject']), trim($data['message']));
 
         $to = $contact->current()->email;
         if (! filled($to)) {
@@ -274,12 +274,12 @@ class OperationsController extends Controller
         ])->header('Cache-Control', 'no-store, private');
     }
 
-    public function updateTicket(Request $request, string $id, SupportTicketManager $tickets): JsonResponse
+    public function updateTicket(Request $request, int $id, SupportTicketManager $tickets): JsonResponse
     {
         $data = $request->validate(['status' => ['required', 'in:open,pending,in_progress,resolved,rejected']]);
         $admin = $request->attributes->get('authenticated_user');
         $status = $data['status'] === 'open' ? 'pending' : $data['status'];
-        $ticket = $tickets->updateStatus($id, $status, (string) $admin->id);
+        $ticket = $tickets->updateStatus($id, $status, (int) $admin->id);
         if ($ticket === null) {
             return response()->json(['error' => 'Ticket not found'], 404);
         }

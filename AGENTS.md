@@ -1,5 +1,12 @@
 # Project conventions
 
+## Identifier architecture
+
+- Application and reporting records use database-generated, auto-incrementing
+  numeric IDs. Do not introduce UUID primary keys or UUID-based route IDs.
+- Keep polymorphic reporting references numeric and update their allowlisted
+  conversion mappings when adding a new reportable entity type.
+
 ## Reporting architecture
 
 The project owner expects future features to remain reportable. Treat reporting

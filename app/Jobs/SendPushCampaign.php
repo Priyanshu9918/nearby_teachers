@@ -13,7 +13,6 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Throwable;
 
 class SendPushCampaign implements ShouldQueue
@@ -24,7 +23,7 @@ class SendPushCampaign implements ShouldQueue
 
     public int $timeout = 75;
 
-    public function __construct(public readonly string $campaignId, public readonly ?string $afterDeviceId = null)
+    public function __construct(public readonly int $campaignId, public readonly ?int $afterDeviceId = null)
     {
         $this->onQueue('push');
     }
@@ -83,7 +82,7 @@ class SendPushCampaign implements ShouldQueue
                 $values = ['status' => 'sending', 'error_code' => null, 'attempt_count' => $attempts[$device->id] ?? 0,
                     'attempted_at' => $now, 'updated_at' => $now];
                 if ($existing === null) {
-                    DB::table('push_deliveries')->insert(['id' => (string) Str::uuid(), 'campaign_id' => $this->campaignId,
+                    DB::table('push_deliveries')->insert(['campaign_id' => $this->campaignId,
                         'device_id' => $device->id, ...$values, 'created_at' => $now]);
                 } else {
                     DB::table('push_deliveries')->where('id', $existing->id)->update($values);
@@ -111,8 +110,8 @@ class SendPushCampaign implements ShouldQueue
                     'attempted_at' => now(), 'updated_at' => now(),
                 ]);
                 $deliveryId = $deliveryQuery->value('id');
-                if (is_string($deliveryId)) {
-                    $activity->record('push.delivery_result', $deliveryId, null,
+                if ($deliveryId !== null) {
+                    $activity->record('push.delivery_result', (int) $deliveryId, null,
                         relatedUserId: $recipients[$deviceId]['device']->user_id ?? null,
                         after: ['status' => $result['status'], 'error_code' => $result['error_code'] ?? null,
                             'attempt_count' => $attempts[$deviceId] ?? 1]);
@@ -124,7 +123,7 @@ class SendPushCampaign implements ShouldQueue
         });
 
         if ($hasMore) {
-            self::dispatch($this->campaignId, (string) $batch->last()->id)->onQueue('push');
+            self::dispatch($this->campaignId, (int) $batch->last()->id)->onQueue('push');
         } else {
             $this->finishCampaign();
         }

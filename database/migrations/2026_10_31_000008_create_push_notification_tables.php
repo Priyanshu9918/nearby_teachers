@@ -2,19 +2,21 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
+        $numeric = str_contains(strtolower((string) DB::selectOne("SHOW COLUMNS FROM `users` LIKE 'id'")->Type), 'bigint');
         $this->createTableUnlessPresent('push_devices', [
             'id', 'user_id', 'fid_hash', 'fid_ciphertext', 'platform', 'location_city', 'location_state',
             'location_country', 'location_consent', 'location_source', 'last_registered_at', 'last_seen_at',
             'disabled_at', 'created_at', 'updated_at',
-        ], function (Blueprint $table): void {
-            $table->char('id', 36)->primary();
-            $table->char('user_id', 36);
+        ], function (Blueprint $table) use ($numeric): void {
+            $numeric ? $table->id() : $table->char('id', 36)->primary();
+            $numeric ? $table->unsignedBigInteger('user_id') : $table->char('user_id', 36);
             $table->char('fid_hash', 64)->unique();
             // FCM instance identifiers are encrypted at rest before storage.
             $table->longText('fid_ciphertext')->nullable();
@@ -37,8 +39,8 @@ return new class extends Migration
         $this->createTableUnlessPresent('push_campaigns', [
             'id', 'title', 'body', 'data', 'target_type', 'target_filters', 'recipient_count', 'status',
             'created_by_email', 'queued_at', 'started_at', 'finished_at', 'created_at', 'updated_at',
-        ], function (Blueprint $table): void {
-            $table->char('id', 36)->primary();
+        ], function (Blueprint $table) use ($numeric): void {
+            $numeric ? $table->id() : $table->char('id', 36)->primary();
             $table->string('title', 120);
             $table->text('body');
             $table->json('data')->nullable();
@@ -58,11 +60,11 @@ return new class extends Migration
         $this->createTableUnlessPresent('push_deliveries', [
             'id', 'campaign_id', 'device_id', 'status', 'provider_message_id', 'error_code', 'attempt_count',
             'attempted_at', 'created_at', 'updated_at',
-        ], function (Blueprint $table): void {
-            $table->char('id', 36)->primary();
-            $table->char('campaign_id', 36);
+        ], function (Blueprint $table) use ($numeric): void {
+            $numeric ? $table->id() : $table->char('id', 36)->primary();
+            $numeric ? $table->unsignedBigInteger('campaign_id') : $table->char('campaign_id', 36);
             // A plain ID preserves delivery history if the app later removes a device row.
-            $table->char('device_id', 36);
+            $numeric ? $table->unsignedBigInteger('device_id') : $table->char('device_id', 36);
             $table->string('status', 20)->default('pending');
             $table->string('provider_message_id', 255)->nullable();
             $table->string('error_code', 120)->nullable();
@@ -80,7 +82,7 @@ return new class extends Migration
      * MySQL keeps successful DDL statements when a later statement in a migration fails.
      * Preserve a matching table on retry, but fail clearly if its columns do not match.
      */
-    private function createTableUnlessPresent(string $name, array $requiredColumns, \Closure $definition): void
+    private function createTableUnlessPresent(string $name, array $requiredColumns, Closure $definition): void
     {
         if (! Schema::hasTable($name)) {
             Schema::create($name, $definition);
@@ -94,7 +96,7 @@ return new class extends Migration
         ));
 
         if ($missingColumns !== []) {
-            throw new \RuntimeException(sprintf(
+            throw new RuntimeException(sprintf(
                 'Existing table [%s] is missing required columns: %s. Inspect and reconcile its schema before retrying this migration.',
                 $name,
                 implode(', ', $missingColumns),

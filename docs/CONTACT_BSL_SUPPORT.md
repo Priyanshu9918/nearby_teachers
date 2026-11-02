@@ -6,8 +6,7 @@ API or the browser admin sidebar's **Contact BSL links** page. The WhatsApp URL
 is derived from the saved number, including its country code.
 
 Learners, teachers and institutes can submit a subject and message with
-`POST /support`. New tickets receive a UUID and start as `pending`. Older tickets
-whose IDs were converted to numbers remain addressable by their existing ID. The app
+`POST /support`. New tickets receive a numeric ID and start as `pending`. The app
 loads the signed-in user's history from `GET /support/mine`; the response
 includes the latest status and timestamps, with bounded pagination. Admins can
 filter and update tickets through the admin API or the **Support tickets** admin

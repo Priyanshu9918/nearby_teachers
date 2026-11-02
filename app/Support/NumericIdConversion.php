@@ -17,11 +17,19 @@ final class NumericIdConversion
     private const ENTITIES = ['user' => 'users', 'teacher_profile' => 'teacher_profiles', 'institute_profile' => 'institute_profiles',
         'booking' => 'bookings', 'message' => 'messages',
         'message_reaction' => 'message_reactions', 'otp_delivery' => 'otp_delivery_attempts',
-        'post' => 'posts', 'comment' => 'post_comments', 'report' => 'reports'];
+        'post' => 'posts', 'comment' => 'post_comments', 'report' => 'reports',
+        'support_ticket' => 'support_tickets', 'referral_click' => 'referral_clicks',
+        'push_device' => 'push_devices', 'push_campaign' => 'push_campaigns', 'push_delivery' => 'push_deliveries'];
 
     public function __construct()
     {
-        $this->tables = config('numeric_ids');
+        // Later migrations may register tables that do not exist yet when the
+        // original conversion migration runs.
+        $this->tables = array_filter(
+            config('numeric_ids'),
+            static fn (array $columns, string $table): bool => Schema::hasTable($table),
+            ARRAY_FILTER_USE_BOTH,
+        );
     }
 
     public function needed(): bool

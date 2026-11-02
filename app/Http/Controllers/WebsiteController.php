@@ -10,7 +10,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
 
@@ -238,9 +237,7 @@ class WebsiteController extends Controller
             }
 
             try {
-                $clickId = (string) Str::uuid();
-                DB::table('referral_clicks')->insert([
-                    'id' => $clickId,
+                $clickId = DB::table('referral_clicks')->insertGetId([
                     'referrer_id' => $referrerId,
                     'visitor_hash' => $visitorHash,
                     'created_at' => now(),

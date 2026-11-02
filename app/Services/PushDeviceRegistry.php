@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Reporting\BusinessActivityRecorder;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 final class PushDeviceRegistry
 {
@@ -17,7 +16,7 @@ final class PushDeviceRegistry
         return DB::transaction(function () use ($user, $data, $fidHash, $location): array {
             $device = DB::table('push_devices')->where('fid_hash', $fidHash)->lockForUpdate()->first();
             $now = now();
-            $id = $device?->id ?? (string) Str::uuid();
+            $id = $device?->id;
             $hasLocation = $location['city'] !== null || $location['state'] !== null || $location['country'] !== null;
             $locationChanged = $device === null
                 || $device->location_city !== $location['city']
@@ -26,12 +25,12 @@ final class PushDeviceRegistry
                 || (bool) $device->location_consent !== $location['consent']
                 || $device->location_source !== $location['source'];
             $changed = $device === null
-                || $device->user_id !== (string) $user->id
+                || (int) $device->user_id !== (int) $user->id
                 || $device->platform !== $data['platform']
                 || $locationChanged
                 || $device->disabled_at !== null;
             $values = [
-                'user_id' => (string) $user->id,
+                'user_id' => (int) $user->id,
                 'fid_hash' => $fidHash,
                 'fid_ciphertext' => Crypt::encryptString($data['firebaseInstallationId']),
                 'platform' => $data['platform'],
@@ -47,14 +46,14 @@ final class PushDeviceRegistry
             ];
 
             if ($device === null) {
-                DB::table('push_devices')->insert(['id' => $id, ...$values, 'created_at' => $now]);
+                $id = DB::table('push_devices')->insertGetId([...$values, 'created_at' => $now]);
             } else {
                 DB::table('push_devices')->where('id', $id)->update($values);
             }
 
             if ($changed) {
                 app(BusinessActivityRecorder::class)->record(
-                    'push.device_registered', $id, (string) $user->id,
+                    'push.device_registered', $id, (int) $user->id,
                     before: [], after: ['platform' => $data['platform'], 'has_location' => $hasLocation,
                         'location_changed' => $locationChanged, 'location_source' => $location['source']],
                 );
@@ -70,7 +69,7 @@ final class PushDeviceRegistry
 
         return DB::transaction(function () use ($user, $fidHash): bool {
             $device = DB::table('push_devices')->where('fid_hash', $fidHash)
-                ->where('user_id', (string) $user->id)->lockForUpdate()->first();
+                ->where('user_id', (int) $user->id)->lockForUpdate()->first();
             if ($device === null || $device->disabled_at !== null) {
                 return false;
             }
@@ -80,14 +79,14 @@ final class PushDeviceRegistry
                 'location_city' => null, 'location_state' => null, 'location_country' => null,
                 'location_consent' => false, 'location_source' => null, 'disabled_at' => now(), 'updated_at' => now(),
             ]);
-            app(BusinessActivityRecorder::class)->record('push.device_unregistered', $device->id, (string) $user->id,
+            app(BusinessActivityRecorder::class)->record('push.device_unregistered', $device->id, (int) $user->id,
                 before: [], after: ['platform' => $device->platform]);
 
             return true;
         });
     }
 
-    public function disableInvalidFid(string $deviceId): void
+    public function disableInvalidFid(int $deviceId): void
     {
         DB::transaction(function () use ($deviceId): void {
             $device = DB::table('push_devices')->where('id', $deviceId)->lockForUpdate()->first();

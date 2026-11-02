@@ -44,7 +44,7 @@ Content-Type: application/json
 Expected response:
 
 ```json
-{"deviceId":"<backend UUID>","registered":true}
+{"deviceId":123,"registered":true}
 ```
 
 The backend encrypts the FID at rest and keeps only a keyed hash for matching. Never send the Firebase service-account key, Firebase Google sign-in ID token, or the user's Laravel token as an FID.
@@ -99,7 +99,7 @@ FCM acceptance does not confirm OS display or user visibility. The backend recor
 3. Choose one audience:
    - **All active devices**: every registered, enabled device on a non-suspended, non-admin account.
    - **Account type or location**: combine learner/teacher/institute with any city/state/country filters. A location-only filter is allowed.
-   - **Every device for one user**: paste the user's UUID from the user report.
+   - **Every device for one user**: paste the user's numeric ID from the user report.
    - **One specific device**: open **Registered push devices**, find the target, and paste its backend `deviceId`. That report never shows the FID.
 4. Check the live active-device count, set title/message, and optionally add an internal app path such as `/feed`.
 5. Type `SEND` and queue the campaign.

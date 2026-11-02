@@ -80,7 +80,7 @@ return [
         'profile_user_id' => 'users',
     ],
     'support_tickets' => [
-        // Ticket IDs stay UUIDs; only the user reference is converted.
+        'id' => 'support_tickets',
         'user_id' => 'users',
     ],
     'suggestions' => [
@@ -106,11 +106,11 @@ return [
         'user_id' => 'users',
     ],
     'admin_report_access_log' => [
-        // Access-log IDs stay UUIDs; only polymorphic record references change.
+        'id' => 'admin_report_access_log',
         'record_id' => null,
     ],
     'business_activity' => [
-        // Append-only event IDs stay UUIDs; actor references use numeric users.
+        'id' => 'business_activity',
         'actor_user_id' => 'users',
         'related_user_id' => 'users',
         'entity_id' => null,
@@ -124,5 +124,21 @@ return [
         'message_id' => 'messages',
         'conversation_id' => 'conversations',
         'user_id' => 'users',
+    ],
+    'referral_clicks' => [
+        'id' => 'referral_clicks',
+        'referrer_id' => 'users',
+    ],
+    'push_devices' => [
+        'id' => 'push_devices',
+        'user_id' => 'users',
+    ],
+    'push_campaigns' => [
+        'id' => 'push_campaigns',
+    ],
+    'push_deliveries' => [
+        'id' => 'push_deliveries',
+        'campaign_id' => 'push_campaigns',
+        'device_id' => 'push_devices',
     ],
 ];

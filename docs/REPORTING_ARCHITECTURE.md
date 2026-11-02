@@ -56,14 +56,12 @@ them to inclusive local dates on the server, and the same `from`/`to` bounds
 apply to report pages, CSV exports and the matching workbook sheet. Report
 forms submit the current search and date inputs to exports.
 
-`admin_report_access_log.id` is a UUID (`CHAR(36)`). Migration `000006`
-repairs deployed databases where this column was created as numeric, preserving
-existing access-log IDs as strings so UUID inserts from `ReportAccessLog` work.
-Migration `000007` repairs the UUID columns for `business_activity.id` and
-`support_tickets.id`, and rechecks the admin access-log column. Existing
-converted numeric IDs stay unchanged as strings; new log, activity and ticket
-writes use UUIDs as their schema and writers require. The ID conversion allowlist
-leaves these three primary keys unchanged on future conversions.
+Application and reporting primary keys use auto-incrementing numeric IDs.
+Migration `2026_11_02_000001` repairs deployments where migrations `000006` or
+`000007` restored UUID-compatible columns, remaps any UUID-era ticket/reporting
+rows without deleting history, and keeps polymorphic report references aligned.
+New report-access, business-activity and support-ticket writes rely on database
+generated IDs; application code must not introduce UUID primary keys.
 
 ## Add a report
 

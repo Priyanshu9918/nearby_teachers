@@ -772,7 +772,7 @@ shown in this shared documentation category.
 | `POST` | `/safety/blocks/{userId}` | Verified bearer | — | Blocks a user. |
 | `DELETE` | `/safety/blocks/{userId}` | Verified bearer | — | Unblocks a user. |
 | `POST` | `/suggestions` | Verified bearer | `suggestionType` (`course`, `city`, `state`, `country`), `name`; optional `notes` | Submits a suggestion. |
-| `POST` | `/support` | Verified learner, teacher or institute bearer | `subject`, `message` | Creates a UUID ticket with `pending` status; returns 201. |
+| `POST` | `/support` | Verified learner, teacher or institute bearer | `subject`, `message` | Creates a numeric-ID ticket with `pending` status; returns 201. |
 | `GET` | `/support/mine` | Verified bearer | Optional `page`, `perPage` (default 20, max 50) | Lists the caller's tickets with status and timestamps. |
 | `GET` | `/download?ref=CODE` | Public referral link | `ref` | Opening a valid referral link awards one point per browser and code owner; repeat opens from the same browser are deduplicated. |
 | `GET` | `/referrals/mine` | Verified bearer | — | Returns or creates the caller's referral code, points and referred users. Opening a valid `/download?ref=CODE` link awards one point per browser and code owner; repeat opens from the same browser do not add points. |
@@ -961,7 +961,7 @@ admin portal's `ADMIN_EMAIL`/`ADMIN_PASSWORD_HASH` login.
 | `GET` | `/admin/contact-info` | Admin bearer | — | Reads the public Contact BSL settings; access logged. |
 | `PUT` | `/admin/contact-info` | Admin bearer | `whatsappNumber`, `email`, `linkedinUrl`, `linkedinName`, `linkedinTitle` | Updates public Contact BSL actions; access logged and changes recorded. |
 | `GET` | `/support` | Admin bearer; optional `status` (`pending`, `in_progress`, `resolved`, `rejected`, `all`), `q`, `page`, `perPage` (default 30, max 100) | Lists support tickets; reads are access logged. `open` is accepted as an alias for `pending`. |
-| `PATCH` | `/support/{ticketId}/status` | Admin bearer; `status`: `pending`, `in_progress`, `resolved`, `rejected` | Updates ticket status and records the change in activity history. New ticket IDs are UUIDs; existing converted numeric IDs remain accepted. |
+| `PATCH` | `/support/{ticketId}/status` | Admin bearer; `status`: `pending`, `in_progress`, `resolved`, `rejected` | Updates a numeric-ID ticket and records the change in activity history. |
 | `GET` | `/referrals/top` | — | Up to 50 top referrers. |
 | `GET` | `/analytics/summary` | Optional `days` | Page-view summary for the requested period (default 30 days). |
 | `GET` | `/moderation/photos/pending` | — | Lists photos awaiting review. |

@@ -8,7 +8,7 @@
     { "key": "baseUrl", "value": "http://localhost:8000", "type": "string" },
     { "key": "userToken", "value": "", "type": "string" },
     { "key": "adminToken", "value": "", "type": "string" },
-    { "key": "ticketId", "value": "50000000-0000-4000-8000-000000000001", "type": "string" }
+    { "key": "ticketId", "value": "1", "type": "string" }
   ],
   "item": [
     {

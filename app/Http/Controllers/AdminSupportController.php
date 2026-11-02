@@ -29,7 +29,7 @@ final class AdminSupportController extends Controller
         return back()->with('status', 'Contact details updated. The app now uses these links.');
     }
 
-    public function updateTicketStatus(Request $request, string $id, SupportTicketManager $tickets): RedirectResponse
+    public function updateTicketStatus(Request $request, int $id, SupportTicketManager $tickets): RedirectResponse
     {
         $data = $request->validate(['status' => ['required', 'in:pending,in_progress,resolved,rejected']]);
         $ticket = $tickets->updateStatus($id, $data['status'], null);

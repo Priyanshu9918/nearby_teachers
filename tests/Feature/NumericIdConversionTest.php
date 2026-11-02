@@ -42,7 +42,8 @@ class NumericIdConversionTest extends TestCase
         DB::purge('mysql');
         $this->assertStringEndsWith('_test', DB::connection()->getDatabaseName());
         $this->usesDisposableDatabase = true;
-        $paths = array_values(array_filter(glob(database_path('migrations/*.php')), fn ($path) => ! str_contains($path, '000034_')));
+        $paths = array_values(array_filter(glob(database_path('migrations/*.php')), fn ($path) => ! str_contains($path, '000034_')
+            && ! str_contains($path, 'enforce_numeric_application_ids')));
         Artisan::call('migrate:fresh', ['--force' => true, '--path' => $paths, '--realpath' => true]);
         $old = fn (int $id) => sprintf('00000000-0000-4000-8000-%012d', $id);
         DB::table('users')->insert([
@@ -109,12 +110,12 @@ class NumericIdConversionTest extends TestCase
         $this->assertNull(DB::table('reports')->where('reason', 'Unlinked report')->value('target_type'));
         $this->assertNull(DB::table('reports')->where('reason', 'Unlinked report')->value('target_id'));
         $this->assertSame(1, DB::table('admin_report_access_log')->value('record_id'));
-        $this->assertSame($old(60), DB::table('admin_report_access_log')->value('id'));
-        $this->assertSame($old(61), DB::table('support_tickets')->value('id'));
+        $this->assertSame(1, DB::table('admin_report_access_log')->value('id'));
+        $this->assertSame(1, DB::table('support_tickets')->value('id'));
         $this->assertSame(1, DB::table('support_tickets')->value('user_id'));
         $this->assertSame('2', DB::table('page_views')->value('target'));
         $history = DB::table('business_activity')->where('event', 'message.replied')->first();
-        $this->assertSame($old(70), $history->id);
+        $this->assertSame(1, $history->id);
         $this->assertSame(2, $history->entity_id);
         $snapshot = json_decode($history->after_data, true);
         $this->assertSame(1, $snapshot['conversation_id']);
