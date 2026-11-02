@@ -204,4 +204,24 @@ return [
         'columns' => ['id', 'admin_id', 'accessed_at'],
         'participants' => ['admin_id'], 'search' => [],
     ],
+    'push-campaigns' => [
+        'title' => 'Push notification campaigns', 'table' => 'push_campaigns', 'timestamp' => 'created_at',
+        'columns' => ['id', 'title', 'body', 'target_type', 'target_filters', 'recipient_count', 'status', 'created_by_email', 'queued_at', 'started_at', 'finished_at', 'created_at'],
+        'participants' => [], 'search' => ['title', 'body', 'target_type', 'status', 'created_by_email'],
+        'computed' => [
+            'accepted_count' => "(SELECT count(*) FROM push_deliveries pd WHERE pd.campaign_id = r.id AND pd.status = 'accepted')",
+            'failed_count' => "(SELECT count(*) FROM push_deliveries pd WHERE pd.campaign_id = r.id AND pd.status = 'failed')",
+        ],
+    ],
+    'push-devices' => [
+        'title' => 'Registered push devices', 'table' => 'push_devices', 'timestamp' => 'last_registered_at',
+        'columns' => ['id', 'user_id', 'platform', 'location_city', 'location_state', 'location_country', 'location_consent', 'location_source', 'last_registered_at', 'last_seen_at', 'disabled_at'],
+        'participants' => ['user_id'], 'search' => ['platform', 'location_city', 'location_state', 'location_country'],
+    ],
+    'push-deliveries' => [
+        'title' => 'Push delivery attempts', 'table' => 'push_deliveries', 'timestamp' => 'attempted_at',
+        'columns' => ['id', 'campaign_id', 'device_id', 'status', 'provider_message_id', 'error_code', 'attempt_count', 'attempted_at'],
+        'participants' => [], 'search' => ['campaign_id', 'device_id', 'status', 'error_code', 'provider_message_id'],
+        'computed' => ['campaign_title' => '(SELECT pc.title FROM push_campaigns pc WHERE pc.id = r.campaign_id)'],
+    ],
 ];

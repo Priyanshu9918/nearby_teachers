@@ -564,8 +564,16 @@
         const request = prepareRequest({forCurl: true});
         if (!request) return;
 
-        const command = [`curl --globoff --request ${shellQuote(request.method)}`, `--url ${shellQuote(request.url.href)}`];
-        request.headers.forEach((value, name) => command.push(`--header ${shellQuote(`${name}: ${value}`)}`));
+        const command = [`curl --location --globoff ${shellQuote(request.url.href)}`];
+        if (request.method !== 'GET' && (request.method !== 'POST' || request.body === undefined)) {
+            command.push(`--request ${shellQuote(request.method)}`);
+        }
+        const displayHeaderName = (name) => ({
+            accept: 'Accept',
+            authorization: 'Authorization',
+            'content-type': 'Content-Type',
+        }[name.toLowerCase()] || name.split('-').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join('-'));
+        request.headers.forEach((value, name) => command.push(`--header ${shellQuote(`${displayHeaderName(name)}: ${value}`)}`));
         if (request.body instanceof FormData) {
             request.body.forEach((value, name) => command.push(typeof value === 'string'
                 ? `--form-string ${shellQuote(`${name}=${value}`)}`
@@ -573,7 +581,7 @@
             if (request.filePlaceholder) {
                 command.push(`--form ${shellQuote(`${request.filePlaceholder}=@/path/to/your-image.jpg`)}`);
             }
-        } else if (request.body !== undefined) command.push(`--data-raw ${shellQuote(request.body)}`);
+        } else if (request.body !== undefined) command.push(`--data ${shellQuote(request.body)}`);
         curlOutput.value = command.join(' \\\n  ');
         curlPreview.hidden = false;
         copyCurlButton.disabled = true;

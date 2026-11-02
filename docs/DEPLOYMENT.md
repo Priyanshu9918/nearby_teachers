@@ -88,7 +88,7 @@ chgrp www-data .env
 chmod 640 .env
 ```
 
-First stop the manually running `npm run chat:start` and both `queue:work`
+First stop the manually running `npm run chat:start` and all `queue:work`
 commands with **Ctrl+C in their respective terminals**. Stop any old process
 manager copies too. Do not leave manual workers running alongside the managed
 ones. The installer refuses to take a chat port owned by another process.
@@ -98,7 +98,7 @@ After this setup script is present in the server checkout, run as root:
 ```bash
 cd /var/www/html/nearby_teachers
 bash scripts/setup-deploy-services.sh /var/www/html/nearby_teachers www-data
-systemctl status nearby-teacher-chat nearby-teacher-broadcasts nearby-teacher-notifications --no-pager
+systemctl status nearby-teacher-chat nearby-teacher-broadcasts nearby-teacher-notifications nearby-teacher-push --no-pager
 curl --fail http://127.0.0.1:6001/health
 ```
 
@@ -110,6 +110,7 @@ and reboots:
 | `nearby-teacher-chat` | Node `realtime/index.js` |
 | `nearby-teacher-broadcasts` | PHP `artisan queue:work --queue=broadcasts --sleep=1 --tries=3 --timeout=30` |
 | `nearby-teacher-notifications` | PHP `artisan queue:work --queue=notifications,default --sleep=1 --tries=3 --timeout=30` |
+| `nearby-teacher-push` | PHP `artisan queue:work --queue=push --sleep=1 --tries=3 --timeout=75` |
 
 The installer grants the service user owner-write access within `storage` and
 `bootstrap/cache`, retaining existing private file modes and contents. It does

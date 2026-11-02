@@ -10,6 +10,7 @@ are also available in the dedicated
 For dynamic Contact BSL actions and support-ticket status tracking, use the
 [Contact & Support collection](postman/contact-support.postman_collection.json)
 and [support contract](CONTACT_BSL_SUPPORT.md).
+For FCM registration, notification permissions and admin targeting, follow the [push notification integration guide](APP_TEAM_PUSH_NOTIFICATIONS.md).
 Examples are fictional and response fragments omit unrelated fields; they are
 not live captures. Tokens are placeholders.
 
@@ -652,6 +653,8 @@ compatibility/system endpoints are here. Classification does not widen access.
 `reasonCategory` accepts codes or display labels: `fraud` / “Fraud or scam”, `fake_profile` / “Fake profile / not who they claim”, `inappropriate` / “Inappropriate behavior”, `spam` / “Spam”, and `other` / “Other”. The API stores the code form.
 | `POST` | `/safety/blocks/{userId}` | Verified bearer | — | Blocks a user. |
 | `POST` | `/presence/update` | Verified bearer | `deviceId`, `event` (`foreground`, `activity`, `heartbeat`, `background`) | Returns `{isActive}`. Five-minute inactivity and 90-second heartbeat expiry; [integration details](PRESENCE.md). |
+| `POST` | `/push/devices` | Verified bearer | `firebaseInstallationId` (FCM FID), `notificationsEnabled`, `platform` (`android` or `ios`); optional consented learner `locationCity`, `locationState`, `locationCountry` | Registers or refreshes the signed-in app instance for FCM. Returns a backend `deviceId`; see the [push guide](APP_TEAM_PUSH_NOTIFICATIONS.md). |
+| `DELETE` | `/push/devices/current` | Verified bearer | JSON body `firebaseInstallationId` | Unregister before `/auth/logout` or when notifications are disabled. |
 | `DELETE` | `/safety/blocks/{userId}` | Verified bearer | — | Unblocks a user. |
 | `POST` | `/suggestions` | Verified bearer | `suggestionType` (`course`, `city`, `state`, `country`), `name`; optional `notes` | Submits a suggestion. |
 | `POST` | `/support` | Verified learner, teacher or institute bearer | `subject`, `message` | Creates a UUID ticket with `pending` status; returns 201. |

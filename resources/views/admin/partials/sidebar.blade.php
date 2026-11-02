@@ -18,6 +18,7 @@
     <nav class="side-nav" aria-label="Admin sections">
         <div class="nav-section-label">Start here</div>
         <a href="{{ route('admin.dashboard') }}" @class(['nav-link', 'active' => request()->routeIs('admin.dashboard')]) @if(request()->routeIs('admin.dashboard')) aria-current="page" @endif data-nav-item><x-admin-icon name="dashboard" /><span>Overview</span></a>
+        <a href="{{ route('admin.push-notifications.index') }}" @class(['nav-link', 'active' => request()->routeIs('admin.push-notifications.*')]) @if(request()->routeIs('admin.push-notifications.*')) aria-current="page" @endif data-nav-item><x-admin-icon name="chat" /><span>Send push notification</span></a>
         <a href="{{ route('admin.create', ['section' => 'teachers']) }}" @class(['nav-link', 'active' => request()->routeIs('admin.create') && request()->route('section') === 'teachers']) data-nav-item><x-admin-icon name="plus" /><span>Add a teacher</span></a>
 
         <div class="nav-section-label">Manage accounts &amp; catalog</div>

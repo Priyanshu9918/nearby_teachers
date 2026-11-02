@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminReportController;
+use App\Http\Controllers\AdminPushNotificationController;
 use App\Http\Controllers\AdminSupportController;
 use App\Http\Controllers\AdminSeoController;
 use App\Http\Controllers\AdminWorkspaceController;
@@ -95,6 +96,11 @@ Route::middleware(RequireAdminSession::class)->prefix('admin')->name('admin.')->
     Route::post('/seo/sync', [AdminSeoController::class, 'sync'])->name('seo.sync');
 
     Route::get('/dashboard', [AdminReportController::class, 'dashboard'])->name('dashboard');
+    Route::get('/push-notifications', [AdminPushNotificationController::class, 'index'])->name('push-notifications.index');
+    Route::get('/push-notifications/preview', [AdminPushNotificationController::class, 'preview'])
+        ->middleware(ThrottleRequests::class.':60,1')->name('push-notifications.preview');
+    Route::post('/push-notifications', [AdminPushNotificationController::class, 'store'])
+        ->middleware(ThrottleRequests::class.':10,1')->name('push-notifications.store');
     Route::get('/reports/users/{id}', [AdminReportController::class, 'user'])->where('id', RecordId::ROUTE_PATTERN)->name('reports.user');
     Route::get('/reports/conversations/{id}', [AdminReportController::class, 'conversation'])->where('id', RecordId::ROUTE_PATTERN)->name('reports.conversation');
     Route::get('/reports/safety/{id}/screenshot', [AdminReportController::class, 'screenshot'])

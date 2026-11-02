@@ -63,6 +63,7 @@ return [
         'firebase_project_id' => env('FIREBASE_PROJECT_ID'),
         'firebase_service_account_path' => env('FIREBASE_SERVICE_ACCOUNT_PATH'),
         'firebase_service_account_json' => env('FIREBASE_SERVICE_ACCOUNT_JSON'),
+        'firebase_messaging_enabled' => env('FIREBASE_MESSAGING_ENABLED', false),
         'app_base_url' => env('APP_BASE_URL', 'https://bsl.international'),
         'ios_app_store_url' => env('IOS_APP_STORE_URL'),
         'android_play_store_url' => env('ANDROID_PLAY_STORE_URL'),

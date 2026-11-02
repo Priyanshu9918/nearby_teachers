@@ -155,22 +155,24 @@ write_unit nearby-teacher-broadcasts 'Nearby Teacher broadcasts queue' \
     "$(exec_quote "$php_bin") $(exec_quote "$app_path/artisan") queue:work --queue=broadcasts --sleep=1 --tries=3 --timeout=30"
 write_unit nearby-teacher-notifications 'Nearby Teacher notifications queue' \
     "$(exec_quote "$php_bin") $(exec_quote "$app_path/artisan") queue:work --queue=notifications,default --sleep=1 --tries=3 --timeout=30"
+write_unit nearby-teacher-push 'Nearby Teacher push notifications queue' \
+    "$(exec_quote "$php_bin") $(exec_quote "$app_path/artisan") queue:work --queue=push --sleep=1 --tries=3 --timeout=75"
 write_unit nearby-teacher-chat 'Nearby Teacher Socket.IO chat' \
     "$(exec_quote "$node_bin") $(exec_quote "$app_path/realtime/index.js")"
 
-for unit_name in nearby-teacher-broadcasts nearby-teacher-notifications nearby-teacher-chat; do
+for unit_name in nearby-teacher-broadcasts nearby-teacher-notifications nearby-teacher-push nearby-teacher-chat; do
     install -m 0644 -- "$unit_directory/$unit_name.service" "/etc/systemd/system/$unit_name.service"
 done
 systemctl daemon-reload
-for unit_name in nearby-teacher-broadcasts nearby-teacher-notifications nearby-teacher-chat; do
+for unit_name in nearby-teacher-broadcasts nearby-teacher-notifications nearby-teacher-push nearby-teacher-chat; do
     systemctl enable "$unit_name.service"
     systemctl restart "$unit_name.service"
 done
-for unit_name in nearby-teacher-broadcasts nearby-teacher-notifications nearby-teacher-chat; do
+for unit_name in nearby-teacher-broadcasts nearby-teacher-notifications nearby-teacher-push nearby-teacher-chat; do
     systemctl is-active --quiet "$unit_name.service" \
         || fail "$unit_name did not start. Inspect: journalctl -u $unit_name.service -n 50 --no-pager"
 done
 
 printf 'Services installed and started as %s in %s.\n' "$app_user" "$app_path"
 printf 'Stop any remaining old manual queue workers so only managed workers remain.\n'
-printf 'Inspect logs: journalctl -u nearby-teacher-chat -u nearby-teacher-broadcasts -u nearby-teacher-notifications -f\n'
+printf 'Inspect logs: journalctl -u nearby-teacher-chat -u nearby-teacher-broadcasts -u nearby-teacher-notifications -u nearby-teacher-push -f\n'

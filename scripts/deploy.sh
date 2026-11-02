@@ -32,7 +32,7 @@ done
 php -r 'exit(version_compare(PHP_VERSION, "8.2.0", ">=") && extension_loaded("pdo_mysql") ? 0 : 1);' || fail 'PHP 8.2+ with pdo_mysql is required.'
 [[ $(node -p 'Number(process.versions.node.split(".")[0]) >= 22') == true ]] || fail 'Node.js 22+ is required.'
 systemctl is-system-running >/dev/null 2>&1 || [[ $(systemctl is-system-running 2>/dev/null) == degraded ]] || fail 'A running systemd host is required.'
-units=(nearby-teacher-broadcasts.service nearby-teacher-notifications.service nearby-teacher-chat.service)
+units=(nearby-teacher-broadcasts.service nearby-teacher-notifications.service nearby-teacher-push.service nearby-teacher-chat.service)
 for unit in "${units[@]}"; do
     systemctl is-active --quiet "$unit" || fail "$unit must be installed and active; run setup-deploy-services.sh first."
 done

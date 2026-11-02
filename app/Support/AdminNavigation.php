@@ -19,7 +19,7 @@ final class AdminNavigation
             'Referrals & posters' => ['icon' => 'chart', 'reports' => ['referrals', 'referral-clicks', 'phone-reveals']],
             'Jobs, franchise & call-backs' => ['icon' => 'briefcase', 'reports' => ['job-applications', 'job-application-courses', 'franchise-enquiries']],
             'Safety & support' => ['icon' => 'shield', 'reports' => ['reports', 'blocks', 'support', 'support-contact-settings', 'suggestions']],
-            'WhatsApp alerts & team' => ['icon' => 'chat', 'reports' => ['otp-delivery', 'activity', 'admin-access', 'api-chat-access', 'api-booking-access']],
+            'Notifications & team' => ['icon' => 'chat', 'reports' => ['push-campaigns', 'push-deliveries', 'push-devices', 'otp-delivery', 'activity', 'admin-access', 'api-chat-access', 'api-booking-access']],
         ];
         $currentReport = request()->route('report');
         if (request()->routeIs('admin.reports.user')) {

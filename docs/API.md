@@ -25,6 +25,8 @@ For Contact BSL links and ticket-status tracking, import the dedicated
 [Contact & Support Postman collection](postman/contact-support.postman_collection.json)
 or read the [support contract](CONTACT_BSL_SUPPORT.md).
 
+For app device registration and admin push campaigns, see the [push notification guide](APP_TEAM_PUSH_NOTIFICATIONS.md).
+
 These categories organize app responsibilities; they do not add role permissions.
 Provider listing URLs appear in both Teacher and Institute. Shared chat, feed,
 comments, replies and safety APIs appear in each app role and in Common. Booking
@@ -765,6 +767,8 @@ shown in this shared documentation category.
 | `POST` | `/safety/reports` | Verified learner, teacher or institute bearer | Required `reasonCategory`; optional `targetType`/`targetId`, legacy `reason` (max 5000) or `additionalDetails` (max 500), `evidenceLink` (HTTP/HTTPS), `screenshot` (JPEG/PNG/WebP, max 5 MB) | Returns 201 and creates an open report. Missing, unsupported or unavailable targets are saved unlinked. Use JSON without an image or multipart/form-data with one. Limited to 10/minute. |
 | `POST` | `/reports` | Verified learner, teacher or institute bearer | Required `reasonCategory`; optional `targetType`/`targetId`, `additionalDetails` (max 500), `evidenceLink` (HTTP/HTTPS), `screenshot` (JPEG/PNG/WebP, max 5 MB) | Returns 201 and creates an open confidential report. Missing, unsupported or unavailable targets are saved unlinked. Use JSON without an image or multipart/form-data with one. Limited to 10/minute. |
 | `POST` | `/presence/update` | Verified bearer | `deviceId`, `event` (`foreground`, `activity`, `heartbeat`, `background`) | Returns `{isActive}`. Five-minute inactivity and 90-second heartbeat expiry; [presence contract](PRESENCE.md). |
+| `POST` | `/push/devices` | Verified bearer | `firebaseInstallationId` (FCM FID), `notificationsEnabled`, `platform` (`android` or `ios`); optional consented learner `locationCity`, `locationState`, `locationCountry` | Registers or refreshes the signed-in app instance for FCM. Returns a backend `deviceId`; the FID is encrypted at rest. |
+| `DELETE` | `/push/devices/current` | Verified bearer | JSON body `firebaseInstallationId` | Unregister before logout or when notifications are disabled; clears encrypted FID and learner location. |
 | `POST` | `/safety/blocks/{userId}` | Verified bearer | — | Blocks a user. |
 | `DELETE` | `/safety/blocks/{userId}` | Verified bearer | — | Unblocks a user. |
 | `POST` | `/suggestions` | Verified bearer | `suggestionType` (`course`, `city`, `state`, `country`), `name`; optional `notes` | Submits a suggestion. |

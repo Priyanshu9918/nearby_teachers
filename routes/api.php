@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\OperationsController;
 use App\Http\Controllers\Api\PasswordRecoveryController;
 use App\Http\Controllers\Api\PresenceController;
 use App\Http\Controllers\Api\ProfilesController;
+use App\Http\Controllers\Api\PushDevicesController;
 use App\Http\Controllers\Api\SafetyReportsController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SocketIoController;
@@ -70,6 +71,8 @@ Route::middleware(AttachOptionalApiUser::class)
 
 Route::middleware(RequireApiAuthentication::class)->group(function () {
     Route::post('/presence/update', PresenceController::class)->middleware(ThrottlePresence::class);
+    Route::post('/push/devices', [PushDevicesController::class, 'register'])->middleware('throttle:30,1');
+    Route::delete('/push/devices/current', [PushDevicesController::class, 'unregister'])->middleware('throttle:30,1');
     Route::get('/auth/session', [AuthController::class, 'session']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/auth/email/verification/request', [PasswordRecoveryController::class, 'requestVerification'])->middleware('throttle:email-code');

@@ -74,6 +74,12 @@ final class BusinessActivityRecorder
         'comment.like_changed' => ['comment', ['liked']],
         'feed.comment_created' => ['comment', ['post_id', 'parent_comment_id']],
         'post.like_changed' => ['post', ['liked']],
+        'push.device_registered' => ['push_device', ['platform', 'has_location', 'location_changed', 'location_source']],
+        'push.device_unregistered' => ['push_device', ['platform']],
+        'push.device_fid_invalidated' => ['push_device', ['reason']],
+        'push.campaign_queued' => ['push_campaign', ['target_type', 'recipient_count', 'title_length', 'body_length']],
+        'push.delivery_result' => ['push_delivery', ['status', 'error_code', 'attempt_count']],
+        'push.campaign_completed' => ['push_campaign', ['status', 'accepted_count', 'failed_count']],
     ];
 
     public function record(string $event, string|int $entityId, string|int|null $actorUserId, string|int|null $relatedUserId = null, array $before = [], array $after = []): string

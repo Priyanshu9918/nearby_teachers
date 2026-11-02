@@ -650,7 +650,7 @@ class DeveloperController extends Controller
                 'guide' => 'Database-backed presence for this authenticated device; no Redis required. Send foreground/activity/heartbeat/background. Heartbeat every 30 seconds; foreground/activity reset the five-minute idle timer. Background removes the device immediately; a missing heartbeat expires it in 90 seconds. Only current state is retained; the Laravel scheduler prunes expired rows in bounded batches.',
             ],
             'POST /suggestions' => ['body' => ['suggestionType' => 'course', 'name' => 'Beginner Sign Language', 'notes' => 'Example suggestion.']],
-            'POST /support' => ['body' => ['subject' => 'Example support request', 'message' => 'Please describe your support question here.'],
+            'POST /support' => ['body' => ['subject' => 'Booking help', 'message' => 'Please help me with my booking.'],
                 'guide' => 'Learner, teacher and institute accounts can submit a private support ticket. Returns 201 with a UUID and pending status. The ticket appears in GET /support/mine and the admin support queue.'],
             'PUT /admin/contact-info' => ['body' => ['whatsappNumber' => '+919876543210', 'email' => 'support@example.test',
                 'linkedinUrl' => 'https://www.linkedin.com/in/example-profile', 'linkedinName' => 'Prateek Gupta', 'linkedinTitle' => 'Executive Director'],

@@ -54,10 +54,13 @@ Requirements: PHP 8.2+, Composer, the `pdo_mysql` PHP extension, MySQL 8, and No
    ```
    php artisan queue:work --queue=broadcasts --sleep=1 --tries=3 --timeout=30
    php artisan queue:work --queue=notifications,default --sleep=1 --tries=3 --timeout=30
+   php artisan queue:work --queue=push --sleep=1 --tries=3 --timeout=75
    ```
    `QUEUE_CONNECTION=database` is the default; `sync` runs work inside API
    requests. Production workers should be kept alive by a process manager.
    After deployment use `php artisan queue:restart` to reload worker code.
+   For Firebase FID app registration, admin targeting and FCM setup, see
+   `docs/APP_TEAM_PUSH_NOTIFICATIONS.md`.
    The admin portal is at `/admin`. Its Subjects, Students, Teachers, and
    Institutes sections support add, edit, list, and delete operations.
    Students use the existing `learner` account type. Database access in the
