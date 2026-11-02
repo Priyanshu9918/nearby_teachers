@@ -13,6 +13,9 @@ final class SeoDirectory
 
     public const LOCATION_COUNT_SQL = "((SELECT count(*) FROM teacher_profiles p JOIN users u ON u.id = p.user_id WHERE u.account_type = 'teacher' AND u.suspended_at IS NULL AND u.phone_verified_at IS NOT NULL AND u.profile_completed_at IS NOT NULL AND p.is_profile_complete = 1 AND p.public_page_slug IS NOT NULL AND p.seo_country = lp.country AND (lp.kind = 'country' OR p.district = lp.district) AND (lp.kind IN ('country', 'district') OR COALESCE(NULLIF(p.locality, ''), p.city) = lp.village) AND (lp.subject_id IS NULL OR EXISTS (SELECT 1 FROM profile_subjects ps WHERE ps.profile_type = 'teacher' AND ps.profile_id = p.user_id AND ps.subject_id = lp.subject_id))) + (SELECT count(*) FROM institute_profiles ip JOIN users iu ON iu.id = ip.user_id WHERE iu.account_type = 'institute' AND iu.suspended_at IS NULL AND iu.phone_verified_at IS NOT NULL AND iu.profile_completed_at IS NOT NULL AND ip.is_profile_complete = 1 AND ip.public_page_slug IS NOT NULL AND ip.seo_country = lp.country AND (lp.kind = 'country' OR ip.district = lp.district) AND (lp.kind IN ('country', 'district') OR COALESCE(NULLIF(ip.locality, ''), ip.city) = lp.village) AND (lp.subject_id IS NULL OR EXISTS (SELECT 1 FROM profile_subjects ips WHERE ips.profile_type = 'institute' AND ips.profile_id = ip.user_id AND ips.subject_id = lp.subject_id))))";
 
+    // Subject-area pages must follow the same enabled wording as city listings.
+    public const LOCATION_ROUTE_SQL = "(lp.kind <> 'subject_village' OR (lp.subject_id IS NOT NULL AND EXISTS (SELECT 1 FROM seo_subject_routes lr WHERE lr.subject_id = lp.subject_id AND lr.country = lp.country AND lr.language = lp.language AND lr.enabled = 1 AND lr.city_slug = lp.subject_slug)))";
+
     public static function url(string $path): string
     {
         return rtrim(config('seo.public_url'), '/').'/'.ltrim($path, '/');
@@ -153,7 +156,7 @@ final class SeoDirectory
     public function pages(): Builder
     {
         $query = DB::table('seo_directory_pages as r')->join('seo_subject_routes as sr', 'sr.id', '=', 'r.route_id')
-            ->where('sr.enabled', true)->whereRaw(self::COUNT_SQL.' > 0')
+            ->where('r.kind', 'city')->where('sr.enabled', true)->whereRaw(self::COUNT_SQL.' > 0')
             ->select('r.*', 'sr.display_name');
         $this->restrictToDefaultLanguages($query, 'r.country', 'r.language');
 
@@ -179,10 +182,13 @@ final class SeoDirectory
                 'location' => 'seo_location_pages',
                 default => null,
             };
-            if ($targetTable !== null && ! DB::table($targetTable)->where('id', $owner->target_id)
-                ->where('path', $path)->exists()) {
-                DB::table('seo_urls')->where('id', $owner->id)->where('target_type', $owner->target_type)
-                    ->where('target_id', $owner->target_id)->update(['target_type' => $type, 'target_id' => $id]);
+            if ($targetTable !== null && ! DB::table($targetTable)->where('id', $owner->target_id)->exists()) {
+                $reservations = DB::table('seo_urls')->where('target_type', $owner->target_type)
+                    ->where('target_id', $owner->target_id);
+                if ($type !== $owner->target_type) {
+                    $reservations->where('id', $owner->id);
+                }
+                $reservations->update(['target_type' => $type, 'target_id' => $id]);
                 $owner = DB::table('seo_urls')->where('path_hash', $hash)->where('path', $path)->first();
             }
         }
@@ -203,6 +209,9 @@ final class SeoDirectory
                 $known = $name;
                 break;
             }
+        }
+        if ($known === null) {
+            return; // New subjects require explicit admin-reviewed wording.
         }
         foreach (config('seo.countries.'.$country.'.languages') as $language) {
             if (DB::table('seo_subject_routes')->where('subject_id', $subject->id)->where('country', $country)->where('language', $language)->exists()) {
@@ -253,9 +262,8 @@ final class SeoDirectory
         $routes = DB::table('seo_subject_routes')->where('country', $profile->seo_country)
             ->where('language', self::language($profile->seo_country))->where('enabled', true)
             ->whereIn('subject_id', $subjects)->get();
-        $online = in_array('online', (json_decode($profile->lesson_modes ?: '[]', true) ?: []), true);
         foreach ($routes as $route) {
-            foreach ($online ? ['city', 'online'] : ['city'] as $kind) {
+            foreach (['city'] as $kind) {
                 $citySlug = $kind === 'online' ? 'online' : $profile->seo_city_slug;
                 $identity = ['route_id' => $route->id, 'kind' => $kind, 'city_slug' => $citySlug];
                 $page = DB::table('seo_directory_pages')->where($identity)->first();
@@ -333,6 +341,21 @@ final class SeoDirectory
     {
         $path = self::locationPath($values);
         $existing = DB::table('seo_location_pages')->where('path', $path)->first();
+        if ($existing === null && $values['kind'] === 'subject_village') {
+            $existing = DB::table('seo_location_pages')->where(array_intersect_key($values,
+                array_flip(['kind', 'country', 'language', 'district_slug', 'village_slug', 'subject_id'])))
+                ->orderBy('id')->first();
+            if ($existing !== null && $existing->path !== $path) {
+                if (! self::claim($path, 'location', (int) $existing->id)) {
+                    throw new \LogicException('SEO URL is already owned.');
+                }
+                DB::table('seo_location_pages')->where('id', $existing->id)
+                    ->update(['path' => $path, 'subject_slug' => $values['subject_slug'], 'updated_at' => now()]);
+                app(BusinessActivityRecorder::class)->record('seo.location_page_updated', (int) $existing->id, null,
+                    before: ['path' => $existing->path], after: ['path' => $path]);
+                $existing->path = $path;
+            }
+        }
         $inserted = false;
         if ($existing === null) {
             $inserted = DB::table('seo_location_pages')->insertOrIgnore($values + ['path' => $path, 'created_at' => now(), 'updated_at' => now()]) === 1;
@@ -373,10 +396,23 @@ final class SeoDirectory
     public function locationPages(): Builder
     {
         $query = DB::table('seo_location_pages as lp')->select('lp.*')
-            ->selectRaw(self::LOCATION_COUNT_SQL.' AS eligible_providers')->whereRaw(self::LOCATION_COUNT_SQL.' > 0');
+            ->selectRaw(self::LOCATION_COUNT_SQL.' AS eligible_providers')->whereRaw(self::LOCATION_COUNT_SQL.' > 0')
+            ->whereRaw(self::LOCATION_ROUTE_SQL);
         $this->restrictToDefaultLanguages($query, 'lp.country', 'lp.language');
 
         return $query;
+    }
+
+    public function locationPage(string $path): ?object
+    {
+        $page = $this->locationPages()->where('lp.path', $path)->first();
+        if ($page !== null) {
+            return $page;
+        }
+        $owner = DB::table('seo_urls')->where('path_hash', hash('sha256', $path))
+            ->where('path', $path)->where('target_type', 'location')->first();
+
+        return $owner ? $this->locationPages()->where('lp.id', $owner->target_id)->first() : null;
     }
 
     private function restrictToDefaultLanguages(Builder $query, string $countryColumn, string $languageColumn): void

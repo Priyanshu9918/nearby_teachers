@@ -79,8 +79,8 @@ City slugs normalize case/spacing/punctuation and use curated native-city aliase
 
 1. Asha registers in India/Kanpur with five subjects and online + in-person modes.
 2. Registration persists one teacher URL: `/teacher/asha-sharma-kanpur`.
-3. Each configured subject/language mapping creates or reuses a shared Kanpur listing.
-4. Online mode also registers/reuses that country's online listing for the subject.
+3. Each enabled default-language subject mapping creates or reuses a shared Kanpur listing.
+4. Online mode does not create a separate directory URL.
 5. Another matching teacher joins the same listing rather than creating a duplicate page.
 6. Removing a subject removes the teacher from that listing on the next read. Removing online mode removes online membership. Counts come from current qualified profiles.
 7. Changing name/city reserves a new teacher URL; previous URLs redirect directly to the current page. Country changes select the new country/language and listings. Teacher URLs contain no subject list or country segment.
@@ -107,7 +107,7 @@ For profiles without enough country/publication data, SEO URLs are null. There a
 
 `seo_subject_routes` stores subject ID, country, language, localized display name, city slug, online slug and enabled status. Slugs do not get translated dynamically per request.
 
-Starter native wording exists for Maths, Physics, Chemistry, English, Hindi and IELTS. English-language countries can seed descriptive English slugs for other catalog subjects. For other languages, an unknown subject waits for an administrator to supply localized wording; the application does not publish English-only copy as a translated listing. Catalog subjects that would collide with an existing slug also need explicit separate wording; distinct subject IDs are not silently merged.
+Starter native wording exists for Maths, Physics, Chemistry, English, Hindi and IELTS. Other subjects wait for an administrator to supply reviewed wording, including English. The application does not publish English-only copy as a translated listing. Catalog subjects that would collide with an existing slug also need explicit separate wording; distinct subject IDs are not silently merged.
 
 These are editable starter phrases and should receive client editorial review. The long IELTS catalog name is recognized as IELTS. English vs Spanish Maths wording and US IELTS prep vs Indian IELTS coaching follow the client examples.
 
@@ -191,3 +191,48 @@ vendor/bin/phpunit tests/Feature/TeacherPublicPagesTest.php tests/Feature/Onboar
 ```
 
 Coverage includes country/subject wording, local-language HTML and RTL, language-free canonical paths and redirects from older language URLs, one teacher page, membership/online filters, missing countries, duplicate names, old links/long aliases, pagination, streamed sitemaps, admin mapping edits/disable, CSV access logging, privacy and transaction rollback. Desktop/mobile static previews can be rendered with fictional teacher data without altering application data.
+
+## SEO repair and publication rules (November 2026)
+
+New automatic subject wording must exist in `resources/seo/subjects.json`.
+Unrecognized subjects retain their provider profiles and selected subjects but
+wait for an explicit admin mapping before receiving directory pages. The starter
+catalog includes short OET and ESL slugs; legacy untouched English starter wording
+is normalized by repair. Existing custom slugs are preserved. Legacy unknown
+English starter mappings without an explicit admin-save event are disabled for
+review, rather than deleting subjects or provider selections.
+
+Subject-area pages require an enabled mapping with the current subject slug.
+Changing wording updates the existing location page identity and retains a direct
+301 alias; disabling wording removes its pages from public reads and sitemaps.
+City and area directories remain distinct because areas can have narrower provider
+sets. Country online-subject pages are disabled: no new `/country/online/subject`
+URLs are created, legacy requests return 404, and repair prunes old online-page
+rows. Providers can still offer online lessons on their profiles and appear in
+city/area results. Empty location pagination beyond page one returns 404.
+
+Run `php artisan seo:repair` for a transactional preview (all changes roll back).
+Run `php artisan seo:repair --apply` to save a private JSON backup of the four SEO
+metadata tables, reconcile wording, sync profiles and delete unavailable generated
+listing/location rows. Application users, provider profiles, subjects and subject
+selections are not deleted. Business history and URL reservations are retained;
+old redirects and protection against taking another provider's URL are necessary
+metadata, not duplicate indexed pages. The command is idempotent. Re-enabling a
+mapping or adding a matching provider recreates required pages on publication/sync.
+The Laravel scheduler runs repair daily at 03:15 in the application timezone
+(without overlapping runs); the scheduler must be running on the deployment.
+For a different server, deploy this code and run the same command against that
+server's configured database. Never point integration tests at that database.
+
+Version 1 `seo.page_pruned`, `seo.location_page_pruned` and
+`seo.location_page_updated` record allowlisted public paths/reasons in the same
+transaction as their mutation. Existing historical events are never deleted or
+backfilled. Repair backup files contain SEO metadata only, remain private, and
+need operational retention management. Dry-run inserts can consume auto-increment
+values even though records and events are rolled back.
+
+Online-subject URL removal: `ensurePages()` registers city pages only; `pages()`
+excludes legacy online rows from directory/sitemap reads. `seo:repair --apply`
+backs up and removes those rows while preserving profiles, city/location pages,
+lesson modes and URL/history reservations. Old online URL reservations are not
+public pages and cannot make these routes render again.

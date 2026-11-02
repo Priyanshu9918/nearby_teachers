@@ -15,7 +15,8 @@ return [
         'title' => 'Location page URLs', 'table' => 'seo_location_pages', 'timestamp' => 'created_at',
         'columns' => ['id', 'kind', 'country', 'district', 'village', 'subject_slug', 'path', 'created_at'],
         'participants' => [], 'search' => ['kind', 'country', 'district', 'village', 'path'],
-        'computed' => ['eligible_providers' => str_replace('lp.', 'r.', SeoDirectory::LOCATION_COUNT_SQL)],
+        'computed' => ['eligible_providers' => str_replace('lp.', 'r.', SeoDirectory::LOCATION_COUNT_SQL),
+            'route_enabled' => str_replace('lp.', 'r.', SeoDirectory::LOCATION_ROUTE_SQL)],
     ],
     'seo-subject-routes' => [
         'title' => 'SEO subject URL settings', 'table' => 'seo_subject_routes', 'timestamp' => 'updated_at',

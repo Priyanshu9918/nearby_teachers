@@ -329,7 +329,7 @@ requests before this feature and receipt webhooks are not covered. See
 SEO location pages are registered in `seo-location-pages` and recorded with the
 allowlisted `seo.location_page_registered` event in the same transaction as the
 page row. History contains only path, country, language, page kind and optional
-subject ID. Counts are computed from currently eligible teacher profiles; they
+subject ID. Counts are computed from currently eligible teacher and institute profiles; they
 are not historical snapshots. Older location pages are not reconstructed into
 business history.
 
@@ -405,3 +405,12 @@ WhatsApp/email/LinkedIn values are not copied into business history. Tracking
 starts at deployment; existing ticket statuses are migrated from `open` to
 `pending` without inventing earlier status events. See
 [`CONTACT_BSL_SUPPORT.md`](CONTACT_BSL_SUPPORT.md).
+
+SEO repair adds version 1 `seo.page_pruned`, `seo.location_page_pruned` (public
+path and unavailable reason) and `seo.location_page_updated` (old/new public
+path). Events commit or roll back with generated-page changes. URL reservations
+and previous business events survive cleanup. Location reports explicitly expose
+`route_enabled`, including current subject wording checks; public reads and
+sitemaps enforce that same check. Unknown subjects now need reviewed mappings;
+profile/subject selections are preserved. See the SEO repair section in
+`TEACHER_SEO_PAGES.md` for backup, preview and application behavior.

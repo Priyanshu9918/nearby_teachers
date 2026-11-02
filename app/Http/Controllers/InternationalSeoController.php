@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\SeoDirectory;
 use App\Services\ProfileEditor;
+use App\Services\SeoDirectory;
 use App\Services\TeacherPublicPages;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
@@ -99,6 +99,7 @@ class InternationalSeoController extends Controller
     public function listing(Request $request, string $country, string $city, string $slug, ?string $language = null): Response
     {
         abort_unless(isset(config('seo.countries')[$country]), 404);
+        abort_if($city === 'online', 404);
         $language ??= (string) $request->query('lang', SeoDirectory::language($country));
         abort_unless(in_array($language, config('seo.countries.'.$country.'.languages'), true), 404);
         $path = '/'.$request->path();
@@ -248,7 +249,7 @@ class InternationalSeoController extends Controller
     public function geoCountry(Request $request, string $country): Response
     {
         abort_unless(isset(config('seo.countries')[$country]), 404);
-        $page = $this->directory->locationPages()->where('lp.path', '/'.$request->path())->first();
+        $page = $this->directory->locationPage('/'.$request->path());
         abort_if($page === null, 404);
 
         return $this->renderLocationPage($request, $page);
@@ -257,7 +258,7 @@ class InternationalSeoController extends Controller
     public function geoLevelTwo(Request $request, string $country, string $segment): Response
     {
         abort_unless(isset(config('seo.countries')[$country]), 404);
-        $page = $this->directory->locationPages()->where('lp.path', '/'.$request->path())->first();
+        $page = $this->directory->locationPage('/'.$request->path());
         if ($page !== null) {
             return $this->renderLocationPage($request, $page);
         }
@@ -279,7 +280,7 @@ class InternationalSeoController extends Controller
                 return redirect()->to(SeoDirectory::url($locationPath).'?lang='.rawurlencode($district), 301);
             }
         }
-        $page = $this->directory->locationPages()->where('lp.path', '/'.$request->path())->first();
+        $page = $this->directory->locationPage('/'.$request->path());
         if ($page !== null) {
             return $this->renderLocationPage($request, $page);
         }
@@ -291,13 +292,14 @@ class InternationalSeoController extends Controller
     public function geoLevelFour(Request $request, string $country, string $first, string $second, string $third): Response
     {
         abort_unless(isset(config('seo.countries')[$country]), 404);
-        $page = $this->directory->locationPages()->where('lp.path', '/'.$request->path())->first();
+        $page = $this->directory->locationPage('/'.$request->path());
         if ($page !== null) {
             return $this->renderLocationPage($request, $page);
         }
 
         // Old locale-in-path URLs redirect to the same short URL with a UI language preference.
         if (in_array($first, config('seo.countries.'.$country.'.languages'), true)) {
+            abort_if($second === 'online', 404);
             $locationPath = '/'.$country.'/'.$second.'/'.$third;
             if (DB::table('seo_location_pages')->where('path', $locationPath)->exists()) {
                 return redirect()->to(SeoDirectory::url($locationPath).'?lang='.rawurlencode($first), 301);
@@ -369,6 +371,7 @@ class InternationalSeoController extends Controller
             $query->where('providers.trial_days', '>', 0);
         }
         $providers = $query->paginate(20)->withQueryString();
+        abort_if($providers->currentPage() > 1 && $providers->isEmpty(), 404);
         $language = $filters['lang'] ?? SeoDirectory::language($page->country);
         $subject = null;
         if ($page->subject_id !== null) {

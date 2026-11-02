@@ -4,9 +4,12 @@ namespace Tests\Feature;
 
 use App\Reporting\BusinessActivityRecorder;
 use App\Services\InstitutePublicPages;
+use App\Services\SeoDirectory;
+use App\Services\SeoMaintenance;
 use App\Services\TeacherPublicPages;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Tests\Support\NumericTestIds;
 use Tests\TestCase;
 
@@ -151,7 +154,7 @@ class TeacherPublicPagesTest extends TestCase
             $route = DB::table('seo_subject_routes')->where('country', 'in')->where('language', 'en')
                 ->where('subject_id', $this->subjects[$subject])->first();
             $this->assertNotNull($route);
-            $this->assertTrue(app(\App\Services\SeoDirectory::class)->pages()
+            $this->assertTrue(app(SeoDirectory::class)->pages()
                 ->where('r.subject_id', $route->subject_id)->where('r.city_slug', 'kanpur')->exists());
         }
         $this->assertDatabaseHas('business_activity', [
@@ -205,6 +208,125 @@ class TeacherPublicPagesTest extends TestCase
         $this->get('/in/unknown/maths-tuition')->assertNotFound();
     }
 
+    public function test_location_wording_changes_keep_aliases_and_disabling_removes_sitemap_entries(): void
+    {
+        $this->institute();
+        $old = '/in/kanpur-nagar/bithoor/maths-tuition';
+        $id = DB::table('seo_location_pages')->where('path', $old)->value('id');
+        $route = DB::table('seo_subject_routes')->where('subject_id', $this->subjects['Maths'])
+            ->where('country', 'in')->where('language', 'en')->first();
+        $body = ['id' => $route->id, 'subject_id' => $route->subject_id, 'country' => 'in', 'language' => 'en',
+            'display_name' => 'Mathematics', 'city_slug' => 'mathematics-tuition', 'online_slug' => 'mathematics-online', 'enabled' => true];
+        $this->withSession(['admin_authenticated' => true])->post('/admin/seo/subjects', $body)->assertRedirect();
+        $new = '/in/kanpur-nagar/bithoor/mathematics-tuition';
+        $this->assertSame($id, DB::table('seo_location_pages')->where('path', $new)->value('id'));
+        $this->get($old)->assertRedirect('http://localhost'.$new);
+        $this->get($new)->assertOk()->assertSee('Mathematics');
+        $this->get('/sitemaps/locations-1.xml')->assertOk();
+        $this->post('/admin/seo/subjects', [...$body, 'enabled' => false])->assertRedirect();
+        $this->get($new)->assertNotFound();
+        $xml = $this->get('/sitemaps/locations-1.xml')->streamedContent();
+        $this->assertStringNotContainsString('mathematics-tuition', $xml);
+        $this->get('/admin/reports/seo-location-pages?q=mathematics-tuition')->assertOk()->assertSee('Disabled or superseded wording');
+        $csv = $this->get('/admin/reports/seo-location-pages?q=mathematics-tuition&export=1')->streamedContent();
+        $this->assertStringContainsString($new, $csv);
+    }
+
+    public function test_repair_removes_legacy_online_pages_without_recreating_them(): void
+    {
+        $teacher = $this->teacher();
+        $profileUrl = '/teacher/'.$teacher->public_page_slug;
+        $online = '/in/online/maths-tuition';
+        $route = DB::table('seo_subject_routes')->where('subject_id', $this->subjects['Maths'])->where('language', 'en')->first();
+        $id = DB::table('seo_directory_pages')->insertGetId(['route_id' => $route->id,
+            'subject_id' => $route->subject_id, 'country' => 'in', 'language' => 'en', 'kind' => 'online',
+            'city_slug' => 'online', 'path' => $online, 'created_at' => now(), 'updated_at' => now()]);
+        SeoDirectory::claim($online, 'listing', $id);
+        DB::table('teacher_profiles')->where('user_id', $teacher->user_id)->update(['lesson_modes' => '["in_person"]']);
+        $service = app(SeoMaintenance::class);
+        $before = DB::table('business_activity')->count();
+        $this->artisan('seo:repair')->assertSuccessful();
+        $this->assertTrue(DB::table('seo_directory_pages')->where('path', $online)->exists());
+        $this->assertSame($before, DB::table('business_activity')->count());
+        $removed = $service->prune();
+        $this->assertSame(1, $removed['listing']);
+        $this->assertFalse(DB::table('seo_directory_pages')->where('path', $online)->exists());
+        $this->assertTrue(DB::table('seo_urls')->where('path', $online)->exists());
+        $this->assertTrue(DB::table('business_activity')->where('event', 'seo.page_pruned')->exists());
+        $this->get($profileUrl)->assertOk();
+        $this->get('/in/kanpur/maths-tuition')->assertOk();
+        $this->get($online)->assertNotFound();
+        $this->assertSame(['listing' => 0, 'location' => 0], $service->prune());
+        DB::table('teacher_profiles')->where('user_id', $teacher->user_id)->update(['lesson_modes' => '["online"]']);
+        app(TeacherPublicPages::class)->publish($teacher->user_id);
+        $this->get($online)->assertNotFound();
+        $this->assertFalse(DB::table('seo_directory_pages')->where('kind', 'online')->exists());
+        $this->get('/in?page=999')->assertNotFound();
+    }
+
+    public function test_repair_normalizes_long_starter_wording_and_preserves_backup_and_redirects(): void
+    {
+        Storage::fake('local');
+        $domain = DB::table('subjects')->where('id', $this->subjects['Maths'])->value('domain_id');
+        $name = 'OET English Test for Healthcare Workers';
+        $this->subjects[$name] = DB::table('subjects')->insertGetId(['domain_id' => $domain, 'name' => $name]);
+        $teacher = $this->teacher(subjects: [$name]);
+        $route = DB::table('seo_subject_routes')->where('subject_id', $this->subjects[$name])->first();
+        $long = 'oet-english-test-for-healthcare-workers-tuition';
+        DB::table('seo_subject_routes')->where('id', $route->id)->update(['city_slug' => $long, 'online_slug' => $long]);
+        app(TeacherPublicPages::class)->publish($teacher->user_id);
+        $old = '/in/kanpur/'.$long;
+        $this->get($old)->assertOk();
+        $this->artisan('seo:repair', ['--apply' => true])->assertSuccessful();
+        $this->get($old)->assertRedirect('http://localhost/in/kanpur/oet-tuition');
+        $this->get('/in/online/oet-tuition')->assertNotFound();
+        $files = Storage::disk('local')->files('seo-backups');
+        $this->assertCount(1, $files);
+        $backup = json_decode(Storage::disk('local')->get($files[0]), true);
+        $this->assertCount(1, $backup['seo_subject_routes']);
+        $this->assertSame($long, $backup['seo_subject_routes'][0]['city_slug']);
+        $events = DB::table('business_activity')->count();
+        $this->artisan('seo:repair', ['--apply' => true])->assertSuccessful();
+        $this->assertSame($events, DB::table('business_activity')->count());
+        $owner = DB::table('seo_directory_pages')->where('path', '/in/kanpur/oet-tuition')->value('id');
+        $this->assertFalse(SeoDirectory::claim($old, 'listing', $owner + 999999));
+    }
+
+    public function test_prune_aborts_without_deleting_when_history_fails(): void
+    {
+        $teacher = $this->teacher();
+        DB::table('users')->where('id', $teacher->user_id)->update(['suspended_at' => now()]);
+        $pages = DB::table('seo_directory_pages')->count();
+        $this->app->instance(BusinessActivityRecorder::class, new class
+        {
+            public function record(...$arguments): never
+            {
+                throw new \RuntimeException('History unavailable');
+            }
+        });
+        try {
+            app(SeoMaintenance::class)->prune();
+            $this->fail('Expected cleanup failure.');
+        } catch (\RuntimeException $error) {
+            $this->assertSame('History unavailable', $error->getMessage());
+        }
+        $this->assertSame($pages, DB::table('seo_directory_pages')->count());
+    }
+
+    public function test_cleanup_and_its_events_roll_back_together(): void
+    {
+        $teacher = $this->teacher();
+        DB::table('users')->where('id', $teacher->user_id)->update(['suspended_at' => now()]);
+        $pages = DB::table('seo_directory_pages')->count();
+        $events = DB::table('business_activity')->count();
+        DB::beginTransaction();
+        app(SeoMaintenance::class)->prune();
+        $this->assertSame(0, DB::table('seo_directory_pages')->count());
+        DB::rollBack();
+        $this->assertSame($pages, DB::table('seo_directory_pages')->count());
+        $this->assertSame($events, DB::table('business_activity')->count());
+    }
+
     public function test_country_slug_wording_and_native_page_language(): void
     {
         foreach ([['United Kingdom', 'London', '/gb/london/maths-tutor', 'en'],
@@ -223,13 +345,17 @@ class TeacherPublicPagesTest extends TestCase
         $this->get('/ae/dubai/maths-tutor')->assertOk()->assertSee('dir="rtl"', false);
     }
 
-    public function test_online_results_use_country_and_online_mode(): void
+    public function test_online_subject_urls_are_not_generated_or_public(): void
     {
         $this->teacher('India Online', subjects: ['IELTS']);
         $this->teacher('India Offline', subjects: ['IELTS'], modes: ['in_person']);
         $this->teacher('USA Online', 'Houston', 'United States', ['IELTS']);
-        $this->get('/in/online/ielts-coaching')->assertOk()->assertSee('India Online')->assertDontSee('India Offline')->assertDontSee('USA Online');
-        $this->get('/us/online/ielts-prep')->assertOk()->assertSee('USA Online')->assertDontSee('India Online');
+        $this->get('/in/online/ielts-coaching')->assertNotFound();
+        $this->get('/in/hi/online/ielts-coaching')->assertNotFound();
+        $this->assertFalse(DB::table('seo_directory_pages')->where('kind', 'online')->exists());
+        $xml = $this->get('/sitemaps/directory-1.xml')->streamedContent();
+        $this->assertStringNotContainsString('/online/', $xml);
+        $this->get('/us/online/ielts-prep')->assertNotFound();
         $this->get('/in/kanpur/ielts-tuition')->assertOk()->assertSee('India Offline');
     }
 
@@ -275,6 +401,11 @@ class TeacherPublicPagesTest extends TestCase
         $domain = DB::table('subjects')->where('id', $this->subjects['Maths'])->value('domain_id');
         $this->subjects['Guitar'] = DB::table('subjects')->insertGetId(['domain_id' => $domain, 'name' => 'Guitar']);
         $this->teacher(subjects: ['Guitar']);
+        $this->get('/in/kanpur/guitar-tuition')->assertNotFound();
+        $this->withSession(['admin_authenticated' => true])->post('/admin/seo/subjects', [
+            'subject_id' => $this->subjects['Guitar'], 'country' => 'in', 'language' => 'en',
+            'display_name' => 'Guitar', 'city_slug' => 'guitar-tuition', 'online_slug' => 'guitar-tuition', 'enabled' => true,
+        ])->assertRedirect();
         $this->get('/in/kanpur/guitar-tuition')->assertOk();
         $this->get('/in/hi/kanpur/guitar-tuition')->assertNotFound();
         $this->withSession(['admin_authenticated' => true])->post('/admin/seo/subjects', [

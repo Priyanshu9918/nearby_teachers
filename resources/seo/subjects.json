@@ -97,5 +97,49 @@
     "ur": "IELTS",
     "fr": "IELTS",
     "pt": "IELTS"
+  },
+  "oet": {
+    "aliases": [
+      "oet",
+      "oet-english-test-for-healthcare-workers"
+    ],
+    "en": "OET"
+  },
+  "esl": {
+    "aliases": [
+      "esl",
+      "esl-certification-teach-english-as-a-second-language"
+    ],
+    "en": "ESL"
+  },
+  "english-speaking": {
+    "aliases": [
+      "english-speaking"
+    ],
+    "en": "English Speaking"
+  },
+  "corporate-training": {
+    "aliases": [
+      "corporate-training"
+    ],
+    "en": "Corporate Training"
+  },
+  "arabic": {
+    "aliases": [
+      "arabic"
+    ],
+    "en": "Arabic"
+  },
+  "gardening": {
+    "aliases": [
+      "gardening"
+    ],
+    "en": "Gardening"
+  },
+  "mixology": {
+    "aliases": [
+      "mixology"
+    ],
+    "en": "Mixology"
   }
 }
