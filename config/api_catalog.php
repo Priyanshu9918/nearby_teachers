@@ -4,6 +4,53 @@ return [
     // Workflow groups describe intended use; middleware and controllers enforce access.
     'groups' => ['Auth', 'Learner', 'Teacher', 'Institute', 'Common'],
 
+    // Keep related endpoints together by the data they exchange and the order in which they are used.
+    // Route patterns match the registered path; middleware remains the source of access control.
+    'workflows' => [
+        ['id' => 'auth', 'label' => 'Authentication & onboarding',
+            'description' => 'OTP, sign-in, registration and account completion. Use the returned bearer token for protected API groups.',
+            'paths' => ['/auth/*']],
+        ['id' => 'learner-profile', 'label' => 'Learner profile',
+            'description' => 'Read and update a signed-in learner profile, including its photo.',
+            'paths' => ['/student/profile*']],
+        ['id' => 'provider-profile', 'label' => 'Teacher & institute profile',
+            'description' => 'Use subject and location lookups to build a profile, save its steps, add a photo, then publish. The same lookups also feed discovery filters.',
+            'paths' => ['/profiles/me*', '/teacher/profile*', '/subjects', '/geo/*']],
+        ['id' => 'discovery', 'label' => 'Search & discovery',
+            'description' => 'Search teachers and institutes, open a result profile, then read its reviews.',
+            'paths' => ['/search*', '/profiles/{type}/{id}', '/reviews/for/*']],
+        ['id' => 'feed', 'label' => 'City feed',
+            'description' => 'Create a post, then use its post ID for likes and comments; use comment IDs for comment likes.',
+            'paths' => ['/feed*']],
+        ['id' => 'messaging', 'label' => 'Messaging & chat',
+            'description' => 'Start or list conversations, use the conversation ID for messages and chat events, then authorize Socket.IO access.',
+            'paths' => ['/messages*', '/chat/*', '/broadcasting/auth']],
+        ['id' => 'support', 'label' => 'Support & contact',
+            'description' => 'Submit support tickets and suggestions; users can list their tickets and admins can update the queue.',
+            'paths' => ['/support*', '/suggestions*', '/contact-info', '/admin/contact-info']],
+        ['id' => 'safety', 'label' => 'Safety & reports',
+            'description' => 'Submit safety reports or block users; admins review report status and moderate accounts.',
+            'paths' => ['/reports', '/safety/*']],
+        ['id' => 'referrals', 'label' => 'Referrals',
+            'description' => 'Redeem a referral code, then inspect the signed-in user’s referral summary or admin totals.',
+            'paths' => ['/referrals*']],
+        ['id' => 'push', 'label' => 'Push notifications',
+            'description' => 'Register the current device for push delivery or remove its registration.',
+            'paths' => ['/push/*']],
+        ['id' => 'enquiries', 'label' => 'Business enquiries',
+            'description' => 'Submit franchise or teaching job enquiries; admins review submissions in reports.',
+            'paths' => ['/franchise/*', '/jobs/*']],
+        ['id' => 'admin', 'label' => 'Admin & moderation',
+            'description' => 'Review submissions, moderate profiles and conversations, manage analytics, and suspend accounts.',
+            'paths' => ['/moderation/*', '/profiles/{type}/{id}/verify', '/profiles/institute/*', '/analytics/*']],
+        ['id' => 'platform', 'label' => 'Shared platform APIs',
+            'description' => 'Shared language, presence, reverse location lookup and health endpoints.',
+            'paths' => ['/presence/*', '/i18n/*', '/location-lookup/*', '/health', '/up']],
+        ['id' => 'other', 'label' => 'Other APIs',
+            'description' => 'Registered endpoints that are not assigned to a dependency workflow yet.',
+            'paths' => []],
+    ],
+
     // Keep method/path pairs explicit so documentation coverage can be checked against routes.
     // Shared capabilities appear in each applicable role and in Common for reference.
     'route_groups' => [

@@ -78,6 +78,9 @@ class DeveloperController extends Controller
         return view('developer.portal', [
             'catalog' => $catalog,
             'categories' => config('api_catalog.groups'),
+            'workflows' => array_map(static fn (array $workflow): array => [
+                'id' => $workflow['id'], 'label' => $workflow['label'], 'description' => $workflow['description'],
+            ], config('api_catalog.workflows')),
             'routeCount' => count(array_unique(array_column($catalog, 'routeKey'))),
             'groups' => $groups,
             'settings' => $this->currentSettings($groups),
@@ -271,6 +274,7 @@ class DeveloperController extends Controller
                             'method' => $method,
                             'path' => $path,
                             'category' => $category,
+                            'workflow' => $this->workflowForPath($path),
                             'section' => $adminOnly ? 'Admin only' : 'Application APIs',
                             'access' => $access,
                             'authMode' => $signedIn ? 'bearer' : ($optionalSignIn ? 'optional' : 'none'),
@@ -331,6 +335,27 @@ class DeveloperController extends Controller
         unset($entry);
 
         return $catalog;
+    }
+
+    private function workflowForPath(string $path): array
+    {
+        foreach (config('api_catalog.workflows', []) as $workflow) {
+            foreach ($workflow['paths'] as $pattern) {
+                if (Str::is($pattern, $path)) {
+                    return [
+                        'id' => $workflow['id'],
+                        'label' => $workflow['label'],
+                        'description' => $workflow['description'],
+                    ];
+                }
+            }
+        }
+
+        return [
+            'id' => 'other',
+            'label' => 'Other APIs',
+            'description' => 'Registered endpoints that are not assigned to a dependency workflow yet.',
+        ];
     }
 
     private function requestVariants(string $method, string $path, string $category): array

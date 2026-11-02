@@ -19,6 +19,7 @@
         .config-warning{border:1px solid #f0d99b;background:#fff9e9;color:#755b1a;border-radius:10px;padding:12px 14px;margin-bottom:15px;font-size:11px;line-height:1.6}.config-warning strong{display:block;margin-bottom:3px}.config-group{margin-bottom:14px}.config-group:last-child{margin-bottom:0}.config-group h3{margin:0;padding:12px 16px;background:#f8f9fc;border-bottom:1px solid #edf0f5;color:#314158;font-size:12px}.config-group .config-grid{padding:15px 16px 2px}.config-field{padding:0 0 13px;min-width:0}.config-field label{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#354258;font-size:10px;font-weight:800;margin-bottom:5px}.config-field code{font:9px var(--mono);color:#8190a4;font-weight:500}.config-field input,.config-field textarea{width:100%;min-height:36px;border:1px solid #d8e0eb;border-radius:7px;background:#fff;padding:8px 9px;color:#1a2638;font-size:11px;outline:none}.config-field textarea{height:63px;resize:vertical}.config-field input:focus,.config-field textarea:focus{border-color:#6591ed;box-shadow:0 0 0 3px rgba(53,105,217,.1)}.config-foot{display:flex;justify-content:space-between;gap:12px;color:#8490a1;font-size:10px;margin-top:5px}.set-state{font-size:9px;font-weight:750;color:#8793a4}.set-state.set{color:#16804f}.clear-setting{display:flex;align-items:center;gap:5px;color:#a13c46;font-size:9px;font-weight:600;margin-top:6px}.clear-setting input{width:13px;height:13px;min-height:auto;accent-color:#c23b48}.confirm-box{display:flex;align-items:flex-start;gap:9px;background:#fff9e9;border:1px solid #f0d99b;border-radius:9px;padding:12px;color:#725c27;font-size:11px;line-height:1.5;margin:16px 0}.confirm-box input{margin-top:2px;accent-color:var(--blue)}.settings-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-top:1px solid #edf0f5}.settings-actions small{color:#8793a4;font-size:10px}
         .config-tools{display:flex;align-items:center;gap:10px;margin-bottom:12px}.config-tools input{max-width:420px}.config-tools span{font-size:10px;color:#8793a4}.config-field .field-error{font-size:10px;color:#b12836;margin:5px 0 0}
         .nav{overflow:auto;align-content:start;flex:1}.nav-category{font-size:11px!important;padding:7px 12px!important}.nav-category .nav-icon{font-size:10px;color:#8394ad}.nav-section{color:#8998ae;text-transform:uppercase;letter-spacing:.11em;font-weight:700;font-size:9px;padding:15px 12px 5px}.nav-count{margin-left:auto;color:#8293ac;font-size:9px}
+        .workflow-heading{padding:13px 8px 4px;margin-top:7px;border-top:1px solid #e8edf4;color:#344b70;font-size:10px}.workflow-description{margin:0 8px 7px;color:#8390a3;line-height:1.45}.category-heading{padding-top:7px}.request-meta{flex-wrap:wrap;justify-content:flex-end}
         .stats-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:15px}.stat-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px}.stat-card strong{display:block;font-size:23px;color:#18335e;letter-spacing:-.04em}.stat-card span{display:block;margin-top:5px;color:#78869a;font-size:11px}.overview-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(250px,.65fr);gap:15px}.workflow-list{display:grid;gap:10px}.workflow-card{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:12px;padding:13px;border:1px solid #e7ebf2;border-radius:10px}.step-number{width:30px;height:30px;border-radius:50%;background:#eaf0ff;color:#2859bd;display:grid;place-items:center;font-size:12px;font-weight:800}.workflow-card strong{display:block;font-size:12px;color:#26364d}.workflow-card p{margin:4px 0 0;color:#7b8798;font-size:10px;line-height:1.5}.flow-note{padding:12px;border-radius:9px;background:#f5f8ff;color:#526580;font-size:11px;line-height:1.6}.guide-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.guide-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:17px}.guide-card h3{margin:0 0 7px;font-size:12px;color:#26364d}.guide-card p,.guide-card li{font-size:11px;line-height:1.6;color:#758297}.guide-card ul{padding-left:17px}.guide-card code{font:10px var(--mono);color:#344a6c;overflow-wrap:anywhere}.guide-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.endpoint-guide{padding:9px 11px;margin:0 0 13px;border:1px solid #dce7fc;border-radius:8px;background:#f5f8ff;color:#526580;font-size:10px;line-height:1.5}
         @media(max-width:1000px){.explorer{grid-template-columns:230px minmax(0,1fr)}.sidebar{width:215px}.workspace{margin-left:215px}.field-grid{grid-template-columns:120px minmax(0,1fr)}}
         @media(max-width:720px){.sidebar{position:static;width:auto;padding:9px 12px}.brand{padding:2px 5px 8px}.brand-mark{width:32px;height:32px}.nav-label,.sidebar-bottom{display:none}.nav{display:flex;overflow:auto}.nav a{flex:none;padding:9px 10px;font-size:11px}.nav-icon{display:none}.workspace{margin:0}.topbar{height:56px;padding:0 14px}.secure-pill{display:none}main{padding:20px 13px 34px}.page-heading{align-items:flex-start}.page-heading h1{font-size:25px}.base-origin{max-width:45%;font-size:9px}.explorer{grid-template-columns:1fr}.endpoint-panel{position:static;max-height:340px}.endpoint-list{max-height:245px}.endpoint-tools{grid-template-columns:1fr 1fr}.config-grid,.param-grid{grid-template-columns:1fr}.field-grid{grid-template-columns:105px minmax(0,1fr)}.request-form,.panel-body{padding:15px}.panel-head{padding:15px}.response-body{max-height:50vh}.request-tip{width:100%;margin:0}.settings-actions{align-items:flex-start;flex-direction:column}}
@@ -66,7 +67,7 @@
             <section class="tab active" id="overview" aria-label="Developer overview">
                 <div class="stats-grid">
                     <div class="stat-card"><strong>{{ $routeCount }}</strong><span>registered API operations</span></div>
-                    <div class="stat-card"><strong>{{ count($categories) }}</strong><span>API categories</span></div>
+                    <div class="stat-card"><strong>{{ count($workflows) - 1 }}</strong><span>dependency workflows</span></div>
                     <div class="stat-card"><strong>3 steps</strong><span>Google sign-in → phone OTP → verify OTP</span></div>
                 </div>
                 <div class="overview-grid">
@@ -81,7 +82,7 @@
                     <section class="panel">
                         <div class="panel-head"><div><h2>Workbench shortcuts</h2><p>Explore and configure this project.</p></div></div>
                         <div class="panel-body workflow-list">
-                            <div class="flow-note"><strong>API explorer</strong><br>Filter registered routes by category, method, path, or access level. Request examples are prefilled from the current API validation rules.</div>
+                            <div class="flow-note"><strong>API explorer</strong><br>Related APIs are grouped by workflow so you can follow dependent calls together. Filter by workflow or role category.</div>
                             <div class="flow-note"><strong>WebSockets</strong><br>Review Socket.IO configuration, authenticated rooms and live message events.</div>
                             <div class="flow-note"><strong>Configuration</strong><br>Manage allowlisted project settings. Secret values are not exposed.</div>
                             <div class="guide-actions"><button class="btn" type="button" data-tab="api-explorer">Browse APIs</button><button class="btn" type="button" data-tab="realtime">WebSocket setup</button><button class="btn" type="button" data-tab="configuration">Project settings</button></div>
@@ -113,7 +114,8 @@
                     <section class="panel endpoint-panel" aria-label="Registered API endpoints">
                         <div class="panel-head"><div><h2>API catalog</h2><p id="catalog-result-count">{{ $routeCount }} registered routes · {{ count($catalog) }} request examples</p></div></div>
                         <div class="endpoint-tools">
-                            <input class="control" id="endpoint-search" type="search" placeholder="Search all APIs by method, path, category or access…" aria-label="Search all API endpoints">
+                            <input class="control" id="endpoint-search" type="search" placeholder="Search APIs by method, path, category or workflow…" aria-label="Search all API endpoints">
+                            <select class="control" id="workflow-filter" aria-label="Filter by dependency workflow"><option value="">All dependency groups</option></select>
                             <select class="control" id="category-filter" aria-label="Filter by category"><option value="">All categories</option></select>
                         </div>
                         <div class="endpoint-list" id="endpoint-list"></div>
@@ -121,7 +123,7 @@
 
                     <div class="tool-column">
                         <section class="panel request-panel" aria-labelledby="request-heading">
-                            <div class="panel-head"><div><h2 id="request-heading">Request builder</h2><p id="request-description">Choose an endpoint or enter a same-origin path.</p></div><div class="request-meta"><span class="category-badge" id="selected-category">Custom</span><span class="access-badge" id="selected-access">API request</span></div></div>
+                            <div class="panel-head"><div><h2 id="request-heading">Request builder</h2><p id="request-description">Choose an endpoint or enter a same-origin path.</p></div><div class="request-meta"><span class="category-badge" id="selected-workflow">Workflow</span><span class="category-badge" id="selected-category">Custom</span><span class="access-badge" id="selected-access">API request</span></div></div>
                             <form class="request-form" id="api-form">
                                 <div class="field-grid">
                                     <div class="field"><label for="request-method">Method</label><select id="request-method" class="control"><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option></select></div>
@@ -204,6 +206,7 @@
     document.getElementById('current-origin').textContent = apiBaseUrl.href.replace(/\/$/, '');
     const apis = @js($catalog);
     const list = document.getElementById('endpoint-list');
+    const workflowFilter = document.getElementById('workflow-filter');
     const categoryFilter = document.getElementById('category-filter');
     const catalogResultCount = document.getElementById('catalog-result-count');
     const search = document.getElementById('endpoint-search');
@@ -225,6 +228,7 @@
     const fileHint = document.getElementById('request-file-hint');
     const paramWrap = document.getElementById('path-params-wrap');
     const params = document.getElementById('path-params');
+    const selectedWorkflow = document.getElementById('selected-workflow');
     const selectedCategory = document.getElementById('selected-category');
     const selectedAccess = document.getElementById('selected-access');
     const description = document.getElementById('request-description');
@@ -247,28 +251,58 @@
 
     const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
     const categories = @js($categories);
+    const workflows = @js($workflows);
+    const workflowOrder = new Map(workflows.map((workflow, index) => [workflow.id, index]));
     categories.forEach((category) => {
         const option = document.createElement('option');
         option.value = category;
         option.textContent = category;
         categoryFilter.append(option);
     });
+    workflows.forEach((workflow) => {
+        const option = document.createElement('option');
+        option.value = workflow.id;
+        option.textContent = workflow.label;
+        workflowFilter.append(option);
+    });
 
     function renderCatalog() {
         const term = search.value.trim().toLowerCase();
         const category = categoryFilter.value;
+        const workflowId = workflowFilter.value;
         const visible = apis.filter((api) => (!category || api.category === category)
-            && (!term || `${api.method} ${api.path} ${api.category} ${api.section} ${api.label} ${api.access}`.toLowerCase().includes(term)));
-        catalogResultCount.textContent = `${visible.length} API entries shown · ${new Set(visible.map((api) => api.routeKey)).size} routes`;
+            && (!workflowId || api.workflow.id === workflowId)
+            && (!term || `${api.method} ${api.path} ${api.category} ${api.section} ${api.label} ${api.access} ${api.workflow.label}`.toLowerCase().includes(term)));
+        visible.sort((left, right) => (workflowOrder.get(left.workflow.id) ?? 999) - (workflowOrder.get(right.workflow.id) ?? 999)
+            || left.workflow.label.localeCompare(right.workflow.label)
+            || left.category.localeCompare(right.category)
+            || left.path.localeCompare(right.path)
+            || left.method.localeCompare(right.method)
+            || (left.label || '').localeCompare(right.label || ''));
+        catalogResultCount.textContent = `${visible.length} API entries shown · ${new Set(visible.map((api) => api.routeKey)).size} routes · ${new Set(visible.map((api) => api.workflow.id)).size} workflows`;
+        let currentWorkflow = null;
         let currentCategory = null;
         let currentSection = null;
         list.replaceChildren();
         visible.forEach((api) => {
+            if (api.workflow.id !== currentWorkflow) {
+                currentWorkflow = api.workflow.id;
+                currentCategory = null;
+                currentSection = null;
+                const heading = document.createElement('div');
+                heading.className = 'endpoint-category workflow-heading';
+                heading.textContent = api.workflow.label;
+                list.append(heading);
+                const note = document.createElement('div');
+                note.className = 'endpoint-meta workflow-description';
+                note.textContent = api.workflow.description;
+                list.append(note);
+            }
             if (api.category !== currentCategory) {
                 currentCategory = api.category;
                 currentSection = null;
                 const heading = document.createElement('div');
-                heading.className = 'endpoint-category';
+                heading.className = 'endpoint-category category-heading';
                 heading.textContent = currentCategory;
                 list.append(heading);
             }
@@ -283,7 +317,7 @@
             button.type = 'button';
             button.className = `endpoint-item${api.id === currentId ? ' selected' : ''}`;
             button.dataset.endpoint = api.id;
-            button.innerHTML = `<span class="endpoint-line"><span class="method ${api.method.toLowerCase()}">${escapeHtml(api.method)}</span><span class="endpoint-path">${escapeHtml(api.path)}</span></span><span class="endpoint-meta">${escapeHtml([api.label, api.access].filter(Boolean).join(' · '))}</span>`;
+            button.innerHTML = `<span class="endpoint-line"><span class="method ${api.method.toLowerCase()}">${escapeHtml(api.method)}</span><span class="endpoint-path">${escapeHtml(api.path)}</span></span><span class="endpoint-meta">${escapeHtml([api.category, api.label, api.access].filter(Boolean).join(' · '))}</span>`;
             list.append(button);
         });
         if (visible.length === 0) {
@@ -331,9 +365,10 @@
         body.value = JSON.stringify(api.bodyExample ?? {}, null, 2);
         bodyMode.value = api.bodyMode || 'json';
         fileInput.value = '';
+        selectedWorkflow.textContent = api.workflow.label;
         selectedCategory.textContent = api.category;
         selectedAccess.textContent = api.access;
-        description.textContent = `${api.label ? `${api.label} · ` : ''}${api.action} · registered API route`;
+        description.textContent = `${api.label ? `${api.label} · ` : ''}${api.action} · ${api.workflow.label} workflow`;
         endpointGuide.textContent = api.guide || '';
         endpointGuide.hidden = !api.guide;
         updateBodyFields();
@@ -355,11 +390,14 @@
     search.addEventListener('input', () => {
         // Search is global even when the developer previously opened a role category.
         categoryFilter.value = '';
+        workflowFilter.value = '';
         renderCatalog();
     });
+    workflowFilter.addEventListener('change', renderCatalog);
     categoryFilter.addEventListener('change', renderCatalog);
     document.querySelectorAll('[data-category]').forEach((link) => {
         link.addEventListener('click', () => {
+            workflowFilter.value = '';
             categoryFilter.value = link.dataset.category;
             if (!link.dataset.category) search.value = '';
             renderCatalog();
@@ -370,7 +408,9 @@
             const api = apis.find((item) => item.id === button.dataset.pickApi);
             if (!api) return;
             document.querySelector('[data-tab="api-explorer"]').click();
-            categoryFilter.value = api.category;
+            search.value = '';
+            categoryFilter.value = '';
+            workflowFilter.value = api.workflow.id;
             selectApi(api);
         });
     });
