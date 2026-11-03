@@ -9,12 +9,6 @@
         <button type="button" class="icon-button mobile-only" id="close-admin-nav" aria-label="Close navigation"><x-admin-icon name="close" /></button>
     </div>
 
-    <div class="nav-search"><x-admin-icon name="search" /><input id="admin-nav-search" type="search" placeholder="Find a page…" aria-label="Find an admin page" autocomplete="off"></div>
-    <form class="sidebar-user-search" method="get" action="{{ route('admin.reports.index', ['report' => 'users']) }}" role="search">
-        <label for="admin-quick-user-search">Find a user</label>
-        <div><input id="admin-quick-user-search" type="search" name="q" value="{{ request()->route('report') === 'users' ? request('q') : '' }}" placeholder="Name, phone or ID"><button type="submit" aria-label="Search users"><x-admin-icon name="search" /></button></div>
-    </form>
-
     <nav class="side-nav" aria-label="Admin sections">
         <div class="nav-section-label">Start here</div>
         <a href="{{ route('admin.dashboard') }}" @class(['nav-link', 'active' => request()->routeIs('admin.dashboard')]) @if(request()->routeIs('admin.dashboard')) aria-current="page" @endif data-nav-item><x-admin-icon name="dashboard" /><span>Overview</span></a>
@@ -45,7 +39,6 @@
             </details>
         @endforeach
         <a href="{{ route('admin.seo.edit') }}" @class(['nav-link', 'active' => request()->routeIs('admin.seo.*')]) data-nav-item><x-admin-icon name="book" /><span>SEO page wording</span></a>
-        <p id="admin-nav-empty" class="nav-empty" hidden>No pages found. Try “teacher”, “reports” or “support”.</p>
     </nav>
 
     <div class="sidebar-account">

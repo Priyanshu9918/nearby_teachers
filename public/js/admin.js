@@ -40,34 +40,6 @@
     sidebar?.addEventListener('click', (event) => {
         if (mobile.matches && event.target.closest('a[href]')) toggleNav(false);
     });
-    const navSearch = document.getElementById('admin-nav-search');
-    const quickSearch = document.querySelector('.admin-quick-search');
-    const quickSearchInput = document.getElementById('admin-quick-user-search');
-    quickSearch?.addEventListener('submit', (event) => {
-        if (window.matchMedia('(max-width: 520px)').matches && !quickSearchInput?.value.trim()) {
-            event.preventDefault();
-            quickSearchInput?.focus();
-        }
-    });
-    const originalOpen = new Map();
-    const groups = [...document.querySelectorAll('[data-nav-group]')];
-    navSearch?.addEventListener('input', () => {
-        const term = navSearch.value.trim().toLowerCase();
-        let matches = 0;
-        document.querySelectorAll('[data-nav-item]').forEach((link) => {
-            const groupLabel = link.closest('[data-nav-group]')?.querySelector('summary')?.textContent || '';
-            link.hidden = Boolean(term) && !`${link.textContent} ${groupLabel}`.toLowerCase().includes(term);
-            if (!link.hidden) matches++;
-        });
-        groups.forEach((group) => {
-            if (term && !originalOpen.has(group)) originalOpen.set(group, group.open);
-            group.hidden = ![...group.querySelectorAll('[data-nav-item]')].some((link) => !link.hidden);
-            if (term) group.open = !group.hidden;
-            else if (originalOpen.has(group)) { group.open = originalOpen.get(group); originalOpen.delete(group); }
-        });
-        document.querySelectorAll('.nav-section-label').forEach((label) => { label.hidden = Boolean(term); });
-        document.getElementById('admin-nav-empty').hidden = matches > 0;
-    });
     const reportSearch = document.getElementById('report-library-search');
     reportSearch?.addEventListener('input', () => {
         const term = reportSearch.value.trim().toLowerCase();
