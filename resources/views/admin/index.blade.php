@@ -45,13 +45,21 @@
         </div>
     </div>
 
+    @if ($isEditing || request()->routeIs('admin.create'))
+        <nav class="record-breadcrumb" aria-label="Breadcrumb">
+            <a href="{{ route('admin.index', ['section' => $routeSection]) }}">{{ $label }}</a>
+            <span aria-hidden="true">/</span>
+            <span aria-current="page">{{ $isEditing ? 'Edit record' : 'Add record' }}</span>
+        </nav>
+    @endif
+
     <details class="panel record-form" @if($isEditing || $errors->any() || request()->routeIs('admin.create')) open @endif>
         <summary class="panel-head">
             <div><h2 id="create-heading">{{ $isEditing ? 'Edit' : 'Add' }} {{ \Illuminate\Support\Str::singular(strtolower($label)) }}</h2><p>{{ $isEditing ? 'Update the record details and save your changes.' : 'Enter the details below to create a new record.' }}</p></div>
             <x-admin-icon name="chevron" />
         </summary>
         <div class="panel-body">
-            <form method="post" action="{{ $formAction }}">
+            <form method="post" action="{{ $formAction }}" data-record-form>
                 @csrf @if ($isEditing) @method('put') @endif
                 <div class="form-grid">
                     @foreach ($sectionFields as $key => $fieldLabel)
@@ -109,8 +117,8 @@
             <div><h2 id="records-heading">All {{ strtolower($label) }}</h2><p>Review and update existing records.</p></div>
         </div>
         @if (count($records))
-            <div class="table-wrap" tabindex="0" role="region" aria-label="{{ $label }} records">
-                <table class="data-table">
+            <div class="table-wrap management-table-wrap" tabindex="0" role="region" aria-label="{{ $label }} records">
+                <table class="data-table management-table">
                     <thead><tr>
                         @foreach ($columns as $column)<th scope="col">{{ str_replace('_', ' ', ucfirst($column)) }}</th>@endforeach
                         <th scope="col">Actions</th>
@@ -129,7 +137,7 @@
                                 <div class="table-actions">
                                     @if ($section !== 'subjects')<a class="btn btn-small" href="{{ route('admin.reports.user', $record->id) }}">Full report</a>@endif
                                     <a class="btn btn-small" href="{{ route('admin.edit', ['section' => $routeSection, 'id' => $record->id]) }}">Edit</a>
-                                    <form method="post" action="{{ route('admin.destroy', ['section' => $routeSection, 'id' => $record->id]) }}" onsubmit="return confirm('Delete this record? This action cannot be undone.')">
+                                    <form method="post" action="{{ route('admin.destroy', ['section' => $routeSection, 'id' => $record->id]) }}" data-delete-name="{{ $record->full_name ?? $record->name ?? $record->id }}" onsubmit="return confirm('Delete ‘' + this.dataset.deleteName + '’? This action cannot be undone.')">
                                         @csrf @method('delete')
                                         <button class="btn btn-small btn-danger" type="submit">Delete</button>
                                     </form>

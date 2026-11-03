@@ -40,6 +40,32 @@
     sidebar?.addEventListener('click', (event) => {
         if (mobile.matches && event.target.closest('a[href]')) toggleNav(false);
     });
+    const recordForms = [...document.querySelectorAll('[data-record-form]')];
+    const initialValues = new Map(recordForms.map((form) => [form, JSON.stringify([...new FormData(form)])]));
+    let submitting = false;
+    window.addEventListener('beforeunload', (event) => {
+        if (!submitting && recordForms.some((form) => JSON.stringify([...new FormData(form)]) !== initialValues.get(form))) {
+            event.preventDefault();
+            event.returnValue = '';
+        }
+    });
+    recordForms.forEach((form) => {
+        form.addEventListener('submit', (event) => {
+            if (form.dataset.submitting === 'true') { event.preventDefault(); return; }
+            if (event.defaultPrevented) return;
+            submitting = true;
+            form.dataset.submitting = 'true';
+            form.setAttribute('aria-busy', 'true');
+            form.querySelectorAll('button[type="submit"]').forEach((button) => {
+                button.disabled = true;
+                button.textContent = 'Saving…';
+            });
+        });
+    });
+    window.addEventListener('pageshow', (event) => {
+        if (event.persisted) window.location.reload();
+    });
+    document.querySelector('.field [aria-invalid="true"]')?.focus();
     const reportSearch = document.getElementById('report-library-search');
     reportSearch?.addEventListener('input', () => {
         const term = reportSearch.value.trim().toLowerCase();

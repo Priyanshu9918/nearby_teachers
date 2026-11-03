@@ -338,3 +338,16 @@ a.workflow-card:hover { transform: translateY(-1px); border-color: #c6d4e6; back
 @media (max-width: 700px) { .admin-welcome { align-items: flex-start; flex-direction: column; padding: 21px; } .action-grid { grid-template-columns: 1fr; padding: 12px; } .workflow-card { min-height: 75px; } }
 @media (max-width: 780px) { .owner-period-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 520px) { .stat-grid-admin { grid-template-columns: 1fr 1fr; gap: 9px; } .stat-grid-admin .stat-card { padding: 13px; } .stat-grid-admin .stat-value { font-size: 27px; } .stat-grid-admin .stat-bottom { font-size: 9px; line-height: 1.45; } .admin-welcome { gap: 15px; margin-bottom: 18px; } .admin-welcome .heading-actions { width: 100%; } .admin-welcome .heading-actions .btn { flex: 1 1 145px; } .owner-period-panel > .panel-head { flex-direction: column; align-items: flex-start; } .owner-date-inputs { grid-template-columns: 1fr 1fr; } .owner-date-inputs > .btn { grid-column: 1 / -1; } .owner-period-grid { gap: 7px; padding-top: 12px; } .owner-metric-card { padding: 10px; } .owner-metric-card > strong { font-size: 20px; } .owner-metric-title { min-height: 39px; } .queue-filter { align-items: stretch; } .queue-filter .btn { flex: 1; } .period-comparison { align-items: flex-start; flex-wrap: wrap; gap: 13px; padding: 15px; } .period-comparison > div { flex: 1 1 130px; } .comparison-divider { display: none; } .comparison-change { margin-left: 0; } }
+
+/* Keep record context and actions visible while reviewing long lists. */
+.record-breadcrumb { display: flex; gap: 10px; align-items: center; margin-bottom: 18px; font-size: 12px; color: var(--muted); }
+.record-breadcrumb a { color: var(--navy); text-underline-offset: 3px; }
+.management-table-wrap { max-height: 70vh; }
+.management-table th { position: sticky; top: 0; z-index: 2; }
+.management-table th:last-child { right: 0; z-index: 3; }
+.management-table td:last-child { position: sticky; right: 0; background: #fff; box-shadow: -3px 0 6px #172e5010; }
+.management-table tbody tr:hover td:last-child { background: #fafcff; }
+.btn:disabled { opacity: .65; cursor: wait; }
+@media (max-width: 800px) {
+    .management-table td:last-child, .management-table th:last-child { position: static; box-shadow: none; }
+}
