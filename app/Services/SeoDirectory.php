@@ -129,7 +129,7 @@ final class SeoDirectory
             ->selectSub(DB::table('profile_subjects as ps')->join('subjects as s', 's.id', '=', 'ps.subject_id')
                 ->selectRaw("GROUP_CONCAT(s.name ORDER BY s.name SEPARATOR ', ')")
                 ->where('ps.profile_type', 'teacher')->whereColumn('ps.profile_id', 'p.user_id'), 'subject_names')
-            ->selectSub(DB::table('referrals')->selectRaw('count(*)')->whereColumn('referrer_id', 'p.user_id'), 'referral_points');
+            ->addSelect('u.referral_points');
 
         $institutes = DB::table('institute_profiles as p')->join('users as u', 'u.id', '=', 'p.user_id')
             ->where('u.account_type', 'institute')->whereNull('u.suspended_at')->whereNotNull('u.phone_verified_at')
@@ -148,7 +148,7 @@ final class SeoDirectory
             ->selectSub(DB::table('profile_subjects as ps')->join('subjects as s', 's.id', '=', 'ps.subject_id')
                 ->selectRaw("GROUP_CONCAT(s.name ORDER BY s.name SEPARATOR ', ')")
                 ->where('ps.profile_type', 'institute')->whereColumn('ps.profile_id', 'p.user_id'), 'subject_names')
-            ->selectRaw('0 AS referral_points');
+            ->addSelect('u.referral_points');
 
         return $teachers->unionAll($institutes);
     }

@@ -106,6 +106,22 @@ class TeacherPublicPagesTest extends TestCase
         return DB::table('institute_profiles')->where('user_id', $id)->first();
     }
 
+    public function test_seo_lists_teachers_and_institutes_by_current_referral_points(): void
+    {
+        $teacher = $this->teacher(name: 'Referral Teacher');
+        $institute = $this->institute(name: 'Referral Academy');
+        DB::table('users')->where('id', $teacher->user_id)->update(['referral_points' => 30]);
+        DB::table('users')->where('id', $institute->user_id)->update(['referral_points' => 10]);
+        DB::table('institute_profiles')->where('user_id', $institute->user_id)->update(['is_bsl_official' => true]);
+        $page = DB::table('seo_directory_pages')->where('kind', 'city')->first();
+        $this->assertNotNull($page);
+        $this->get($page->path)->assertOk()->assertSeeInOrder(['Referral Teacher', 'Referral Academy']);
+        $this->get('/in')->assertOk()->assertSeeInOrder(['Referral Teacher', 'Referral Academy']);
+        DB::table('users')->where('id', $institute->user_id)->update(['referral_points' => 50]);
+        $this->get($page->path)->assertOk()->assertSeeInOrder(['Referral Academy', 'Referral Teacher']);
+        $this->get('/in')->assertOk()->assertSeeInOrder(['Referral Academy', 'Referral Teacher']);
+    }
+
     public function test_seo_pages_are_created_only_after_profile_completion(): void
     {
         $teacher = $this->teacher(complete: false);

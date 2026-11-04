@@ -294,9 +294,10 @@ class AuthController extends Controller
             'is_admin', 'suspended_reason',
             'date_of_birth', 'is_minor', 'guardian_name', 'guardian_contact', 'parental_consent_confirmed_at',
             'parental_consent_rejected_at', 'parental_consent_expires_at', 'safety_disclaimer_acknowledged_at',
-            'preferred_language', 'suspended_at', 'phone_verified_at', 'email_verified_at', 'referral_code',
+            'preferred_language', 'suspended_at', 'phone_verified_at', 'email_verified_at', 'referral_code', 'referral_points',
             'terms_accepted_at', 'registration_submitted_at', 'profile_completed_at', 'created_at', 'updated_at',
         ]);
+        $safeUser->referral_points = (int) ($safeUser->referral_points ?? 0);
         $safeUser->password_set = (bool) ($user->password_set ?? false);
         $sessionProfile = $profile ?? $safeUser;
         $profileLinks = in_array($accountType, ['teacher', 'institute'], true)

@@ -127,7 +127,7 @@ class InternationalSeoController extends Controller
             'providers.city', 'providers.rate', 'providers.currency', 'providers.rating_avg', 'providers.rating_count',
             'providers.lesson_modes', 'providers.trial_days', 'providers.subject_names', 'providers.is_bsl_official',
             'providers.avatar_url', 'providers.referral_points', 'providers.full_name')
-            ->orderByDesc('providers.is_bsl_official')->orderByDesc('providers.referral_points')
+            ->orderByDesc('providers.referral_points')->orderByDesc('providers.is_bsl_official')
             ->orderByDesc('providers.rating_count')->orderByDesc('providers.rating_avg')->orderBy('providers.provider_type')->orderBy('providers.user_id')
             ->paginate(20)->withQueryString();
         abort_if($providers->isEmpty(), 404);
@@ -351,7 +351,7 @@ class InternationalSeoController extends Controller
                 'providers.district', 'providers.locality', 'providers.rate', 'providers.currency', 'providers.rating_avg',
                 'providers.rating_count', 'providers.lesson_modes', 'providers.trial_days', 'providers.full_name',
                 'providers.avatar_url', 'providers.subject_names', 'providers.referral_points', 'providers.is_bsl_official')
-            ->orderByDesc('providers.is_bsl_official')->orderByDesc('providers.referral_points')
+            ->orderByDesc('providers.referral_points')->orderByDesc('providers.is_bsl_official')
             ->orderByDesc('providers.rating_count')->orderByDesc('providers.rating_avg')->orderBy('providers.provider_type')
             ->orderBy('providers.user_id');
         if ($searchTerm !== '') {
