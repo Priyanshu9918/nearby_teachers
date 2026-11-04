@@ -414,3 +414,5 @@ and previous business events survive cleanup. Location reports explicitly expose
 sitemaps enforce that same check. Unknown subjects now need reviewed mappings;
 profile/subject selections are preserved. See the SEO repair section in
 `TEACHER_SEO_PAGES.md` for backup, preview and application behavior.
+
+Version 1 `institute.onboarding_subjects_updated` records before/after numeric subject IDs for institute registration and onboarding edits, in the source transaction. Recorder failure rolls back the selections and registration. Existing subjects are not backfilled; separate profile editor changes and direct SQL are outside this event coverage. The shared business activity report exposes these snapshots.

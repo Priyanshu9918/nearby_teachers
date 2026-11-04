@@ -1,6 +1,6 @@
 # Institute registration address and GPS
 
-Institute registration now accepts the same manual address and GPS fields as teacher registration. It does not select subjects.
+Institute registration now accepts the same manual address and GPS fields as teacher registration. It also accepts optional `subjectIds` (one to five distinct numeric subject IDs).
 
 Use `POST /auth/register` or `POST /auth/onboarding/complete` with the phone-verified bearer:
 
@@ -9,6 +9,7 @@ Use `POST /auth/register` or `POST /auth/onboarding/complete` with the phone-ver
   "accountType": "institute",
   "fullName": "Bright Academy",
   "contactPerson": "Asha Sharma",
+  "subjectIds": [1, 2],
   "email": "academy@example.com",
   "password": "a-secure-password",
   "city": "New Delhi",
@@ -33,7 +34,7 @@ Use `POST /auth/register` or `POST /auth/onboarding/complete` with the phone-ver
 - `locality`: optional string, maximum 160 characters. `localityType`: optional `town`, `village`, `ward` or `sector`.
 - `postalCode`: optional string, maximum 32 characters; retains leading zeros and supports international postal codes.
 - `latitude` / `longitude`: optional paired numeric GPS values, ranges -90..90 / -180..180. Both null clears GPS and enrichment. Omitted coordinates do not trigger lookup.
-- Do not send `primarySubjects`, `primarySubjectId` or `subjectIds` in institute registration/onboarding. They are rejected; no institute subject rows are created by registration. Existing separate institute subject listing/update behavior is unchanged.
+- Optional `subjectIds` accepts one to five distinct existing subject IDs. Omission preserves existing selections; a supplied list replaces them. `primarySubjects` and `primarySubjectId` remain prohibited. Owner responses return `draft.subjectIds`.
 
 ## Updates and responses
 

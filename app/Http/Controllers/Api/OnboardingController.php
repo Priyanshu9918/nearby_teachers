@@ -141,6 +141,8 @@ class OnboardingController extends Controller
 
         if (($request->input('accountType') ?? $request->attributes->get('authenticated_user')?->account_type ?? null) === 'institute') {
             $rules['primarySubjects'] = ['prohibited'];
+            $rules['subjectIds'] = ['sometimes', 'array', 'min:1', 'max:5'];
+            $rules['subjectIds.*'] = ['required', 'integer', 'distinct', 'exists:subjects,id'];
         }
 
         $data = $request->validate($rules + TeacherAddress::rules());
@@ -240,6 +242,19 @@ class OnboardingController extends Controller
                 if (array_key_exists('contactPerson', $data)) {
                     $profileUpdates['contact_person'] = $this->nullableString($data['contactPerson']);
                 }
+                if (array_key_exists('subjectIds', $data)) {
+                    $beforeSubjects = DB::table('profile_subjects')->where('profile_type', 'institute')
+                        ->where('profile_id', $user->id)->orderBy('subject_id')->pluck('subject_id')->map(fn ($id) => (int) $id)->all();
+                    $subjectIds = array_map('intval', $data['subjectIds']);
+                    DB::table('profile_subjects')->where('profile_type', 'institute')->where('profile_id', $user->id)->delete();
+                    foreach ($subjectIds as $subjectId) {
+                        DB::table('profile_subjects')->insert([
+                            'profile_type' => 'institute', 'profile_id' => $user->id, 'subject_id' => $subjectId,
+                        ]);
+                    }
+                    app(BusinessActivityRecorder::class)->record('institute.onboarding_subjects_updated', $user->id, $user->id,
+                        before: ['subject_ids' => $beforeSubjects], after: ['subject_ids' => $subjectIds]);
+                }
                 DB::table('institute_profiles')->where('user_id', $user->id)->update($profileUpdates);
                 app(TeacherLocation::class)->store((int) $user->id, $location, 'institute');
                 app(TeacherAddress::class)->store((int) $user->id, $data, 'institute');
@@ -329,7 +344,8 @@ class OnboardingController extends Controller
             'latitude' => isset($provider->latitude) ? (float) $provider->latitude : null,
             'longitude' => isset($provider->longitude) ? (float) $provider->longitude : null,
             'locationDetails' => isset($provider->location_details) ? json_decode($provider->location_details, true, flags: JSON_THROW_ON_ERROR) : null,
-            ...($accountType === 'institute' ? [] : ['primarySubjects' => $teacher === null ? [] : DB::table('profile_subjects')->where('profile_type', 'teacher')
+            ...($accountType === 'institute' ? ['subjectIds' => DB::table('profile_subjects')->where('profile_type', 'institute')
+                ->where('profile_id', $user->id)->orderBy('id')->pluck('subject_id')->map(fn ($id) => (int) $id)->all()] : ['primarySubjects' => $teacher === null ? [] : DB::table('profile_subjects')->where('profile_type', 'teacher')
                 ->where('profile_id', $user->id)->orderBy('id')->pluck('subject_id')->map(fn ($id) => (int) $id)->all()]),
             'contactPerson' => $institute->contact_person ?? null,
             'passwordSet' => $passwordSet,

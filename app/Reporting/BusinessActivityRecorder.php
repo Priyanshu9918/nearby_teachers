@@ -19,6 +19,7 @@ final class BusinessActivityRecorder
         'seo.location_page_pruned' => ['seo_location_page', ['path', 'reason']],
         'seo.location_page_updated' => ['seo_location_page', ['path']],
         'seo.location_page_registered' => ['seo_location_page', ['path', 'country', 'language', 'kind', 'subject_id']],
+        'institute.onboarding_subjects_updated' => ['institute_profile', ['subject_ids']],
         'institute.address_updated' => ['institute_profile', ['changed_fields']],
         'institute.location_updated' => ['institute_profile', ['has_coordinates', 'geocoding_status']],
         'teacher.address_updated' => ['teacher_profile', ['changed_fields']],

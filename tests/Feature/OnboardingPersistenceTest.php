@@ -382,6 +382,48 @@ class OnboardingPersistenceTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_institute_registration_saves_subjects_and_validates_replacements(): void
+    {
+        $ids = array_slice($this->teachingSubjects(), 0, 5);
+        $base = array_replace($this->sharedFields(), ['accountType' => 'institute', 'city' => 'Delhi', 'contactPerson' => 'Institute Contact']);
+        foreach ([[], [$ids[0], $ids[0]], [0], ['invalid'], [...$ids, $ids[0]]] as $invalid) {
+            $this->postJson('/auth/register', [...$base, 'subjectIds' => $invalid])->assertUnprocessable();
+            $this->assertDatabaseMissing('institute_profiles', ['user_id' => $this->userId]);
+        }
+        $this->postJson('/auth/register', [...$base, 'subjectIds' => $ids])->assertOk()
+            ->assertJsonPath('draft.subjectIds', $ids);
+        $this->getJson('/auth/onboarding')->assertOk()->assertJsonPath('draft.subjectIds', $ids);
+        $this->patchJson('/auth/onboarding', ['subjectIds' => [$ids[1]]])->assertOk()
+            ->assertJsonPath('draft.subjectIds', [$ids[1]]);
+        $this->patchJson('/auth/onboarding', ['city' => 'Delhi'])->assertOk()
+            ->assertJsonPath('draft.subjectIds', [$ids[1]]);
+        $this->assertSame(1, DB::table('profile_subjects')->where('profile_type', 'institute')->where('profile_id', $this->userId)->count());
+        $event = DB::table('business_activity')->where('event', 'institute.onboarding_subjects_updated')->where('entity_id', $this->userId)->first();
+        $this->assertSame($ids, json_decode($event->after_data, true)['subject_ids']);
+    }
+
+    public function test_institute_subject_history_failure_rolls_back_registration(): void
+    {
+        $ids = array_slice($this->teachingSubjects(), 0, 2);
+        $this->app->instance(BusinessActivityRecorder::class, new class
+        {
+            public function record(string $event, ...$arguments): mixed
+            {
+                if ($event === 'institute.onboarding_subjects_updated') {
+                    throw new \RuntimeException('History unavailable');
+                }
+
+                return (new BusinessActivityRecorder)->record($event, ...$arguments);
+            }
+        });
+        $this->postJson('/auth/onboarding/complete', array_replace($this->sharedFields(), [
+            'accountType' => 'institute', 'city' => 'Delhi', 'contactPerson' => 'Institute Contact', 'subjectIds' => $ids,
+        ]))->assertStatus(500);
+        $this->assertDatabaseMissing('institute_profiles', ['user_id' => $this->userId]);
+        $this->assertDatabaseMissing('profile_subjects', ['profile_type' => 'institute', 'profile_id' => $this->userId]);
+        $this->assertDatabaseHas('users', ['id' => $this->userId, 'registration_submitted_at' => null]);
+    }
+
     public function test_institute_location_outage_and_history_failure_do_not_corrupt_existing_details(): void
     {
         config(['services.google_geocoding.enabled' => false]);
