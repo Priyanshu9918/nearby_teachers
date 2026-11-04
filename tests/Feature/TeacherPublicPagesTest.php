@@ -48,6 +48,27 @@ class TeacherPublicPagesTest extends TestCase
         parent::tearDown();
     }
 
+    public function test_generated_subject_slugs_preserve_course_name_without_suffixes(): void
+    {
+        $domain = DB::table('subjects')->where('id', $this->subjects['Maths'])->value('domain_id');
+        $subject = (object) [
+            'id' => DB::table('subjects')->insertGetId(['domain_id' => $domain, 'name' => 'Mathematics']),
+            'name' => 'Mathematics',
+        ];
+        $directory = app(SeoDirectory::class);
+        foreach (['in', 'us', 'fr'] as $country) {
+            $directory->seedRoutes($subject, $country);
+        }
+        $routes = DB::table('seo_subject_routes')->where('subject_id', $subject->id)->get();
+        $this->assertNotEmpty($routes);
+        foreach ($routes as $route) {
+            $this->assertSame('mathematics', $route->city_slug);
+            $this->assertSame('mathematics', $route->online_slug);
+        }
+        $directory->seedRoutes($subject, 'in');
+        $this->assertSame($routes->count(), DB::table('seo_subject_routes')->where('subject_id', $subject->id)->count());
+    }
+
     private function teacher(string $name = 'Asha Sharma', string $city = 'Kanpur', ?string $country = 'India', array $subjects = ['Maths'], array $modes = ['online'], bool $complete = true): object
     {
         $id = NumericTestIds::next();

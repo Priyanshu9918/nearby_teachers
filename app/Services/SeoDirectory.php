@@ -224,22 +224,9 @@ final class SeoDirectory
             if ($known === 'maths' && $language === 'en' && $country === 'us') {
                 $display = 'Math';
             }
-            $style = config('seo.countries.'.$country.'.style');
-            $base = $known === 'maths' ? ($country === 'us' ? 'math' : 'maths') : ($known ?? $key);
-            $citySlug = substr($base.'-'.$style, 0, 220);
-            $onlineSlug = $known === 'ielts' ? ($country === 'us' ? 'ielts-prep' : 'ielts-coaching') : $citySlug;
-            if ($language === 'es') {
-                $citySlug = $known === 'ielts' ? 'preparacion-ielts' : 'clases-particulares-de-'.Str::slug($display);
-                $onlineSlug = $citySlug;
-            } elseif ($language === 'fr') {
-                $citySlug = 'cours-de-'.Str::slug($display);
-                $onlineSlug = $citySlug;
-            } elseif ($language === 'pt') {
-                $citySlug = 'aulas-de-'.Str::slug($display);
-                $onlineSlug = $citySlug;
-            }
-            // Reserved Slavic/East-Asian/Arabic scripts keep English URL wording;
-            // Hindi/Bengali/Urdu follow Indian-English wording via the country style.
+            // Keep the course name in URLs; do not append country-specific wording.
+            $citySlug = substr($key, 0, 220);
+            $onlineSlug = $citySlug;
             if (DB::table('seo_subject_routes')->where('country', $country)->where('language', $language)
                 ->where(fn (Builder $q) => $q->where('city_slug', $citySlug)->orWhere('online_slug', $onlineSlug))->exists()) {
                 continue;

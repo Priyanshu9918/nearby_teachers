@@ -37,9 +37,7 @@ final class SeoMaintenance
                 }
             }
             if ($known !== null) {
-                $base = $known === 'maths' && $route->country === 'us' ? 'math' : $known;
-                $values = ['city_slug' => $base.'-'.$style,
-                    'online_slug' => $known === 'ielts' ? ($route->country === 'us' ? 'ielts-prep' : 'ielts-coaching') : $base.'-'.$style];
+                $values = ['city_slug' => substr($key, 0, 220), 'online_slug' => substr($key, 0, 220)];
             } else {
                 // Legacy auto-generated subjects need explicit editorial approval. Admin saves
                 // include display_name; original automatic seed events deliberately did not.
