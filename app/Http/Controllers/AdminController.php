@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\ProfileEditor;
 use App\Services\TeacherPublicPages;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -285,7 +286,7 @@ class AdminController extends Controller
             $descriptionField = $section === 'teachers' ? 'bio' : 'description';
             $rateField = $section === 'teachers' ? 'rate_per_hour' : 'starting_rate';
             $rules += [
-                $descriptionField => ['nullable', 'string', 'max:1000'],
+                $descriptionField => ProfileEditor::storyRules(),
                 $rateField => ['nullable', 'numeric', 'min:0', 'max:99999999.99'],
                 'currency' => ['nullable', 'string', 'size:3'],
                 'city' => ['nullable', 'string', 'max:120'],
@@ -296,18 +297,10 @@ class AdminController extends Controller
         }
 
         if ($section === 'teachers') {
-            $rules['bio'][] = function (string $attribute, mixed $value, \Closure $fail): void {
-                if (filled($value) && str_word_count(trim($value)) > 14) {
-                    $fail('The bio must be 14 words or fewer.');
-                }
-            };
+
             $rules['linkedin_url'] = ['nullable', 'url', 'max:2048'];
         } elseif ($section === 'institutes') {
-            $rules['description'][] = function (string $attribute, mixed $value, \Closure $fail): void {
-                if (filled($value) && str_word_count(trim($value)) > 14) {
-                    $fail('The description must be 14 words or fewer.');
-                }
-            };
+
             $rules['instructors_text'] = ['nullable', 'string', 'max:2000'];
             $rules['website_url'] = ['nullable', 'url', 'max:2048'];
         }

@@ -1180,7 +1180,7 @@
                     "1"
                   ]
                 },
-                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
+                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 20–1000 characters when supplied."
               },
               "response": [
                 {
@@ -1218,7 +1218,7 @@
                         "1"
                       ]
                     },
-                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
+                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 20–1000 characters when supplied."
                   },
                   "status": "OK",
                   "code": 200,
@@ -1269,7 +1269,7 @@
                     "2"
                   ]
                 },
-                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
+                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 20–1000 characters when supplied."
               },
               "response": [
                 {
@@ -1307,7 +1307,7 @@
                         "2"
                       ]
                     },
-                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
+                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 20–1000 characters when supplied."
                   },
                   "status": "OK",
                   "code": 200,
@@ -1358,7 +1358,7 @@
                     "3"
                   ]
                 },
-                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
+                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 20–1000 characters when supplied."
               },
               "response": [
                 {
@@ -1396,7 +1396,7 @@
                         "3"
                       ]
                     },
-                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
+                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 20–1000 characters when supplied."
                   },
                   "status": "OK",
                   "code": 200,
@@ -1447,7 +1447,7 @@
                     "4"
                   ]
                 },
-                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
+                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 20–1000 characters when supplied."
               },
               "response": [
                 {
@@ -1485,7 +1485,7 @@
                         "4"
                       ]
                     },
-                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
+                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 20–1000 characters when supplied."
                   },
                   "status": "OK",
                   "code": 200,
@@ -1536,7 +1536,7 @@
                     "5"
                   ]
                 },
-                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
+                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 20–1000 characters when supplied."
               },
               "response": [
                 {
@@ -1574,7 +1574,7 @@
                         "5"
                       ]
                     },
-                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
+                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 20–1000 characters when supplied."
                   },
                   "status": "OK",
                   "code": 200,
@@ -1705,7 +1705,7 @@
                     "publish"
                   ]
                 },
-                "description": "Step 6. Send agreeToTerms:true after required profile data is ready. Institutes require subjectIds, contactPerson, city, district, country, lessonModes and a 100-character description. Returns profileComplete:true and provider page links."
+                "description": "Step 6. Send agreeToTerms:true after required profile data is ready. Institutes require subjectIds, contactPerson, city, district, country, lessonModes and a 20–1000-character description. Returns profileComplete:true and provider page links."
               },
               "response": [
                 {
@@ -1742,7 +1742,7 @@
                         "publish"
                       ]
                     },
-                    "description": "Step 6. Send agreeToTerms:true after required profile data is ready. Institutes require subjectIds, contactPerson, city, district, country, lessonModes and a 100-character description. Returns profileComplete:true and provider page links."
+                    "description": "Step 6. Send agreeToTerms:true after required profile data is ready. Institutes require subjectIds, contactPerson, city, district, country, lessonModes and a 20–1000-character description. Returns profileComplete:true and provider page links."
                   },
                   "status": "OK",
                   "code": 200,
@@ -1790,7 +1790,7 @@
                         "publish"
                       ]
                     },
-                    "description": "Step 6. Send agreeToTerms:true after required profile data is ready. Institutes require subjectIds, contactPerson, city, district, country, lessonModes and a 100-character description. Returns profileComplete:true and provider page links."
+                    "description": "Step 6. Send agreeToTerms:true after required profile data is ready. Institutes require subjectIds, contactPerson, city, district, country, lessonModes and a 20–1000-character description. Returns profileComplete:true and provider page links."
                   },
                   "status": "OK",
                   "code": 422,
@@ -1945,7 +1945,7 @@
                     "1"
                   ]
                 },
-                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
+                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 20–1000 characters when supplied."
               },
               "response": [
                 {
@@ -1983,7 +1983,7 @@
                         "1"
                       ]
                     },
-                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
+                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 20–1000 characters when supplied."
                   },
                   "status": "OK",
                   "code": 200,
@@ -2034,7 +2034,7 @@
                     "2"
                   ]
                 },
-                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
+                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 20–1000 characters when supplied."
               },
               "response": [
                 {
@@ -2072,7 +2072,7 @@
                         "2"
                       ]
                     },
-                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
+                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 20–1000 characters when supplied."
                   },
                   "status": "OK",
                   "code": 200,
@@ -2123,7 +2123,7 @@
                     "3"
                   ]
                 },
-                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
+                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 20–1000 characters when supplied."
               },
               "response": [
                 {
@@ -2161,7 +2161,7 @@
                         "3"
                       ]
                     },
-                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
+                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 20–1000 characters when supplied."
                   },
                   "status": "OK",
                   "code": 200,
@@ -2212,7 +2212,7 @@
                     "4"
                   ]
                 },
-                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
+                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 20–1000 characters when supplied."
               },
               "response": [
                 {
@@ -2250,7 +2250,7 @@
                         "4"
                       ]
                     },
-                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
+                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 20–1000 characters when supplied."
                   },
                   "status": "OK",
                   "code": 200,
@@ -2301,7 +2301,7 @@
                     "5"
                   ]
                 },
-                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
+                "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 20–1000 characters when supplied."
               },
               "response": [
                 {
@@ -2339,7 +2339,7 @@
                         "5"
                       ]
                     },
-                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 100 characters when supplied."
+                    "description": "Automatically saves this section and draft progress for the bearer account. Responses assume earlier steps were saved. Reopening GET /profiles/me restores fields and profileDraft.nextStep. Step 5 bio/description requires 20–1000 characters when supplied."
                   },
                   "status": "OK",
                   "code": 200,
@@ -2470,7 +2470,7 @@
                     "publish"
                   ]
                 },
-                "description": "Step 6. Send agreeToTerms:true after required profile data is ready. Institutes require subjectIds, contactPerson, city, district, country, lessonModes and a 100-character description. Returns profileComplete:true and provider page links."
+                "description": "Step 6. Send agreeToTerms:true after required profile data is ready. Institutes require subjectIds, contactPerson, city, district, country, lessonModes and a 20–1000-character description. Returns profileComplete:true and provider page links."
               },
               "response": [
                 {
@@ -2507,7 +2507,7 @@
                         "publish"
                       ]
                     },
-                    "description": "Step 6. Send agreeToTerms:true after required profile data is ready. Institutes require subjectIds, contactPerson, city, district, country, lessonModes and a 100-character description. Returns profileComplete:true and provider page links."
+                    "description": "Step 6. Send agreeToTerms:true after required profile data is ready. Institutes require subjectIds, contactPerson, city, district, country, lessonModes and a 20–1000-character description. Returns profileComplete:true and provider page links."
                   },
                   "status": "OK",
                   "code": 200,
@@ -2555,7 +2555,7 @@
                         "publish"
                       ]
                     },
-                    "description": "Step 6. Send agreeToTerms:true after required profile data is ready. Institutes require subjectIds, contactPerson, city, district, country, lessonModes and a 100-character description. Returns profileComplete:true and provider page links."
+                    "description": "Step 6. Send agreeToTerms:true after required profile data is ready. Institutes require subjectIds, contactPerson, city, district, country, lessonModes and a 20–1000-character description. Returns profileComplete:true and provider page links."
                   },
                   "status": "OK",
                   "code": 422,

@@ -90,7 +90,7 @@
                                     @endforeach
                                 </select>
                             @elseif ($isLongText)
-                                <textarea id="{{ $inputId }}" name="{{ $key }}" placeholder="{{ $fieldLabel }}" @class(['invalid' => $isInvalid]) @if ($isInvalid) aria-invalid="true" aria-describedby="{{ $inputId }}-error" @endif>{{ $inputValue }}</textarea>
+                                <textarea id="{{ $inputId }}" name="{{ $key }}" @if (in_array($key, ['bio', 'description'], true)) minlength="20" maxlength="1000" @endif placeholder="{{ $fieldLabel }}" @class(['invalid' => $isInvalid]) @if ($isInvalid) aria-invalid="true" aria-describedby="{{ $inputId }}-error" @endif>{{ $inputValue }}</textarea>
                             @else
                                 <input id="{{ $inputId }}" name="{{ $key }}" type="{{ $inputType }}" value="{{ $inputValue }}" placeholder="{{ $fieldLabel }}" @if (in_array($key, ['rate_per_hour', 'starting_rate'], true)) min="0" step="0.01" @endif @if ($isRequired) required @endif @class(['invalid' => $isInvalid]) @if ($isInvalid) aria-invalid="true" aria-describedby="{{ $inputId }}-error" @endif>
                             @endif

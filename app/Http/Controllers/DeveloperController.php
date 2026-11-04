@@ -371,7 +371,7 @@ class DeveloperController extends Controller
                 $variants[4]['bodyExample'] = ['description' => str_repeat('Our instructors help students build confidence through regular practice and feedback. ', 10),
                     'websiteUrl' => 'https://example.test', 'instructorsText' => 'Experienced teaching team'];
                 foreach ($variants as &$variant) {
-                    $variant['guide'] = 'Save this institute section. Draft progress is returned in profileDraft; GET /profiles/me restores saved data and nextStep. A supplied description requires at least 100 characters. Email and verification badges are read-only.';
+                    $variant['guide'] = 'Save this institute section. Draft progress is returned in profileDraft; GET /profiles/me restores saved data and nextStep. A supplied description requires 20–1000 characters. Email and verification badges are read-only.';
                 }
                 unset($variant);
             }
@@ -401,7 +401,7 @@ class DeveloperController extends Controller
                     'guide' => 'Save hourly rate, ISO currency and a trial duration from zero to seven days.'],
                 ['suffix' => '::step-5', 'label' => 'Step 5 · story and LinkedIn', 'pathDefaults' => ['step' => 5],
                     'bodyExample' => ['bio' => $bio, 'linkedinUrl' => 'https://www.linkedin.com/in/example'],
-                    'guide' => 'Save the teacher story and optional LinkedIn URL. A supplied bio must contain at least 100 characters.'],
+                    'guide' => 'Save the teacher story and optional LinkedIn URL. A supplied bio must contain 20–1000 characters.'],
             ];
         }
         if (in_array($key, ['POST /auth/otp/request', 'POST /auth/otp/verify'], true)) {
@@ -538,7 +538,7 @@ class DeveloperController extends Controller
         $examples = [
             'GET /profiles/me' => ['guide' => 'Shared teacher/institute profile read. The bearer selects the account type. Restore saved fields and open profileDraft.nextStep.'],
             'POST /profiles/me/photo' => ['guide' => 'Multipart image, JPEG/PNG/WebP up to 5 MB. Submitted for moderation; does not advance draft progress.'],
-            'POST /profiles/me/publish' => ['body' => ['agreeToTerms' => true], 'guide' => 'Step 6: validate required provider fields, accept terms and publish. Institutes require contactPerson and a 100-character description.'],
+            'POST /profiles/me/publish' => ['body' => ['agreeToTerms' => true], 'guide' => 'Step 6: validate required provider fields, accept terms and publish. Institutes require contactPerson and a 20–1000-character description.'],
             'GET /teacher/profile' => [
                 'guide' => 'Returns the signed-in teacher account, all profile fields, subjects, profileComplete and teacher web page URL fields.',
             ],

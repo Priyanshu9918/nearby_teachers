@@ -337,9 +337,9 @@ in that same subsection.
 | `POST` | `/profiles/me/publish` | Verified teacher/institute bearer, completed registration | `agreeToTerms:true` | Step 6: validates required fields, records terms and completion, returns provider page links. |
 | `PUT` | `/profiles/me` | Verified provider bearer, completed registration | Provider fields described below | Updates the signed-in teacher/institute listing and its subject assignments. |
 | `GET` | `/teacher/profile` | Verified teacher bearer | — | Returns the signed-in teacher's account, profile fields, subjects, `profileComplete` flag, new share/poster `webPageUrl` and the unchanged `teacherProfileUrl` (null until publish). |
-| `PATCH` | `/teacher/profile/steps/{step}` | Verified teacher bearer, completed registration | Step 1 `fullName`, `listingName`; 2 subjects; 3 lesson modes/location; 4 rate/trial; 5 story/LinkedIn | Saves one allowlisted profile section. Account email is returned by `GET /teacher/profile` and is read-only. Step 5 bio must contain at least 100 characters when supplied. |
+| `PATCH` | `/teacher/profile/steps/{step}` | Verified teacher bearer, completed registration | Step 1 `fullName`, `listingName`; 2 subjects; 3 lesson modes/location; 4 rate/trial; 5 story/LinkedIn | Saves one allowlisted profile section. Account email is returned by `GET /teacher/profile` and is read-only. Step 5 bio must contain 20–1000 characters when supplied. |
 | `POST` | `/teacher/profile/photo` | Verified teacher bearer | Multipart `image`, JPEG/PNG/WebP, max 5 MB | Stores the image and submits it for moderation; returns `user.avatar_url`, `user.avatar_status` and a moderation message. |
-| `POST` | `/teacher/profile/publish` | Verified teacher bearer | `agreeToTerms:true` | Requires subject, city, district, country, teaching mode and 100-character bio; sets `is_profile_complete`, records acceptance and creates the teacher page plus location/subject SEO listings. Returns `profileComplete:true` and the teacher page URL keys. |
+| `POST` | `/teacher/profile/publish` | Verified teacher bearer | `agreeToTerms:true` | Requires subject, city, district, country, teaching mode and 20–1000-character bio; sets `is_profile_complete`, records acceptance and creates the teacher page plus location/subject SEO listings. Returns `profileComplete:true` and the teacher page URL keys. |
 | `GET` | `/profiles/me/stats` | Verified bearer | Optional `days` (default 30, maximum 365) | Provider listing views; booking request counts are paused. |
 | `GET` | `/profiles/{type}/{id}` | Public, optional bearer | `type`: `teacher` or `institute`; optional auth affects phone quota | Public listing profile. Suspended or not-yet-phone-verified optional tokens are treated as anonymous. |
 | `POST` | `/franchise/enquiries` | Verified bearer; learner and teacher supported (institute also currently accepted) | `name`, `phone`, `location` | Submits a franchise enquiry for admin review; the signed-in account is linked automatically. |
@@ -393,7 +393,7 @@ Step-save and publish responses also include the same object. After saving steps
 Open `profileDraft.nextStep` and prefill with the existing `user`, `profile` and
 `subjects` response data. `completedSteps` tracks successfully saved sections,
 not a substitute for publish validation: existing partial-section validation
-still applies (including the 100-character rule when sending a bio). Send the section
+still applies (including the 20–1000-character rule when sending a bio). Send the section
 payload when the user taps Next. Invalid requests do not advance progress.
 Revisiting a saved step keeps later progress; out-of-order saves resume at the
 first unsaved step. Once steps 1–5 are saved, `nextStep` is 6: submit
@@ -433,7 +433,7 @@ PUT is partial. Example:
 }
 ```
 
-Teacher-only fields are bio (max 14 words), ratePerHour and linkedinUrl.
+Teacher-only fields are bio (20–1000 characters when supplied), ratePerHour and linkedinUrl.
 Coordinates are a pair, both set or both null. Subject IDs replace the set
 when supplied (up to five). See [all listing validation](API.md#teacher-listing-example-and-field-rules).
 PUT requires completed provider registration. Stats requires provider role and
@@ -490,10 +490,9 @@ cannot be changed through the editor.
 | 5 | `bio`, `linkedinUrl` | `description`, `websiteUrl`, `instructorsText` |
 | 6 | `agreeToTerms:true` to `/profiles/me/publish` | Same request |
 
-A supplied bio/description must contain 100 characters and remain within 2,000
-characters. A section can be partially updated; progress records successful
+A supplied bio/description must contain 20–1000 characters. A section can be partially updated; progress records successful
 section saves. Publication separately requires subjects, city, district, country,
-teaching modes and the 100-character story; institutes also require `contactPerson`.
+teaching modes and a 20–1000-character story; institutes also require `contactPerson`.
 Rates, trial, website, instructors and listing name remain optional.
 
 `GET /profiles/me`, `GET /auth/session`, step saves and publish return the same
@@ -587,7 +586,7 @@ PUT is partial. Example:
 }
 ```
 
-Institute-only fields are description (max 14 words), startingRate,
+Institute-only fields are description (20–1000 characters when supplied), startingRate,
 instructorsText and websiteUrl. Shared listing validation, pagination and stats
 semantics match Teacher. See [all institute fields](API.md#institute-listing-example-and-field-rules).
 Verification/classification is admin-only under Common. Institute users cannot

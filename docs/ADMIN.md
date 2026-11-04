@@ -128,8 +128,8 @@ Each section supports listing, adding, editing, and deleting records.
 |---|---|---|
 | Subjects | `/admin/subjects` | `domain_id`, `name`, and `is_bsl`. Domain must already exist; names must be unique within a domain. A subject assigned to a profile, booking, or post cannot be deleted. |
 | Students | `/admin/students` | Creates/edits the user's `full_name` and at least one of `email` or `phone`. The account type is stored as `learner`. |
-| Teachers | `/admin/teachers` | User fields plus optional `bio` (maximum 14 words), `rate_per_hour`, `currency`, `city`, `state`, `country`, `country_code`, and `linkedin_url`. A teacher profile is created with the user. |
-| Institutes | `/admin/institutes` | User fields plus optional `description` (maximum 14 words), `starting_rate`, `currency`, `city`, `state`, `country`, `country_code`, `instructors_text`, and `website_url`. An institute profile is created with the user. |
+| Teachers | `/admin/teachers` | User fields plus optional `bio` (20–1000 characters when supplied), `rate_per_hour`, `currency`, `city`, `state`, `country`, `country_code`, and `linkedin_url`. A teacher profile is created with the user. |
+| Institutes | `/admin/institutes` | User fields plus optional `description` (20–1000 characters when supplied), `starting_rate`, `currency`, `city`, `state`, `country`, `country_code`, `instructors_text`, and `website_url`. An institute profile is created with the user. |
 
 For student, teacher, and institute forms, email and phone are individually
 optional, but at least one is required and each must be unique across users.

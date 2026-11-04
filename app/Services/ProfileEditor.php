@@ -48,7 +48,8 @@ final class ProfileEditor
             $missing[] = 'countryCode';
         }
         $story = $type === 'teacher' ? 'bio' : 'description';
-        if (self::characterCount((string) ($profile->$story ?? '')) < 100) {
+        $storyLength = self::characterCount((string) ($profile->$story ?? ''));
+        if ($storyLength < 20 || $storyLength > 1000) {
             $missing[] = $story;
         }
         $modes = $profile->lesson_modes ?? [];
@@ -63,6 +64,11 @@ final class ProfileEditor
         }
 
         return $missing;
+    }
+
+    public static function storyRules(): array
+    {
+        return ['nullable', 'string', 'min:20', 'max:1000'];
     }
 
     public static function characterCount(string $value): int

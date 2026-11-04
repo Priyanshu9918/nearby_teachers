@@ -556,7 +556,7 @@ valid coordinates and the normal publication checks in Learner discovery.
 
 | Teacher/shared field | Validation |
 |---|---|
-| `bio` | Nullable, max 14 words and 2,000 characters |
+| `bio` | Nullable, 20–1000 characters when supplied |
 | `ratePerHour` | Nullable, 0..99999999.99 |
 | `linkedinUrl` | Nullable URL, max 2048 |
 | `lessonModes` | Distinct `in_person`, `home_tuition`, `online` array |
@@ -681,7 +681,7 @@ feed reading, likes, comments and replies.
 
 | Institute-only field | Validation |
 |---|---|
-| `description` | Nullable, max 14 words and 2,000 characters |
+| `description` | Nullable, 20–1000 characters when supplied |
 | `startingRate` | Nullable, 0..99999999.99 |
 | `instructorsText` | Nullable, max 2,000 characters |
 | `websiteUrl` | Nullable URL, max 2048 |

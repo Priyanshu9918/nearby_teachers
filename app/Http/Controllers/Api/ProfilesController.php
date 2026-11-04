@@ -50,7 +50,7 @@ class ProfilesController extends Controller
         $descriptionField = $isTeacher ? 'bio' : 'description';
         $rateField = $isTeacher ? 'ratePerHour' : 'startingRate';
         $rules = [
-            $descriptionField => ['sometimes', 'nullable', 'string', 'max:2000'],
+            $descriptionField => ['sometimes', ...ProfileEditor::storyRules()],
             $rateField => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:99999999.99'],
             'currency' => ['sometimes', 'nullable', 'string', 'size:3'],
             'lessonModes' => ['sometimes', 'array'],
@@ -289,11 +289,7 @@ class ProfilesController extends Controller
             OtherSubjects::validateSelection($payload);
         }
         if ($step === '5') {
-            // Validate the type before counting characters, including malformed array input.
-            validator($payload, [$story => ['sometimes', 'nullable', 'string', 'max:2000']])->validate();
-            if (isset($payload[$story]) && ProfileEditor::characterCount($payload[$story]) < 100) {
-                throw ValidationException::withMessages([$story => 'Write at least 100 characters about '.($isTeacher ? 'yourself.' : 'your institute.')]);
-            }
+            validator($payload, [$story => ['sometimes', ...ProfileEditor::storyRules()]])->validate();
         }
         $request->replace($payload);
         $body = DB::transaction(function () use ($request, $step, $payload, $user, $type): array {

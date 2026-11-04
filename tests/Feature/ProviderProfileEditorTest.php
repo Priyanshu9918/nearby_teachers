@@ -111,7 +111,7 @@ class ProviderProfileEditorTest extends TestCase
         $this->travelBack();
         $this->patchJson('/profiles/me/steps/4', [$type === 'teacher' ? 'ratePerHour' : 'startingRate' => 600, 'currency' => 'INR', 'trialDays' => 2])
             ->assertOk()->assertJsonPath('profileDraft.nextStep', 5);
-        $this->patchJson('/profiles/me/steps/5', [$type === 'teacher' ? 'bio' : 'description' => str_repeat('a', 100)])
+        $this->patchJson('/profiles/me/steps/5', [$type === 'teacher' ? 'bio' : 'description' => str_repeat('a', 20)])
             ->assertOk()->assertJsonPath('profileDraft.nextStep', 6);
         $published = $this->postJson('/profiles/me/publish', ['agreeToTerms' => true])->assertOk()
             ->assertJsonPath('profileComplete', true)->assertJsonPath('profileDraft.status', 'published')
@@ -138,17 +138,47 @@ class ProviderProfileEditorTest extends TestCase
     }
 
     #[DataProvider('providers')]
-    public function test_about_me_requires_100_characters_instead_of_100_words(string $type): void
+    public function test_about_me_has_consistent_character_limits_for_each_save_endpoint(string $type): void
     {
         if ($type === 'teacher') {
             $this->useTeacher();
         }
         $story = $type === 'teacher' ? 'bio' : 'description';
-        $this->patchJson('/profiles/me/steps/5', [$story => str_repeat('é', 99)])
-            ->assertUnprocessable()->assertJsonValidationErrors($story);
-        $this->patchJson('/profiles/me/steps/5', [$story => str_repeat('é', 100)])
-            ->assertOk();
-        $this->assertDatabaseHas($type.'_profiles', ['user_id' => $this->userId, $story => str_repeat('é', 100)]);
+        foreach ([['PATCH', '/profiles/me/steps/5'], ['PUT', '/profiles/me']] as [$method, $path]) {
+            foreach ([19, 1001] as $length) {
+                $this->json($method, $path, [$story => str_repeat('é', $length)])
+                    ->assertUnprocessable()->assertJsonValidationErrors($story);
+            }
+            foreach ([20, 1000] as $length) {
+                $this->json($method, $path, [$story => str_repeat('é', $length)])->assertOk();
+                $this->assertDatabaseHas($type.'_profiles', ['user_id' => $this->userId, $story => str_repeat('é', $length)]);
+            }
+        }
+        foreach ([19, 1001] as $length) {
+            DB::table($type.'_profiles')->where('user_id', $this->userId)->update([$story => str_repeat('é', $length)]);
+            $this->postJson('/profiles/me/publish', ['agreeToTerms' => true])->assertUnprocessable()
+                ->assertJsonPath('missingFields', fn ($fields) => in_array($story, $fields, true));
+        }
+    }
+
+    #[DataProvider('providers')]
+    public function test_admin_about_me_uses_character_limits_without_word_limit(string $type): void
+    {
+        if ($type === 'teacher') {
+            $this->useTeacher();
+        }
+        $field = $type === 'teacher' ? 'bio' : 'description';
+        $section = $type === 'teacher' ? 'teachers' : 'institutes';
+        $this->withSession(['admin_authenticated' => true]);
+        $body = ['full_name' => 'Example Provider', 'email' => 'admin-edit@example.test', 'phone' => null];
+        foreach ([19, 1001] as $length) {
+            $this->put('/admin/'.$section.'/'.$this->userId, [...$body, $field => str_repeat('é', $length)])
+                ->assertSessionHasErrors($field);
+        }
+        foreach ([str_repeat('é', 20), str_repeat('word ', 200)] as $text) {
+            $this->put('/admin/'.$section.'/'.$this->userId, [...$body, $field => $text])->assertSessionHasNoErrors();
+            $this->assertDatabaseHas($type.'_profiles', ['user_id' => $this->userId, $field => trim($text)]);
+        }
     }
 
     public function test_invalid_fields_and_incomplete_publication_do_not_advance_or_publish(): void
