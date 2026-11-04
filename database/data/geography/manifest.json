@@ -1,0 +1,11 @@
+{
+  "source": "https://github.com/dr5hn/countries-states-cities-database",
+  "commit": "c99697b53dddbf0e02c83c74899ffd716a247d6a",
+  "license": "ODbL-1.0",
+  "sha256": "1362f9722eb76ab4a856a343ee3ba8411b51fe74b8adf5d8820d3e4937a22d87",
+  "counts": {
+    "countries": 250,
+    "states": 5327,
+    "cities": 156169
+  }
+}
