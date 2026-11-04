@@ -1176,3 +1176,7 @@ OS push delivery/registration is separate.
 Institute address and GPS enrichment support is described in [INSTITUTE_REGISTRATION_ADDRESS.md](INSTITUTE_REGISTRATION_ADDRESS.md). No subject selection is required or accepted in institute registration.
 
 Teacher SEO URLs now identify one `/teacher/{name-city}` page; `teacherSeoUrl` and `teacherProfileUrl` point to the same URL, or are null when publication requirements (including a supported country) are missing. See [international SEO](TEACHER_SEO_PAGES.md).
+
+Teacher and institute registration/profile subject edits support typed `otherSubjects` under the shared Other category. See [contract and dedicated Postman collection](OTHER_SUBJECTS.md).
+
+Job applications also accept shared Other courses via optional `otherSubjects`, or saved Other IDs in `courseIds`. Existing BSL selections remain supported. Creation and the existing version 1 application event share the source transaction; course name snapshots remain historical. See [job contract and dedicated collection](JOB_APPLICATION_OTHER_SUBJECTS.md).

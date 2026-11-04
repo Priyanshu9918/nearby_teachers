@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Reporting\BusinessActivityRecorder;
 use App\Services\OnboardingState;
+use App\Services\OtherSubjects;
 use App\Services\TeacherAddress;
 use App\Services\TeacherLocation;
 use App\Services\TeacherPublicPages;
@@ -133,7 +134,7 @@ class OnboardingController extends Controller
                 $rules['password'] = ['required', 'string', 'min:8', 'max:72'];
             }
             $rules['city'] = ['required_if:accountType,teacher,institute', 'nullable', 'string', 'max:120'];
-            $rules['primarySubjects'] = ['required_if:accountType,teacher', 'array', 'min:1', 'max:5'];
+            $rules['primarySubjects'] = [$request->filled('otherSubjects') ? 'sometimes' : 'required_if:accountType,teacher', 'array', 'min:1', 'max:5'];
             $rules['contactPerson'] = ['required_if:accountType,institute', 'nullable', 'string', 'max:160'];
             $rules['termsAccepted'] = ['required', 'accepted'];
             $rules['acknowledgeTeachersNotBackgroundChecked'] = ['required', 'accepted'];
@@ -145,7 +146,16 @@ class OnboardingController extends Controller
             $rules['subjectIds.*'] = ['required', 'integer', 'distinct', 'exists:subjects,id'];
         }
 
+        $type = $request->input('accountType') ?? $request->attributes->get('authenticated_user')?->account_type ?? null;
+        $rules += in_array($type, ['teacher', 'institute'], true) ? OtherSubjects::rules() : ['otherSubjects' => ['prohibited']];
+        if ($request->filled('otherSubjects')) {
+            $field = $type === 'teacher' ? 'primarySubjects' : 'subjectIds';
+            if (in_array($type, ['teacher', 'institute'], true)) {
+                $rules[$field] = ['sometimes', 'array', 'max:5'];
+            }
+        }
         $data = $request->validate($rules + TeacherAddress::rules());
+        OtherSubjects::validateSelection($data);
         TeacherLocation::validatePair($data);
         if (isset($data['primarySubjects'])) {
             $data['primarySubjects'] = array_values(array_map('intval', $data['primarySubjects']));
@@ -161,6 +171,7 @@ class OnboardingController extends Controller
             $user = DB::table('users')->where('id', $user->id)->lockForUpdate()->first();
             abort_if($user === null, 403, 'Invalid or expired token');
             $accountType = $this->normalizeAccountType($data['accountType'] ?? $user->account_type);
+            $data = app(OtherSubjects::class)->resolve($data, $accountType === 'teacher' ? 'primarySubjects' : 'subjectIds', (int) $user->id);
             $userUpdates = [
                 'account_type' => $accountType,
                 'updated_at' => $now,
@@ -288,7 +299,7 @@ class OnboardingController extends Controller
             if ($city === null) {
                 $errors['city'] = 'Enter your city / location.';
             }
-            if (empty($data['primarySubjects'])) {
+            if (empty($data['primarySubjects']) && empty($data['otherSubjects'])) {
                 $errors['primarySubjects'] = 'Choose between one and five teaching subjects.';
             }
         }

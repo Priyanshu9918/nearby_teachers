@@ -1,0 +1,234 @@
+{
+  "info": {
+    "name": "Nearby Teacher \u2014 Apply for Job with Other Courses",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Login with an existing phone-verified learner/teacher/institute account, or set jobToken from that account manually. Each apply request creates a separate application. Maximum 5 requests/minute. Existing BSL and saved Other IDs are allowed; unrelated non-BSL categories remain disallowed. All course names and salary values are saved as application snapshots. Run custom-only first to populate savedOtherSubjectId, or browse an existing customCourse. Set baseUrl, jobEmail, password and contact phone. Blank bearer token defaults; no real credentials included."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "password",
+      "value": "a-secure-password"
+    },
+    {
+      "key": "customCourse",
+      "value": "Abacus"
+    },
+    {
+      "key": "savedOtherSubjectId",
+      "value": ""
+    },
+    {
+      "key": "jobToken",
+      "value": ""
+    },
+    {
+      "key": "jobEmail",
+      "value": "teacher@example.com"
+    },
+    {
+      "key": "jobContactPhone",
+      "value": "+919876543210"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Login existing verified account (saves jobToken)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/auth/login",
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{jobEmail}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200) pm.collectionVariables.set(\"jobToken\", pm.response.json().token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Browse BSL and Other courses",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/subjects",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200) {",
+              " const other = pm.response.json().domains.find(d => d.name === \"Other\");",
+              " const course = other && other.subjects.find(s => s.name.toLowerCase() === pm.collectionVariables.get(\"customCourse\").trim().replace(/\\s+/g, \" \").toLowerCase());",
+              " if (course) pm.collectionVariables.set(\"savedOtherSubjectId\", course.id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Apply with custom course only",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/jobs/applications",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{jobToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Asha Applicant\",\n  \"phone\": \"{{jobContactPhone}}\",\n  \"expectedSalary\": 25000,\n  \"otherSubjects\": [\n    \"{{customCourse}}\"\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Application submitted\", () => pm.response.to.have.status(201));",
+              "if (pm.response.code === 201) pm.collectionVariables.set(\"savedOtherSubjectId\", pm.response.json().application.courses[0].id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Apply with existing + typed courses",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/jobs/applications",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{jobToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Asha Applicant\",\n  \"phone\": \"{{jobContactPhone}}\",\n  \"expectedSalary\": 25000,\n  \"otherSubjects\": [\n    \"Vedic Maths\"\n  ],\n  \"courseIds\": [\n    {{savedOtherSubjectId}}\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "5. Reuse saved Other course by numeric ID",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/jobs/applications",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{jobToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Asha Applicant\",\n  \"phone\": \"{{jobContactPhone}}\",\n  \"expectedSalary\": 25000,\n  \"courseIds\": [\n    {{savedOtherSubjectId}}\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

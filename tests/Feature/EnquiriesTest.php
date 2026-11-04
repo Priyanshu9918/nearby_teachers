@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Services\AuthenticationService;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -179,6 +180,71 @@ class EnquiriesTest extends TestCase
             $this->assertDatabaseHas('admin_report_access_log', ['report' => $report, 'action' => 'view']);
             $this->assertDatabaseHas('admin_report_access_log', ['report' => $report, 'action' => 'export']);
         }
+    }
+
+    #[DataProvider('roles')]
+    public function test_job_custom_courses_are_shared_reused_and_snapshotted(string $role): void
+    {
+        DB::table('users')->where('id', $this->userId)->update(['account_type' => $role]);
+        $first = $this->postJson('/jobs/applications', [...$this->job(), 'otherSubjects' => [' Job   Abacus ', 'job abacus']])
+            ->assertCreated()->assertJsonCount(2, 'application.courses');
+        $domain = DB::table('subject_domains')->where('name', 'Other')->first();
+        $custom = DB::table('subjects')->where('domain_id', $domain->id)->where('name', 'Job Abacus')->first();
+        $this->assertNotNull($custom);
+        $this->assertFalse((bool) $custom->is_bsl);
+        $this->assertDatabaseHas('teaching_job_application_courses', ['application_id' => $first->json('application.id'),
+            'course_id' => $custom->id, 'course_name' => 'Job Abacus']);
+        $this->getJson('/subjects')->assertOk()->assertJsonFragment(['name' => 'Job Abacus']);
+        $this->postJson('/jobs/applications', [...$this->job(), 'courseIds' => [], 'otherSubjects' => ['JOB ABACUS']])
+            ->assertCreated()->assertJsonPath('application.courses.0.id', $custom->id)->assertJsonCount(1, 'application.courses');
+        $this->postJson('/jobs/applications', [...$this->job(), 'courseIds' => [$custom->id]])
+            ->assertCreated()->assertJsonPath('application.courses.0.id', $custom->id);
+        $this->assertSame(1, DB::table('business_activity')->where('event', 'subject.other_created')->where('entity_id', $custom->id)->count());
+        $this->assertDatabaseMissing('business_activity', ['event' => 'provider.custom_subjects_selected', 'actor_user_id' => $this->userId]);
+        DB::table('subjects')->where('id', $custom->id)->update(['name' => 'Renamed custom course']);
+        $path = '/admin/reports/job-application-courses?user='.$this->userId.'&q=Job%20Abacus';
+        $this->get($path)->assertRedirect(route('admin.login'));
+        $this->withSession(['admin_authenticated' => true])->get($path)->assertOk()->assertSee('Job Abacus');
+        $this->assertStringContainsString('Job Abacus', $this->get($path.'&export=1')->assertOk()->streamedContent());
+        $this->assertDatabaseHas('admin_report_access_log', ['report' => 'job-application-courses', 'action' => 'export']);
+    }
+
+    public function test_invalid_custom_courses_and_combined_limit_leave_no_catalogue_rows(): void
+    {
+        $this->withoutMiddleware(ThrottleRequests::class);
+        foreach ([['   '], [123], [str_repeat('x', 201)], [], 'Abacus', ['a', 'b', 'c', 'd', 'e', 'f']] as $invalid) {
+            $this->postJson('/jobs/applications', [...$this->job(), 'otherSubjects' => $invalid])->assertUnprocessable();
+        }
+        $this->postJson('/jobs/applications', [...$this->job(), 'courseIds' => array_slice($this->courseIds, 0, 5),
+            'otherSubjects' => ['Too many custom']])->assertUnprocessable()->assertJsonValidationErrors('otherSubjects');
+        $this->postJson('/jobs/applications', [...$this->job(), 'courseIds' => [4294967295],
+            'otherSubjects' => ['Invalid existing ID']])->assertUnprocessable()->assertJsonValidationErrors('courseIds');
+        $this->assertDatabaseMissing('subjects', ['name' => 'Too many custom']);
+        $this->assertDatabaseMissing('subjects', ['name' => 'Invalid existing ID']);
+        $this->assertDatabaseCount('teaching_job_applications', 0);
+        $this->assertSame(0, DB::table('business_activity')->where('actor_user_id', $this->userId)->count());
+    }
+
+    public function test_custom_job_course_rolls_back_when_submission_history_fails(): void
+    {
+        $failHistory = true;
+        DB::listen(function ($query) use (&$failHistory): void {
+            if ($failHistory && str_starts_with($query->sql, 'insert into `business_activity`')
+                && in_array('teaching_job_application.submitted', $query->bindings, true)) {
+                throw new \RuntimeException('Job history unavailable');
+            }
+        });
+        try {
+            $body = $this->job();
+            unset($body['courseIds']);
+            $this->postJson('/jobs/applications', [...$body, 'otherSubjects' => ['Rolled back job course']])->assertStatus(500);
+        } finally {
+            $failHistory = false;
+        }
+        $this->assertDatabaseMissing('subjects', ['name' => 'Rolled back job course']);
+        $this->assertDatabaseCount('teaching_job_applications', 0);
+        $this->assertDatabaseCount('teaching_job_application_courses', 0);
+        $this->assertSame(0, DB::table('business_activity')->where('actor_user_id', $this->userId)->count());
     }
 
     private function franchise(): array

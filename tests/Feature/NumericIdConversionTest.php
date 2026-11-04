@@ -42,7 +42,9 @@ class NumericIdConversionTest extends TestCase
         DB::purge('mysql');
         $this->assertStringEndsWith('_test', DB::connection()->getDatabaseName());
         $this->usesDisposableDatabase = true;
+        // Create numeric-only comment likes after the legacy UUID rows have been converted.
         $paths = array_values(array_filter(glob(database_path('migrations/*.php')), fn ($path) => ! str_contains($path, '000034_')
+            && ! str_contains($path, 'create_comment_likes_table')
             && ! str_contains($path, 'enforce_numeric_application_ids')));
         Artisan::call('migrate:fresh', ['--force' => true, '--path' => $paths, '--realpath' => true]);
         $old = fn (int $id) => sprintf('00000000-0000-4000-8000-%012d', $id);
@@ -71,6 +73,9 @@ class NumericIdConversionTest extends TestCase
             ['id' => $old(70), 'event' => 'message.replied', 'entity_type' => 'message', 'entity_id' => $old(21),
                 'actor_user_id' => $old(2), 'related_user_id' => $old(1), 'version' => 1, 'before_data' => '{}',
                 'after_data' => json_encode(['conversation_id' => $old(10), 'reply_to_id' => $old(20)])],
+            ['id' => $old(72), 'event' => 'subject.other_created', 'entity_type' => 'subject', 'entity_id' => (string) $subject,
+                'actor_user_id' => $old(2), 'related_user_id' => null, 'version' => 1, 'before_data' => '{}',
+                'after_data' => json_encode(['domain_id' => $domain, 'name' => 'English'])],
             ['id' => $old(71), 'event' => 'message.deleted', 'entity_type' => 'message', 'entity_id' => $old(22),
                 'actor_user_id' => $old(3), 'related_user_id' => null, 'version' => 1, 'before_data' => '{}',
                 'after_data' => json_encode(['conversation_id' => $old(10), 'revision' => 2])],
@@ -106,7 +111,7 @@ class NumericIdConversionTest extends TestCase
         $this->assertSame(1, DB::table('messages')->where('id', 2)->value('conversation_id'));
         $this->assertSame(2, DB::table('messages')->where('id', 2)->value('sender_id'));
         $this->assertSame(2, DB::table('profile_subjects')->value('profile_id'));
-        $this->assertSame(2, DB::table('reports')->value('target_id'));
+        $this->assertSame(2, DB::table('reports')->where('target_type', 'message')->value('target_id'));
         $this->assertNull(DB::table('reports')->where('reason', 'Unlinked report')->value('target_type'));
         $this->assertNull(DB::table('reports')->where('reason', 'Unlinked report')->value('target_id'));
         $this->assertSame(1, DB::table('admin_report_access_log')->value('record_id'));
@@ -120,7 +125,8 @@ class NumericIdConversionTest extends TestCase
         $snapshot = json_decode($history->after_data, true);
         $this->assertSame(1, $snapshot['conversation_id']);
         $this->assertSame(1, $snapshot['reply_to_id']);
-        $this->assertSame(2, DB::table('business_activity')->count());
+        $this->assertSame(3, DB::table('business_activity')->count());
+        $this->assertDatabaseHas('business_activity', ['event' => 'subject.other_created', 'entity_type' => 'subject', 'entity_id' => $subject]);
         $this->assertSame(2, DB::table('messages')->count());
         // Deleted source records remain absent, and their historical IDs cannot be reused.
         $this->assertSame(3, DB::table('business_activity')->where('event', 'message.deleted')->value('entity_id'));

@@ -1,0 +1,933 @@
+{
+  "info": {
+    "name": "Nearby Teacher \u2014 Teacher & Institute Other Courses",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Dedicated teacher/institute custom course flow. Set baseUrl and unused phone/email variables. Run OTP request, enter received OTP (auto-filled only when test mode returns it), verify, then register. Run the teacher flow first, list subjects again, then run institute with the same customCourse to verify shared reuse. Teacher uses primarySubjects; institute uses subjectIds. otherSubjects accepts typed names, not the literal Other. Existing + custom max 5. Profile updates replace selections; omitted subject fields preserve them. Tokens start empty; no credentials from the server are included."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "teacherPhone",
+      "value": "+919876543210"
+    },
+    {
+      "key": "teacherOtp",
+      "value": "ENTER_RECEIVED_OTP"
+    },
+    {
+      "key": "teacherEmail",
+      "value": "teacher@example.com"
+    },
+    {
+      "key": "teacherName",
+      "value": "Asha Sharma"
+    },
+    {
+      "key": "teacherToken",
+      "value": ""
+    },
+    {
+      "key": "institutePhone",
+      "value": "+919876543211"
+    },
+    {
+      "key": "instituteOtp",
+      "value": "ENTER_RECEIVED_OTP"
+    },
+    {
+      "key": "instituteEmail",
+      "value": "academy@example.com"
+    },
+    {
+      "key": "instituteName",
+      "value": "Bright Academy"
+    },
+    {
+      "key": "instituteToken",
+      "value": ""
+    },
+    {
+      "key": "password",
+      "value": "a-secure-password"
+    },
+    {
+      "key": "customCourse",
+      "value": "Abacus"
+    },
+    {
+      "key": "savedOtherSubjectId",
+      "value": ""
+    },
+    {
+      "key": "jobToken",
+      "value": ""
+    },
+    {
+      "key": "jobEmail",
+      "value": "teacher@example.com"
+    },
+    {
+      "key": "jobContactPhone",
+      "value": "+919876543210"
+    }
+  ],
+  "item": [
+    {
+      "name": "List categories and subjects (includes saved Other courses)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/subjects",
+        "description": "Public. After registration, run again: Other contains the permanent custom subject. Stores its numeric ID as savedOtherSubjectId. Before the first custom submission, Other may not exist; the app should still offer an Other text input.",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Subjects loaded\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) {",
+              " const other = pm.response.json().domains.find(d => d.name === \"Other\");",
+              " const course = other && other.subjects.find(s => s.name.toLowerCase() === pm.collectionVariables.get(\"customCourse\").trim().replace(/\\s+/g, \" \").toLowerCase());",
+              " if (course) pm.collectionVariables.set(\"savedOtherSubjectId\", course.id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Teacher \u2014 run with its own phone/email",
+      "item": [
+        {
+          "name": "1. Request teacher OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/otp/request",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{teacherPhone}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 && pm.response.json().otp) pm.collectionVariables.set(\"teacherOtp\", pm.response.json().otp);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Verify OTP and save teacherToken",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/otp/verify",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{teacherPhone}}\",\n  \"code\": \"{{teacherOtp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Phone verified\", () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"teacherToken\", pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Register teacher with a custom course",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/register",
+            "description": "Custom-only example works without existing IDs. To mix, add primarySubjects: [an existing numeric ID]. Combined limit: 5. Use an unused phone/email. The institute example reuses the same course created by the teacher.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{teacherToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountType\": \"teacher\",\n  \"fullName\": \"{{teacherName}}\",\n  \"email\": \"{{teacherEmail}}\",\n  \"password\": \"{{password}}\",\n  \"city\": \"New Delhi\",\n  \"otherSubjects\": [\n    \"{{customCourse}}\"\n  ],\n  \"termsAccepted\": true,\n  \"acknowledgeTeachersNotBackgroundChecked\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Registered\", () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  " const ids = pm.response.json().draft.primarySubjects;",
+                  " pm.test(\"Resolved numeric subject ID returned\", () => pm.expect(ids[0]).to.be.a(\"number\"));",
+                  " pm.collectionVariables.set(\"savedOtherSubjectId\", ids[0]);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4. Restore saved subject IDs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/onboarding",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{teacherToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "5. Add a course after registration",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/onboarding",
+            "description": "Replaces current selection with these resolved courses. Omit all subject fields to preserve selection.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{teacherToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"otherSubjects\": [\n    \"{{customCourse}}\",\n    \"Vedic Maths\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "6. Subject editor step (existing + custom)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/profiles/me/steps/2",
+            "description": "Run the catalogue request or registration first to populate savedOtherSubjectId. This request replaces current selection. Maximum 5 combined.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{teacherToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"primarySubjects\": [\n    {{savedOtherSubjectId}}\n  ],\n  \"otherSubjects\": [\n    \"Robotics\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "7. Select an existing Other course directly",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/profiles/me",
+            "description": "Use the numeric ID fetched from GET /subjects. No otherSubjects needed.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{teacherToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"primarySubjects\": [\n    {{savedOtherSubjectId}}\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "8. Read profile with subject names",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/profiles/me",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{teacherToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Institute \u2014 run with its own phone/email",
+      "item": [
+        {
+          "name": "1. Request institute OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/otp/request",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{institutePhone}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 && pm.response.json().otp) pm.collectionVariables.set(\"instituteOtp\", pm.response.json().otp);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Verify OTP and save instituteToken",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/otp/verify",
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"{{institutePhone}}\",\n  \"code\": \"{{instituteOtp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Phone verified\", () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"instituteToken\", pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Register institute with a custom course",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/register",
+            "description": "Custom-only example works without existing IDs. To mix, add subjectIds: [an existing numeric ID]. Combined limit: 5. Use an unused phone/email. The institute example reuses the same course created by the teacher.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{instituteToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountType\": \"institute\",\n  \"fullName\": \"{{instituteName}}\",\n  \"email\": \"{{instituteEmail}}\",\n  \"password\": \"{{password}}\",\n  \"city\": \"New Delhi\",\n  \"otherSubjects\": [\n    \"{{customCourse}}\"\n  ],\n  \"termsAccepted\": true,\n  \"acknowledgeTeachersNotBackgroundChecked\": true,\n  \"contactPerson\": \"Asha Sharma\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Registered\", () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  " const ids = pm.response.json().draft.subjectIds;",
+                  " pm.test(\"Resolved numeric subject ID returned\", () => pm.expect(ids[0]).to.be.a(\"number\"));",
+                  " pm.collectionVariables.set(\"savedOtherSubjectId\", ids[0]);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4. Restore saved subject IDs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/onboarding",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{instituteToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "5. Add a course after registration",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/onboarding",
+            "description": "Replaces current selection with these resolved courses. Omit all subject fields to preserve selection.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{instituteToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"otherSubjects\": [\n    \"{{customCourse}}\",\n    \"Vedic Maths\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "6. Subject editor step (existing + custom)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/profiles/me/steps/2",
+            "description": "Run the catalogue request or registration first to populate savedOtherSubjectId. This request replaces current selection. Maximum 5 combined.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{instituteToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subjectIds\": [\n    {{savedOtherSubjectId}}\n  ],\n  \"otherSubjects\": [\n    \"Robotics\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "7. Select an existing Other course directly",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/profiles/me",
+            "description": "Use the numeric ID fetched from GET /subjects. No otherSubjects needed.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{instituteToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subjectIds\": [\n    {{savedOtherSubjectId}}\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "8. Read profile with subject names",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/profiles/me",
+            "description": "",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{instituteToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Apply for teaching job \u2014 Other courses",
+      "description": "Login with an existing phone-verified learner/teacher/institute account, or set jobToken from that account manually. Each apply request creates a separate application. Maximum 5 requests/minute. Existing BSL and saved Other IDs are allowed; unrelated non-BSL categories remain disallowed. All course names and salary values are saved as application snapshots.",
+      "item": [
+        {
+          "name": "1. Login existing verified account (saves jobToken)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{jobEmail}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"jobToken\", pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Browse BSL and Other courses",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/subjects",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  " const other = pm.response.json().domains.find(d => d.name === \"Other\");",
+                  " const course = other && other.subjects.find(s => s.name.toLowerCase() === pm.collectionVariables.get(\"customCourse\").trim().replace(/\\s+/g, \" \").toLowerCase());",
+                  " if (course) pm.collectionVariables.set(\"savedOtherSubjectId\", course.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Apply with custom course only",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/jobs/applications",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jobToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Asha Applicant\",\n  \"phone\": \"{{jobContactPhone}}\",\n  \"expectedSalary\": 25000,\n  \"otherSubjects\": [\n    \"{{customCourse}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Application submitted\", () => pm.response.to.have.status(201));",
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"savedOtherSubjectId\", pm.response.json().application.courses[0].id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4. Apply with existing + typed courses",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/jobs/applications",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jobToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Asha Applicant\",\n  \"phone\": \"{{jobContactPhone}}\",\n  \"expectedSalary\": 25000,\n  \"otherSubjects\": [\n    \"Vedic Maths\"\n  ],\n  \"courseIds\": [\n    {{savedOtherSubjectId}}\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "5. Reuse saved Other course by numeric ID",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/jobs/applications",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{jobToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Asha Applicant\",\n  \"phone\": \"{{jobContactPhone}}\",\n  \"expectedSalary\": 25000,\n  \"courseIds\": [\n    {{savedOtherSubjectId}}\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

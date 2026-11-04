@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Reporting\BusinessActivityRecorder;
+use App\Services\OtherSubjects;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -44,16 +45,20 @@ class EnquiriesController extends Controller
         $data = $request->validate([
             ...$this->contactRules(),
             'expectedSalary' => ['required', 'numeric', 'decimal:0,2', 'min:0.01', 'max:99999999.99'],
-            'courseIds' => ['required', 'array', 'list', 'min:1', 'max:5'],
+            'courseIds' => [$request->filled('otherSubjects') ? 'sometimes' : 'required', 'array', 'list', $request->filled('otherSubjects') ? 'min:0' : 'min:1', 'max:5'],
             'courseIds.*' => ['required', 'integer', 'min:1', 'max:4294967295', 'distinct'],
-        ]);
+        ] + OtherSubjects::rules());
+        OtherSubjects::validateSelection($data);
         $phone = $this->phone($data['phone']);
         $userId = $request->attributes->get('authenticated_user')->id;
         $application = DB::transaction(function () use ($data, $phone, $userId): array {
-            $courses = DB::table('subjects')->whereIn('id', $data['courseIds'])->where('is_bsl', true)
+            $data = app(OtherSubjects::class)->resolve($data, 'courseIds', (int) $userId, recordProviderSelection: false);
+            $courses = DB::table('subjects')->whereIn('id', $data['courseIds'])
+                ->where(fn ($query) => $query->where('is_bsl', true)->orWhereIn('domain_id',
+                    DB::table('subject_domains')->select('id')->where('name', 'Other')))
                 ->orderBy('id')->sharedLock()->get(['id', 'name']);
             if ($courses->count() !== count($data['courseIds'])) {
-                throw ValidationException::withMessages(['courseIds' => 'Choose between 1 and 5 available BSL courses from GET /subjects.']);
+                throw ValidationException::withMessages(['courseIds' => 'Choose between 1 and 5 BSL or Other courses from GET /subjects.']);
             }
             $createdAt = now();
             $salary = number_format((float) $data['expectedSalary'], 2, '.', '');

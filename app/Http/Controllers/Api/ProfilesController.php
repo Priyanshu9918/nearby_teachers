@@ -7,6 +7,7 @@ use App\Reporting\BusinessActivityRecorder;
 use App\Services\CountryCurrency;
 use App\Services\InstitutePublicPages;
 use App\Services\OnboardingState;
+use App\Services\OtherSubjects;
 use App\Services\ProfileDraft;
 use App\Services\ProfileEditor;
 use App\Services\TeacherAddress;
@@ -65,7 +66,7 @@ class ProfilesController extends Controller
             $subjectsField => $isTeacher ? ['sometimes', 'array', 'min:1', 'max:5'] : ['sometimes', 'array', 'max:5'],
             $subjectsField.'.*' => ['required', 'integer', 'distinct', 'exists:subjects,id'],
         ];
-        $rules += TeacherAddress::rules();
+        $rules += TeacherAddress::rules() + OtherSubjects::rules();
         if ($isTeacher) {
             $rules['subjectIds'] = ['prohibited'];
             $rules['primarySubjectId'] = ['prohibited'];
@@ -75,7 +76,11 @@ class ProfilesController extends Controller
             $rules['websiteUrl'] = ['sometimes', 'nullable', 'url', 'max:2048'];
         }
 
+        if ($request->filled('otherSubjects')) {
+            $rules[$subjectsField] = ['sometimes', 'array', 'max:5'];
+        }
         $data = $request->validate($rules);
+        OtherSubjects::validateSelection($data);
         if ($request->exists('latitude') !== $request->exists('longitude')) {
             throw ValidationException::withMessages(['location' => 'Latitude and longitude must be provided together']);
         }
@@ -124,6 +129,8 @@ class ProfilesController extends Controller
             if ($lockedProfile === null) {
                 abort(404, 'Profile not found');
             }
+
+            $data = app(OtherSubjects::class)->resolve($data, $subjectsField, (int) $user->id);
 
             DB::update(
                 'UPDATE '.$profileTable.' SET '.implode(', ', $updateParts).' WHERE user_id = ?',
@@ -225,7 +232,7 @@ class ProfilesController extends Controller
         $story = $isTeacher ? 'bio' : 'description';
         $allowed = match ($step) {
             '1' => $isTeacher ? ['fullName', 'listingName'] : ['fullName', 'listingName', 'contactPerson'],
-            '2' => [$subjects],
+            '2' => [$subjects, 'otherSubjects'],
             '3' => ['lessonModes', 'latitude', 'longitude', 'addressText', 'city', 'state', 'country', 'countryCode', 'district', 'subDistrict', 'locality', 'localityType', 'postalCode'],
             '4' => [$isTeacher ? 'ratePerHour' : 'startingRate', 'currency', 'trialDays'],
             '5' => $isTeacher ? ['bio', 'linkedinUrl'] : ['description', 'websiteUrl', 'instructorsText'],
@@ -277,8 +284,9 @@ class ProfilesController extends Controller
         }
 
         if ($step === '2') {
-            validator($payload, [$subjects => ['required', 'array', 'min:1', 'max:5'],
-                $subjects.'.*' => ['required', 'integer', 'distinct', 'exists:subjects,id']])->validate();
+            validator($payload, [$subjects => [empty($payload['otherSubjects']) ? 'required' : 'sometimes', 'array', empty($payload['otherSubjects']) ? 'min:1' : 'min:0', 'max:5'],
+                $subjects.'.*' => ['required', 'integer', 'distinct', 'exists:subjects,id']] + OtherSubjects::rules())->validate();
+            OtherSubjects::validateSelection($payload);
         }
         if ($step === '5') {
             // Validate the type before counting characters, including malformed array input.

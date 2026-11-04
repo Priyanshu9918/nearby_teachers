@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\NumericTestIds;
 use Tests\TestCase;
 
@@ -159,6 +160,94 @@ class OnboardingPersistenceTest extends TestCase
         $this->postJson('/auth/register', array_replace($this->sharedFields(), [
             'accountType' => 'teacher', 'city' => 'Jaipur',
         ]))->assertUnprocessable()->assertJsonValidationErrors('primarySubjects');
+    }
+
+    public function test_next_institute_reuses_the_teacher_custom_course(): void
+    {
+        $base = array_replace($this->sharedFields(), ['accountType' => 'teacher', 'city' => 'Delhi', 'otherSubjects' => ['Shared Abacus']]);
+        $teacherId = $this->userId;
+        $courseId = $this->postJson('/auth/register', $base)->assertOk()->json('draft.primarySubjects.0');
+        $this->userId = NumericTestIds::next();
+        DB::table('users')->insert(['id' => $this->userId, 'account_type' => 'learner', 'full_name' => 'New user',
+            'phone' => '+918112912881', 'phone_verified_at' => now()]);
+        $this->postJson('/auth/register', [...$base, 'accountType' => 'institute', 'contactPerson' => 'Asha',
+            'email' => 'second@example.com', 'otherSubjects' => [' shared   ABACUS ']])->assertOk()
+            ->assertJsonPath('draft.subjectIds', [$courseId]);
+        foreach ([['teacher', $teacherId], ['institute', $this->userId]] as [$type, $id]) {
+            $this->assertDatabaseHas('profile_subjects', ['profile_type' => $type, 'profile_id' => $id, 'subject_id' => $courseId]);
+        }
+        $this->assertSame(1, DB::table('business_activity')->where('event', 'subject.other_created')->where('entity_id', $courseId)->count());
+    }
+
+    public static function customSubjectProviders(): array
+    {
+        return [['teacher', '/auth/register'], ['institute', '/auth/onboarding/complete']];
+    }
+
+    #[DataProvider('customSubjectProviders')]
+    public function test_custom_courses_are_shared_reusable_subjects(string $type, string $endpoint): void
+    {
+        $field = $type === 'teacher' ? 'primarySubjects' : 'subjectIds';
+        $existing = $this->teachingSubjects()[0];
+        $this->postJson($endpoint, array_replace($this->sharedFields(), [
+            'accountType' => $type, 'city' => 'Delhi', 'contactPerson' => 'Asha',
+            $field => [$existing], 'otherSubjects' => ['  Custom   Abacus  ', 'custom abacus'],
+        ]))->assertOk();
+        $domain = DB::table('subject_domains')->where('name', 'Other')->first();
+        $custom = DB::table('subjects')->where('domain_id', $domain->id)->where('name', 'Custom Abacus')->first();
+        $this->assertNotNull($custom);
+        $this->assertFalse((bool) $custom->is_bsl);
+        $this->assertSame(1, DB::table('subjects')->where('domain_id', $domain->id)->whereRaw('LOWER(name) = ?', ['custom abacus'])->count());
+        $this->getJson('/auth/onboarding')->assertOk()->assertJsonPath('draft.'.$field, [$existing, $custom->id]);
+        $catalogue = $this->getJson('/subjects')->assertOk()->json('domains');
+        $other = collect($catalogue)->firstWhere('name', 'Other');
+        $this->assertContains($custom->id, array_column($other['subjects'], 'id'));
+        $this->patchJson('/auth/onboarding', ['otherSubjects' => ['CUSTOM ABACUS', 'Custom Robotics']])->assertOk();
+        $this->assertSame(1, DB::table('subject_domains')->where('name', 'Other')->count());
+        $this->assertSame(1, DB::table('business_activity')->where('event', 'subject.other_created')->where('entity_id', $custom->id)->count());
+        $this->assertDatabaseHas('profile_subjects', ['profile_type' => $type, 'profile_id' => $this->userId, 'subject_id' => $custom->id]);
+        $report = '/admin/reports/activity?q=subject.other_created&user='.$this->userId;
+        $this->get($report)->assertRedirect();
+        $this->withSession(['admin_authenticated' => true])->get($report)->assertOk()->assertSee('Custom Abacus');
+        $this->assertStringContainsString('Custom Abacus', $this->get($report.'&export=1')->assertOk()->streamedContent());
+    }
+
+    #[DataProvider('customSubjectProviders')]
+    public function test_custom_only_registration_and_invalid_course_inputs(string $type, string $endpoint): void
+    {
+        $base = array_replace($this->sharedFields(), ['accountType' => $type, 'city' => 'Delhi', 'contactPerson' => 'Asha']);
+        foreach ([['   '], [123], [str_repeat('x', 201)], ['a', 'b', 'c', 'd', 'e', 'f'], 'Abacus'] as $invalid) {
+            $this->postJson($endpoint, [...$base, 'otherSubjects' => $invalid])->assertUnprocessable();
+        }
+        $field = $type === 'teacher' ? 'primarySubjects' : 'subjectIds';
+        $ids = array_slice($this->teachingSubjects(), 0, 5);
+        $this->postJson($endpoint, [...$base, $field => $ids, 'otherSubjects' => ['Extra']])->assertUnprocessable();
+        $this->postJson($endpoint, [...$base, $field => [], 'otherSubjects' => ['Only Custom Course']])->assertOk();
+        $this->assertDatabaseHas('subjects', ['name' => 'Only Custom Course']);
+        $this->assertDatabaseMissing('subjects', ['name' => 'Extra']);
+    }
+
+    #[DataProvider('customSubjectProviders')]
+    public function test_custom_course_creation_rolls_back_with_registration(string $type, string $endpoint): void
+    {
+        $this->app->instance(BusinessActivityRecorder::class, new class
+        {
+            public function record(string $event, ...$arguments): mixed
+            {
+                if ($event === 'registration.completed') {
+                    throw new \RuntimeException('History unavailable');
+                }
+
+                return (new BusinessActivityRecorder)->record($event, ...$arguments);
+            }
+        });
+        $this->postJson($endpoint, array_replace($this->sharedFields(), [
+            'accountType' => $type, 'city' => 'Delhi', 'contactPerson' => 'Asha', 'otherSubjects' => ['Rolled Back Course'],
+        ]))->assertStatus(500);
+        $this->assertDatabaseMissing('subjects', ['name' => 'Rolled Back Course']);
+        $this->assertDatabaseMissing('profile_subjects', ['profile_type' => $type, 'profile_id' => $this->userId]);
+        $this->assertDatabaseMissing('business_activity', ['event' => 'provider.custom_subjects_selected', 'actor_user_id' => $this->userId]);
+        $this->assertDatabaseHas('users', ['id' => $this->userId, 'registration_submitted_at' => null]);
     }
 
     private function teachingSubjects(): array

@@ -15,7 +15,7 @@ final class NumericIdConversion
     private array $next = [];
 
     private const ENTITIES = ['user' => 'users', 'teacher_profile' => 'teacher_profiles', 'institute_profile' => 'institute_profiles',
-        'booking' => 'bookings', 'message' => 'messages',
+        'subject' => 'subjects', 'booking' => 'bookings', 'message' => 'messages',
         'message_reaction' => 'message_reactions', 'otp_delivery' => 'otp_delivery_attempts',
         'post' => 'posts', 'comment' => 'post_comments', 'report' => 'reports',
         'support_ticket' => 'support_tickets', 'referral' => 'referrals', 'referral_click' => 'referral_clicks',
@@ -152,6 +152,10 @@ final class NumericIdConversion
     {
         if ($old === null) {
             return null;
+        }
+        // Catalogue subjects already use numeric IDs and are outside UUID conversion.
+        if ($entity === 'subjects' && ctype_digit((string) $old) && (int) $old > 0) {
+            return (int) $old;
         }
         $id = DB::table('id_conversion_maps')->where('entity', $entity)->where('old_id', (string) $old)->value('new_id');
         if ($id !== null) {

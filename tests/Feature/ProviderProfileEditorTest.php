@@ -65,6 +65,21 @@ class ProviderProfileEditorTest extends TestCase
         return [['teacher'], ['institute']];
     }
 
+    #[DataProvider('providers')]
+    public function test_subject_editor_accepts_custom_courses_and_reuses_numeric_ids(string $type): void
+    {
+        if ($type === 'teacher') {
+            $this->useTeacher();
+        }
+        $this->patchJson('/profiles/me/steps/2', ['otherSubjects' => ['Editor Custom Course']])->assertOk();
+        $id = DB::table('subjects')->where('name', 'Editor Custom Course')->value('id');
+        $this->assertDatabaseHas('profile_subjects', ['profile_type' => $type, 'profile_id' => $this->userId, 'subject_id' => $id]);
+        $field = $type === 'teacher' ? 'primarySubjects' : 'subjectIds';
+        $this->putJson('/profiles/me', [$field => [$this->subjectId], 'otherSubjects' => ['editor custom course']])->assertOk();
+        $this->assertSame(2, DB::table('profile_subjects')->where('profile_type', $type)->where('profile_id', $this->userId)->count());
+        $this->assertSame(1, DB::table('subjects')->whereRaw('LOWER(name) = ?', ['editor custom course'])->count());
+    }
+
     private function saveThree(string $type): void
     {
         $this->patchJson('/profiles/me/steps/1', ['fullName' => 'Saved Academy', 'listingName' => 'Public Academy', 'contactPerson' => 'Asha Sharma'])

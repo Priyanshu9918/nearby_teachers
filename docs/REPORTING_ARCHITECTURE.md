@@ -416,3 +416,7 @@ profile/subject selections are preserved. See the SEO repair section in
 `TEACHER_SEO_PAGES.md` for backup, preview and application behavior.
 
 Version 1 `institute.onboarding_subjects_updated` records before/after numeric subject IDs for institute registration and onboarding edits, in the source transaction. Recorder failure rolls back the selections and registration. Existing subjects are not backfilled; separate profile editor changes and direct SQL are outside this event coverage. The shared business activity report exposes these snapshots.
+
+Custom provider courses: version 1 `subject.other_created` stores normalized public name and numeric category ID, with numeric subject entity references; version 1 `provider.custom_subjects_selected` stores resolved selected IDs on the user entity. Creation, selection and history share the registration/profile transaction. No credentials or raw requests are retained. The existing `activity` report and CSV exporter expose these events with normal admin guards/access logging. Ordinary ID-only edits, direct SQL/admin catalogue edits and prior data are not reconstructed. See [Other subjects](OTHER_SUBJECTS.md).
+
+Job applications also accept shared Other courses via optional `otherSubjects`, or saved Other IDs in `courseIds`. Existing BSL selections remain supported. Creation and the existing version 1 application event share the source transaction; course name snapshots remain historical. See [job contract and dedicated collection](JOB_APPLICATION_OTHER_SUBJECTS.md).

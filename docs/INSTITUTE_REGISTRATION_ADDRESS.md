@@ -34,7 +34,7 @@ Use `POST /auth/register` or `POST /auth/onboarding/complete` with the phone-ver
 - `locality`: optional string, maximum 160 characters. `localityType`: optional `town`, `village`, `ward` or `sector`.
 - `postalCode`: optional string, maximum 32 characters; retains leading zeros and supports international postal codes.
 - `latitude` / `longitude`: optional paired numeric GPS values, ranges -90..90 / -180..180. Both null clears GPS and enrichment. Omitted coordinates do not trigger lookup.
-- Optional `subjectIds` accepts one to five distinct existing subject IDs. Omission preserves existing selections; a supplied list replaces them. `primarySubjects` and `primarySubjectId` remain prohibited. Owner responses return `draft.subjectIds`.
+- Optional `subjectIds` accepts one to five distinct existing subject IDs. Omission preserves existing selections; a supplied list replaces them. `primarySubjects` and `primarySubjectId` remain prohibited. Owner responses return `draft.subjectIds`. Optional `otherSubjects` creates/reuses typed courses in the shared Other category; see [custom course contract](OTHER_SUBJECTS.md).
 
 ## Updates and responses
 

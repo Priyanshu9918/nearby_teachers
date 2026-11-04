@@ -214,7 +214,7 @@ See [email recovery](EMAIL_AUTH.md) for code requirements.
 | `POST` | `/messages/start` | Verified bearer | `providerId` (another numeric user ID); optional `body` | Starts/reuses a conversation and optionally sends the first message. Safety and guardian-consent gates apply. |
 | `GET` | `/reviews/for/{providerId}` | Public | `perPage`, `cursor` | Provider reviews. |
 | `POST` | `/franchise/enquiries` | Verified bearer; learner and teacher supported (institute also currently accepted) | `name`, `phone`, `location` | Submits a franchise enquiry for admin review; the signed-in account is linked automatically. |
-| `POST` | `/jobs/applications` | Verified bearer; learner and teacher supported (institute also currently accepted) | `name`, `phone`, `expectedSalary`, `courseIds` (1–5 BSL course IDs) | Submits a teaching job application for admin review; the signed-in account is linked automatically. |
+| `POST` | `/jobs/applications` | Verified bearer; learner and teacher supported (institute also currently accepted) | `name`, `phone`, `expectedSalary`, `courseIds` (BSL/Other IDs) and/or `otherSubjects` (typed names), 1–5 combined | Submits a teaching job application for admin review; the signed-in account is linked automatically. |
 | `GET` | `/search/dashboard` | Public | Required `lat`, `lng`; optional `radiusKm` (default 7, maximum 500) | `{center,radiusKm,teacherCount,instituteCount,totalCount,results}`; all eligible nearby providers sorted by `referral_points` descending. Each result includes `rating_avg` and `rating_count`. |
 | `GET` | `/auth/safety-disclaimer` | Public | — | Returns the disclaimer text. |
 | `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging. Booking actions are paused. |
@@ -343,7 +343,7 @@ in that same subsection.
 | `GET` | `/profiles/me/stats` | Verified bearer | Optional `days` (default 30, maximum 365) | Provider listing views; booking request counts are paused. |
 | `GET` | `/profiles/{type}/{id}` | Public, optional bearer | `type`: `teacher` or `institute`; optional auth affects phone quota | Public listing profile. Suspended or not-yet-phone-verified optional tokens are treated as anonymous. |
 | `POST` | `/franchise/enquiries` | Verified bearer; learner and teacher supported (institute also currently accepted) | `name`, `phone`, `location` | Submits a franchise enquiry for admin review; the signed-in account is linked automatically. |
-| `POST` | `/jobs/applications` | Verified bearer; learner and teacher supported (institute also currently accepted) | `name`, `phone`, `expectedSalary`, `courseIds` (1–5 BSL course IDs) | Submits a teaching job application for admin review; the signed-in account is linked automatically. |
+| `POST` | `/jobs/applications` | Verified bearer; learner and teacher supported (institute also currently accepted) | `name`, `phone`, `expectedSalary`, `courseIds` (BSL/Other IDs) and/or `otherSubjects` (typed names), 1–5 combined | Submits a teaching job application for admin review; the signed-in account is linked automatically. |
 | `GET` | `/auth/safety-disclaimer` | Public | — | Returns the disclaimer text. |
 | `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging. Booking actions are paused. |
 | `GET` | `/messages` | Verified bearer | `perPage`, `cursor` | Conversations for the signed-in participant. |
@@ -632,7 +632,7 @@ compatibility/system endpoints are here. Classification does not widen access.
 | `GET` | `/subjects` | Public | — | Subject domains with their subjects and BSL catalog data. |
 | `GET` | `/contact-info` | Public | — | Current WhatsApp number/link, support email and LinkedIn contact. |
 | `POST` | `/franchise/enquiries` | Verified bearer; learner and teacher supported (institute also currently accepted) | `name`, `phone`, `location` | Submits a franchise enquiry for admin review; the signed-in account is linked automatically. |
-| `POST` | `/jobs/applications` | Verified bearer; learner and teacher supported (institute also currently accepted) | `name`, `phone`, `expectedSalary`, `courseIds` (1–5 BSL course IDs) | Submits a teaching job application for admin review; the signed-in account is linked automatically. |
+| `POST` | `/jobs/applications` | Verified bearer; learner and teacher supported (institute also currently accepted) | `name`, `phone`, `expectedSalary`, `courseIds` (BSL/Other IDs) and/or `otherSubjects` (typed names), 1–5 combined | Submits a teaching job application for admin review; the signed-in account is linked automatically. |
 | `GET` | `/i18n/languages` | Public | — | Supported language metadata. |
 | `GET` | `/i18n/{lang}` | Public | Language code in path | Returns translations; unsupported language codes serve English and identify the requested/served language. |
 | `GET` | `/messages` | Verified bearer | `perPage`, `cursor` | Conversations for the signed-in participant. |
@@ -947,3 +947,7 @@ include `state_id`, `cities` and `pagination`. Clear dependent selections when
 country/state changes. These replace the previous country-code geography URLs.
 See [Geography API](GEOGRAPHY_API.md) and the dedicated
 [Postman collection](postman/geography.postman_collection.json).
+
+Teacher and institute registration/profile subject edits support typed `otherSubjects` under the shared Other category. See [contract and dedicated Postman collection](OTHER_SUBJECTS.md).
+
+Job applications also accept shared Other courses via optional `otherSubjects`, or saved Other IDs in `courseIds`. Existing BSL selections remain supported. Creation and the existing version 1 application event share the source transaction; course name snapshots remain historical. See [job contract and dedicated collection](JOB_APPLICATION_OTHER_SUBJECTS.md).

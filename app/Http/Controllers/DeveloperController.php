@@ -431,6 +431,7 @@ class DeveloperController extends Controller
                     $body['city'] = 'New Delhi';
                     if ($role === 'teacher') {
                         $body['primarySubjects'] = [1];
+                        $body['otherSubjects'] = ['Abacus'];
                         $body['latitude'] = 28.6139;
                         $body['longitude'] = 77.2090;
                         $body += ['district' => 'New Delhi', 'subDistrict' => 'Chanakyapuri',
@@ -439,6 +440,7 @@ class DeveloperController extends Controller
                     } else {
                         $body['contactPerson'] = 'Anita Sharma';
                         $body['subjectIds'] = [1];
+                        $body['otherSubjects'] = ['Abacus'];
                         $body += ['district' => 'New Delhi', 'subDistrict' => 'Chanakyapuri',
                             'locality' => 'Ward 1', 'localityType' => 'ward', 'state' => 'Delhi',
                             'country' => 'India', 'postalCode' => '110001', 'latitude' => 28.6139, 'longitude' => 77.2090];
@@ -683,8 +685,8 @@ class DeveloperController extends Controller
                 'guide' => 'Admin bearer only. Updates public Contact BSL actions. WhatsApp must include a country code; email and LinkedIn fields may be null.'],
             'POST /franchise/enquiries' => ['body' => ['name' => 'Asha Learner', 'phone' => '+919876543210', 'location' => 'Lucknow, Alambagh'],
                 'guide' => 'Submit a BSL franchise enquiry. Bearer authentication and a verified account phone are required. Send the contact phone with its country code. Returns 201; enquiries are visible only in admin reports. Limit: 5 submissions per minute.'],
-            'POST /jobs/applications' => ['body' => ['name' => 'Asha Learner', 'phone' => '+919876543210', 'expectedSalary' => 25000, 'courseIds' => [1]],
-                'guide' => 'Submit a BSL teaching job enquiry. Use 1–5 distinct course IDs from GET /subjects bslFeatured. expectedSalary is INR per month, positive, up to 99999999.99 with at most two decimals. Bearer authentication and a verified account phone are required. Returns 201; applications are visible only in admin reports. Limit: 5 submissions per minute.'],
+            'POST /jobs/applications' => ['body' => ['name' => 'Asha Learner', 'phone' => '+919876543210', 'expectedSalary' => 25000, 'courseIds' => [1], 'otherSubjects' => ['Abacus']],
+                'guide' => 'Submit a BSL teaching job enquiry. Use BSL or Other course IDs from GET /subjects, and optional otherSubjects typed names. Custom-only applications are allowed. Maximum five distinct courses combined. expectedSalary is INR per month, positive, up to 99999999.99 with at most two decimals. Bearer authentication and a verified account phone are required. Returns 201; applications are visible only in admin reports. Limit: 5 submissions per minute.'],
             'POST /referrals/redeem' => ['body' => ['code' => 'PASTE_REFERRAL_CODE']],
             'POST /analytics/page-view' => ['body' => ['pageType' => 'teacher', 'target' => 'teacher-profile', 'platform' => 'web', 'referrer' => 'developer-portal']],
             'PATCH /safety/reports/{id}/status' => ['body' => ['status' => 'reviewed'], 'pathDefaults' => ['id' => 5]],
