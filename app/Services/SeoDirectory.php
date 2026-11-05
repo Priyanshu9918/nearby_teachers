@@ -210,9 +210,8 @@ final class SeoDirectory
                 break;
             }
         }
-        if ($known === null) {
-            return; // New subjects require explicit admin-reviewed wording.
-        }
+        // Every selected subject can seed English wording. Other languages still
+        // require a reviewed translation; existing admin mappings take precedence.
         foreach (config('seo.countries.'.$country.'.languages') as $language) {
             if (DB::table('seo_subject_routes')->where('subject_id', $subject->id)->where('country', $country)->where('language', $language)->exists()) {
                 continue;

@@ -107,7 +107,7 @@ For profiles without enough country/publication data, SEO URLs are null. There a
 
 `seo_subject_routes` stores subject ID, country, language, localized display name, city slug, online slug and enabled status. Slugs do not get translated dynamically per request.
 
-Starter native wording exists for Maths, Physics, Chemistry, English, Hindi and IELTS. Other subjects wait for an administrator to supply reviewed wording, including English. The application does not publish English-only copy as a translated listing. Catalog subjects that would collide with an existing slug also need explicit separate wording; distinct subject IDs are not silently merged.
+Starter native wording exists for Maths, Physics, Chemistry, English, Hindi and IELTS. Other selected subjects automatically receive English mappings using their catalog subject names. Other languages still require reviewed translations. The application does not publish English-only copy as a translated listing. Catalog subjects that would collide with an existing slug also need explicit separate wording; distinct subject IDs are not silently merged.
 
 These are editable starter phrases and should receive client editorial review. The long IELTS catalog name is recognized as IELTS. English vs Spanish Maths wording and US IELTS prep vs Indian IELTS coaching follow the client examples.
 
@@ -171,13 +171,14 @@ SEO_PUBLIC_URL=http://157.245.125.79/nearby_teachers/public
 ```bash
 php artisan migrate --force --path=database/migrations/2026_10_27_000042_create_international_seo_directory.php
 php artisan migrate --force --path=database/migrations/2026_10_28_000003_create_seo_location_pages.php
-php artisan seo:sync
+# Reconcile an existing teacher after deploying this fix:
+php artisan seo:publish-profile teacher 2
 ```
 
 3. Refresh route/view/config caches according to the deployment process. Review mappings and pending profiles in the admin screens.
 4. Test the configured public hostname, default/extra-language pages, old-link redirects and sitemap before submitting to Search Console.
 
-Sync is also available through the admin button. It processes profiles in batches of 100, recording current publication state. Existing students/institutes/private address data are not rewritten. No Google API key or paid translation service is needed for this directory. Configuration and mappings intentionally do not generate a world-wide empty URL grid.
+`seo:sync` and the admin bulk sync are currently disabled. Use `seo:publish-profile teacher <user_id>` or `seo:publish-profile institute <user_id>` to reconcile one existing profile. This preserves eligibility checks and records new mapping/page events in the profile transaction; rerunning does not duplicate mappings or pages. Existing students/institutes/private address data are not rewritten. No Google API key or paid translation service is needed for this directory. Configuration and mappings intentionally do not generate a world-wide empty URL grid.
 
 ## Verification
 
@@ -194,9 +195,10 @@ Coverage includes country/subject wording, local-language HTML and RTL, language
 
 ## SEO repair and publication rules (November 2026)
 
-New automatic subject wording must exist in `resources/seo/subjects.json`.
-Unrecognized subjects retain their provider profiles and selected subjects but
-wait for an explicit admin mapping before receiving directory pages. The starter
+Selected subjects absent from `resources/seo/subjects.json` now receive English
+mappings automatically on eligible teacher/institute publication or updates.
+Non-English mappings still require reviewed catalog wording. Existing disabled
+or custom mappings and slug conflicts remain under admin control. The starter
 catalog includes short OET and ESL slugs; legacy untouched English starter wording
 is normalized by repair. Existing custom slugs are preserved. Legacy unknown
 English starter mappings without an explicit admin-save event are disabled for
@@ -213,14 +215,13 @@ city/area results. Empty location pagination beyond page one returns 404.
 
 Run `php artisan seo:repair` for a transactional preview (all changes roll back).
 Run `php artisan seo:repair --apply` to save a private JSON backup of the four SEO
-metadata tables, reconcile wording, sync profiles and delete unavailable generated
+metadata tables, reconcile wording and delete unavailable generated
 listing/location rows. Application users, provider profiles, subjects and subject
 selections are not deleted. Business history and URL reservations are retained;
 old redirects and protection against taking another provider's URL are necessary
 metadata, not duplicate indexed pages. The command is idempotent. Re-enabling a
 mapping or adding a matching provider recreates required pages on publication/sync.
-The Laravel scheduler runs repair daily at 03:15 in the application timezone
-(without overlapping runs); the scheduler must be running on the deployment.
+Profile regeneration in repair and the daily repair schedule are currently disabled.
 For a different server, deploy this code and run the same command against that
 server's configured database. Never point integration tests at that database.
 
@@ -236,3 +237,10 @@ excludes legacy online rows from directory/sitemap reads. `seo:repair --apply`
 backs up and removes those rows while preserving profiles, city/location pages,
 lesson modes and URL/history reservations. Old online URL reservations are not
 public pages and cannot make these routes render again.
+
+English fallback regression coverage includes all five uncatalogued teacher subjects,
+city/area page creation, repeated reconciliation, slug ownership and transactional
+rollback of mappings and `seo.route_configured` version 1 history. Existing mapping
+and page reports expose these records through the shared admin reporting services.
+Historical missing pages are created only when profiles are republished/reconciled;
+past creation times are never invented.

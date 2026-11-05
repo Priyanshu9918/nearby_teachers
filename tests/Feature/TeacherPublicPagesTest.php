@@ -69,6 +69,52 @@ class TeacherPublicPagesTest extends TestCase
         $this->assertSame($routes->count(), DB::table('seo_subject_routes')->where('subject_id', $subject->id)->count());
     }
 
+    public function test_uncatalogued_teacher_subjects_generate_english_pages_and_can_be_reconciled(): void
+    {
+        $domain = DB::table('subjects')->where('id', $this->subjects['Maths'])->value('domain_id');
+        $names = ['Algebra I & II', 'Assamese', 'AWS (Cloud Computing by Amazon)', 'Acting', 'Business Strategy'];
+        foreach ($names as $name) {
+            $this->subjects[$name] = DB::table('subjects')->insertGetId(['domain_id' => $domain, 'name' => $name]);
+        }
+        $profile = $this->teacher(subjects: $names, complete: false);
+        DB::table('teacher_profiles')->where('user_id', $profile->user_id)->update([
+            'is_profile_complete' => true, 'district' => 'Kanpur Nagar', 'locality' => 'Bithoor',
+        ]);
+        $this->artisan('seo:publish-profile', ['type' => 'teacher', 'user_id' => $profile->user_id])->assertSuccessful();
+        $ids = array_map(fn ($name) => $this->subjects[$name], $names);
+        $routes = DB::table('seo_subject_routes')->whereIn('subject_id', $ids)->get();
+        $this->assertCount(5, $routes);
+        $this->assertSame(['en'], $routes->pluck('language')->unique()->values()->all());
+        $this->assertSame(5, DB::table('seo_directory_pages')->whereIn('subject_id', $ids)->count());
+        $this->assertSame(5, DB::table('seo_location_pages')->whereIn('subject_id', $ids)->count());
+        $this->get('/in/kanpur/algebra-i-ii')->assertOk();
+        $events = DB::table('business_activity')->where('event', 'seo.route_configured')->count();
+        $this->artisan('seo:publish-profile', ['type' => 'teacher', 'user_id' => $profile->user_id])->assertSuccessful();
+        $this->assertSame(5, DB::table('seo_subject_routes')->whereIn('subject_id', $ids)->count());
+        $this->assertSame($events, DB::table('business_activity')->where('event', 'seo.route_configured')->count());
+    }
+
+    public function test_fallback_routes_preserve_slug_ownership_and_rollback_history(): void
+    {
+        $domain = DB::table('subjects')->where('id', $this->subjects['Maths'])->value('domain_id');
+        $directory = app(SeoDirectory::class);
+        DB::beginTransaction();
+        $first = (object) ['id' => DB::table('subjects')->insertGetId(['domain_id' => $domain, 'name' => 'Acting']), 'name' => 'Acting'];
+        $second = (object) ['id' => DB::table('subjects')->insertGetId(['domain_id' => $domain, 'name' => 'Acting!']), 'name' => 'Acting!'];
+        $before = DB::table('business_activity')->where('event', 'seo.route_configured')->count();
+        try {
+            $directory->seedRoutes($first, 'in');
+            $directory->seedRoutes($second, 'in');
+            $this->assertSame($first->id, (int) DB::table('seo_subject_routes')->where('country', 'in')->where('language', 'en')->where('city_slug', 'acting')->value('subject_id'));
+            $this->assertSame(0, DB::table('seo_subject_routes')->where('subject_id', $second->id)->count());
+            $this->assertSame($before + 1, DB::table('business_activity')->where('event', 'seo.route_configured')->count());
+        } finally {
+            DB::rollBack();
+        }
+        $this->assertSame(0, DB::table('seo_subject_routes')->where('subject_id', $first->id)->count());
+        $this->assertSame($before, DB::table('business_activity')->where('event', 'seo.route_configured')->count());
+    }
+
     private function teacher(string $name = 'Asha Sharma', string $city = 'Kanpur', ?string $country = 'India', array $subjects = ['Maths'], array $modes = ['online'], bool $complete = true): object
     {
         $id = NumericTestIds::next();
