@@ -81,13 +81,6 @@ class SearchDashboardTest extends TestCase
         }
         $id = $this->provider('teacher', 10, 20);
         DB::table('teacher_profiles')->where('user_id', $id)->update(['latitude' => null, 'longitude' => null]);
-        $this->getJson('/search/counts?lat=10&lng=20&q=Exclusive%20BSL')->assertOk()
-            ->assertJsonPath('teacher_count', 0)->assertJsonPath('institute_count', 1);
-        $this->getJson('/search?lat=10&lng=20&q=Map%20provider')->assertOk()
-            ->assertJsonPath('results.0.user_id', $teacher);
-        $this->getJson('/search?lat=10&lng=20&q=%25')->assertOk()->assertJsonCount(0, 'results');
-        $normal = DB::table('subjects')->insertGetId(['domain_id' => $domain, 'name' => 'Normal selected course']);
-        $this->getJson('/search?lat=10&lng=20&subjectId='.$normal.'&q=Exclusive%20BSL')->assertOk()->assertJsonCount(0, 'results');
         $this->getJson('/search/dashboard?lat=10&lng=20')->assertOk()
             ->assertJsonPath('radiusKm', 7)->assertJsonPath('totalCount', 0)
             ->assertJsonPath('teacherCount', 0)->assertJsonPath('instituteCount', 0)
@@ -156,12 +149,7 @@ class SearchDashboardTest extends TestCase
         app(BslInstitute::class)->set($institute, true);
         foreach ([
             '/search?lat=10&lng=20&subjectId='.$subject,
-            '/search?lat=10&lng=20&q=exclusive%20bsl',
-            '/search?lat=10&lng=20&q=%20EXCLUSIVE%20BSL%20COURSE%20',
             '/search?lat=10&lng=20&subjectId='.$subject.'&q=Exclusive%20BSL',
-            '/search/dashboard?lat=10&lng=20&q=Exclusive%20BSL',
-            '/search/other-city?city=Unrelated&q=Exclusive%20BSL',
-            '/search/other-city?q=Exclusive%20BSL',
             '/search/other-city?subjectId='.$subject,
 
             '/search/dashboard?lat=10&lng=20&subjectId='.$subject,
@@ -174,13 +162,13 @@ class SearchDashboardTest extends TestCase
             $this->getJson($url)->assertOk()->assertJsonCount(1, 'results')
                 ->assertJsonPath('results.0.profile_type', 'institute')->assertJsonPath('results.0.user_id', $institute);
         }
+        $this->getJson('/search?lat=10&lng=20&q=Exclusive%20BSL')->assertOk()->assertJsonCount(0, 'results');
         $this->getJson('/search/counts?lat=10&lng=20&subjectId='.$subject)->assertOk()
             ->assertJsonPath('teacher_count', 0)->assertJsonPath('institute_count', 1);
         $this->getJson('/search/dashboard?lat=10&lng=20')->assertOk()
             ->assertJsonPath('results.0.user_id', $teacher);
         app(BslInstitute::class)->set($institute, false);
         $this->getJson('/search?lat=10&lng=20&subjectId='.$subject)->assertOk()->assertJsonCount(0, 'results');
-        $this->getJson('/search?lat=10&lng=20&q=Exclusive%20BSL')->assertOk()->assertJsonCount(0, 'results');
     }
 
     private function useTestDatabase(): void

@@ -23,10 +23,9 @@ class SearchController extends Controller
             'lng' => ['required', 'numeric', 'between:-180,180'],
             'radiusKm' => ['sometimes', 'numeric', 'gt:0', 'max:500'],
             'subjectId' => ['sometimes', 'integer', 'exists:subjects,id'],
-            'q' => ['sometimes', 'string', 'max:200'],
         ]);
-        if (($bslSubjectId = $this->resolveBslSubject($data)) !== null) {
-            return $this->bslSearchResponse('dashboard', $data, $bslSubjectId);
+        if ($this->isBslSubject($data['subjectId'] ?? null)) {
+            return $this->bslSearchResponse('dashboard', $data, (int) $data['subjectId']);
         }
         $latitude = (float) $data['lat'];
         $longitude = (float) $data['lng'] === -180.0 ? 180.0 : (float) $data['lng'];
@@ -123,8 +122,8 @@ class SearchController extends Controller
             'q' => ['sometimes', 'string', 'max:200'],
             'freeOnly' => ['sometimes', 'in:true,false'],
         ]);
-        if (($bslSubjectId = $this->resolveBslSubject($data)) !== null) {
-            return $this->bslSearchResponse('nearby', $data, $bslSubjectId);
+        if ($this->isBslSubject($data['subjectId'] ?? null)) {
+            return $this->bslSearchResponse('nearby', $data, (int) $data['subjectId']);
         }
         $started = hrtime(true);
         $radiusMeters = ((float) ($data['radiusKm'] ?? 7)) * 1000;
@@ -206,10 +205,9 @@ class SearchController extends Controller
             'lng' => ['required', 'numeric', 'between:-180,180'],
             'radiusKm' => ['sometimes', 'numeric', 'gt:0', 'max:500'],
             'subjectId' => ['sometimes', 'integer', 'exists:subjects,id'],
-            'q' => ['sometimes', 'string', 'max:200'],
         ]);
-        if (($bslSubjectId = $this->resolveBslSubject($data)) !== null) {
-            return $this->bslSearchResponse('counts', $data, $bslSubjectId);
+        if ($this->isBslSubject($data['subjectId'] ?? null)) {
+            return $this->bslSearchResponse('counts', $data, (int) $data['subjectId']);
         }
         $radiusMeters = ((float) ($data['radiusKm'] ?? 7)) * 1000;
         $data['lng'] = (float) $data['lng'] === -180.0 ? 180.0 : (float) $data['lng'];
@@ -233,8 +231,8 @@ class SearchController extends Controller
             'subjectId' => ['sometimes', 'integer', 'exists:subjects,id'],
             'q' => ['sometimes', 'string', 'max:200'],
         ]);
-        if (($bslSubjectId = $this->resolveBslSubject($data)) !== null) {
-            return $this->bslSearchResponse('otherCity', $data, $bslSubjectId);
+        if ($this->isBslSubject($data['subjectId'] ?? null)) {
+            return $this->bslSearchResponse('otherCity', $data, (int) $data['subjectId']);
         }
         // Only ordinary city search requires a geographic destination.
         $request->validate(['city' => ['required', 'string', 'max:160']]);
@@ -395,33 +393,6 @@ class SearchController extends Controller
         return response()->json(['error' => 'Invalid search tier'], 400);
     }
 
-    private function resolveBslSubject(array &$data): ?int
-    {
-        // An explicit subject selection wins over free text.
-        if (isset($data['subjectId']) && ! $this->isBslSubject((int) $data['subjectId'])) {
-            return null;
-        }
-        $term = trim($data['q'] ?? '');
-        $match = null;
-        if ($term !== '') {
-            // Treat SQL wildcard characters as literal user input.
-            $pattern = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($term)).'%';
-            $subjects = DB::table('subjects')->where('is_bsl', true);
-            if (isset($data['subjectId'])) {
-                $subjects->where('id', $data['subjectId']);
-            }
-            $match = $subjects->whereRaw("LOWER(name) LIKE ? ESCAPE '!'", [$pattern])->orderBy('id')->value('id');
-        }
-        if ($match !== null) {
-            // A course-name query must not also filter the institute's name.
-            unset($data['q']);
-
-            return (int) $match;
-        }
-
-        return isset($data['subjectId']) ? (int) $data['subjectId'] : null;
-    }
-
     private function isBslSubject(?int $subjectId): bool
     {
         return $subjectId !== null && DB::table('subjects')->where('id', $subjectId)->where('is_bsl', true)->exists();
@@ -439,9 +410,6 @@ class SearchController extends Controller
             ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url");
         if (($data['freeOnly'] ?? 'false') === 'true') {
             $query->where('p.starting_rate', 0);
-        }
-        if (! empty($data['q'])) {
-            $query->where('u.full_name', 'like', '%'.$data['q'].'%');
         }
         $rows = $query->limit(1)->get();
         $count = $rows->count();
