@@ -18,8 +18,8 @@ use App\Http\Controllers\Api\SafetyReportsController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\SocketIoController;
 use App\Http\Controllers\Api\StudentProfilesController;
-use App\Http\Controllers\Api\SupportContactController;
 use App\Http\Controllers\Api\SubjectsController;
+use App\Http\Controllers\Api\SupportContactController;
 use App\Http\Middleware\AttachOptionalApiUser;
 use App\Http\Middleware\RequireAdminApi;
 use App\Http\Middleware\RequireApiAuthentication;
@@ -155,6 +155,7 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
             ->whereIn('type', ['teacher', 'institute'])
             ->where('id', RecordId::ROUTE_PATTERN);
         Route::patch('/profiles/institute/{id}/type', [ProfilesController::class, 'classifyInstitute'])->where('id', RecordId::ROUTE_PATTERN);
+        Route::patch('/profiles/institute/{id}/bsl', [ProfilesController::class, 'setBslSearch'])->where('id', RecordId::ROUTE_PATTERN);
         Route::patch('/profiles/institute/{id}/bsl-verified', [ProfilesController::class, 'setBslVerified'])->where('id', RecordId::ROUTE_PATTERN);
         Route::get('/safety/reports', [OperationsController::class, 'reports']);
         Route::patch('/safety/reports/{id}/status', [OperationsController::class, 'updateReport'])->where('id', RecordId::ROUTE_PATTERN);

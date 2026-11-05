@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Reporting\BusinessActivityRecorder;
+use App\Services\BslInstitute;
 use App\Services\CountryCurrency;
 use App\Services\InstitutePublicPages;
 use App\Services\OnboardingState;
@@ -490,6 +491,14 @@ class ProfilesController extends Controller
         ]);
 
         return response()->json(['profile' => DB::table($table)->where('user_id', $id)->first()]);
+    }
+
+    public function setBslSearch(Request $request, int $id): JsonResponse
+    {
+        $data = $request->validate(['is_bsl' => ['required', 'boolean']]);
+        app(BslInstitute::class)->set($id, (bool) $data['is_bsl'], $request->attributes->get('authenticated_user')->id);
+
+        return response()->json(['profile' => DB::table('institute_profiles')->where('user_id', $id)->first()]);
     }
 
     public function classifyInstitute(Request $request, int $id): JsonResponse

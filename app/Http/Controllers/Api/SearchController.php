@@ -22,7 +22,12 @@ class SearchController extends Controller
             'lat' => ['required', 'numeric', 'between:-90,90'],
             'lng' => ['required', 'numeric', 'between:-180,180'],
             'radiusKm' => ['sometimes', 'numeric', 'gt:0', 'max:500'],
+            'subjectId' => ['sometimes', 'integer', 'exists:subjects,id'],
+            'q' => ['sometimes', 'string', 'max:200'],
         ]);
+        if (($bslSubjectId = $this->resolveBslSubject($data)) !== null) {
+            return $this->bslSearchResponse('dashboard', $data, $bslSubjectId);
+        }
         $latitude = (float) $data['lat'];
         $longitude = (float) $data['lng'] === -180.0 ? 180.0 : (float) $data['lng'];
         $radiusKm = (float) ($data['radiusKm'] ?? 7);
@@ -118,6 +123,9 @@ class SearchController extends Controller
             'q' => ['sometimes', 'string', 'max:200'],
             'freeOnly' => ['sometimes', 'in:true,false'],
         ]);
+        if (($bslSubjectId = $this->resolveBslSubject($data)) !== null) {
+            return $this->bslSearchResponse('nearby', $data, $bslSubjectId);
+        }
         $started = hrtime(true);
         $radiusMeters = ((float) ($data['radiusKm'] ?? 7)) * 1000;
         $longitude = (float) $data['lng'] === -180.0 ? 180.0 : (float) $data['lng'];
@@ -197,7 +205,12 @@ class SearchController extends Controller
             'lat' => ['required', 'numeric', 'between:-90,90'],
             'lng' => ['required', 'numeric', 'between:-180,180'],
             'radiusKm' => ['sometimes', 'numeric', 'gt:0', 'max:500'],
+            'subjectId' => ['sometimes', 'integer', 'exists:subjects,id'],
+            'q' => ['sometimes', 'string', 'max:200'],
         ]);
+        if (($bslSubjectId = $this->resolveBslSubject($data)) !== null) {
+            return $this->bslSearchResponse('counts', $data, $bslSubjectId);
+        }
         $radiusMeters = ((float) ($data['radiusKm'] ?? 7)) * 1000;
         $data['lng'] = (float) $data['lng'] === -180.0 ? 180.0 : (float) $data['lng'];
         [$bounds, $boundsBindings] = GeoBounds::sql((float) $data['lat'], (float) $data['lng'], $radiusMeters);
@@ -220,6 +233,9 @@ class SearchController extends Controller
             'subjectId' => ['sometimes', 'integer', 'exists:subjects,id'],
             'q' => ['sometimes', 'string', 'max:200'],
         ]);
+        if (($bslSubjectId = $this->resolveBslSubject($data)) !== null) {
+            return $this->bslSearchResponse('otherCity', $data, $bslSubjectId);
+        }
         $sql = <<<'SQL'
             WITH t AS (
               SELECT 'teacher' AS profile_type, user_id, city, country, lesson_modes,
@@ -268,6 +284,9 @@ class SearchController extends Controller
             'state' => ['required_if:tier,state', 'string', 'max:160'],
             'country' => ['sometimes', 'required_if:tier,country', 'string', 'max:160'],
         ]);
+        if ($this->isBslSubject($subjectId)) {
+            return $this->bslSearchResponse('bySubject', $data, (int) $subjectId);
+        }
         $base = <<<'SQL'
             WITH t AS (
               SELECT 'teacher' AS profile_type, user_id, latitude, longitude, city, state, country,
@@ -372,6 +391,94 @@ class SearchController extends Controller
         }
 
         return response()->json(['error' => 'Invalid search tier'], 400);
+    }
+
+    private function resolveBslSubject(array &$data): ?int
+    {
+        // An explicit subject selection wins over free text.
+        if (isset($data['subjectId']) && ! $this->isBslSubject((int) $data['subjectId'])) {
+            return null;
+        }
+        $term = trim($data['q'] ?? '');
+        $match = null;
+        if ($term !== '') {
+            // Treat SQL wildcard characters as literal user input.
+            $pattern = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($term)).'%';
+            $subjects = DB::table('subjects')->where('is_bsl', true);
+            if (isset($data['subjectId'])) {
+                $subjects->where('id', $data['subjectId']);
+            }
+            $match = $subjects->whereRaw("LOWER(name) LIKE ? ESCAPE '!'", [$pattern])->orderBy('id')->value('id');
+        }
+        if ($match !== null) {
+            // A course-name query must not also filter the institute's name.
+            unset($data['q']);
+
+            return (int) $match;
+        }
+
+        return isset($data['subjectId']) ? (int) $data['subjectId'] : null;
+    }
+
+    private function isBslSubject(?int $subjectId): bool
+    {
+        return $subjectId !== null && DB::table('subjects')->where('id', $subjectId)->where('is_bsl', true)->exists();
+    }
+
+    private function bslSearchResponse(string $endpoint, array $data, int $subjectId): JsonResponse
+    {
+        // BSL subject searches deliberately bypass geographic and online-only restrictions.
+        $query = DB::table('institute_profiles as p')->join('users as u', 'u.id', '=', 'p.user_id')
+            ->where('p.is_bsl', true)->where('u.account_type', 'institute')->whereNull('u.suspended_at')
+            ->select('p.id', 'p.user_id', 'u.full_name', 'u.referral_points', 'p.city', 'p.state', 'p.country',
+                'p.latitude', 'p.longitude', 'p.starting_rate', 'p.currency', 'p.lesson_modes', 'p.rating_avg',
+                'p.rating_count', 'p.is_verified', 'p.trial_days', 'p.is_bsl', 'p.is_bsl_official', 'p.institute_type')
+            ->selectRaw("'institute' AS profile_type, p.starting_rate AS price")
+            ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url");
+        if (($data['freeOnly'] ?? 'false') === 'true') {
+            $query->where('p.starting_rate', 0);
+        }
+        if (! empty($data['q'])) {
+            $query->where('u.full_name', 'like', '%'.$data['q'].'%');
+        }
+        $rows = $query->limit(1)->get();
+        $count = $rows->count();
+        if ($endpoint === 'counts') {
+            return response()->json(['teacher_count' => 0, 'institute_count' => $count]);
+        }
+        foreach ($rows as $row) {
+            $row->is_bsl = true;
+            $row->is_bsl_official = (bool) $row->is_bsl_official;
+            $row->lesson_modes = json_decode($row->lesson_modes, true, 512, JSON_THROW_ON_ERROR);
+            $row->price = $row->price === null ? null : (float) $row->price;
+            $row->starting_rate = $row->price;
+            $row->distance_km = null;
+            $row->subjects = DB::table('profile_subjects as ps')->join('subjects as s', 's.id', '=', 'ps.subject_id')
+                ->where('ps.profile_type', 'institute')->where('ps.profile_id', $row->user_id)
+                ->orderBy('s.name')->get(['s.id', 's.name', 's.is_bsl'])->map(fn ($subject) => [
+                    'id' => (int) $subject->id, 'name' => $subject->name, 'is_bsl' => (bool) $subject->is_bsl,
+                ])->all();
+        }
+        app(SearchAnalyticsRecorder::class)->record($endpoint === 'bySubject' ? 'subject' : ($endpoint === 'otherCity' ? 'other_city' : $endpoint),
+            $data['tier'] ?? ($endpoint === 'otherCity' ? 'city_or_country' : 'nearby_grid'), null, $subjectId, $count);
+        if ($endpoint === 'bySubject' && $data['tier'] === 'other-countries' && ! isset($data['country'])) {
+            return response()->json(['tier' => $data['tier'], 'countries' => $rows->whereNotNull('country')->map(fn ($row) => [
+                'country' => $row->country, 'trainer_count' => 1,
+            ])->values()]);
+        }
+        $response = ['results' => $rows];
+        if ($endpoint === 'dashboard') {
+            $response += ['center' => ['latitude' => (float) $data['lat'], 'longitude' => (float) $data['lng']],
+                'radiusKm' => (float) ($data['radiusKm'] ?? 7), 'teacherCount' => 0, 'instituteCount' => $count, 'totalCount' => $count];
+        }
+        if ($endpoint === 'bySubject') {
+            $response += ['tier' => $data['tier'], 'totalCount' => $count];
+            if (isset($data['country'])) {
+                $response['country'] = $data['country'];
+            }
+        }
+
+        return $this->providerResponse($response);
     }
 
     private function providerResponse(array $data): JsonResponse

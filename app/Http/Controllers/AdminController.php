@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\BslInstitute;
 use App\Services\ProfileEditor;
 use App\Services\TeacherPublicPages;
 use Illuminate\Database\Query\Builder;
@@ -110,6 +111,7 @@ class AdminController extends Controller
             if ($section === 'subjects') {
                 $data = $this->validateSubject($request);
                 DB::table('subjects')->insert($data);
+                app(BslInstitute::class)->syncSubjects();
 
                 return;
             }
@@ -150,6 +152,7 @@ class AdminController extends Controller
                 $data = $this->validateSubject($request, (int) $id);
                 $updated = DB::table('subjects')->where('id', $id)->update($data);
                 abort_if($updated === 0 && ! DB::table('subjects')->where('id', $id)->exists(), 404);
+                app(BslInstitute::class)->syncSubjects();
 
                 return;
             }
@@ -177,6 +180,10 @@ class AdminController extends Controller
                 if ($section === 'teachers') {
                     app(TeacherPublicPages::class)->publish($id);
                 }
+            }
+            if ($section === 'institutes' && $request->has('is_bsl')) {
+                $request->validate(['is_bsl' => ['required', 'boolean']]);
+                app(BslInstitute::class)->set($id, $request->boolean('is_bsl'));
             }
         });
 
@@ -241,7 +248,7 @@ class AdminController extends Controller
             'institutes' => DB::table('users')
                 ->join('institute_profiles', 'institute_profiles.user_id', '=', 'users.id')
                 ->where('users.account_type', 'institute')
-                ->select('users.id', 'users.full_name', 'users.email', 'users.phone', 'institute_profiles.description as bio', 'institute_profiles.starting_rate as rate', 'institute_profiles.currency', 'institute_profiles.city', 'institute_profiles.state', 'institute_profiles.country', 'institute_profiles.country_code', 'institute_profiles.instructors_text', 'institute_profiles.website_url', 'institute_profiles.created_at'),
+                ->select('users.id', 'users.full_name', 'users.email', 'users.phone', 'institute_profiles.is_bsl', 'institute_profiles.description as bio', 'institute_profiles.starting_rate as rate', 'institute_profiles.currency', 'institute_profiles.city', 'institute_profiles.state', 'institute_profiles.country', 'institute_profiles.country_code', 'institute_profiles.instructors_text', 'institute_profiles.website_url', 'institute_profiles.created_at'),
         };
     }
 

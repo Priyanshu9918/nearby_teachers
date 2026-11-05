@@ -104,6 +104,10 @@
                 @if ($section === 'subjects')
                     <label class="check-field"><input type="checkbox" name="is_bsl" value="1" @checked(old('is_bsl', $isEditing && $editing->is_bsl))> This is a BSL subject</label>
                 @endif
+                @if ($routeSection === 'institutes' && $isEditing)
+                    <input type="hidden" name="is_bsl" value="0">
+                    <label class="check-field"><input type="checkbox" name="is_bsl" value="1" @checked(old('is_bsl', $editing->is_bsl ?? false))> BSL search institute (automatically assigns all BSL subjects; only one institute allowed)</label>
+                @endif
                 <div class="form-actions">
                     <button class="btn btn-primary" type="submit"><span aria-hidden="true">{{ $isEditing ? '✓' : '＋' }}</span> {{ $isEditing ? 'Save changes' : 'Create '.\Illuminate\Support\Str::singular(strtolower($label)) }}</button>
                     @if ($isEditing)<a class="btn" href="{{ route('admin.index', ['section' => $routeSection]) }}">Cancel</a>@endif

@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Services\BslInstitute;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Tests\Support\NumericTestIds;
 use Tests\TestCase;
 
@@ -79,6 +81,13 @@ class SearchDashboardTest extends TestCase
         }
         $id = $this->provider('teacher', 10, 20);
         DB::table('teacher_profiles')->where('user_id', $id)->update(['latitude' => null, 'longitude' => null]);
+        $this->getJson('/search/counts?lat=10&lng=20&q=Exclusive%20BSL')->assertOk()
+            ->assertJsonPath('teacher_count', 0)->assertJsonPath('institute_count', 1);
+        $this->getJson('/search?lat=10&lng=20&q=Map%20provider')->assertOk()
+            ->assertJsonPath('results.0.user_id', $teacher);
+        $this->getJson('/search?lat=10&lng=20&q=%25')->assertOk()->assertJsonCount(0, 'results');
+        $normal = DB::table('subjects')->insertGetId(['domain_id' => $domain, 'name' => 'Normal selected course']);
+        $this->getJson('/search?lat=10&lng=20&subjectId='.$normal.'&q=Exclusive%20BSL')->assertOk()->assertJsonCount(0, 'results');
         $this->getJson('/search/dashboard?lat=10&lng=20')->assertOk()
             ->assertJsonPath('radiusKm', 7)->assertJsonPath('totalCount', 0)
             ->assertJsonPath('teacherCount', 0)->assertJsonPath('instituteCount', 0)
@@ -94,6 +103,82 @@ class SearchDashboardTest extends TestCase
             ->assertJsonCount(1, 'results')->assertJsonPath('results.0.user_id', $acrossDateline);
         $this->getJson('/search/dashboard?lat=0&lng=-180&radiusKm=7')->assertOk()
             ->assertJsonCount(1, 'results')->assertJsonPath('results.0.user_id', $acrossDateline);
+    }
+
+    public function test_bsl_flag_requires_api_authentication(): void
+    {
+        $this->patchJson('/profiles/institute/1/bsl', ['is_bsl' => true])->assertUnauthorized();
+    }
+
+    public function test_bsl_activation_assigns_subjects_and_rejects_a_second_institute(): void
+    {
+        $this->useTestDatabase();
+        $domain = DB::table('subject_domains')->insertGetId(['name' => 'BSL activation test']);
+        $subject = DB::table('subjects')->insertGetId(['domain_id' => $domain, 'name' => 'BSL course', 'is_bsl' => true]);
+        $normal = DB::table('subjects')->insertGetId(['domain_id' => $domain, 'name' => 'Normal course']);
+        $first = $this->provider('institute', 50, 50);
+        $second = $this->provider('institute', 10, 20);
+        DB::table('profile_subjects')->insert(['profile_type' => 'institute', 'profile_id' => $first, 'subject_id' => $normal]);
+        $service = app(BslInstitute::class);
+        DB::beginTransaction();
+        $service->set($first, true);
+        DB::rollBack();
+        $this->assertDatabaseHas('profile_subjects', ['profile_type' => 'institute', 'profile_id' => $first, 'subject_id' => $normal]);
+        $this->assertDatabaseMissing('profile_subjects', ['profile_type' => 'institute', 'profile_id' => $first, 'subject_id' => $subject]);
+        $this->assertDatabaseHas('institute_profiles', ['user_id' => $first, 'is_bsl' => false]);
+        $service->set($first, true);
+        $this->assertDatabaseHas('profile_subjects', ['profile_type' => 'institute', 'profile_id' => $first, 'subject_id' => $subject]);
+        $this->assertDatabaseMissing('profile_subjects', ['profile_type' => 'institute', 'profile_id' => $first, 'subject_id' => $normal]);
+        try {
+            $service->set($second, true);
+            $this->fail('A second BSL institute must be rejected.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('is_bsl', $e->errors());
+        }
+        $this->assertDatabaseHas('institute_profiles', ['user_id' => $second, 'is_bsl' => false]);
+        $later = DB::table('subjects')->insertGetId(['domain_id' => $domain, 'name' => 'Later BSL course', 'is_bsl' => true]);
+        $service->syncSubjects();
+        $this->assertDatabaseHas('profile_subjects', ['profile_type' => 'institute', 'profile_id' => $first, 'subject_id' => $later]);
+        DB::beginTransaction();
+        $service->set($first, false);
+        DB::rollBack();
+        $this->assertDatabaseHas('institute_profiles', ['user_id' => $first, 'is_bsl' => true]);
+    }
+
+    public function test_all_search_apis_route_bsl_subjects_to_the_single_global_institute(): void
+    {
+        $this->useTestDatabase();
+        $domain = DB::table('subject_domains')->insertGetId(['name' => 'BSL search test']);
+        $subject = DB::table('subjects')->insertGetId(['domain_id' => $domain, 'name' => 'Exclusive BSL course', 'is_bsl' => true]);
+        $teacher = $this->provider('teacher', 10, 20);
+        DB::table('profile_subjects')->insert(['profile_type' => 'teacher', 'profile_id' => $teacher, 'subject_id' => $subject]);
+        $institute = $this->provider('institute', 50, 50);
+        app(BslInstitute::class)->set($institute, true);
+        foreach ([
+            '/search?lat=10&lng=20&subjectId='.$subject,
+            '/search?lat=10&lng=20&q=exclusive%20bsl',
+            '/search?lat=10&lng=20&q=%20EXCLUSIVE%20BSL%20COURSE%20',
+            '/search?lat=10&lng=20&subjectId='.$subject.'&q=Exclusive%20BSL',
+            '/search/dashboard?lat=10&lng=20&q=Exclusive%20BSL',
+            '/search/other-city?city=Unrelated&q=Exclusive%20BSL',
+
+            '/search/dashboard?lat=10&lng=20&subjectId='.$subject,
+            '/search/other-city?city=Unrelated&subjectId='.$subject,
+            '/search/by-subject/'.$subject.'?tier=nearby&lat=10&lng=20',
+            '/search/by-subject/'.$subject.'?tier=city&city=Unrelated',
+            '/search/by-subject/'.$subject.'?tier=state&state=Unrelated',
+            '/search/by-subject/'.$subject.'?tier=country&country=Unrelated',
+        ] as $url) {
+            $this->getJson($url)->assertOk()->assertJsonCount(1, 'results')
+                ->assertJsonPath('results.0.profile_type', 'institute')->assertJsonPath('results.0.user_id', $institute);
+        }
+        $this->getJson('/search/counts?lat=10&lng=20&subjectId='.$subject)->assertOk()
+            ->assertJsonPath('teacher_count', 0)->assertJsonPath('institute_count', 1);
+        $this->getJson('/search/dashboard?lat=10&lng=20')->assertOk()
+            ->assertJsonPath('results.0.user_id', $teacher);
+        app(BslInstitute::class)->set($institute, false);
+        $this->getJson('/search?lat=10&lng=20&subjectId='.$subject)->assertOk()->assertJsonCount(0, 'results');
+        $this->getJson('/search?lat=10&lng=20&q=Exclusive%20BSL')->assertOk()->assertJsonCount(0, 'results');
     }
 
     private function useTestDatabase(): void
