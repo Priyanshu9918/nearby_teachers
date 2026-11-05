@@ -44,7 +44,6 @@
     <div class="sidebar-account">
         <span class="account-avatar" aria-hidden="true">{{ strtoupper(substr((string) config('admin.email', 'A'), 0, 1)) }}</span>
         <div class="account-details"><strong>BSL administrator</strong><small>{{ config('admin.email') ?: 'Secure admin access' }}</small></div>
-        <form method="post" action="{{ route('admin.logout') }}">@csrf<button class="sidebar-logout" type="submit" aria-label="Sign out"><x-admin-icon name="logout" /></button></form>
     </div>
 </aside>
 <button class="sidebar-backdrop" id="admin-nav-backdrop" type="button" aria-label="Close navigation" tabindex="-1" hidden></button>

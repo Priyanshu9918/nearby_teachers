@@ -26,6 +26,7 @@ Route::post('/parental-consent/{token}', [ParentalConsentController::class, 'dec
 Route::get('/health', fn () => response()->json(['ok' => true]));
 
 Route::get('/', [WebsiteController::class, 'home'])->name('website.home');
+Route::get('/privacy-policy', [WebsiteController::class, 'privacyPolicy'])->name('website.privacy-policy');
 Route::get('/site', [WebsiteController::class, 'directory'])->name('website.directory');
 Route::get('/site/institute/{slug}', [WebsiteController::class, 'institute'])->name('website.institute');
 Route::get('/teacher/{slug}', [InternationalSeoController::class, 'teacher'])->name('website.teacher');

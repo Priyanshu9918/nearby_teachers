@@ -5,6 +5,29 @@
     const closer = document.getElementById('close-admin-nav');
     const backdrop = document.getElementById('admin-nav-backdrop');
     const workspace = document.querySelector('.workspace');
+    const themeToggle = document.getElementById('admin-theme-toggle');
+    const themeLabel = themeToggle?.querySelector('[data-theme-label]');
+    const themeMedia = window.matchMedia('(prefers-color-scheme: dark)');
+    const themeStorageKey = 'nearby-admin-theme';
+    function updateThemeControl() {
+        const dark = document.documentElement.dataset.theme === 'dark';
+        themeToggle?.setAttribute('aria-pressed', String(dark));
+        themeToggle?.setAttribute('aria-label', `Switch to ${dark ? 'light' : 'dark'} mode`);
+        if (themeLabel) themeLabel.textContent = dark ? 'Light mode' : 'Dark mode';
+    }
+    updateThemeControl();
+    themeToggle?.addEventListener('click', () => {
+        const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = next;
+        document.documentElement.dataset.themePreference = 'stored';
+        try { localStorage.setItem(themeStorageKey, next); } catch (_) { /* Keep this page's selection for the current visit. */ }
+        updateThemeControl();
+    });
+    themeMedia.addEventListener?.('change', (event) => {
+        if (document.documentElement.dataset.themePreference === 'stored') return;
+        document.documentElement.dataset.theme = event.matches ? 'dark' : 'light';
+        updateThemeControl();
+    });
     const mobile = window.matchMedia('(max-width: 800px)');
     function toggleNav(open) {
         document.body.classList.toggle('nav-open', open);

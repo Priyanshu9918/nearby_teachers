@@ -29,5 +29,14 @@
 </head>
 <body>
     @yield('content')
+    <footer class="site-footer">
+        <span>{{ data_get($t, 'common.appName', 'Nearby Teacher') }}</span>
+        <a href="{{ route('website.privacy-policy') }}">Privacy Policy</a>
+    </footer>
+    <style>
+        .site-footer{max-width:760px;margin:0 auto;padding:18px 20px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--app-border);color:var(--app-text-secondary);font-size:12px}
+        .site-footer a{color:var(--app-primary);text-decoration:none}.site-footer a:hover{text-decoration:underline}
+        @media(max-width:520px){.site-footer{align-items:flex-start;flex-direction:column}}
+    </style>
 </body>
 </html>

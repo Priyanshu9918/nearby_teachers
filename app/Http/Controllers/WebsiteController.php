@@ -26,6 +26,11 @@ class WebsiteController extends Controller
         return $this->renderWebsite($request, 'site.home');
     }
 
+    public function privacyPolicy(Request $request): Response
+    {
+        return $this->renderWebsite($request, 'site.privacy-policy');
+    }
+
     public function locationLookup(Request $request): Response
     {
         return $this->renderWebsite($request, 'site.location-lookup');
