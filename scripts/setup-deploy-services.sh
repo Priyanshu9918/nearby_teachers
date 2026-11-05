@@ -113,6 +113,12 @@ unit_quote() {
     value=${value//%/%%}
     printf '"%s"' "$value"
 }
+unit_path() {
+    local value=$1
+    value=${value//\\/\\\\}
+    value=${value//%/%%}
+    printf '%s' "$value"
+}
 exec_quote() {
     local value=$1
     value=${value//\$/\$\$}
@@ -135,7 +141,7 @@ StartLimitIntervalSec=0
 Type=simple
 User=$app_user
 Group=$app_group
-WorkingDirectory=$(unit_quote "$app_path")
+WorkingDirectory=$(unit_path "$app_path")
 Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 Environment="NODE_ENV=production"
 ExecStart=$command_line
