@@ -60,6 +60,7 @@ final class BusinessActivityRecorder
         // Form submission and completion are distinct; learners complete after DOB and required parent approval.
         'registration.submitted' => ['user', ['account_type', 'registration_submitted_at']],
         'registration.completed' => ['user', ['account_type', 'profile_completed_at']],
+        'user.registration_points_granted' => ['user', ['referral_points', 'point_delta']],
         'referral.recorded' => ['referral', ['point_delta']],
         'referral.clicked' => ['referral_click', ['point_delta']],
         'referral.joined' => ['referral', ['source']],

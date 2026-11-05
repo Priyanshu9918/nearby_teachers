@@ -425,3 +425,15 @@ BSL search eligibility and automatic subject assignment emit version 1
 `institute.bsl_search_changed`, `institute.bsl_subjects_removed` and `institute.bsl_subjects_assigned` in the source
 transaction. The institute report explicitly includes `is_bsl`; see
 [BSL search coverage and gaps](BSL_SEARCH.md).
+
+Registration points: migration `2026_11_05_000002` changes the database default
+for `users.referral_points` to 100 for all account types, including admin-created
+and Google/OTP-created users. Existing accounts receive +100 without replacing
+earned points. Apply with registration traffic paused (maintenance deployment).
+The existing-account grant emits version 1 `user.registration_points_granted`
+with before/after points and delta in the same transaction, once per user;
+completed grants are skipped on retry. New-user defaults are initial state,
+not referral earnings, and have no separate bonus event. They are visible in
+the shared user report/export. Star ratings and referral earning rules do not
+change. Migration rollback resets only the future default; it retains grants
+and append-only history. Historical totals before this grant are not inferred.

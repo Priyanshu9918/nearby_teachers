@@ -1180,3 +1180,18 @@ Teacher SEO URLs now identify one `/teacher/{name-city}` page; `teacherSeoUrl` a
 Teacher and institute registration/profile subject edits support typed `otherSubjects` under the shared Other category. See [contract and dedicated Postman collection](OTHER_SUBJECTS.md).
 
 Job applications also accept shared Other courses via optional `otherSubjects`, or saved Other IDs in `courseIds`. Existing BSL selections remain supported. Creation and the existing version 1 application event share the source transaction; course name snapshots remain historical. See [job contract and dedicated collection](JOB_APPLICATION_OTHER_SUBJECTS.md).
+
+### Referral-based stars
+
+Search provider rows, feed posts and authentication/session users expose
+`referral_rating`, calculated as `round(min(5, max(0, referral_points) / 200), 2)`.
+100 points = 0.5 stars, 500 = 2.5, 1000 and 2000 = 5. This is a points-based
+score for the app to display separately from review-derived `rating_avg` and
+`rating_count`. Scores are computed on response; no review data or ranking rules
+are changed. No extra migration or business mutation event is needed. The
+underlying points and bonus history remain available in existing reports.
+
+Both `GET /profiles/teacher/{userId}` and `GET /profiles/institute/{userId}`
+include the stored `profile.phone` publicly, without a login token or daily
+phone-reveal quota. The field is null only when no phone is stored. These
+endpoints no longer consume reveal quota or return phone quota metadata.

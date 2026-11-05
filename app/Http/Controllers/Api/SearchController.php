@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Reporting\SearchAnalyticsRecorder;
 use App\Services\Presence\UserPresence;
 use App\Support\GeoBounds;
+use App\Support\ReferralRating;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -458,6 +459,7 @@ class SearchController extends Controller
         foreach ($data['results'] as $row) {
             if (property_exists($row, 'referral_points')) {
                 $row->referral_points = (int) $row->referral_points;
+                $row->referral_rating = ReferralRating::fromPoints($row->referral_points);
             }
             if (property_exists($row, 'rating_avg') && $row->rating_avg !== null) {
                 $row->rating_avg = (float) $row->rating_avg;

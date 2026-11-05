@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Jobs\SendNotificationEmail;
 use App\Reporting\BusinessActivityRecorder;
 use App\Support\CursorPage;
+use App\Support\ReferralRating;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -77,6 +78,7 @@ class CommunityController extends Controller
                     $post->liked_by_me = (bool) $post->liked_by_me;
                     $post->likedByMe = $post->liked_by_me;
                     $post->referral_points = (int) $post->referral_points;
+                    $post->referral_rating = ReferralRating::fromPoints($post->referral_points);
                     $post->rating_avg = $post->rating_avg === null ? null : (float) $post->rating_avg;
                     $post->rating_count = (int) $post->rating_count;
                     $post->created_at = Carbon::parse($post->created_at, $sourceTimezone)->timezone($timezone)->toIso8601String();

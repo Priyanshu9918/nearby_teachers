@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Services\AuthenticationService;
+use App\Services\RegistrationPoints;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -212,6 +213,27 @@ class ReferralPointsTest extends TestCase
             ->assertJsonPath('posts.0.referral_points', 0)
             ->assertJsonPath('posts.0.rating_avg', null)
             ->assertJsonPath('posts.0.rating_count', 0);
+    }
+
+    public function test_new_users_start_with_100_points(): void
+    {
+        $id = DB::table('users')->insertGetId(['account_type' => 'learner', 'full_name' => 'New registration']);
+        $this->assertSame(100, (int) DB::table('users')->where('id', $id)->value('referral_points'));
+    }
+
+    public function test_existing_bonus_preserves_points_is_idempotent_and_rolls_back_with_history(): void
+    {
+        $id = $this->user('teacher', 'Existing registration', 7);
+        $service = app(RegistrationPoints::class);
+        DB::beginTransaction();
+        $service->awardExisting($id);
+        DB::rollBack();
+        $this->assertSame(7, (int) DB::table('users')->where('id', $id)->value('referral_points'));
+        $this->assertSame(0, DB::table('business_activity')->where('event', 'user.registration_points_granted')->where('entity_id', $id)->count());
+        $service->awardExisting($id);
+        $service->awardExisting($id);
+        $this->assertSame(107, (int) DB::table('users')->where('id', $id)->value('referral_points'));
+        $this->assertSame(1, DB::table('business_activity')->where('event', 'user.registration_points_granted')->where('entity_id', $id)->count());
     }
 
     private function user(string $type, string $name, int $points = 0): int

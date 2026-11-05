@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Reporting\BusinessActivityRecorder;
 use App\Support\RecordId;
+use App\Support\ReferralRating;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -46,6 +47,7 @@ class AuthenticationService
             return null;
         }
 
+        $user->referral_rating = ReferralRating::fromPoints((int) ($user->referral_points ?? 0));
         $user->password_set = (bool) ($user->password_set ?? filled($user->password_hash ?? null));
         unset($user->password_hash, $user->parental_consent_token);
 

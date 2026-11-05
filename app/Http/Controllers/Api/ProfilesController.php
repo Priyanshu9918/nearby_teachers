@@ -418,17 +418,6 @@ class ProfilesController extends Controller
         unset($profile->seo_state_hash);
         unset($profile->district, $profile->sub_district, $profile->locality, $profile->locality_type, $profile->postal_code);
 
-        $phoneQuota = null;
-        $viewer = $request->attributes->get('authenticated_user');
-        if ($viewer === null) {
-            unset($profile->phone);
-        } else {
-            $phoneQuota = $this->recordPhoneReveal($viewer->id, $id);
-            if (! $phoneQuota['allowed']) {
-                unset($profile->phone);
-            }
-        }
-
         $subjects = DB::table('profile_subjects as ps')
             ->join('subjects as s', 's.id', '=', 'ps.subject_id')
             ->where('ps.profile_type', $type)
@@ -447,9 +436,6 @@ class ProfilesController extends Controller
         return response()->json([
             'profile' => $profile,
             'subjects' => $subjects,
-            ...($phoneQuota !== null && ! $phoneQuota['allowed']
-                ? ['phoneLimitReached' => true, 'phoneRevealsRemainingToday' => 0]
-                : ($phoneQuota !== null ? ['phoneRevealsRemainingToday' => $phoneQuota['remainingToday']] : [])),
         ]);
     }
 

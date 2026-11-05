@@ -9,7 +9,9 @@ use App\Services\AuthenticationService;
 use App\Services\OnboardingState;
 use App\Services\OtpDelivery;
 use App\Services\ParentalConsent;
-use App\Services\TeacherPublicPages;
+use App\Services\ProfileDraft;
+use App\Services\ProfileEditor;
+use App\Support\ReferralRating;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -282,7 +284,7 @@ class AuthController extends Controller
             if ($profile === null) {
                 $completionMissing[] = $accountType === 'teacher' ? 'teacherProfile' : 'instituteProfile';
             } else {
-                $completionMissing = [...$completionMissing, ...\App\Services\ProfileEditor::missingFields($profile, $accountType, $subjects !== [])];
+                $completionMissing = [...$completionMissing, ...ProfileEditor::missingFields($profile, $accountType, $subjects !== [])];
                 $completionMissing[] = 'publishProfile';
             }
         }
@@ -298,10 +300,11 @@ class AuthController extends Controller
             'terms_accepted_at', 'registration_submitted_at', 'profile_completed_at', 'created_at', 'updated_at',
         ]);
         $safeUser->referral_points = (int) ($safeUser->referral_points ?? 0);
+        $safeUser->referral_rating = ReferralRating::fromPoints($safeUser->referral_points);
         $safeUser->password_set = (bool) ($user->password_set ?? false);
         $sessionProfile = $profile ?? $safeUser;
         $profileLinks = in_array($accountType, ['teacher', 'institute'], true)
-            ? \App\Services\ProfileEditor::urls($profile, $accountType) : [];
+            ? ProfileEditor::urls($profile, $accountType) : [];
 
         return response()->json([
             'ok' => true,
@@ -315,7 +318,7 @@ class AuthController extends Controller
             'profileComplete' => $profileComplete,
             'publicProfilePublished' => in_array($accountType, ['teacher', 'institute'], true) && $profileComplete && filled($profileLinks['webPageUrl'] ?? null),
             'profileCompletion' => ['isComplete' => $profileComplete, 'missingFields' => $completionMissing],
-            ...(in_array($accountType, ['teacher', 'institute'], true) ? ['profileDraft' => \App\Services\ProfileDraft::forOwner($profile, $safeUser, $accountType, array_column($subjects, 'id'))] : []),
+            ...(in_array($accountType, ['teacher', 'institute'], true) ? ['profileDraft' => ProfileDraft::forOwner($profile, $safeUser, $accountType, array_column($subjects, 'id'))] : []),
         ]);
     }
 
