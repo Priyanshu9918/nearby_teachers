@@ -1,0 +1,201 @@
+{
+  "info": {
+    "_postman_id": "1e64167c-f356-4d31-9c7a-2d0c67e1beaf",
+    "name": "Nearby Teachers — Public Search Filters",
+    "description": "Separate Postman collection for GET /search/filter only. No authorization required. Includes a saved fictional 200 mock response. Set baseUrl before sending.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "subjectId",
+      "value": "18",
+      "type": "string"
+    },
+    {
+      "key": "maxPrice",
+      "value": "500",
+      "type": "string"
+    },
+    {
+      "key": "currency",
+      "value": "INR",
+      "type": "string"
+    },
+    {
+      "key": "lessonMode",
+      "value": "online",
+      "type": "string"
+    },
+    {
+      "key": "trialDays",
+      "value": "3",
+      "type": "string"
+    },
+    {
+      "key": "latitude",
+      "value": "28.58",
+      "type": "string"
+    },
+    {
+      "key": "longitude",
+      "value": "77.31",
+      "type": "string"
+    },
+    {
+      "key": "radiusKm",
+      "value": "7",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "GET /search/filter — Public provider filters",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/search/filter?mode=nearby&lat={{latitude}}&lng={{longitude}}&radiusKm={{radiusKm}}&subjectId={{subjectId}}&maxPrice={{maxPrice}}&currency={{currency}}&lessonMode={{lessonMode}}&trialDays={{trialDays}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "search",
+            "filter"
+          ],
+          "query": [
+            {
+              "key": "mode",
+              "value": "nearby"
+            },
+            {
+              "key": "lat",
+              "value": "{{latitude}}"
+            },
+            {
+              "key": "lng",
+              "value": "{{longitude}}"
+            },
+            {
+              "key": "radiusKm",
+              "value": "{{radiusKm}}"
+            },
+            {
+              "key": "subjectId",
+              "value": "{{subjectId}}"
+            },
+            {
+              "key": "maxPrice",
+              "value": "{{maxPrice}}"
+            },
+            {
+              "key": "currency",
+              "value": "{{currency}}"
+            },
+            {
+              "key": "lessonMode",
+              "value": "{{lessonMode}}"
+            },
+            {
+              "key": "trialDays",
+              "value": "{{trialDays}}"
+            }
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        },
+        "description": "Public filter API. No bearer token required. Supports nearby, other-city and online modes with optional subject, price, currency, free-only, lesson mode, trial days and distance filters."
+      },
+      "response": [
+        {
+          "name": "200 — Mock filtered providers",
+          "originalRequest": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/search/filter?mode=nearby&lat={{latitude}}&lng={{longitude}}&radiusKm={{radiusKm}}&subjectId={{subjectId}}&maxPrice={{maxPrice}}&currency={{currency}}&lessonMode={{lessonMode}}&trialDays={{trialDays}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "search",
+                "filter"
+              ],
+              "query": [
+                {
+                  "key": "mode",
+                  "value": "nearby"
+                },
+                {
+                  "key": "lat",
+                  "value": "{{latitude}}"
+                },
+                {
+                  "key": "lng",
+                  "value": "{{longitude}}"
+                },
+                {
+                  "key": "radiusKm",
+                  "value": "{{radiusKm}}"
+                },
+                {
+                  "key": "subjectId",
+                  "value": "{{subjectId}}"
+                },
+                {
+                  "key": "maxPrice",
+                  "value": "{{maxPrice}}"
+                },
+                {
+                  "key": "currency",
+                  "value": "{{currency}}"
+                },
+                {
+                  "key": "lessonMode",
+                  "value": "{{lessonMode}}"
+                },
+                {
+                  "key": "trialDays",
+                  "value": "{{trialDays}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Public filter API. No bearer token required. Supports nearby, other-city and online modes with optional subject, price, currency, free-only, lesson mode, trial days and distance filters."
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"mode\": \"nearby\",\n  \"totalCount\": 2,\n  \"page\": 1,\n  \"perPage\": 20,\n  \"results\": [\n    {\n      \"profile_type\": \"teacher\",\n      \"user_id\": 1000000003,\n      \"full_name\": \"Ravi Kumar\",\n      \"listing_name\": \"Ravi Kumar\",\n      \"avatar_url\": null,\n      \"city\": \"Noida\",\n      \"state\": \"Uttar Pradesh\",\n      \"country\": \"India\",\n      \"price\": 500,\n      \"currency\": \"INR\",\n      \"lesson_modes\": [\n        \"online\",\n        \"in_person\"\n      ],\n      \"trial_days\": 3,\n      \"rating_avg\": 4.6,\n      \"rating_count\": 8,\n      \"is_verified\": false,\n      \"distance_km\": 1.4,\n      \"referral_points\": 5,\n      \"referral_rating\": 0.03,\n      \"isActive\": false\n    },\n    {\n      \"profile_type\": \"institute\",\n      \"user_id\": 1000000004,\n      \"full_name\": \"Bright Learning Centre\",\n      \"avatar_url\": \"https://example.test/approved-avatar.jpg\",\n      \"city\": \"Noida\",\n      \"state\": \"Uttar Pradesh\",\n      \"country\": \"India\",\n      \"price\": 450,\n      \"currency\": \"INR\",\n      \"lesson_modes\": [\n        \"online\"\n      ],\n      \"trial_days\": 3,\n      \"rating_avg\": 4.8,\n      \"rating_count\": 12,\n      \"is_verified\": true,\n      \"distance_km\": 4.8,\n      \"referral_points\": 3,\n      \"referral_rating\": 0.01,\n      \"isActive\": false\n    }\n  ]\n}"
+        }
+      ]
+    }
+  ]
+}
