@@ -10,12 +10,142 @@ use App\Support\ReferralRating;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class SearchController extends Controller
 {
     private const MIN_VOTES = 5;
 
     private const PRIOR_RATING = 4.0;
+
+    public function filter(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'mode' => ['required', 'in:nearby,other-city,online'],
+            'lat' => ['required_with:lng,radiusKm', 'numeric', 'between:-90,90'],
+            'lng' => ['required_with:lat,radiusKm', 'numeric', 'between:-180,180'],
+            'radiusKm' => ['sometimes', 'numeric', 'gt:0', 'max:500'],
+            'city' => ['sometimes', 'required', 'string', 'max:160'],
+            'country' => ['sometimes', 'required', 'string', 'max:160'],
+            'subjectId' => ['sometimes', 'integer', 'exists:subjects,id'],
+            'q' => ['sometimes', 'string', 'max:200'],
+            'minPrice' => ['sometimes', 'numeric', 'min:0', 'max:99999999.99'],
+            'maxPrice' => ['sometimes', 'numeric', 'min:0', 'max:99999999.99', ...($request->has('minPrice') ? ['gte:minPrice'] : [])],
+            'currency' => ['sometimes', 'string', 'size:3', 'regex:/^[A-Za-z]{3}$/'],
+            'lessonMode' => ['sometimes', 'in:online,in_person,home_tuition'],
+            'trialDays' => ['sometimes', 'integer', 'between:0,7'],
+            'freeOnly' => ['sometimes', 'in:true,false'],
+            'page' => ['sometimes', 'integer', 'min:1', 'max:10000'],
+            'perPage' => ['sometimes', 'integer', 'min:1', 'max:50'],
+        ]);
+        if ($data['mode'] === 'other-city' && ! isset($data['city']) && ! isset($data['country'])) {
+            throw ValidationException::withMessages(['city' => 'Provide a city or country for other-city search.']);
+        }
+        if ($data['mode'] === 'online' && isset($data['lessonMode']) && $data['lessonMode'] !== 'online') {
+            throw ValidationException::withMessages(['lessonMode' => 'Online search requires online lessons.']);
+        }
+        if (($data['freeOnly'] ?? 'false') === 'true' && ($data['minPrice'] ?? 0) > 0) {
+            throw ValidationException::withMessages(['minPrice' => 'A positive minimum price cannot be combined with freeOnly.']);
+        }
+        $currency = strtoupper($data['currency'] ?? 'INR');
+        $currencyFiltered = isset($data['minPrice']) || isset($data['maxPrice'])
+            || ($data['freeOnly'] ?? 'false') === 'true' || isset($data['currency']);
+        $bsl = $this->isBslSubject($data['subjectId'] ?? null);
+        $branches = [];
+        foreach (['teacher' => 'rate_per_hour', 'institute' => 'starting_rate'] as $type => $price) {
+            $query = DB::table($type.'_profiles as p')->join('users as u', 'u.id', '=', 'p.user_id')
+                ->where('u.account_type', $type)->whereNull('u.suspended_at')
+                ->whereNotNull('u.phone_verified_at')->whereNotNull('u.profile_completed_at')
+                ->where('p.is_profile_complete', true)
+                ->selectRaw('? AS profile_type', [$type])
+                ->addSelect('p.user_id', 'u.full_name', 'u.referral_points', 'p.city', 'p.state', 'p.country',
+                    'p.currency', 'p.lesson_modes', 'p.trial_days', 'p.rating_avg', 'p.rating_count', 'p.is_verified')
+                ->selectRaw('p.'.$price.' AS price')
+                ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url");
+            if ($bsl) {
+                $type === 'institute' ? $query->where('p.is_bsl', true) : $query->whereRaw('1 = 0');
+            } elseif (isset($data['subjectId'])) {
+                $query->whereExists(function ($subjects) use ($type, $data): void {
+                    $subjects->selectRaw('1')->from('profile_subjects as ps')
+                        ->whereColumn('ps.profile_id', 'p.user_id')->where('ps.profile_type', $type)
+                        ->where('ps.subject_id', $data['subjectId']);
+                });
+            }
+            if (isset($data['lat'], $data['lng'])) {
+                $longitude = (float) $data['lng'] === -180.0 ? 180.0 : (float) $data['lng'];
+                $distance = 'CASE WHEN p.latitude BETWEEN -90 AND 90 AND p.longitude BETWEEN -180 AND 180 THEN ST_Distance_Sphere(POINT(IF(p.longitude = -180, 180, p.longitude), p.latitude), POINT(?, ?)) END';
+                $query->selectRaw($distance.' / 1000 AS distance_km', [$longitude, (float) $data['lat']]);
+                // Coordinates provide ordering; only an explicit radius limits inclusion.
+                if (isset($data['radiusKm']) && ! $bsl) {
+                    $radius = (float) $data['radiusKm'] * 1000;
+                    [$bounds, $bindings] = GeoBounds::sql((float) $data['lat'], $longitude, $radius, 'p');
+                    $query->whereRaw($bounds, $bindings)
+                        ->whereRaw($distance.' <= ?', [$longitude, (float) $data['lat'], $radius]);
+                }
+            } else {
+                $query->selectRaw('NULL AS distance_km');
+            }
+            if (! $bsl) {
+                foreach (['city', 'country'] as $location) {
+                    if (isset($data[$location])) {
+                        $query->whereRaw('LOWER(p.'.$location.') = LOWER(?)', [trim($data[$location])]);
+                    }
+                }
+            }
+            if (isset($data['q']) && trim($data['q']) !== '') {
+                $query->where(function ($names) use ($data): void {
+                    $names->where('u.full_name', 'like', '%'.$data['q'].'%')
+                        ->orWhere('p.listing_name', 'like', '%'.$data['q'].'%');
+                });
+            }
+            if ($currencyFiltered) {
+                $query->where('p.currency', $currency);
+            }
+            if (isset($data['minPrice'])) {
+                $query->where('p.'.$price, '>=', $data['minPrice']);
+            }
+            if (isset($data['maxPrice'])) {
+                $query->where('p.'.$price, '<=', $data['maxPrice']);
+            }
+            if (($data['freeOnly'] ?? 'false') === 'true') {
+                $query->where('p.'.$price, 0);
+            }
+            $lessonMode = $data['mode'] === 'online' ? 'online' : ($data['lessonMode'] ?? null);
+            if ($lessonMode !== null) {
+                $query->whereJsonContains('p.lesson_modes', $lessonMode);
+            }
+            if (isset($data['trialDays'])) {
+                $query->where('p.trial_days', $data['trialDays']);
+            }
+            $branches[] = $query;
+        }
+        $query = DB::query()->fromSub($branches[0]->unionAll($branches[1]), 'providers');
+        $total = (clone $query)->count();
+        $page = (int) ($data['page'] ?? 1);
+        $perPage = (int) ($data['perPage'] ?? 20);
+        if (isset($data['lat'], $data['lng'])) {
+            $query->orderByRaw('distance_km IS NULL')->orderBy('distance_km');
+        }
+        $rows = $query->orderByDesc('referral_points')
+            ->orderBy('profile_type')->orderBy('user_id')->offset(($page - 1) * $perPage)->limit($perPage)->get();
+        foreach ($rows as $row) {
+            $row->price = $row->price === null ? null : (float) $row->price;
+            $row->distance_km = $row->distance_km === null ? null : (float) $row->distance_km;
+            $row->lesson_modes = json_decode($row->lesson_modes ?: '[]', true, flags: JSON_THROW_ON_ERROR);
+            $row->trial_days = (int) $row->trial_days;
+        }
+        app(SearchAnalyticsRecorder::class)->record('filtered', $data['mode'], $data['city'] ?? $data['country'] ?? null,
+            isset($data['subjectId']) ? (int) $data['subjectId'] : null, $total,
+            isset($data['lat']) ? (float) $data['lat'] : null,
+            isset($data['lng']) ? (float) $data['lng'] : null,
+            isset($data['radiusKm']) ? (float) $data['radiusKm'] : null,
+            ($data['freeOnly'] ?? 'false') === 'true',
+            filters: ['min_price' => $data['minPrice'] ?? null, 'max_price' => $data['maxPrice'] ?? null,
+                'currency' => $currencyFiltered ? $currency : null, 'lesson_mode' => $lessonMode, 'trial_days' => $data['trialDays'] ?? null]);
+
+        return $this->providerResponse(['mode' => $data['mode'], 'totalCount' => $total,
+            'page' => $page, 'perPage' => $perPage, 'results' => $rows]);
+    }
 
     public function dashboard(Request $request): JsonResponse
     {

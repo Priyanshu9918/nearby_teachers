@@ -1,5 +1,10 @@
 # Reporting architecture
 
+Public filtered search adds nullable, explicitly registered price/currency,
+lesson mode and trial-day columns to the existing search analytics history and
+admin report/CSV. Historical rows stay null; no raw query text or exact GPS is
+snapshotted. See [filter API coverage and deployment](SEARCH_FILTER_API.md).
+
 International SEO now uses `teacher.seo_state_changed`, `institute.seo_state_changed`, `seo.route_configured`,
 `seo.page_registered` and `seo.page_updated` version 1 events in their source
 transactions. Current pages, wording and URL ownership are explicit reports;

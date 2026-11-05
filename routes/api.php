@@ -56,6 +56,7 @@ Route::middleware(AttachOptionalApiUser::class)
     ->where('postId', RecordId::ROUTE_PATTERN);
 Route::middleware(AttachOptionalApiUser::class)->get('/feed', [CommunityController::class, 'feed']);
 Route::middleware('throttle:60,1')->group(function (): void {
+    Route::get('/search/filter', [SearchController::class, 'filter']);
     Route::get('/search/dashboard', [SearchController::class, 'dashboard']);
     Route::get('/search/counts', [SearchController::class, 'counts']);
     Route::get('/search/other-city', [SearchController::class, 'otherCity']);

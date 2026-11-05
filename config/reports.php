@@ -159,7 +159,7 @@ return [
     ],
     'no-result-searches' => [
         'title' => 'Searches that found no providers', 'table' => 'search_analytics', 'timestamp' => 'created_at',
-        'columns' => ['id', 'search_type', 'location_type', 'location', 'latitude_band', 'longitude_band', 'radius_km', 'subject_id', 'result_count', 'free_only', 'created_at'],
+        'columns' => ['id', 'search_type', 'location_type', 'location', 'latitude_band', 'longitude_band', 'radius_km', 'subject_id', 'result_count', 'free_only', 'min_price', 'max_price', 'currency', 'lesson_mode', 'trial_days', 'created_at'],
         'participants' => [], 'search' => ['search_type', 'location_type', 'location', 'subject_id'],
         'computed' => ['subject_name' => '(SELECT name FROM subjects WHERE subjects.id = r.subject_id)'],
     ],

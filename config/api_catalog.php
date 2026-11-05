@@ -93,6 +93,7 @@ return [
         'POST /student/profile/photo' => ['Learner'],
         'POST /auth/parental-consent/confirm' => ['Learner'],
         'GET /search/dashboard' => ['Learner'],
+        'GET /search/filter' => ['Learner', 'Common'],
         'GET /search/counts' => ['Learner'],
         'GET /search/other-city' => ['Learner'],
         'GET /search/by-subject/{subjectId}' => ['Learner'],

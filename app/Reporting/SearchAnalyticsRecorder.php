@@ -17,6 +17,7 @@ final class SearchAnalyticsRecorder
         ?float $longitude = null,
         ?float $radiusKm = null,
         bool $freeOnly = false,
+        array $filters = [],
     ): void {
         $location = $this->safeLocation($location);
         DB::table('search_analytics')->insert([
@@ -30,6 +31,7 @@ final class SearchAnalyticsRecorder
             'result_count' => max(0, $resultCount),
             'free_only' => $freeOnly,
             'created_at' => now(),
+            ...array_intersect_key($filters, array_flip(['min_price', 'max_price', 'currency', 'lesson_mode', 'trial_days'])),
         ]);
     }
 
