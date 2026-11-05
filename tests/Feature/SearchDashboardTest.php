@@ -161,6 +161,8 @@ class SearchDashboardTest extends TestCase
             '/search?lat=10&lng=20&subjectId='.$subject.'&q=Exclusive%20BSL',
             '/search/dashboard?lat=10&lng=20&q=Exclusive%20BSL',
             '/search/other-city?city=Unrelated&q=Exclusive%20BSL',
+            '/search/other-city?q=Exclusive%20BSL',
+            '/search/other-city?subjectId='.$subject,
 
             '/search/dashboard?lat=10&lng=20&subjectId='.$subject,
             '/search/other-city?city=Unrelated&subjectId='.$subject,

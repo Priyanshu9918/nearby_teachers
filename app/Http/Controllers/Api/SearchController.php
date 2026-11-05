@@ -229,13 +229,15 @@ class SearchController extends Controller
     public function otherCity(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'city' => ['required', 'string', 'max:160'],
+            'city' => ['sometimes', 'string', 'max:160'],
             'subjectId' => ['sometimes', 'integer', 'exists:subjects,id'],
             'q' => ['sometimes', 'string', 'max:200'],
         ]);
         if (($bslSubjectId = $this->resolveBslSubject($data)) !== null) {
             return $this->bslSearchResponse('otherCity', $data, $bslSubjectId);
         }
+        // Only ordinary city search requires a geographic destination.
+        $request->validate(['city' => ['required', 'string', 'max:160']]);
         $sql = <<<'SQL'
             WITH t AS (
               SELECT 'teacher' AS profile_type, user_id, city, country, lesson_modes,

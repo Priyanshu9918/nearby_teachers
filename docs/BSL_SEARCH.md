@@ -11,3 +11,5 @@ Pass `subjectId` to `/search`, `/search/dashboard`, `/search/counts`, or `/searc
 The institute report and its shared CSV export explicitly expose `is_bsl`. Version 1 events `institute.bsl_search_changed` (before/after flag) , `institute.bsl_subjects_removed` (removed non-BSL numeric subject IDs) and `institute.bsl_subjects_assigned` (added numeric subject IDs) are recorded in the source transaction. Browser admin actions have no application-user actor; API actions record the authenticated admin ID. No historical backfill is inferred. Existing independently editable subject assignments and direct database changes are not reconstructed by these events.
 
 Integration checks are in SearchDashboardTest and require a disposable MySQL database supplied via ONBOARDING_TEST_DATABASE ending in `_test`.
+
+For `/search/other-city`, city may be omitted when subjectId or q resolves to a BSL subject. Ordinary searches still require city.
