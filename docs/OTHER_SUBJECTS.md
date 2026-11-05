@@ -26,6 +26,15 @@ Both provider types also accept `otherSubjects` in `PATCH /auth/onboarding`, `PU
 
 `otherSubjects` is an optional, nonempty array of at most five strings. Each course name must be nonblank and at most 200 characters. Extra whitespace is collapsed; matching ignores capitalization. Repeated normalized names reuse one subject. The resolved selection may contain at most five distinct subjects, including existing IDs and typed names. No literal `"Other"` ID is required.
 
+Profile completion/editing exception: an institute whose stored
+`institute_profiles.is_bsl` is true has no five-subject cap in
+`PATCH /profiles/me/steps/2` or `PUT /profiles/me`, including typed courses and
+the combined resolved selection. Teachers and normal institutes retain the
+five-subject cap. Official verification (`is_bsl_official`) or a request-supplied
+flag does not grant this exception. Registration and other subject consumers
+retain their existing limits. Existing same-transaction selection/custom-subject
+history records these saves; no new event or historical backfill is required.
+
 ## Catalogue and responses
 
 The first successful custom submission creates the shared real `Other` category if missing. Every new typed name creates a subject inside it with a database-generated numeric ID and `is_bsl: false`. Later requests reuse matching names within Other. The same name in another category is a separate subject. Category/subject unique constraints and row locks serialize concurrent submissions.

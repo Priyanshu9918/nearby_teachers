@@ -27,7 +27,8 @@ class ProviderProfileEditorTest extends TestCase
             $this->markTestSkipped('Set ONBOARDING_TEST_DATABASE to a disposable MySQL database ending in _test.');
         }
         $this->assertStringEndsWith('_test', $database);
-        config(['database.default' => 'mysql', 'database.connections.mysql.url' => null, 'database.connections.mysql.database' => $database]);
+        config(['database.default' => 'mysql', 'database.connections.mysql.url' => null, 'database.connections.mysql.database' => $database, 'app.url' => 'http://localhost']);
+        $this->app['url']->forceRootUrl('http://localhost');
         DB::purge('mysql');
         Artisan::call('migrate', ['--force' => true]);
         DB::beginTransaction();
@@ -63,6 +64,49 @@ class ProviderProfileEditorTest extends TestCase
     public static function providers(): array
     {
         return [['teacher'], ['institute']];
+    }
+
+    public static function subjectLimitCases(): array
+    {
+        return [['teacher', false], ['institute', false], ['institute', true]];
+    }
+
+    #[DataProvider('subjectLimitCases')]
+    public function test_only_bsl_institutes_can_save_more_than_five_subjects(string $type, bool $bsl): void
+    {
+        if ($type === 'teacher') {
+            $this->useTeacher();
+        }
+        // Official verification alone must not exempt a normal institute.
+        DB::table('institute_profiles')->where('user_id', $this->userId)
+            ->update(['is_bsl' => $bsl, 'is_bsl_official' => true]);
+        $domain = DB::table('subjects')->where('id', $this->subjectId)->value('domain_id');
+        $ids = [$this->subjectId];
+        for ($index = 1; $index < 6; $index++) {
+            $ids[] = DB::table('subjects')->insertGetId(['domain_id' => $domain, 'name' => 'Limit course '.$index, 'is_bsl' => true]);
+        }
+        $field = $type === 'teacher' ? 'primarySubjects' : 'subjectIds';
+        foreach (['/profiles/me/steps/2', '/profiles/me'] as $endpoint) {
+            $method = str_contains($endpoint, '/steps/') ? 'patchJson' : 'putJson';
+            $response = $this->$method($endpoint, [$field => $ids, 'is_bsl' => true]);
+            if ($bsl) {
+                $response->assertOk();
+                $this->assertSame(6, DB::table('profile_subjects')->where('profile_type', $type)->where('profile_id', $this->userId)->count());
+            } else {
+                $response->assertUnprocessable()->assertJsonValidationErrors($field);
+            }
+        }
+        $response = $this->patchJson('/profiles/me/steps/2', [
+            $field => array_slice($ids, 0, 5), 'otherSubjects' => ['Limit Custom Course'],
+        ]);
+        if ($bsl) {
+            $response->assertOk();
+            $this->assertSame(6, DB::table('profile_subjects')->where('profile_type', $type)->where('profile_id', $this->userId)->count());
+        } else {
+            $response->assertUnprocessable()->assertJsonValidationErrors('otherSubjects');
+            $this->assertDatabaseMissing('subjects', ['name' => 'Limit Custom Course']);
+        }
+        $this->$method('/profiles/me', [$field => array_slice($ids, 0, 5)])->assertOk();
     }
 
     #[DataProvider('providers')]

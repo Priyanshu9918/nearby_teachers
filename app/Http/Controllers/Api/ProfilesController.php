@@ -48,6 +48,8 @@ class ProfilesController extends Controller
 
         $isTeacher = $type === 'teacher';
         $subjectsField = $isTeacher ? 'primarySubjects' : 'subjectIds';
+        $subjectLimit = ProfileEditor::subjectLimit((int) $user->id, $type);
+        $subjectMaxRules = $subjectLimit === null ? [] : ['max:'.$subjectLimit];
         $descriptionField = $isTeacher ? 'bio' : 'description';
         $rateField = $isTeacher ? 'ratePerHour' : 'startingRate';
         $rules = [
@@ -64,10 +66,10 @@ class ProfilesController extends Controller
             'country' => ['sometimes', 'nullable', 'string', 'max:120'],
             'countryCode' => ['sometimes', 'nullable', 'string', 'size:2'],
             'trialDays' => ['sometimes', 'integer', 'between:0,7'],
-            $subjectsField => $isTeacher ? ['sometimes', 'array', 'min:1', 'max:5'] : ['sometimes', 'array', 'max:5'],
+            $subjectsField => ['sometimes', 'array', ...($isTeacher ? ['min:1'] : []), ...$subjectMaxRules],
             $subjectsField.'.*' => ['required', 'integer', 'distinct', 'exists:subjects,id'],
         ];
-        $rules += TeacherAddress::rules() + OtherSubjects::rules();
+        $rules += TeacherAddress::rules() + OtherSubjects::rules($subjectLimit);
         if ($isTeacher) {
             $rules['subjectIds'] = ['prohibited'];
             $rules['primarySubjectId'] = ['prohibited'];
@@ -78,7 +80,7 @@ class ProfilesController extends Controller
         }
 
         if ($request->filled('otherSubjects')) {
-            $rules[$subjectsField] = ['sometimes', 'array', 'max:5'];
+            $rules[$subjectsField] = ['sometimes', 'array', ...$subjectMaxRules];
         }
         $data = $request->validate($rules);
         OtherSubjects::validateSelection($data);
@@ -125,13 +127,13 @@ class ProfilesController extends Controller
         }
         $updateParts[] = 'updated_at = now()';
 
-        DB::transaction(function () use ($data, $subjectsField, $user, $type, $profileTable, $updateParts, $bindings, $location): void {
+        DB::transaction(function () use ($data, $subjectsField, $user, $type, $profileTable, $updateParts, $bindings, $location, $subjectLimit): void {
             $lockedProfile = DB::table($profileTable)->where('user_id', $user->id)->lockForUpdate()->first();
             if ($lockedProfile === null) {
                 abort(404, 'Profile not found');
             }
 
-            $data = app(OtherSubjects::class)->resolve($data, $subjectsField, (int) $user->id);
+            $data = app(OtherSubjects::class)->resolve($data, $subjectsField, (int) $user->id, maxSubjects: $subjectLimit);
 
             DB::update(
                 'UPDATE '.$profileTable.' SET '.implode(', ', $updateParts).' WHERE user_id = ?',
@@ -285,8 +287,9 @@ class ProfilesController extends Controller
         }
 
         if ($step === '2') {
-            validator($payload, [$subjects => [empty($payload['otherSubjects']) ? 'required' : 'sometimes', 'array', empty($payload['otherSubjects']) ? 'min:1' : 'min:0', 'max:5'],
-                $subjects.'.*' => ['required', 'integer', 'distinct', 'exists:subjects,id']] + OtherSubjects::rules())->validate();
+            $subjectLimit = ProfileEditor::subjectLimit((int) $user->id, $type);
+            validator($payload, [$subjects => [empty($payload['otherSubjects']) ? 'required' : 'sometimes', 'array', empty($payload['otherSubjects']) ? 'min:1' : 'min:0', ...($subjectLimit === null ? [] : ['max:'.$subjectLimit])],
+                $subjects.'.*' => ['required', 'integer', 'distinct', 'exists:subjects,id']] + OtherSubjects::rules($subjectLimit))->validate();
             OtherSubjects::validateSelection($payload);
         }
         if ($step === '5') {

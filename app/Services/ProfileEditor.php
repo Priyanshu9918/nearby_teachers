@@ -8,6 +8,12 @@ use InvalidArgumentException;
 
 final class ProfileEditor
 {
+    public static function subjectLimit(int $userId, string $type): ?int
+    {
+        return $type === 'institute' && DB::table('institute_profiles')
+            ->where('user_id', $userId)->where('is_bsl', true)->exists() ? null : 5;
+    }
+
     public static function table(string $type): string
     {
         return match ($type) {

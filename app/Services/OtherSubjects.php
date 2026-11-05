@@ -8,10 +8,10 @@ use Illuminate\Validation\ValidationException;
 
 final class OtherSubjects
 {
-    public static function rules(): array
+    public static function rules(?int $maxSubjects = 5): array
     {
         return [
-            'otherSubjects' => ['sometimes', 'array', 'min:1', 'max:5'],
+            'otherSubjects' => ['sometimes', 'array', 'min:1', ...($maxSubjects === null ? [] : ['max:'.$maxSubjects])],
             'otherSubjects.*' => ['required', 'string', 'max:200'],
         ];
     }
@@ -27,7 +27,7 @@ final class OtherSubjects
     }
 
     /** Resolve only inside the source transaction, so failed source mutations leave no catalogue entries. */
-    public function resolve(array $data, string $field, int $actorId, bool $recordProviderSelection = true): array
+    public function resolve(array $data, string $field, int $actorId, bool $recordProviderSelection = true, ?int $maxSubjects = 5): array
     {
         if (empty($data['otherSubjects'])) {
             return $data;
@@ -52,7 +52,7 @@ final class OtherSubjects
             $ids[] = $id;
         }
         $data[$field] = array_values(array_unique($ids));
-        if (count($data[$field]) > 5) {
+        if ($maxSubjects !== null && count($data[$field]) > $maxSubjects) {
             throw ValidationException::withMessages(['otherSubjects' => 'Choose at most five subjects including custom courses.']);
         }
         if ($recordProviderSelection) {
