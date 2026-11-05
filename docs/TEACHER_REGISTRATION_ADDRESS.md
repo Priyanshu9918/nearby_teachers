@@ -28,7 +28,7 @@ Use `POST /auth/register` or `POST /auth/onboarding/complete` after phone OTP ve
 | District | `district` | Optional; max 120 characters |
 | Sub-district / Tehsil | `subDistrict` | Optional; max 120 characters |
 | Town / Village / Ward / Sector | `locality` | Optional; max 160 characters |
-| Locality type | `localityType` | Optional: `town`, `village`, `ward`, `sector` |
+| Locality type | `localityType` | Optional free-text string; max 16 characters |
 | State | `state` | Optional; max 120 characters |
 | Country | `country` | Optional; max 120 characters |
 | ZIP / PIN code | `postalCode` | Optional string; max 32 characters |

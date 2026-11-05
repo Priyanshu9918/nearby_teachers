@@ -18,7 +18,7 @@ final class TeacherAddress
             'district' => ['sometimes', 'nullable', 'string', 'max:120'],
             'subDistrict' => ['sometimes', 'nullable', 'string', 'max:120'],
             'locality' => ['sometimes', 'nullable', 'string', 'max:160'],
-            'localityType' => ['sometimes', 'nullable', 'in:town,village,ward,sector'],
+            'localityType' => ['sometimes', 'nullable', 'string', 'max:16'],
             'state' => ['sometimes', 'nullable', 'string', 'max:120'],
             'country' => ['sometimes', 'nullable', 'string', 'max:120'],
             'postalCode' => ['sometimes', 'nullable', 'string', 'max:32'],
