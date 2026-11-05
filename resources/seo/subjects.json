@@ -141,5 +141,1619 @@
       "mixology"
     ],
     "en": "Mixology"
+  },
+  "personality-development": {
+    "aliases": [
+      "personality-development"
+    ],
+    "en": "Personality Development"
+  },
+  "ielts-english-test-for-studywork-abroad": {
+    "aliases": [
+      "ielts-english-test-for-studywork-abroad"
+    ],
+    "en": "IELTS (English Test for Study/Work Abroad)"
+  },
+  "pte-english-test-for-visa-immigration": {
+    "aliases": [
+      "pte-english-test-for-visa-immigration"
+    ],
+    "en": "PTE (English Test for Visa & Immigration)"
+  },
+  "tefl-certification-become-an-english-teacher-abroad": {
+    "aliases": [
+      "tefl-certification-become-an-english-teacher-abroad"
+    ],
+    "en": "TEFL Certification (Become an English Teacher Abroad)"
+  },
+  "tesol-certification-teach-english-to-non-native-speakers": {
+    "aliases": [
+      "tesol-certification-teach-english-to-non-native-speakers"
+    ],
+    "en": "TESOL Certification (Teach English to Non-Native Speakers)"
+  },
+  "early-math": {
+    "aliases": [
+      "early-math"
+    ],
+    "en": "Early Math"
+  },
+  "pre-algebra": {
+    "aliases": [
+      "pre-algebra"
+    ],
+    "en": "Pre-Algebra"
+  },
+  "algebra-i-ii": {
+    "aliases": [
+      "algebra-i-ii"
+    ],
+    "en": "Algebra I & II"
+  },
+  "geometry": {
+    "aliases": [
+      "geometry"
+    ],
+    "en": "Geometry"
+  },
+  "trigonometry": {
+    "aliases": [
+      "trigonometry"
+    ],
+    "en": "Trigonometry"
+  },
+  "pre-calculus": {
+    "aliases": [
+      "pre-calculus"
+    ],
+    "en": "Pre-Calculus"
+  },
+  "apib-calculus": {
+    "aliases": [
+      "apib-calculus"
+    ],
+    "en": "AP/IB Calculus"
+  },
+  "mental-math-abacus": {
+    "aliases": [
+      "mental-math-abacus"
+    ],
+    "en": "Mental Math / Abacus"
+  },
+  "vedic-mathematics": {
+    "aliases": [
+      "vedic-mathematics"
+    ],
+    "en": "Vedic Mathematics"
+  },
+  "statistics": {
+    "aliases": [
+      "statistics"
+    ],
+    "en": "Statistics"
+  },
+  "general-science": {
+    "aliases": [
+      "general-science"
+    ],
+    "en": "General Science"
+  },
+  "biology": {
+    "aliases": [
+      "biology"
+    ],
+    "en": "Biology"
+  },
+  "earth-environmental-science": {
+    "aliases": [
+      "earth-environmental-science"
+    ],
+    "en": "Earth & Environmental Science"
+  },
+  "computer-science": {
+    "aliases": [
+      "computer-science"
+    ],
+    "en": "Computer Science"
+  },
+  "reading-phonics": {
+    "aliases": [
+      "reading-phonics"
+    ],
+    "en": "Reading & Phonics"
+  },
+  "english-literature": {
+    "aliases": [
+      "english-literature"
+    ],
+    "en": "English Literature"
+  },
+  "creative-writing": {
+    "aliases": [
+      "creative-writing"
+    ],
+    "en": "Creative Writing"
+  },
+  "grammar-rhetoric": {
+    "aliases": [
+      "grammar-rhetoric"
+    ],
+    "en": "Grammar & Rhetoric"
+  },
+  "world-history": {
+    "aliases": [
+      "world-history"
+    ],
+    "en": "World History"
+  },
+  "human-geography": {
+    "aliases": [
+      "human-geography"
+    ],
+    "en": "Human Geography"
+  },
+  "civics-political-science": {
+    "aliases": [
+      "civics-political-science"
+    ],
+    "en": "Civics & Political Science"
+  },
+  "economics": {
+    "aliases": [
+      "economics"
+    ],
+    "en": "Economics"
+  },
+  "psychology": {
+    "aliases": [
+      "psychology"
+    ],
+    "en": "Psychology"
+  },
+  "sociology": {
+    "aliases": [
+      "sociology"
+    ],
+    "en": "Sociology"
+  },
+  "music-theory": {
+    "aliases": [
+      "music-theory"
+    ],
+    "en": "Music Theory"
+  },
+  "special-needs-sen-tutoring": {
+    "aliases": [
+      "special-needs-sen-tutoring"
+    ],
+    "en": "Special Needs / SEN Tutoring"
+  },
+  "sat-us-college-entrance-test": {
+    "aliases": [
+      "sat-us-college-entrance-test"
+    ],
+    "en": "SAT (US College Entrance Test)"
+  },
+  "act-us-college-entrance-test": {
+    "aliases": [
+      "act-us-college-entrance-test"
+    ],
+    "en": "ACT (US College Entrance Test)"
+  },
+  "psat-practice-test-for-the-sat": {
+    "aliases": [
+      "psat-practice-test-for-the-sat"
+    ],
+    "en": "PSAT (Practice Test for the SAT)"
+  },
+  "ap-exams-us-advanced-high-school-courses": {
+    "aliases": [
+      "ap-exams-us-advanced-high-school-courses"
+    ],
+    "en": "AP Exams (US Advanced High School Courses)"
+  },
+  "ib-diploma-prep-international-high-school-diploma": {
+    "aliases": [
+      "ib-diploma-prep-international-high-school-diploma"
+    ],
+    "en": "IB Diploma Prep (International High School Diploma)"
+  },
+  "11-common-entrance": {
+    "aliases": [
+      "11-common-entrance"
+    ],
+    "en": "11+ / Common Entrance"
+  },
+  "gre-grad-school-entrance-test": {
+    "aliases": [
+      "gre-grad-school-entrance-test"
+    ],
+    "en": "GRE (Grad School Entrance Test)"
+  },
+  "gmat-mba-entrance-test": {
+    "aliases": [
+      "gmat-mba-entrance-test"
+    ],
+    "en": "GMAT (MBA Entrance Test)"
+  },
+  "lsat-law-school-entrance-test": {
+    "aliases": [
+      "lsat-law-school-entrance-test"
+    ],
+    "en": "LSAT (Law School Entrance Test)"
+  },
+  "mcat-medical-school-entrance-test": {
+    "aliases": [
+      "mcat-medical-school-entrance-test"
+    ],
+    "en": "MCAT (Medical School Entrance Test)"
+  },
+  "dat-dental-school-entrance-test": {
+    "aliases": [
+      "dat-dental-school-entrance-test"
+    ],
+    "en": "DAT (Dental School Entrance Test)"
+  },
+  "oat-optometry-school-entrance-test": {
+    "aliases": [
+      "oat-optometry-school-entrance-test"
+    ],
+    "en": "OAT (Optometry School Entrance Test)"
+  },
+  "gamsat-medical-school-entrance-test": {
+    "aliases": [
+      "gamsat-medical-school-entrance-test"
+    ],
+    "en": "GAMSAT (Medical School Entrance Test)"
+  },
+  "cat-mba-entrance-test-india": {
+    "aliases": [
+      "cat-mba-entrance-test-india"
+    ],
+    "en": "CAT (MBA Entrance Test, India)"
+  },
+  "toefl-ibt-english-test-for-us-study": {
+    "aliases": [
+      "toefl-ibt-english-test-for-us-study"
+    ],
+    "en": "TOEFL iBT (English Test for US Study)"
+  },
+  "duolingo-english-test": {
+    "aliases": [
+      "duolingo-english-test"
+    ],
+    "en": "Duolingo English Test"
+  },
+  "delfdalf-french-proficiency-test": {
+    "aliases": [
+      "delfdalf-french-proficiency-test"
+    ],
+    "en": "DELF/DALF (French Proficiency Test)"
+  },
+  "dele-spanish-proficiency-test": {
+    "aliases": [
+      "dele-spanish-proficiency-test"
+    ],
+    "en": "DELE (Spanish Proficiency Test)"
+  },
+  "goethe-zertifikat-german-proficiency-test": {
+    "aliases": [
+      "goethe-zertifikat-german-proficiency-test"
+    ],
+    "en": "Goethe-Zertifikat (German Proficiency Test)"
+  },
+  "jlpt-japanese-proficiency-test": {
+    "aliases": [
+      "jlpt-japanese-proficiency-test"
+    ],
+    "en": "JLPT (Japanese Proficiency Test)"
+  },
+  "hsk-chinese-proficiency-test": {
+    "aliases": [
+      "hsk-chinese-proficiency-test"
+    ],
+    "en": "HSK (Chinese Proficiency Test)"
+  },
+  "cbse-board-exam-prep": {
+    "aliases": [
+      "cbse-board-exam-prep"
+    ],
+    "en": "CBSE Board Exam Prep"
+  },
+  "icse-board-exam-prep": {
+    "aliases": [
+      "icse-board-exam-prep"
+    ],
+    "en": "ICSE Board Exam Prep"
+  },
+  "jee-engineering-entrance-exam": {
+    "aliases": [
+      "jee-engineering-entrance-exam"
+    ],
+    "en": "JEE (Engineering Entrance Exam)"
+  },
+  "neet-medical-entrance-exam": {
+    "aliases": [
+      "neet-medical-entrance-exam"
+    ],
+    "en": "NEET (Medical Entrance Exam)"
+  },
+  "ctet-tet-teacher-eligibility-test": {
+    "aliases": [
+      "ctet-tet-teacher-eligibility-test"
+    ],
+    "en": "CTET / TET (Teacher Eligibility Test)"
+  },
+  "nda-cds-armed-forces-entrance-exam": {
+    "aliases": [
+      "nda-cds-armed-forces-entrance-exam"
+    ],
+    "en": "NDA / CDS (Armed Forces Entrance Exam)"
+  },
+  "clat-law-entrance-exam": {
+    "aliases": [
+      "clat-law-entrance-exam"
+    ],
+    "en": "CLAT (Law Entrance Exam)"
+  },
+  "olympiad-exams-nsoimontse": {
+    "aliases": [
+      "olympiad-exams-nsoimontse"
+    ],
+    "en": "Olympiad Exams (NSO/IMO/NTSE)"
+  },
+  "upsc-civil-services-exam": {
+    "aliases": [
+      "upsc-civil-services-exam"
+    ],
+    "en": "UPSC (Civil Services Exam)"
+  },
+  "ssc-government-job-exam": {
+    "aliases": [
+      "ssc-government-job-exam"
+    ],
+    "en": "SSC (Government Job Exam)"
+  },
+  "banking-exams": {
+    "aliases": [
+      "banking-exams"
+    ],
+    "en": "Banking Exams"
+  },
+  "gate-engineering-pg-entrance-exam": {
+    "aliases": [
+      "gate-engineering-pg-entrance-exam"
+    ],
+    "en": "GATE (Engineering PG Entrance Exam)"
+  },
+  "nclex-us-nursing-license-exam": {
+    "aliases": [
+      "nclex-us-nursing-license-exam"
+    ],
+    "en": "NCLEX (US Nursing License Exam)"
+  },
+  "usmle-plab-medical-license-exam": {
+    "aliases": [
+      "usmle-plab-medical-license-exam"
+    ],
+    "en": "USMLE / PLAB (Medical License Exam)"
+  },
+  "bar-exam": {
+    "aliases": [
+      "bar-exam"
+    ],
+    "en": "Bar Exam"
+  },
+  "cfa-finance-certification": {
+    "aliases": [
+      "cfa-finance-certification"
+    ],
+    "en": "CFA (Finance Certification)"
+  },
+  "cpa-accounting-certification": {
+    "aliases": [
+      "cpa-accounting-certification"
+    ],
+    "en": "CPA (Accounting Certification)"
+  },
+  "french": {
+    "aliases": [
+      "french"
+    ],
+    "en": "French"
+  },
+  "german": {
+    "aliases": [
+      "german"
+    ],
+    "en": "German"
+  },
+  "spanish": {
+    "aliases": [
+      "spanish"
+    ],
+    "en": "Spanish"
+  },
+  "japanese": {
+    "aliases": [
+      "japanese"
+    ],
+    "en": "Japanese"
+  },
+  "mandarin-chinese": {
+    "aliases": [
+      "mandarin-chinese"
+    ],
+    "en": "Mandarin Chinese"
+  },
+  "russian": {
+    "aliases": [
+      "russian"
+    ],
+    "en": "Russian"
+  },
+  "portuguese": {
+    "aliases": [
+      "portuguese"
+    ],
+    "en": "Portuguese"
+  },
+  "italian": {
+    "aliases": [
+      "italian"
+    ],
+    "en": "Italian"
+  },
+  "korean": {
+    "aliases": [
+      "korean"
+    ],
+    "en": "Korean"
+  },
+  "bengali": {
+    "aliases": [
+      "bengali"
+    ],
+    "en": "Bengali"
+  },
+  "tamil": {
+    "aliases": [
+      "tamil"
+    ],
+    "en": "Tamil"
+  },
+  "telugu": {
+    "aliases": [
+      "telugu"
+    ],
+    "en": "Telugu"
+  },
+  "marathi": {
+    "aliases": [
+      "marathi"
+    ],
+    "en": "Marathi"
+  },
+  "gujarati": {
+    "aliases": [
+      "gujarati"
+    ],
+    "en": "Gujarati"
+  },
+  "punjabi": {
+    "aliases": [
+      "punjabi"
+    ],
+    "en": "Punjabi"
+  },
+  "urdu": {
+    "aliases": [
+      "urdu"
+    ],
+    "en": "Urdu"
+  },
+  "kannada": {
+    "aliases": [
+      "kannada"
+    ],
+    "en": "Kannada"
+  },
+  "odia": {
+    "aliases": [
+      "odia"
+    ],
+    "en": "Odia"
+  },
+  "assamese": {
+    "aliases": [
+      "assamese"
+    ],
+    "en": "Assamese"
+  },
+  "sanskrit": {
+    "aliases": [
+      "sanskrit"
+    ],
+    "en": "Sanskrit"
+  },
+  "turkish": {
+    "aliases": [
+      "turkish"
+    ],
+    "en": "Turkish"
+  },
+  "vietnamese": {
+    "aliases": [
+      "vietnamese"
+    ],
+    "en": "Vietnamese"
+  },
+  "swahili": {
+    "aliases": [
+      "swahili"
+    ],
+    "en": "Swahili"
+  },
+  "dutch": {
+    "aliases": [
+      "dutch"
+    ],
+    "en": "Dutch"
+  },
+  "polish": {
+    "aliases": [
+      "polish"
+    ],
+    "en": "Polish"
+  },
+  "greek": {
+    "aliases": [
+      "greek"
+    ],
+    "en": "Greek"
+  },
+  "hebrew": {
+    "aliases": [
+      "hebrew"
+    ],
+    "en": "Hebrew"
+  },
+  "persianfarsi": {
+    "aliases": [
+      "persianfarsi"
+    ],
+    "en": "Persian/Farsi"
+  },
+  "swedish": {
+    "aliases": [
+      "swedish"
+    ],
+    "en": "Swedish"
+  },
+  "irish-gaelic": {
+    "aliases": [
+      "irish-gaelic"
+    ],
+    "en": "Irish Gaelic"
+  },
+  "thai": {
+    "aliases": [
+      "thai"
+    ],
+    "en": "Thai"
+  },
+  "indonesian": {
+    "aliases": [
+      "indonesian"
+    ],
+    "en": "Indonesian"
+  },
+  "filipinotagalog": {
+    "aliases": [
+      "filipinotagalog"
+    ],
+    "en": "Filipino/Tagalog"
+  },
+  "norwegian": {
+    "aliases": [
+      "norwegian"
+    ],
+    "en": "Norwegian"
+  },
+  "danish": {
+    "aliases": [
+      "danish"
+    ],
+    "en": "Danish"
+  },
+  "finnish": {
+    "aliases": [
+      "finnish"
+    ],
+    "en": "Finnish"
+  },
+  "business-english": {
+    "aliases": [
+      "business-english"
+    ],
+    "en": "Business English"
+  },
+  "accent-reduction": {
+    "aliases": [
+      "accent-reduction"
+    ],
+    "en": "Accent Reduction"
+  },
+  "conversational-practice": {
+    "aliases": [
+      "conversational-practice"
+    ],
+    "en": "Conversational Practice"
+  },
+  "medicallegal-terminology": {
+    "aliases": [
+      "medicallegal-terminology"
+    ],
+    "en": "Medical/Legal Terminology"
+  },
+  "sign-language-american-british-indian": {
+    "aliases": [
+      "sign-language-american-british-indian"
+    ],
+    "en": "Sign Language (American, British, Indian)"
+  },
+  "python": {
+    "aliases": [
+      "python"
+    ],
+    "en": "Python"
+  },
+  "javascript": {
+    "aliases": [
+      "javascript"
+    ],
+    "en": "JavaScript"
+  },
+  "typescript": {
+    "aliases": [
+      "typescript"
+    ],
+    "en": "TypeScript"
+  },
+  "c": {
+    "aliases": [
+      "c"
+    ],
+    "en": "C++"
+  },
+  "java": {
+    "aliases": [
+      "java"
+    ],
+    "en": "Java"
+  },
+  "go": {
+    "aliases": [
+      "go"
+    ],
+    "en": "Go"
+  },
+  "rust": {
+    "aliases": [
+      "rust"
+    ],
+    "en": "Rust"
+  },
+  "swift": {
+    "aliases": [
+      "swift"
+    ],
+    "en": "Swift"
+  },
+  "kotlin": {
+    "aliases": [
+      "kotlin"
+    ],
+    "en": "Kotlin"
+  },
+  "php": {
+    "aliases": [
+      "php"
+    ],
+    "en": "PHP"
+  },
+  "ruby": {
+    "aliases": [
+      "ruby"
+    ],
+    "en": "Ruby"
+  },
+  "sql": {
+    "aliases": [
+      "sql"
+    ],
+    "en": "SQL"
+  },
+  "data-structures-algorithms-coding-interview-prep": {
+    "aliases": [
+      "data-structures-algorithms-coding-interview-prep"
+    ],
+    "en": "Data Structures & Algorithms (Coding Interview Prep)"
+  },
+  "full-stack-web-dev": {
+    "aliases": [
+      "full-stack-web-dev"
+    ],
+    "en": "Full-Stack Web Dev"
+  },
+  "mobile-app-dev": {
+    "aliases": [
+      "mobile-app-dev"
+    ],
+    "en": "Mobile App Dev"
+  },
+  "database-management": {
+    "aliases": [
+      "database-management"
+    ],
+    "en": "Database Management"
+  },
+  "game-development": {
+    "aliases": [
+      "game-development"
+    ],
+    "en": "Game Development"
+  },
+  "machine-learning-teaching-computers-to-learn": {
+    "aliases": [
+      "machine-learning-teaching-computers-to-learn"
+    ],
+    "en": "Machine Learning (Teaching Computers to Learn)"
+  },
+  "deep-learning-advanced-ai-techniques": {
+    "aliases": [
+      "deep-learning-advanced-ai-techniques"
+    ],
+    "en": "Deep Learning (Advanced AI Techniques)"
+  },
+  "data-analytics-making-sense-of-data": {
+    "aliases": [
+      "data-analytics-making-sense-of-data"
+    ],
+    "en": "Data Analytics (Making Sense of Data)"
+  },
+  "computer-vision-teaching-computers-to-see": {
+    "aliases": [
+      "computer-vision-teaching-computers-to-see"
+    ],
+    "en": "Computer Vision (Teaching Computers to See)"
+  },
+  "nlp-teaching-computers-to-understand-language": {
+    "aliases": [
+      "nlp-teaching-computers-to-understand-language"
+    ],
+    "en": "NLP (Teaching Computers to Understand Language)"
+  },
+  "prompt-engineering-writing-effective-ai-instructions": {
+    "aliases": [
+      "prompt-engineering-writing-effective-ai-instructions"
+    ],
+    "en": "Prompt Engineering (Writing Effective AI Instructions)"
+  },
+  "aws-cloud-computing-by-amazon": {
+    "aliases": [
+      "aws-cloud-computing-by-amazon"
+    ],
+    "en": "AWS (Cloud Computing by Amazon)"
+  },
+  "google-cloud-platform-cloud-computing-by-google": {
+    "aliases": [
+      "google-cloud-platform-cloud-computing-by-google"
+    ],
+    "en": "Google Cloud Platform (Cloud Computing by Google)"
+  },
+  "microsoft-azure-cloud-computing-by-microsoft": {
+    "aliases": [
+      "microsoft-azure-cloud-computing-by-microsoft"
+    ],
+    "en": "Microsoft Azure (Cloud Computing by Microsoft)"
+  },
+  "ethical-hacking-protecting-systems-from-hackers": {
+    "aliases": [
+      "ethical-hacking-protecting-systems-from-hackers"
+    ],
+    "en": "Ethical Hacking (Protecting Systems from Hackers)"
+  },
+  "cyber-defense-protecting-computers-from-attacks": {
+    "aliases": [
+      "cyber-defense-protecting-computers-from-attacks"
+    ],
+    "en": "Cyber Defense (Protecting Computers from Attacks)"
+  },
+  "devops-software-deployment-operations": {
+    "aliases": [
+      "devops-software-deployment-operations"
+    ],
+    "en": "DevOps (Software Deployment & Operations)"
+  },
+  "blockchain-web3-cryptocurrency-decentralized-tech": {
+    "aliases": [
+      "blockchain-web3-cryptocurrency-decentralized-tech"
+    ],
+    "en": "Blockchain / Web3 (Cryptocurrency & Decentralized Tech)"
+  },
+  "salesforce-admin-managing-salesforce-software": {
+    "aliases": [
+      "salesforce-admin-managing-salesforce-software"
+    ],
+    "en": "Salesforce Admin (Managing Salesforce Software)"
+  },
+  "qa-software-testing-finding-bugs-in-software": {
+    "aliases": [
+      "qa-software-testing-finding-bugs-in-software"
+    ],
+    "en": "QA / Software Testing (Finding Bugs in Software)"
+  },
+  "comptia-cissp-certifications-it-security-certifications": {
+    "aliases": [
+      "comptia-cissp-certifications-it-security-certifications"
+    ],
+    "en": "CompTIA / CISSP Certifications (IT Security Certifications)"
+  },
+  "coding-for-kids": {
+    "aliases": [
+      "coding-for-kids"
+    ],
+    "en": "Coding for Kids"
+  },
+  "artificial-intelligence": {
+    "aliases": [
+      "artificial-intelligence"
+    ],
+    "en": "Artificial Intelligence"
+  },
+  "pianokeyboard": {
+    "aliases": [
+      "pianokeyboard"
+    ],
+    "en": "Piano/Keyboard"
+  },
+  "guitar": {
+    "aliases": [
+      "guitar"
+    ],
+    "en": "Guitar"
+  },
+  "bass": {
+    "aliases": [
+      "bass"
+    ],
+    "en": "Bass"
+  },
+  "violin": {
+    "aliases": [
+      "violin"
+    ],
+    "en": "Violin"
+  },
+  "viola": {
+    "aliases": [
+      "viola"
+    ],
+    "en": "Viola"
+  },
+  "cello": {
+    "aliases": [
+      "cello"
+    ],
+    "en": "Cello"
+  },
+  "drumspercussion": {
+    "aliases": [
+      "drumspercussion"
+    ],
+    "en": "Drums/Percussion"
+  },
+  "flute": {
+    "aliases": [
+      "flute"
+    ],
+    "en": "Flute"
+  },
+  "saxophone": {
+    "aliases": [
+      "saxophone"
+    ],
+    "en": "Saxophone"
+  },
+  "trumpet": {
+    "aliases": [
+      "trumpet"
+    ],
+    "en": "Trumpet"
+  },
+  "ukulele": {
+    "aliases": [
+      "ukulele"
+    ],
+    "en": "Ukulele"
+  },
+  "sitar": {
+    "aliases": [
+      "sitar"
+    ],
+    "en": "Sitar"
+  },
+  "tabla": {
+    "aliases": [
+      "tabla"
+    ],
+    "en": "Tabla"
+  },
+  "oud": {
+    "aliases": [
+      "oud"
+    ],
+    "en": "Oud"
+  },
+  "guzheng": {
+    "aliases": [
+      "guzheng"
+    ],
+    "en": "Guzheng"
+  },
+  "harmonium": {
+    "aliases": [
+      "harmonium"
+    ],
+    "en": "Harmonium"
+  },
+  "classical-vocal": {
+    "aliases": [
+      "classical-vocal"
+    ],
+    "en": "Classical Vocal"
+  },
+  "contemporary-vocal": {
+    "aliases": [
+      "contemporary-vocal"
+    ],
+    "en": "Contemporary Vocal"
+  },
+  "hindustani-classical-vocal": {
+    "aliases": [
+      "hindustani-classical-vocal"
+    ],
+    "en": "Hindustani Classical Vocal"
+  },
+  "carnatic-vocal": {
+    "aliases": [
+      "carnatic-vocal"
+    ],
+    "en": "Carnatic Vocal"
+  },
+  "opera": {
+    "aliases": [
+      "opera"
+    ],
+    "en": "Opera"
+  },
+  "voice-coaching": {
+    "aliases": [
+      "voice-coaching"
+    ],
+    "en": "Voice Coaching"
+  },
+  "public-speaking": {
+    "aliases": [
+      "public-speaking"
+    ],
+    "en": "Public Speaking"
+  },
+  "acting": {
+    "aliases": [
+      "acting"
+    ],
+    "en": "Acting"
+  },
+  "stand-up-comedy": {
+    "aliases": [
+      "stand-up-comedy"
+    ],
+    "en": "Stand-up Comedy"
+  },
+  "voice-over-dubbing": {
+    "aliases": [
+      "voice-over-dubbing"
+    ],
+    "en": "Voice Over / Dubbing"
+  },
+  "rj-anchoring-training": {
+    "aliases": [
+      "rj-anchoring-training"
+    ],
+    "en": "RJ & Anchoring Training"
+  },
+  "ballet": {
+    "aliases": [
+      "ballet"
+    ],
+    "en": "Ballet"
+  },
+  "contemporary-dance": {
+    "aliases": [
+      "contemporary-dance"
+    ],
+    "en": "Contemporary Dance"
+  },
+  "hip-hop": {
+    "aliases": [
+      "hip-hop"
+    ],
+    "en": "Hip-Hop"
+  },
+  "salsa": {
+    "aliases": [
+      "salsa"
+    ],
+    "en": "Salsa"
+  },
+  "tango": {
+    "aliases": [
+      "tango"
+    ],
+    "en": "Tango"
+  },
+  "ballroom": {
+    "aliases": [
+      "ballroom"
+    ],
+    "en": "Ballroom"
+  },
+  "kathak": {
+    "aliases": [
+      "kathak"
+    ],
+    "en": "Kathak"
+  },
+  "bharatanatyam": {
+    "aliases": [
+      "bharatanatyam"
+    ],
+    "en": "Bharatanatyam"
+  },
+  "tap-dance": {
+    "aliases": [
+      "tap-dance"
+    ],
+    "en": "Tap Dance"
+  },
+  "drawing-sketching": {
+    "aliases": [
+      "drawing-sketching"
+    ],
+    "en": "Drawing & Sketching"
+  },
+  "oil-acrylic-painting": {
+    "aliases": [
+      "oil-acrylic-painting"
+    ],
+    "en": "Oil & Acrylic Painting"
+  },
+  "watercolor": {
+    "aliases": [
+      "watercolor"
+    ],
+    "en": "Watercolor"
+  },
+  "digital-art-illustration": {
+    "aliases": [
+      "digital-art-illustration"
+    ],
+    "en": "Digital Art & Illustration"
+  },
+  "3d-modeling": {
+    "aliases": [
+      "3d-modeling"
+    ],
+    "en": "3D Modeling"
+  },
+  "animation": {
+    "aliases": [
+      "animation"
+    ],
+    "en": "Animation"
+  },
+  "sculpting": {
+    "aliases": [
+      "sculpting"
+    ],
+    "en": "Sculpting"
+  },
+  "calligraphy": {
+    "aliases": [
+      "calligraphy"
+    ],
+    "en": "Calligraphy"
+  },
+  "graphic-design": {
+    "aliases": [
+      "graphic-design"
+    ],
+    "en": "Graphic Design"
+  },
+  "uiux-design": {
+    "aliases": [
+      "uiux-design"
+    ],
+    "en": "UI/UX Design"
+  },
+  "fashion-design": {
+    "aliases": [
+      "fashion-design"
+    ],
+    "en": "Fashion Design"
+  },
+  "garment-construction": {
+    "aliases": [
+      "garment-construction"
+    ],
+    "en": "Garment Construction"
+  },
+  "textile-design": {
+    "aliases": [
+      "textile-design"
+    ],
+    "en": "Textile Design"
+  },
+  "industrial-design": {
+    "aliases": [
+      "industrial-design"
+    ],
+    "en": "Industrial Design"
+  },
+  "automotive-repair": {
+    "aliases": [
+      "automotive-repair"
+    ],
+    "en": "Automotive Repair"
+  },
+  "electrical-work": {
+    "aliases": [
+      "electrical-work"
+    ],
+    "en": "Electrical Work"
+  },
+  "plumbing": {
+    "aliases": [
+      "plumbing"
+    ],
+    "en": "Plumbing"
+  },
+  "carpentry": {
+    "aliases": [
+      "carpentry"
+    ],
+    "en": "Carpentry"
+  },
+  "welding": {
+    "aliases": [
+      "welding"
+    ],
+    "en": "Welding"
+  },
+  "hvac-maintenance": {
+    "aliases": [
+      "hvac-maintenance"
+    ],
+    "en": "HVAC Maintenance"
+  },
+  "autocad": {
+    "aliases": [
+      "autocad"
+    ],
+    "en": "AutoCAD"
+  },
+  "revit": {
+    "aliases": [
+      "revit"
+    ],
+    "en": "Revit"
+  },
+  "sketchup": {
+    "aliases": [
+      "sketchup"
+    ],
+    "en": "SketchUp"
+  },
+  "interior-architecture": {
+    "aliases": [
+      "interior-architecture"
+    ],
+    "en": "Interior Architecture"
+  },
+  "civil-drafting": {
+    "aliases": [
+      "civil-drafting"
+    ],
+    "en": "Civil Drafting"
+  },
+  "bim": {
+    "aliases": [
+      "bim"
+    ],
+    "en": "BIM"
+  },
+  "cosmetology-barbering": {
+    "aliases": [
+      "cosmetology-barbering"
+    ],
+    "en": "Cosmetology / Barbering"
+  },
+  "professional-culinary-arts": {
+    "aliases": [
+      "professional-culinary-arts"
+    ],
+    "en": "Professional Culinary Arts"
+  },
+  "real-estate-licensing": {
+    "aliases": [
+      "real-estate-licensing"
+    ],
+    "en": "Real Estate Licensing"
+  },
+  "driving-lessons": {
+    "aliases": [
+      "driving-lessons"
+    ],
+    "en": "Driving Lessons"
+  },
+  "makeup-artistry": {
+    "aliases": [
+      "makeup-artistry"
+    ],
+    "en": "Makeup Artistry"
+  },
+  "air-hostess-cabin-crew-training": {
+    "aliases": [
+      "air-hostess-cabin-crew-training"
+    ],
+    "en": "Air Hostess / Cabin Crew Training"
+  },
+  "financial-accounting": {
+    "aliases": [
+      "financial-accounting"
+    ],
+    "en": "Financial Accounting"
+  },
+  "managerial-accounting-accounting-for-business-decisions": {
+    "aliases": [
+      "managerial-accounting-accounting-for-business-decisions"
+    ],
+    "en": "Managerial Accounting (Accounting for Business Decisions)"
+  },
+  "corporate-finance-managing-company-money": {
+    "aliases": [
+      "corporate-finance-managing-company-money"
+    ],
+    "en": "Corporate Finance (Managing Company Money)"
+  },
+  "investment-banking-prep-careers-in-finance": {
+    "aliases": [
+      "investment-banking-prep-careers-in-finance"
+    ],
+    "en": "Investment Banking Prep (Careers in Finance)"
+  },
+  "stock-market-trading": {
+    "aliases": [
+      "stock-market-trading"
+    ],
+    "en": "Stock Market Trading"
+  },
+  "financial-modeling-building-business-forecasts-in-excel": {
+    "aliases": [
+      "financial-modeling-building-business-forecasts-in-excel"
+    ],
+    "en": "Financial Modeling (Building Business Forecasts in Excel)"
+  },
+  "quickbooks": {
+    "aliases": [
+      "quickbooks"
+    ],
+    "en": "QuickBooks"
+  },
+  "project-management-pmpagile": {
+    "aliases": [
+      "project-management-pmpagile"
+    ],
+    "en": "Project Management (PMP/Agile)"
+  },
+  "business-strategy": {
+    "aliases": [
+      "business-strategy"
+    ],
+    "en": "Business Strategy"
+  },
+  "operations-management-running-business-processes-smoothly": {
+    "aliases": [
+      "operations-management-running-business-processes-smoothly"
+    ],
+    "en": "Operations Management (Running Business Processes Smoothly)"
+  },
+  "supply-chain-logistics-moving-goods-efficiently": {
+    "aliases": [
+      "supply-chain-logistics-moving-goods-efficiently"
+    ],
+    "en": "Supply Chain & Logistics (Moving Goods Efficiently)"
+  },
+  "human-resources": {
+    "aliases": [
+      "human-resources"
+    ],
+    "en": "Human Resources"
+  },
+  "entrepreneurship-startup-fundamentals": {
+    "aliases": [
+      "entrepreneurship-startup-fundamentals"
+    ],
+    "en": "Entrepreneurship / Startup Fundamentals"
+  },
+  "event-management": {
+    "aliases": [
+      "event-management"
+    ],
+    "en": "Event Management"
+  },
+  "public-relations": {
+    "aliases": [
+      "public-relations"
+    ],
+    "en": "Public Relations"
+  },
+  "excel-spreadsheets": {
+    "aliases": [
+      "excel-spreadsheets"
+    ],
+    "en": "Excel / Spreadsheets"
+  },
+  "digital-marketing": {
+    "aliases": [
+      "digital-marketing"
+    ],
+    "en": "Digital Marketing"
+  },
+  "seo-getting-found-on-google": {
+    "aliases": [
+      "seo-getting-found-on-google"
+    ],
+    "en": "SEO (Getting Found on Google)"
+  },
+  "ppc-advertising-paid-online-ads": {
+    "aliases": [
+      "ppc-advertising-paid-online-ads"
+    ],
+    "en": "PPC Advertising (Paid Online Ads)"
+  },
+  "content-marketing": {
+    "aliases": [
+      "content-marketing"
+    ],
+    "en": "Content Marketing"
+  },
+  "content-writing": {
+    "aliases": [
+      "content-writing"
+    ],
+    "en": "Content Writing"
+  },
+  "copywriting": {
+    "aliases": [
+      "copywriting"
+    ],
+    "en": "Copywriting"
+  },
+  "social-media-strategy": {
+    "aliases": [
+      "social-media-strategy"
+    ],
+    "en": "Social Media Strategy"
+  },
+  "email-marketing": {
+    "aliases": [
+      "email-marketing"
+    ],
+    "en": "Email Marketing"
+  },
+  "negotiation-skills": {
+    "aliases": [
+      "negotiation-skills"
+    ],
+    "en": "Negotiation Skills"
+  },
+  "sales-training": {
+    "aliases": [
+      "sales-training"
+    ],
+    "en": "Sales Training"
+  },
+  "personal-fitness-training": {
+    "aliases": [
+      "personal-fitness-training"
+    ],
+    "en": "Personal Fitness Training"
+  },
+  "pilates": {
+    "aliases": [
+      "pilates"
+    ],
+    "en": "Pilates"
+  },
+  "yoga": {
+    "aliases": [
+      "yoga"
+    ],
+    "en": "Yoga"
+  },
+  "martial-arts": {
+    "aliases": [
+      "martial-arts"
+    ],
+    "en": "Martial Arts"
+  },
+  "swimming": {
+    "aliases": [
+      "swimming"
+    ],
+    "en": "Swimming"
+  },
+  "tennispadel": {
+    "aliases": [
+      "tennispadel"
+    ],
+    "en": "Tennis/Padel"
+  },
+  "golf": {
+    "aliases": [
+      "golf"
+    ],
+    "en": "Golf"
+  },
+  "cricket": {
+    "aliases": [
+      "cricket"
+    ],
+    "en": "Cricket"
+  },
+  "football-soccer": {
+    "aliases": [
+      "football-soccer"
+    ],
+    "en": "Football / Soccer"
+  },
+  "badminton": {
+    "aliases": [
+      "badminton"
+    ],
+    "en": "Badminton"
+  },
+  "table-tennis": {
+    "aliases": [
+      "table-tennis"
+    ],
+    "en": "Table Tennis"
+  },
+  "basketball": {
+    "aliases": [
+      "basketball"
+    ],
+    "en": "Basketball"
+  },
+  "volleyball": {
+    "aliases": [
+      "volleyball"
+    ],
+    "en": "Volleyball"
+  },
+  "hockey": {
+    "aliases": [
+      "hockey"
+    ],
+    "en": "Hockey"
+  },
+  "kabaddi": {
+    "aliases": [
+      "kabaddi"
+    ],
+    "en": "Kabaddi"
+  },
+  "self-defense": {
+    "aliases": [
+      "self-defense"
+    ],
+    "en": "Self-Defense"
+  },
+  "nutrition-dietetics": {
+    "aliases": [
+      "nutrition-dietetics"
+    ],
+    "en": "Nutrition & Dietetics"
+  },
+  "meditation-mindfulness": {
+    "aliases": [
+      "meditation-mindfulness"
+    ],
+    "en": "Meditation / Mindfulness"
+  },
+  "first-aid-cpr-certification": {
+    "aliases": [
+      "first-aid-cpr-certification"
+    ],
+    "en": "First Aid / CPR Certification"
+  },
+  "cooking-fundamentals": {
+    "aliases": [
+      "cooking-fundamentals"
+    ],
+    "en": "Cooking Fundamentals"
+  },
+  "baking-pastry-arts": {
+    "aliases": [
+      "baking-pastry-arts"
+    ],
+    "en": "Baking & Pastry Arts"
+  },
+  "food-safety": {
+    "aliases": [
+      "food-safety"
+    ],
+    "en": "Food Safety"
+  },
+  "chess": {
+    "aliases": [
+      "chess"
+    ],
+    "en": "Chess"
+  },
+  "bridge": {
+    "aliases": [
+      "bridge"
+    ],
+    "en": "Bridge"
+  },
+  "photography": {
+    "aliases": [
+      "photography"
+    ],
+    "en": "Photography"
+  },
+  "videography-editing": {
+    "aliases": [
+      "videography-editing"
+    ],
+    "en": "Videography & Editing"
+  },
+  "audio-engineering-music-production": {
+    "aliases": [
+      "audio-engineering-music-production"
+    ],
+    "en": "Audio Engineering & Music Production"
+  },
+  "vedic-astrology-kundli": {
+    "aliases": [
+      "vedic-astrology-kundli"
+    ],
+    "en": "Vedic Astrology / Kundli"
+  },
+  "vastu-shastra": {
+    "aliases": [
+      "vastu-shastra"
+    ],
+    "en": "Vastu Shastra"
+  },
+  "sewing-knitting": {
+    "aliases": [
+      "sewing-knitting"
+    ],
+    "en": "Sewing / Knitting"
   }
 }

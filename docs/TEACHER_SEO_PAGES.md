@@ -105,6 +105,13 @@ For profiles without enough country/publication data, SEO URLs are null. There a
 
 ## Subject wording and translation approval
 
+`resources/seo/subjects.json` includes English entries/aliases for all 280 unique
+subject names in `database/sql/seed.mysql.sql` (282 entries including existing
+generic subjects). Existing reviewed translations are retained. This does not
+provide translations for newly added entries or automatically register database
+pages: eligible profile publication/reconciliation registers the selected subjects.
+Custom subjects added later still use the automatic English fallback.
+
 `seo_subject_routes` stores subject ID, country, language, localized display name, city slug, online slug and enabled status. Slugs do not get translated dynamically per request.
 
 Starter native wording exists for Maths, Physics, Chemistry, English, Hindi and IELTS. Other selected subjects automatically receive English mappings using their catalog subject names. Other languages still require reviewed translations. The application does not publish English-only copy as a translated listing. Catalog subjects that would collide with an existing slug also need explicit separate wording; distinct subject IDs are not silently merged.
