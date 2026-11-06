@@ -145,7 +145,7 @@ class SearchController extends Controller
                 'currency' => $currencyFiltered ? $currency : null, 'lesson_mode' => $lessonMode, 'trial_days' => $data['trialDays'] ?? null]);
 
         return $this->providerResponse(['mode' => $data['mode'], 'totalCount' => $total,
-            'page' => $page, 'perPage' => $perPage, 'results' => $rows]);
+            'page' => $page, 'perPage' => $perPage, 'results' => $rows], includeSubjects: true);
     }
 
     public function dashboard(Request $request): JsonResponse

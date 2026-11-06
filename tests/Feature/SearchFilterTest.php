@@ -78,6 +78,9 @@ class SearchFilterTest extends TestCase
         $first = $response->json('results.0');
         $second = $this->search($filters + ['page' => 2])->assertOk()->assertJsonPath('totalCount', 2)->json('results.0');
         $this->assertEqualsCanonicalizing([$teacher, $institute], [$first['user_id'], $second['user_id']]);
+        foreach ([$first, $second] as $provider) {
+            $this->assertSame([['id' => $this->subject, 'name' => 'Filter Course', 'is_bsl' => false]], $provider['subjects']);
+        }
         foreach (['phone', 'email', 'latitude', 'longitude', 'address_text', 'password_hash'] as $private) {
             $this->assertArrayNotHasKey($private, $first);
         }

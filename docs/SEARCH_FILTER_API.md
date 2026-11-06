@@ -72,3 +72,5 @@ uses the existing append-only search recorder. Integration tests use disposable
 databases ending in `_test` and cover anonymous access, combined filters,
 zero/null prices, publication/privacy, BSL behavior, counts/pagination, validation,
 and admin report/export access logging.
+
+Each provider in `results` includes `subjects: [{id, name, is_bsl}]` containing its assigned subjects, or an empty array when none are assigned.
