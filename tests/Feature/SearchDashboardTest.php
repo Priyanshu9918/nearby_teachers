@@ -211,6 +211,32 @@ class SearchDashboardTest extends TestCase
         $this->getJson('/search/other-city?city=UnknownCity')->assertOk()->assertJsonCount(0, 'results');
     }
 
+    public function test_city_and_subject_results_include_assigned_subject_names(): void
+    {
+        $this->useTestDatabase();
+        $domain = DB::table('subject_domains')->insertGetId(['name' => 'Search subject response test']);
+        $subject = DB::table('subjects')->insertGetId([
+            'domain_id' => $domain, 'name' => 'Response Course', 'is_bsl' => false,
+        ]);
+        $teacher = $this->provider('teacher', 10, 20);
+        DB::table('teacher_profiles')->where('user_id', $teacher)->update(['city' => 'SubjectResponseCity']);
+        DB::table('profile_subjects')->insert([
+            'profile_type' => 'teacher', 'profile_id' => $teacher, 'subject_id' => $subject,
+        ]);
+        foreach ([
+            '/search/other-city?city=SubjectResponseCity',
+            '/search/by-subject/'.$subject.'?tier=city&city=SubjectResponseCity',
+            '/search/by-subject/'.$subject.'?tier=nearby&lat=10&lng=20',
+        ] as $url) {
+            $response = $this->getJson($url)->assertOk();
+            $row = collect($response->json('results'))->firstWhere('user_id', $teacher);
+            $this->assertNotNull($row);
+            $this->assertSame([
+                ['id' => $subject, 'name' => 'Response Course', 'is_bsl' => false],
+            ], $row['subjects']);
+        }
+    }
+
     private function useTestDatabase(): void
     {
         $database = getenv('ONBOARDING_TEST_DATABASE');

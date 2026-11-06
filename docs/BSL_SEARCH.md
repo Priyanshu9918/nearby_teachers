@@ -16,3 +16,5 @@ Integration checks are in SearchDashboardTest and require a disposable MySQL dat
 For `/search/other-city`, city may be omitted when subjectId identifies a BSL subject. Ordinary searches still require city.
 
 `/search/other-city` also includes the designated, non-suspended BSL institute for any city/country search without a subject, regardless of its city or online availability. It sorts first within the bounded results. Ordinary providers still require online availability and matching location. Explicit non-BSL subject and name filters still apply. Results expose a boolean `is_bsl` so clients can preserve this geographic exception.
+
+Provider results from `/search/other-city` and every provider-list tier of `/search/by-subject/{subjectId}` include `subjects: [{id, name, is_bsl}]` for assigned courses, or `[]` when none are assigned. Country aggregate responses retain their existing shape.

@@ -410,7 +410,7 @@ class SearchController extends Controller
         app(SearchAnalyticsRecorder::class)->record('other_city', 'city_or_country', $data['city'],
             isset($data['subjectId']) ? (int) $data['subjectId'] : null, count($results));
 
-        return $this->providerResponse(['results' => $results]);
+        return $this->providerResponse(['results' => $results], includeSubjects: true);
     }
 
     public function bySubject(Request $request, int $subjectId): JsonResponse
@@ -491,7 +491,7 @@ class SearchController extends Controller
                 'tier' => $tier,
                 'totalCount' => $totalCount,
                 'results' => $results,
-            ]);
+            ], includeSubjects: true);
         }
 
         if (in_array($tier, ['city', 'state', 'country'], true)) {
@@ -507,7 +507,7 @@ class SearchController extends Controller
                 'tier' => $tier,
                 'totalCount' => $totalCount,
                 'results' => DB::select($sql, [$subjectId, $value]),
-            ]);
+            ], includeSubjects: true);
         }
 
         if ($tier === 'other-countries') {
@@ -523,7 +523,7 @@ class SearchController extends Controller
                     'country' => $data['country'],
                     'totalCount' => $totalCount,
                     'results' => DB::select($sql, [$subjectId, $data['country']]),
-                ]);
+                ], includeSubjects: true);
             }
             $countries = DB::select($base.' SELECT m.country, count(*) AS trainer_count FROM matching m WHERE m.country IS NOT NULL GROUP BY m.country ORDER BY trainer_count DESC', [$subjectId]);
             app(SearchAnalyticsRecorder::class)->record('subject', 'other_countries', null, $subjectId, count($countries));
@@ -593,8 +593,27 @@ class SearchController extends Controller
         return $this->providerResponse($response);
     }
 
-    private function providerResponse(array $data): JsonResponse
+    private function providerResponse(array $data, bool $includeSubjects = false): JsonResponse
     {
+        if ($includeSubjects) {
+            foreach (['teacher', 'institute'] as $type) {
+                $ids = collect($data['results'])->where('profile_type', $type)->pluck('user_id')->unique();
+                $subjects = $ids->isEmpty() ? collect() : DB::table('profile_subjects as ps')
+                    ->join('subjects as s', 's.id', '=', 'ps.subject_id')
+                    ->where('ps.profile_type', $type)->whereIn('ps.profile_id', $ids)
+                    ->orderBy('s.name')->orderBy('s.id')
+                    ->get(['ps.profile_id', 's.id', 's.name', 's.is_bsl'])->groupBy('profile_id');
+                foreach ($data['results'] as $row) {
+                    if ($row->profile_type === $type) {
+                        $row->subjects = $subjects->get($row->user_id, collect())->map(static fn ($subject) => [
+                            'id' => (int) $subject->id,
+                            'name' => $subject->name,
+                            'is_bsl' => (bool) $subject->is_bsl,
+                        ])->values()->all();
+                    }
+                }
+            }
+        }
         $data['results'] = app(UserPresence::class)->decorate($data['results']);
         $teacherIds = [];
         foreach ($data['results'] as $row) {
