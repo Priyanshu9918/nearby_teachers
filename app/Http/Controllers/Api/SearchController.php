@@ -374,23 +374,24 @@ class SearchController extends Controller
         $request->validate(['city' => ['required', 'string', 'max:160']]);
         $sql = <<<'SQL'
             WITH t AS (
-              SELECT 'teacher' AS profile_type, user_id, city, country, lesson_modes,
+              SELECT 'teacher' AS profile_type, user_id, city, country, lesson_modes, 0 AS is_bsl,
                      rate_per_hour AS price, rating_avg, rating_count, is_verified, trial_days,
                      referral_user.referral_points
               FROM teacher_profiles JOIN users referral_user ON referral_user.id = teacher_profiles.user_id
               UNION ALL
-              SELECT 'institute' AS profile_type, user_id, city, country, lesson_modes,
+              SELECT 'institute' AS profile_type, user_id, city, country, lesson_modes, is_bsl,
                      starting_rate AS price, rating_avg, rating_count, is_verified, trial_days,
                      referral_user.referral_points
               FROM institute_profiles JOIN users referral_user ON referral_user.id = institute_profiles.user_id
             )
             SELECT t.profile_type, t.user_id, u.full_name,
                    CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url,
-                   t.city, t.country, t.price, t.rating_avg, t.rating_count, t.is_verified, t.trial_days, t.referral_points
+                   t.city, t.country, t.price, t.rating_avg, t.rating_count, t.is_verified, t.trial_days, t.referral_points, t.is_bsl
             FROM t
             JOIN users u ON u.id = t.user_id
-            WHERE JSON_CONTAINS(t.lesson_modes, JSON_QUOTE('online')) = 1
-              AND (t.city LIKE ? OR t.country LIKE ?)
+            WHERE u.suspended_at IS NULL
+              AND (t.is_bsl = 1 OR (JSON_CONTAINS(t.lesson_modes, JSON_QUOTE('online')) = 1
+                AND (t.city LIKE ? OR t.country LIKE ?)))
             SQL;
         $bindings = ['%'.$data['city'].'%', '%'.$data['city'].'%'];
         if (isset($data['subjectId'])) {
@@ -401,8 +402,11 @@ class SearchController extends Controller
             $sql .= ' AND u.full_name LIKE ?';
             $bindings[] = '%'.$data['q'].'%';
         }
-        $sql .= ' ORDER BY t.referral_points DESC, '.$this->weightedRating('t.rating_avg', 't.rating_count').' DESC, t.user_id ASC LIMIT 50';
+        $sql .= ' ORDER BY t.is_bsl DESC, t.referral_points DESC, '.$this->weightedRating('t.rating_avg', 't.rating_count').' DESC, t.user_id ASC LIMIT 50';
         $results = DB::select($sql, $bindings);
+        foreach ($results as $result) {
+            $result->is_bsl = (bool) $result->is_bsl;
+        }
         app(SearchAnalyticsRecorder::class)->record('other_city', 'city_or_country', $data['city'],
             isset($data['subjectId']) ? (int) $data['subjectId'] : null, count($results));
 

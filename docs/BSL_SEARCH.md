@@ -14,3 +14,5 @@ The institute report and its shared CSV export explicitly expose `is_bsl`. Versi
 Integration checks are in SearchDashboardTest and require a disposable MySQL database supplied via ONBOARDING_TEST_DATABASE ending in `_test`.
 
 For `/search/other-city`, city may be omitted when subjectId identifies a BSL subject. Ordinary searches still require city.
+
+`/search/other-city` also includes the designated, non-suspended BSL institute for any city/country search without a subject, regardless of its city or online availability. It sorts first within the bounded results. Ordinary providers still require online availability and matching location. Explicit non-BSL subject and name filters still apply. Results expose a boolean `is_bsl` so clients can preserve this geographic exception.

@@ -187,6 +187,30 @@ class SearchDashboardTest extends TestCase
         $this->getJson('/search?lat=10&lng=20&subjectId='.$subject)->assertOk()->assertJsonCount(0, 'results');
     }
 
+    public function test_other_city_includes_bsl_without_a_subject_for_any_city(): void
+    {
+        $this->useTestDatabase();
+        $institute = $this->provider('institute', 50, 50);
+        app(BslInstitute::class)->set($institute, true);
+        DB::table('institute_profiles')->where('user_id', $institute)
+            ->update(['city' => 'Noida', 'lesson_modes' => '["in_person"]']);
+        $teacher = $this->provider('teacher', 10, 20);
+        DB::table('teacher_profiles')->where('user_id', $teacher)->update(['city' => 'Kanpur']);
+        foreach (['Kanpur', 'Noida', 'Unknown City'] as $city) {
+            $response = $this->getJson('/search/other-city?'.http_build_query(['city' => $city]))
+                ->assertOk()->assertJsonPath('results.0.user_id', $institute)
+                ->assertJsonPath('results.0.is_bsl', true);
+            $ids = array_column($response->json('results'), 'user_id');
+            if ($city === 'Kanpur') {
+                $this->assertContains($teacher, $ids);
+            } else {
+                $this->assertNotContains($teacher, $ids);
+            }
+        }
+        DB::table('users')->where('id', $institute)->update(['suspended_at' => now()]);
+        $this->getJson('/search/other-city?city=UnknownCity')->assertOk()->assertJsonCount(0, 'results');
+    }
+
     private function useTestDatabase(): void
     {
         $database = getenv('ONBOARDING_TEST_DATABASE');
