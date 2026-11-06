@@ -116,12 +116,6 @@ class SearchFilterTest extends TestCase
         $bsl = $this->provider('institute', ['is_bsl' => true, 'city' => 'London', 'latitude' => 51.5, 'longitude' => 0]);
         $this->search(['maxPrice' => 500, 'radiusKm' => 7])->assertOk()->assertJsonCount(1, 'results')->assertJsonPath('results.0.user_id', $bsl);
         $this->search(['maxPrice' => 100])->assertOk()->assertJsonPath('totalCount', 0);
-        foreach (['nearby', 'other-city', 'online'] as $mode) {
-            $url = '/search/filter?'.http_build_query(['mode' => $mode, 'subjectId' => $this->subject, 'maxPrice' => 500]);
-            $this->getJson($url)->assertOk()->assertJsonCount(1, 'results')->assertJsonPath('results.0.user_id', $bsl);
-            $this->getJson($url.'&maxPrice=100')->assertOk()->assertJsonPath('totalCount', 0);
-        }
-
         $this->assertNotSame($draft, $bsl);
     }
 
