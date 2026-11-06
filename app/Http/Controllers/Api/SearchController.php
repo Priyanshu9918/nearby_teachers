@@ -10,6 +10,7 @@ use App\Support\ReferralRating;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class SearchController extends Controller
@@ -362,7 +363,7 @@ class SearchController extends Controller
     {
         $bsl = $this->isBslSubject($request->validate(['subjectId' => ['sometimes', 'integer', 'exists:subjects,id']])['subjectId'] ?? null);
         $data = $request->validate([
-            'city' => ['sometimes', 'string', 'max:160'],
+            'city' => [Rule::excludeIf($bsl), 'sometimes', 'string', 'max:160'],
             'subjectId' => ['sometimes', 'integer', 'exists:subjects,id'],
             'q' => ['sometimes', 'string', 'max:200'],
         ]);
@@ -413,12 +414,12 @@ class SearchController extends Controller
         $bsl = $this->isBslSubject($subjectId);
         $data = $request->validate([
             'tier' => ['required', 'in:nearby,city,state,country,other-countries'],
-            'lat' => [$bsl ? 'sometimes' : 'required_if:tier,nearby', 'numeric', 'between:-90,90'],
-            'lng' => [$bsl ? 'sometimes' : 'required_if:tier,nearby', 'numeric', 'between:-180,180'],
-            'radiusKm' => ['sometimes', 'numeric', 'gt:0', 'max:500'],
-            'city' => [$bsl ? 'sometimes' : 'required_if:tier,city', 'string', 'max:160'],
-            'state' => [$bsl ? 'sometimes' : 'required_if:tier,state', 'string', 'max:160'],
-            'country' => ['sometimes', $bsl ? 'sometimes' : 'required_if:tier,country', 'string', 'max:160'],
+            'lat' => [Rule::excludeIf($bsl), 'required_if:tier,nearby', 'numeric', 'between:-90,90'],
+            'lng' => [Rule::excludeIf($bsl), 'required_if:tier,nearby', 'numeric', 'between:-180,180'],
+            'radiusKm' => [Rule::excludeIf($bsl), 'sometimes', 'numeric', 'gt:0', 'max:500'],
+            'city' => [Rule::excludeIf($bsl), 'required_if:tier,city', 'string', 'max:160'],
+            'state' => [Rule::excludeIf($bsl), 'required_if:tier,state', 'string', 'max:160'],
+            'country' => [Rule::excludeIf($bsl), 'sometimes', 'required_if:tier,country', 'string', 'max:160'],
         ]);
         if ($bsl) {
             return $this->bslSearchResponse('bySubject', $data, (int) $subjectId);
