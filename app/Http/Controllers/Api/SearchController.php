@@ -10,6 +10,7 @@ use App\Support\ReferralRating;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class SearchController extends Controller
@@ -20,10 +21,11 @@ class SearchController extends Controller
 
     public function filter(Request $request): JsonResponse
     {
+        $bsl = $this->isBslSubject($request->validate(['subjectId' => ['sometimes', 'integer', 'exists:subjects,id']])['subjectId'] ?? null);
         $data = $request->validate([
             'mode' => ['required', 'in:nearby,other-city,online'],
-            'lat' => ['required_with:lng,radiusKm', 'numeric', 'between:-90,90'],
-            'lng' => ['required_with:lat,radiusKm', 'numeric', 'between:-180,180'],
+            'lat' => [$bsl ? 'sometimes' : 'required_with:lng,radiusKm', 'numeric', 'between:-90,90'],
+            'lng' => [$bsl ? 'sometimes' : 'required_with:lat,radiusKm', 'numeric', 'between:-180,180'],
             'radiusKm' => ['sometimes', 'numeric', 'gt:0', 'max:500'],
             'city' => ['sometimes', 'required', 'string', 'max:160'],
             'country' => ['sometimes', 'required', 'string', 'max:160'],
@@ -38,7 +40,7 @@ class SearchController extends Controller
             'page' => ['sometimes', 'integer', 'min:1', 'max:10000'],
             'perPage' => ['sometimes', 'integer', 'min:1', 'max:50'],
         ]);
-        if ($data['mode'] === 'other-city' && ! isset($data['city']) && ! isset($data['country'])) {
+        if (! $bsl && $data['mode'] === 'other-city' && ! isset($data['city']) && ! isset($data['country'])) {
             throw ValidationException::withMessages(['city' => 'Provide a city or country for other-city search.']);
         }
         if ($data['mode'] === 'online' && isset($data['lessonMode']) && $data['lessonMode'] !== 'online') {
@@ -50,7 +52,6 @@ class SearchController extends Controller
         $currency = strtoupper($data['currency'] ?? 'INR');
         $currencyFiltered = isset($data['minPrice']) || isset($data['maxPrice'])
             || ($data['freeOnly'] ?? 'false') === 'true' || isset($data['currency']);
-        $bsl = $this->isBslSubject($data['subjectId'] ?? null);
         $branches = [];
         foreach (['teacher' => 'rate_per_hour', 'institute' => 'starting_rate'] as $type => $price) {
             $query = DB::table($type.'_profiles as p')->join('users as u', 'u.id', '=', 'p.user_id')
@@ -149,13 +150,14 @@ class SearchController extends Controller
 
     public function dashboard(Request $request): JsonResponse
     {
+        $bsl = $this->isBslSubject($request->validate(['subjectId' => ['sometimes', 'integer', 'exists:subjects,id']])['subjectId'] ?? null);
         $data = $request->validate([
-            'lat' => ['required', 'numeric', 'between:-90,90'],
-            'lng' => ['required', 'numeric', 'between:-180,180'],
+            'lat' => [$bsl ? 'sometimes' : 'required', 'numeric', 'between:-90,90'],
+            'lng' => [$bsl ? 'sometimes' : 'required', 'numeric', 'between:-180,180'],
             'radiusKm' => ['sometimes', 'numeric', 'gt:0', 'max:500'],
             'subjectId' => ['sometimes', 'integer', 'exists:subjects,id'],
         ]);
-        if ($this->isBslSubject($data['subjectId'] ?? null)) {
+        if ($bsl) {
             return $this->bslSearchResponse('dashboard', $data, (int) $data['subjectId']);
         }
         $latitude = (float) $data['lat'];
@@ -245,15 +247,16 @@ class SearchController extends Controller
 
     public function nearby(Request $request): JsonResponse
     {
+        $bsl = $this->isBslSubject($request->validate(['subjectId' => ['sometimes', 'integer', 'exists:subjects,id']])['subjectId'] ?? null);
         $data = $request->validate([
-            'lat' => ['required', 'numeric', 'between:-90,90'],
-            'lng' => ['required', 'numeric', 'between:-180,180'],
+            'lat' => [$bsl ? 'sometimes' : 'required', 'numeric', 'between:-90,90'],
+            'lng' => [$bsl ? 'sometimes' : 'required', 'numeric', 'between:-180,180'],
             'radiusKm' => ['sometimes', 'numeric', 'gt:0', 'max:500'],
             'subjectId' => ['sometimes', 'integer', 'exists:subjects,id'],
             'q' => ['sometimes', 'string', 'max:200'],
             'freeOnly' => ['sometimes', 'in:true,false'],
         ]);
-        if ($this->isBslSubject($data['subjectId'] ?? null)) {
+        if ($bsl) {
             return $this->bslSearchResponse('nearby', $data, (int) $data['subjectId']);
         }
         $started = hrtime(true);
@@ -331,13 +334,14 @@ class SearchController extends Controller
 
     public function counts(Request $request): JsonResponse
     {
+        $bsl = $this->isBslSubject($request->validate(['subjectId' => ['sometimes', 'integer', 'exists:subjects,id']])['subjectId'] ?? null);
         $data = $request->validate([
-            'lat' => ['required', 'numeric', 'between:-90,90'],
-            'lng' => ['required', 'numeric', 'between:-180,180'],
+            'lat' => [$bsl ? 'sometimes' : 'required', 'numeric', 'between:-90,90'],
+            'lng' => [$bsl ? 'sometimes' : 'required', 'numeric', 'between:-180,180'],
             'radiusKm' => ['sometimes', 'numeric', 'gt:0', 'max:500'],
             'subjectId' => ['sometimes', 'integer', 'exists:subjects,id'],
         ]);
-        if ($this->isBslSubject($data['subjectId'] ?? null)) {
+        if ($bsl) {
             return $this->bslSearchResponse('counts', $data, (int) $data['subjectId']);
         }
         $radiusMeters = ((float) ($data['radiusKm'] ?? 7)) * 1000;
@@ -357,12 +361,13 @@ class SearchController extends Controller
 
     public function otherCity(Request $request): JsonResponse
     {
+        $bsl = $this->isBslSubject($request->validate(['subjectId' => ['sometimes', 'integer', 'exists:subjects,id']])['subjectId'] ?? null);
         $data = $request->validate([
-            'city' => ['sometimes', 'string', 'max:160'],
+            'city' => [Rule::excludeIf($bsl), 'sometimes', 'string', 'max:160'],
             'subjectId' => ['sometimes', 'integer', 'exists:subjects,id'],
             'q' => ['sometimes', 'string', 'max:200'],
         ]);
-        if ($this->isBslSubject($data['subjectId'] ?? null)) {
+        if ($bsl) {
             return $this->bslSearchResponse('otherCity', $data, (int) $data['subjectId']);
         }
         // Only ordinary city search requires a geographic destination.
@@ -406,16 +411,17 @@ class SearchController extends Controller
 
     public function bySubject(Request $request, int $subjectId): JsonResponse
     {
+        $bsl = $this->isBslSubject($subjectId);
         $data = $request->validate([
             'tier' => ['required', 'in:nearby,city,state,country,other-countries'],
-            'lat' => ['required_if:tier,nearby', 'numeric', 'between:-90,90'],
-            'lng' => ['required_if:tier,nearby', 'numeric', 'between:-180,180'],
-            'radiusKm' => ['sometimes', 'numeric', 'gt:0', 'max:500'],
-            'city' => ['required_if:tier,city', 'string', 'max:160'],
-            'state' => ['required_if:tier,state', 'string', 'max:160'],
-            'country' => ['sometimes', 'required_if:tier,country', 'string', 'max:160'],
+            'lat' => [Rule::excludeIf($bsl), 'required_if:tier,nearby', 'numeric', 'between:-90,90'],
+            'lng' => [Rule::excludeIf($bsl), 'required_if:tier,nearby', 'numeric', 'between:-180,180'],
+            'radiusKm' => [Rule::excludeIf($bsl), 'sometimes', 'numeric', 'gt:0', 'max:500'],
+            'city' => [Rule::excludeIf($bsl), 'required_if:tier,city', 'string', 'max:160'],
+            'state' => [Rule::excludeIf($bsl), 'required_if:tier,state', 'string', 'max:160'],
+            'country' => [Rule::excludeIf($bsl), 'sometimes', 'required_if:tier,country', 'string', 'max:160'],
         ]);
-        if ($this->isBslSubject($subjectId)) {
+        if ($bsl) {
             return $this->bslSearchResponse('bySubject', $data, (int) $subjectId);
         }
         $base = <<<'SQL'
@@ -569,7 +575,8 @@ class SearchController extends Controller
         }
         $response = ['results' => $rows];
         if ($endpoint === 'dashboard') {
-            $response += ['center' => ['latitude' => (float) $data['lat'], 'longitude' => (float) $data['lng']],
+            $response += ['center' => ['latitude' => isset($data['lat']) ? (float) $data['lat'] : null,
+                    'longitude' => isset($data['lng']) ? (float) $data['lng'] : null],
                 'radiusKm' => (float) ($data['radiusKm'] ?? 7), 'teacherCount' => 0, 'instituteCount' => $count, 'totalCount' => $count];
         }
         if ($endpoint === 'bySubject') {
