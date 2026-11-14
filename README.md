@@ -153,7 +153,7 @@ screen designs supplied separately.
 
 > **Important scope note:** Nearby Teacher ships as new features added
 > inside the **existing** BSL app — [iOS](https://apps.apple.com/in/app/bsl-british-school-of-language/id6751044599),
-> [Android](https://play.google.com/store/apps/details?id=com.britishschooloflanguage)
+> [Android](https://play.google.com/store/apps/details?id=com.bsl_nearbyteacher&pcampaignid=web_share)
 > — not as a separate, newly-published app. This backend and the screen
 > designs are still accurate and ready to build against, but the mobile
 > engineer integrating them will be adding new screens/tabs to the

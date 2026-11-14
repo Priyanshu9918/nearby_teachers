@@ -645,7 +645,7 @@
                 }
               ]
             },
-            "description": "Public online provider search for another city. Results rank by referral_points descending, with provider ratings included.",
+            "description": "City is always required. The designated is_bsl institute appears only for an exact saved-city match (trimmed, case-insensitive), even with a BSL subjectId. BSL does not require online lessons. Other providers retain online and city/country search rules. Normal subject and name filters still apply. Suspended BSL institutes are excluded.",
             "auth": {
               "type": "noauth"
             }
@@ -692,6 +692,49 @@
               ],
               "cookie": [],
               "body": "{\n  \"results\": [\n    {\n      \"profile_type\": \"teacher\",\n      \"user_id\": 1000000003,\n      \"full_name\": \"Ravi Kumar\",\n      \"city\": \"Delhi\",\n      \"country\": \"India\",\n      \"price\": 500,\n      \"rating_avg\": 4.6,\n      \"rating_count\": 8,\n      \"referral_points\": 5,\n      \"isActive\": false\n    }\n  ]\n}"
+            },
+            {
+              "name": "200 — City without BSL (fictional mock)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/search/other-city?city={{city}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "search",
+                    "other-city"
+                  ],
+                  "query": [
+                    {
+                      "key": "city",
+                      "value": "{{city}}"
+                    }
+                  ]
+                },
+                "description": "City is always required. The designated is_bsl institute appears only for an exact saved-city match (trimmed, case-insensitive), even with a BSL subjectId. BSL does not require online lessons. Other providers retain online and city/country search rules. Normal subject and name filters still apply. Suspended BSL institutes are excluded.",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"results\": []\n}"
             }
           ]
         },
@@ -726,7 +769,7 @@
                 }
               ]
             },
-            "description": "Public subject provider search. This city-tier example ranks provider results by referral_points descending and includes rating fields.",
+            "description": "BSL subjects return only the designated non-suspended BSL institute globally, without a city restriction. Normal subjects exclude is_bsl institutes in all tiers, totals and country aggregates, even if assigned that subject. tier is required.",
             "auth": {
               "type": "noauth"
             }
@@ -778,6 +821,54 @@
               ],
               "cookie": [],
               "body": "{\n  \"tier\": \"city\",\n  \"totalCount\": 1,\n  \"results\": [\n    {\n      \"profile_type\": \"teacher\",\n      \"user_id\": 1000000003,\n      \"full_name\": \"Ravi Kumar\",\n      \"price\": 500,\n      \"rating_avg\": 4.6,\n      \"rating_count\": 8,\n      \"referral_points\": 5,\n      \"city\": \"Delhi\",\n      \"state\": \"Delhi\",\n      \"country\": \"India\"\n    }\n  ]\n}"
+            },
+            {
+              "name": "200 — Normal subject without BSL (fictional mock)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/search/by-subject/{{subjectId}}?tier=city&city={{city}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "search",
+                    "by-subject",
+                    "{{subjectId}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "tier",
+                      "value": "city"
+                    },
+                    {
+                      "key": "city",
+                      "value": "{{city}}"
+                    }
+                  ]
+                },
+                "description": "BSL subjects return only the designated non-suspended BSL institute globally, without a city restriction. Normal subjects exclude is_bsl institutes in all tiers, totals and country aggregates, even if assigned that subject. tier is required.",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"tier\": \"city\",\n  \"totalCount\": 0,\n  \"results\": []\n}"
             }
           ]
         },

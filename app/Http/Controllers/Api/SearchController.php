@@ -375,15 +375,13 @@ class SearchController extends Controller
     {
         $bsl = $this->isBslSubject($request->validate(['subjectId' => ['sometimes', 'integer', 'exists:subjects,id']])['subjectId'] ?? null);
         $data = $request->validate([
-            'city' => [Rule::excludeIf($bsl), 'sometimes', 'string', 'max:160'],
+            'city' => ['required', 'string', 'max:160'],
             'subjectId' => ['sometimes', 'integer', 'exists:subjects,id'],
             'q' => ['sometimes', 'string', 'max:200'],
         ]);
         if ($bsl) {
             return $this->bslSearchResponse('otherCity', $data, (int) $data['subjectId']);
         }
-        // Only ordinary city search requires a geographic destination.
-        $request->validate(['city' => ['required', 'string', 'max:160']]);
         $sql = <<<'SQL'
             WITH t AS (
               SELECT 'teacher' AS profile_type, user_id, city, country, lesson_modes, 0 AS is_bsl,
@@ -402,10 +400,11 @@ class SearchController extends Controller
             FROM t
             JOIN users u ON u.id = t.user_id
             WHERE u.suspended_at IS NULL
-              AND (t.is_bsl = 1 OR (JSON_CONTAINS(t.lesson_modes, JSON_QUOTE('online')) = 1
-                AND (t.city LIKE ? OR t.country LIKE ?)))
+              AND ((t.is_bsl = 1 AND LOWER(TRIM(t.city)) = LOWER(?))
+                OR (t.is_bsl = 0 AND JSON_CONTAINS(t.lesson_modes, JSON_QUOTE('online')) = 1
+                  AND (t.city LIKE ? OR t.country LIKE ?)))
             SQL;
-        $bindings = ['%'.$data['city'].'%', '%'.$data['city'].'%'];
+        $bindings = [trim($data['city']), '%'.$data['city'].'%', '%'.$data['city'].'%'];
         if (isset($data['subjectId'])) {
             $sql .= ' AND EXISTS (SELECT 1 FROM profile_subjects ps WHERE ps.profile_type = t.profile_type AND ps.profile_id = t.user_id AND ps.subject_id = ?)';
             $bindings[] = $data['subjectId'];
@@ -442,18 +441,18 @@ class SearchController extends Controller
         }
         $base = <<<'SQL'
             WITH t AS (
-              SELECT 'teacher' AS profile_type, user_id, latitude, longitude, city, state, country,
+              SELECT 'teacher' AS profile_type, user_id, latitude, longitude, city, state, country, 0 AS is_bsl,
                      rate_per_hour AS price, rating_avg, rating_count, is_verified, trial_days,
                      referral_user.referral_points
               FROM teacher_profiles JOIN users referral_user ON referral_user.id = teacher_profiles.user_id
               UNION ALL
-              SELECT 'institute' AS profile_type, user_id, latitude, longitude, city, state, country,
+              SELECT 'institute' AS profile_type, user_id, latitude, longitude, city, state, country, is_bsl,
                      starting_rate AS price, rating_avg, rating_count, is_verified, trial_days,
                      referral_user.referral_points
               FROM institute_profiles JOIN users referral_user ON referral_user.id = institute_profiles.user_id
             ), matching AS (
               SELECT t.* FROM t
-              WHERE EXISTS (
+              WHERE t.is_bsl = 0 AND EXISTS (
                 SELECT 1 FROM profile_subjects ps
                 WHERE ps.profile_type = t.profile_type AND ps.profile_id = t.user_id AND ps.subject_id = ?
               )
@@ -561,6 +560,9 @@ class SearchController extends Controller
                 'p.rating_count', 'p.is_verified', 'p.trial_days', 'p.is_bsl', 'p.is_bsl_official', 'p.institute_type')
             ->selectRaw("'institute' AS profile_type, p.starting_rate AS price")
             ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url");
+        if ($endpoint === 'otherCity') {
+            $query->whereRaw('LOWER(TRIM(p.city)) = LOWER(?)', [trim($data['city'])]);
+        }
         if (($data['freeOnly'] ?? 'false') === 'true') {
             $query->where('p.starting_rate', 0);
         }

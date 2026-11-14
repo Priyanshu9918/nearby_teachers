@@ -195,10 +195,8 @@ class SearchDashboardTest extends TestCase
             '/search/by-subject/'.$subject.'?tier=country',
             '/search?lat=10&lng=20&subjectId='.$subject,
             '/search?lat=10&lng=20&subjectId='.$subject.'&q=Exclusive%20BSL',
-            '/search/other-city?subjectId='.$subject,
 
             '/search/dashboard?lat=10&lng=20&subjectId='.$subject,
-            '/search/other-city?city=Unrelated&subjectId='.$subject,
             '/search/by-subject/'.$subject.'?tier=nearby&lat=10&lng=20',
             '/search/by-subject/'.$subject.'?tier=city&city=Unrelated',
             '/search/by-subject/'.$subject.'?tier=state&state=Unrelated',
@@ -210,7 +208,6 @@ class SearchDashboardTest extends TestCase
         // BSL discovery must be identical for arbitrary, empty and missing cities.
         foreach (['Kanpur', 'Noida', 'Unknown City', ''] as $city) {
             foreach ([
-                '/search/other-city?'.http_build_query(['subjectId' => $subject, 'city' => $city]),
                 '/search/by-subject/'.$subject.'?'.http_build_query(['tier' => 'city', 'city' => $city]),
             ] as $url) {
                 $this->getJson($url)->assertOk()->assertJsonCount(1, 'results')
@@ -226,7 +223,7 @@ class SearchDashboardTest extends TestCase
         $this->getJson('/search?lat=10&lng=20&subjectId='.$subject)->assertOk()->assertJsonCount(0, 'results');
     }
 
-    public function test_other_city_includes_bsl_without_a_subject_for_any_city(): void
+    public function test_other_city_only_includes_bsl_for_its_saved_city(): void
     {
         $this->useTestDatabase();
         $institute = $this->provider('institute', 50, 50);
@@ -235,19 +232,47 @@ class SearchDashboardTest extends TestCase
             ->update(['city' => 'Noida', 'lesson_modes' => '["in_person"]']);
         $teacher = $this->provider('teacher', 10, 20);
         DB::table('teacher_profiles')->where('user_id', $teacher)->update(['city' => 'Kanpur']);
-        foreach (['Kanpur', 'Noida', 'Unknown City'] as $city) {
+        foreach (['Kanpur', 'Noida', 'noida', 'Unknown City', 'India', 'Noi', '%'] as $city) {
             $response = $this->getJson('/search/other-city?'.http_build_query(['city' => $city]))
-                ->assertOk()->assertJsonPath('results.0.user_id', $institute)
-                ->assertJsonPath('results.0.is_bsl', true);
+                ->assertOk();
+            if (strtolower($city) === 'noida') {
+                $response->assertJsonPath('results.0.user_id', $institute)->assertJsonPath('results.0.is_bsl', true);
+            } else {
+                $this->assertNotContains($institute, array_column($response->json('results'), 'user_id'));
+            }
             $ids = array_column($response->json('results'), 'user_id');
-            if ($city === 'Kanpur') {
+            if (in_array($city, ['Kanpur', '%'], true)) {
                 $this->assertContains($teacher, $ids);
             } else {
                 $this->assertNotContains($teacher, $ids);
             }
         }
         DB::table('users')->where('id', $institute)->update(['suspended_at' => now()]);
-        $this->getJson('/search/other-city?city=UnknownCity')->assertOk()->assertJsonCount(0, 'results');
+        $this->getJson('/search/other-city?city=Noida')->assertOk()->assertJsonCount(0, 'results');
+    }
+
+    public function test_city_bsl_subject_still_requires_matching_city_and_subject_search_excludes_bsl_for_normal_subjects(): void
+    {
+        $this->useTestDatabase();
+        $domain = DB::table('subject_domains')->insertGetId(['name' => 'BSL discovery rules']);
+        $bslSubject = DB::table('subjects')->insertGetId(['domain_id' => $domain, 'name' => 'BSL course', 'is_bsl' => true]);
+        $normal = DB::table('subjects')->insertGetId(['domain_id' => $domain, 'name' => 'Normal course']);
+        $institute = $this->provider('institute', 10, 20);
+        app(BslInstitute::class)->set($institute, true);
+        DB::table('institute_profiles')->where('user_id', $institute)->update(['city' => 'Noida', 'state' => 'UP', 'country' => 'India']);
+        // Even an independently assigned normal course must not expose BSL in normal subject search.
+        DB::table('profile_subjects')->insert(['profile_type' => 'institute', 'profile_id' => $institute, 'subject_id' => $normal]);
+        $this->getJson('/search/other-city?subjectId='.$bslSubject)->assertUnprocessable()->assertJsonValidationErrors('city');
+        $this->getJson('/search/other-city?city=Kanpur&subjectId='.$bslSubject)->assertOk()->assertJsonCount(0, 'results');
+        $this->getJson('/search/other-city?city=noida&subjectId='.$bslSubject)->assertOk()->assertJsonPath('results.0.user_id', $institute);
+        foreach (['tier=nearby&lat=10&lng=20', 'tier=city&city=Noida', 'tier=state&state=UP',
+            'tier=country&country=India', 'tier=other-countries&country=India'] as $query) {
+            $this->getJson('/search/by-subject/'.$normal.'?'.$query)->assertOk()
+                ->assertJsonPath('totalCount', 0)->assertJsonCount(0, 'results');
+        }
+        $this->getJson('/search/by-subject/'.$normal.'?tier=other-countries')->assertOk()->assertJsonPath('countries', []);
+        $this->getJson('/search/by-subject/'.$bslSubject.'?tier=city&city=Kanpur')->assertOk()
+            ->assertJsonPath('results.0.user_id', $institute);
     }
 
     public function test_city_and_subject_results_include_assigned_subject_names(): void
