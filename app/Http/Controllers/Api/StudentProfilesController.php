@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Reporting\BusinessActivityRecorder;
 use App\Services\OnboardingState;
 use App\Support\PublicMediaUrl;
+use App\Support\ReferralRating;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -25,12 +26,17 @@ class StudentProfilesController extends Controller
         $saved = DB::table('users')->where('id', $user->id)->first([
             'id', 'full_name', 'email', 'email_verified_at', 'date_of_birth', 'is_minor', 'phone',
             'phone_verified_at', 'phone_pin', 'avatar_url', 'avatar_status', 'created_at', 'updated_at',
-            'account_type', 'registration_submitted_at', 'profile_completed_at', 'parental_consent_confirmed_at',
+            'account_type', 'registration_submitted_at', 'profile_completed_at', 'parental_consent_confirmed_at', 'referral_points',
         ]);
         abort_if($saved === null, 404, 'Student profile not found.');
 
         return response()->json([
             'profile' => [
+                'referral_points' => (int) $saved->referral_points,
+                'rating_avg' => (int) $saved->referral_points,
+                'rating_count' => 100,
+                'review_rating_count' => 0,
+                'referral_rating' => ReferralRating::fromPoints((int) $saved->referral_points),
                 'userId' => $saved->id,
                 'name' => $saved->full_name,
                 'email' => $saved->email,

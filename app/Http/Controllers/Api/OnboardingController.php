@@ -9,6 +9,7 @@ use App\Services\OtherSubjects;
 use App\Services\TeacherAddress;
 use App\Services\TeacherLocation;
 use App\Services\TeacherPublicPages;
+use App\Support\ReferralRating;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -326,6 +327,7 @@ class OnboardingController extends Controller
         }
 
         $user = clone $user;
+        ReferralRating::decorate($user);
         $passwordSet = (bool) ($user->password_set ?? filled($user->password_hash ?? null));
         unset($user->password_hash, $user->password_set, $user->parental_consent_token);
 

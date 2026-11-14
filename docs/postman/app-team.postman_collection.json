@@ -2486,6 +2486,40 @@
             "description": "Returns safe user fields, the full account-type profile (learner fields are on user/profile; teacher and institute include their stored profile fields), subjects, profileComplete/profileCompletion, and onboarding routing flags. profileCompleted remains registration completion. Credentials, auth internals, and consent tokens are excluded. Saved examples are fictional contract illustrations, not live captures."
           },
           "response": [
+              {
+                "name": "200 — Country fields (fictional relevant-field example)",
+                "originalRequest": {
+                  "method": "GET",
+                  "header": [
+                    {
+                      "key": "Accept",
+                      "value": "application/json"
+                    }
+                  ],
+                  "url": {
+                    "raw": "{{baseUrl}}/auth/session",
+                    "host": [
+                      "{{baseUrl}}"
+                    ],
+                    "path": [
+                      "auth",
+                      "session"
+                    ]
+                  },
+                  "description": "Returns safe user fields, the full account-type profile (learner fields are on user/profile; teacher and institute include their stored profile fields), subjects, profileComplete/profileCompletion, and onboarding routing flags. profileCompleted remains registration completion. Credentials, auth internals, and consent tokens are excluded. Saved examples are fictional contract illustrations, not live captures."
+                },
+                "status": "OK",
+                "code": 200,
+                "_postman_previewlanguage": "json",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "cookie": [],
+                "body": "{\n  \"ok\": true,\n  \"accountType\": \"teacher\",\n  \"country\": \"India\",\n  \"user\": {\n    \"id\": 25,\n    \"account_type\": \"teacher\",\n    \"country\": \"India\",\n    \"referral_points\": 100,\n    \"rating_avg\": 100,\n    \"rating_count\": 100,\n    \"review_rating_count\": 0\n  },\n  \"profile\": {\n    \"user_id\": 25,\n    \"country\": \"India\",\n    \"referral_points\": 100,\n    \"rating_avg\": 100,\n    \"rating_count\": 100,\n    \"review_rating_avg\": 0,\n    \"review_rating_count\": 0\n  },\n  \"subjects\": []\n}"
+              },
             {
               "name": "Fictional example — 200 Mobile verification pending",
               "originalRequest": {

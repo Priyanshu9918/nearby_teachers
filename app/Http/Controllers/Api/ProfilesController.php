@@ -15,6 +15,7 @@ use App\Services\TeacherAddress;
 use App\Services\TeacherLocation;
 use App\Services\TeacherPublicPages;
 use App\Support\PublicMediaUrl;
+use App\Support\ReferralRating;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -362,7 +363,9 @@ class ProfilesController extends Controller
         $profile->lesson_modes = json_decode($profile->lesson_modes ?: '[]', true, flags: JSON_THROW_ON_ERROR);
         $profile->is_profile_complete = (bool) $profile->is_profile_complete;
         $profile->location_details = $profile->location_details === null ? null : json_decode($profile->location_details, true, flags: JSON_THROW_ON_ERROR);
-        $userData = DB::table('users')->where('id', $user->id)->first(['id', 'full_name', 'email', 'phone', 'avatar_url', 'avatar_status', 'phone_verified_at', 'profile_completed_at', 'terms_accepted_at']);
+        $userData = DB::table('users')->where('id', $user->id)->first(['id', 'full_name', 'email', 'phone', 'avatar_url', 'avatar_status', 'phone_verified_at', 'profile_completed_at', 'terms_accepted_at', 'referral_points']);
+        ReferralRating::decorate($userData);
+        ReferralRating::decorate($profile, $userData->referral_points);
         $profile->listing_name = $profile->listing_name ?: $userData->full_name;
         $subjects = ProfileEditor::subjects((int) $user->id, $type);
 
@@ -409,13 +412,14 @@ class ProfilesController extends Controller
             ->select('p.*')
             ->selectRaw('COALESCE(NULLIF(p.listing_name, \'\'), u.full_name) AS full_name')
             ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
-            ->addSelect('u.phone')
+            ->addSelect('u.phone', 'u.referral_points')
             ->selectRaw('COALESCE(completed_bookings.lessons_completed, 0) AS lessons_completed')
             ->first();
 
         if ($profile === null) {
             return response()->json(['error' => 'Not found'], 404);
         }
+        ReferralRating::decorate($profile);
         // Enrichment belongs to the owner onboarding response and admin reports only.
         unset($profile->location_details, $profile->completed_profile_steps, $profile->profile_draft_saved_at);
         unset($profile->seo_state_hash);
@@ -479,7 +483,7 @@ class ProfilesController extends Controller
             'verified_at' => $data['verified'] ? ($profile->verified_at ?? now()) : null,
         ]);
 
-        return response()->json(['profile' => DB::table($table)->where('user_id', $id)->first()]);
+        return response()->json(['profile' => ReferralRating::decorate(DB::table($table)->where('user_id', $id)->first(), (int) DB::table('users')->where('id', $id)->value('referral_points'))]);
     }
 
     public function setBslSearch(Request $request, int $id): JsonResponse
@@ -487,7 +491,7 @@ class ProfilesController extends Controller
         $data = $request->validate(['is_bsl' => ['required', 'boolean']]);
         app(BslInstitute::class)->set($id, (bool) $data['is_bsl'], $request->attributes->get('authenticated_user')->id);
 
-        return response()->json(['profile' => DB::table('institute_profiles')->where('user_id', $id)->first()]);
+        return response()->json(['profile' => ReferralRating::decorate(DB::table('institute_profiles')->where('user_id', $id)->first(), (int) DB::table('users')->where('id', $id)->value('referral_points'))]);
     }
 
     public function classifyInstitute(Request $request, int $id): JsonResponse
@@ -501,7 +505,7 @@ class ProfilesController extends Controller
             return response()->json(['error' => 'Profile not found'], 404);
         }
 
-        return response()->json(['profile' => DB::table('institute_profiles')->where('user_id', $id)->first()]);
+        return response()->json(['profile' => ReferralRating::decorate(DB::table('institute_profiles')->where('user_id', $id)->first(), (int) DB::table('users')->where('id', $id)->value('referral_points'))]);
     }
 
     public function setBslVerified(Request $request, int $id): JsonResponse
@@ -532,7 +536,7 @@ class ProfilesController extends Controller
                     before: ['is_bsl_official' => $wasVerified], after: ['is_bsl_official' => (bool) $data['verified']]);
             }
 
-            return ['profile' => DB::table('institute_profiles')->where('user_id', $id)->first()];
+            return ['profile' => ReferralRating::decorate(DB::table('institute_profiles')->where('user_id', $id)->first(), (int) DB::table('users')->where('id', $id)->value('referral_points'))];
         }, 3);
 
         return isset($result['error'])

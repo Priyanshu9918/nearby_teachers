@@ -47,7 +47,7 @@ class AuthenticationService
             return null;
         }
 
-        $user->referral_rating = ReferralRating::fromPoints((int) ($user->referral_points ?? 0));
+        ReferralRating::decorate($user);
         $user->password_set = (bool) ($user->password_set ?? filled($user->password_hash ?? null));
         unset($user->password_hash, $user->parental_consent_token);
 

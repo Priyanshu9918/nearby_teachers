@@ -954,3 +954,8 @@ See [Geography API](GEOGRAPHY_API.md) and the dedicated
 Teacher and institute registration/profile subject edits support typed `otherSubjects` under the shared Other category. See [contract and dedicated Postman collection](OTHER_SUBJECTS.md).
 
 Job applications also accept shared Other courses via optional `otherSubjects`, or saved Other IDs in `courseIds`. Existing BSL selections remain supported. Creation and the existing version 1 application event share the source transaction; course name snapshots remain historical. See [job contract and dedicated collection](JOB_APPLICATION_OTHER_SUBJECTS.md).
+
+`GET /auth/session` returns `country` at the top level and `user.country`,
+using the saved teacher/institute profile country. Both are null when no
+provider country is saved (including learner accounts). No country is inferred
+from phone numbers or IP addresses.

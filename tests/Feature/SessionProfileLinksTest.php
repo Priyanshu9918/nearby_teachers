@@ -48,7 +48,9 @@ class SessionProfileLinksTest extends TestCase
         $webpageUrl = $webpagePath === null ? null : 'https://profiles.example.test'.$webpagePath;
         $response = $this->getJson('/auth/session', ['Authorization' => 'Bearer session-token'])
             ->assertOk()->assertJsonPath('webPageUrl', $webpageUrl)
-            ->assertJsonPath('myWebpageUrl', $webpageUrl);
+            ->assertJsonPath('myWebpageUrl', $webpageUrl)
+            ->assertJsonPath('country', filled($fields['country'] ?? null) ? $fields['country'] : null)
+            ->assertJsonPath('user.country', filled($fields['country'] ?? null) ? $fields['country'] : null);
         $response->assertJsonPath($type === 'teacher' ? 'teacherProfileUrl' : 'instituteProfileUrl', $profileUrl);
         if ($type === 'teacher') {
             $response->assertJsonPath('teacherSeoUrl', $profileUrl);
@@ -58,10 +60,10 @@ class SessionProfileLinksTest extends TestCase
     public static function profiles(): array
     {
         return [
-            'published teacher' => ['teacher', ['is_profile_complete' => true, 'public_page_slug' => 'ravi-123', 'seo_country' => 'in'], '/teacher/ravi-123', '/my-webpage/teacher/ravi-123'],
+            'published teacher' => ['teacher', ['country' => 'India', 'is_profile_complete' => true, 'public_page_slug' => 'ravi-123', 'seo_country' => 'in'], '/teacher/ravi-123', '/my-webpage/teacher/ravi-123'],
             'unpublished teacher' => ['teacher', ['is_profile_complete' => true], null, null],
             'missing teacher' => ['teacher', null, null, null],
-            'institute with page' => ['institute', ['slug' => 'academy-123', 'is_profile_complete' => true, 'public_page_slug' => 'academy-city', 'seo_country' => 'in'], '/site/institute/academy-123', '/my-webpage/institute/academy-city'],
+            'institute with page' => ['institute', ['country' => 'United Arab Emirates', 'slug' => 'academy-123', 'is_profile_complete' => true, 'public_page_slug' => 'academy-city', 'seo_country' => 'in'], '/site/institute/academy-123', '/my-webpage/institute/academy-city'],
             'draft institute with slug' => ['institute', ['slug' => 'draft-123', 'is_profile_complete' => false], null, null],
             'institute without slug' => ['institute', ['slug' => ''], null, null],
             'missing institute' => ['institute', null, null, null],

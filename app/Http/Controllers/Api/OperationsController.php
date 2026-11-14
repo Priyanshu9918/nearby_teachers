@@ -10,6 +10,7 @@ use App\Services\ChatBlocking;
 use App\Services\SafetyReportCreator;
 use App\Services\SupportContactDetails;
 use App\Services\SupportTicketManager;
+use App\Support\ReferralRating;
 use App\Support\SafetyReportCategory;
 use App\Support\SafetyReportTarget;
 use Illuminate\Database\QueryException;
@@ -315,11 +316,15 @@ class OperationsController extends Controller
             ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
             ->orderByDesc('r.created_at')->orderByDesc('r.id')->get();
 
+        $points = (int) DB::table('users')->where('id', $user->id)->value('referral_points');
+
         return response()->json([
+            'rating_avg' => $points,
+            'referral_rating' => ReferralRating::fromPoints($points),
             'code' => $code,
             'link' => rtrim(config('services.nearby_teacher.app_base_url', 'http://157.245.125.79/nearby_teachers/public'), '/').'/download?ref='.$code,
             'referredCount' => $referred->count(),
-            'referralPoints' => (int) DB::table('users')->where('id', $user->id)->value('referral_points'),
+            'referralPoints' => $points,
             'referred' => $referred,
         ]);
     }
@@ -373,6 +378,8 @@ class OperationsController extends Controller
             ->selectSub(DB::table('referrals')->selectRaw('count(*)')->whereColumn('referrer_id', 'u.id'), 'referred_count')
             ->orderByDesc('u.referral_points')->orderByDesc('referred_count')
             ->limit(50)->get();
+
+        $top->each(static fn (object $row) => ReferralRating::decorate($row));
 
         return response()->json(['topReferrers' => $top]);
     }

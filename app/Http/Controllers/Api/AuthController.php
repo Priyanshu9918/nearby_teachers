@@ -299,8 +299,11 @@ class AuthController extends Controller
             'preferred_language', 'suspended_at', 'phone_verified_at', 'email_verified_at', 'referral_code', 'referral_points',
             'terms_accepted_at', 'registration_submitted_at', 'profile_completed_at', 'created_at', 'updated_at',
         ]);
-        $safeUser->referral_points = (int) ($safeUser->referral_points ?? 0);
-        $safeUser->referral_rating = ReferralRating::fromPoints($safeUser->referral_points);
+        $safeUser->country = filled($profile->country ?? null) ? $profile->country : null;
+        ReferralRating::decorate($safeUser);
+        if ($profile !== null) {
+            ReferralRating::decorate($profile, $safeUser->referral_points);
+        }
         $safeUser->password_set = (bool) ($user->password_set ?? false);
         $sessionProfile = $profile ?? $safeUser;
         $profileLinks = in_array($accountType, ['teacher', 'institute'], true)
@@ -313,6 +316,7 @@ class AuthController extends Controller
             'profile' => $sessionProfile,
             'subjects' => $subjects,
             'accountType' => $accountType,
+            'country' => $safeUser->country,
             ...$profileLinks,
             // profileCompleted remains registration completion for existing clients.
             'profileComplete' => $profileComplete,

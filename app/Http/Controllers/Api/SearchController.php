@@ -632,11 +632,7 @@ class SearchController extends Controller
         $teacherIds = [];
         foreach ($data['results'] as $row) {
             if (property_exists($row, 'referral_points')) {
-                $row->referral_points = (int) $row->referral_points;
-                $row->referral_rating = ReferralRating::fromPoints($row->referral_points);
-            }
-            if (property_exists($row, 'rating_avg') && $row->rating_avg !== null) {
-                $row->rating_avg = (float) $row->rating_avg;
+                ReferralRating::decorate($row);
             }
             if (property_exists($row, 'rating_count')) {
                 $row->rating_count = (int) $row->rating_count;
