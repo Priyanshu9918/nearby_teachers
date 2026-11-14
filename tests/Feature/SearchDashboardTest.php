@@ -87,6 +87,45 @@ class SearchDashboardTest extends TestCase
             ->assertJsonPath('results', []);
     }
 
+    public function test_dashboard_pins_bsl_institutes_outside_radius_without_duplicates_and_preserves_eligibility(): void
+    {
+        $this->useTestDatabase();
+        $teacher = $this->provider('teacher', 10, 20);
+        DB::table('users')->where('id', $teacher)->update(['referral_points' => 100]);
+        $bsl = $this->provider('institute', 50, 50);
+        app(BslInstitute::class)->set($bsl, true);
+        $official = $this->provider('institute', 51, 50);
+        DB::table('institute_profiles')->where('user_id', $official)->update(['is_bsl_official' => true]);
+        $this->provider('institute', 52, 50); // Ordinary distant institutes stay excluded.
+
+        $response = $this->getJson('/search/dashboard?lat=10&lng=20')->assertOk()
+            ->assertJsonPath('teacherCount', 1)->assertJsonPath('instituteCount', 2)
+            ->assertJsonPath('totalCount', 3)->assertJsonCount(3, 'results');
+        $this->assertEqualsCanonicalizing([$bsl, $official], array_column(array_slice($response->json('results'), 0, 2), 'user_id'));
+        $this->assertGreaterThan(7, $response->json('results.0.distance_km'));
+        $this->assertSame($teacher, $response->json('results.2.user_id'));
+
+        DB::table('institute_profiles')->where('user_id', $bsl)->update(['latitude' => 10, 'longitude' => 20]);
+        $this->getJson('/search/dashboard?lat=10&lng=20')->assertOk()
+            ->assertJsonCount(3, 'results')->assertJsonPath('instituteCount', 2)
+            ->assertJsonPath('results.0.user_id', $bsl)->assertJsonPath('results.0.is_bsl', true);
+
+        DB::table('institute_profiles')->where('user_id', $bsl)->update(['latitude' => null, 'longitude' => null]);
+        $response = $this->getJson('/search/dashboard?lat=10&lng=20')->assertOk()->assertJsonCount(3, 'results');
+        $row = collect($response->json('results'))->firstWhere('user_id', $bsl);
+        $this->assertNull($row['latitude']);
+        $this->assertNull($row['longitude']);
+        $this->assertNull($row['distance_km']);
+
+        foreach (['suspended_at', 'phone_verified_at', 'profile_completed_at'] as $field) {
+            DB::table('users')->whereIn('id', [$bsl, $official])->update([$field => $field === 'suspended_at' ? now() : null]);
+            $this->getJson('/search/dashboard?lat=10&lng=20')->assertOk()
+                ->assertJsonPath('instituteCount', 0)->assertJsonPath('totalCount', 1)
+                ->assertJsonPath('results.0.user_id', $teacher);
+            DB::table('users')->whereIn('id', [$bsl, $official])->update([$field => $field === 'suspended_at' ? null : now()]);
+        }
+    }
+
     public function test_dashboard_handles_dateline_and_exact_radius_instead_of_only_a_bounding_box(): void
     {
         $this->useTestDatabase();
@@ -182,7 +221,7 @@ class SearchDashboardTest extends TestCase
         $this->getJson('/search/counts?subjectId='.$subject)->assertOk()
             ->assertJsonPath('teacher_count', 0)->assertJsonPath('institute_count', 1);
         $this->getJson('/search/dashboard?lat=10&lng=20')->assertOk()
-            ->assertJsonPath('results.0.user_id', $teacher);
+            ->assertJsonPath('results.0.user_id', $institute)->assertJsonPath('results.1.user_id', $teacher);
         app(BslInstitute::class)->set($institute, false);
         $this->getJson('/search?lat=10&lng=20&subjectId='.$subject)->assertOk()->assertJsonCount(0, 'results');
     }
@@ -252,6 +291,7 @@ class SearchDashboardTest extends TestCase
         // Keep fixtures isolated from any earlier test runs' committed provider data.
         DB::table('teacher_profiles')->update(['latitude' => null, 'longitude' => null]);
         DB::table('institute_profiles')->update(['latitude' => null, 'longitude' => null]);
+        DB::table('institute_profiles')->update(['is_bsl' => false, 'is_bsl_official' => false]);
     }
 
     private function provider(string $type, float $lat, float $lng): int

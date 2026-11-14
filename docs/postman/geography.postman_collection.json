@@ -2,7 +2,7 @@
   "info": {
     "name": "Nearby Teachers — Country, State and City",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Public APIs for the imported countries, states and cities SQL tables. Set country_id from a country response, then state_id from its states response. Country, state and city lists are returned complete for the selected parent. Popular countries (IN, US, GB, ES, FR, SA, CN, PT, RU) appear first and include is_popular:true; other country records keep their existing fields. Saved examples are abbreviated and fictional."
+    "description": "Public country, state and city APIs. Popular entries appear first in this order: India, United States, United Kingdom, Canada, United Arab Emirates, Bangladesh, Pakistan, Brazil, Australia, with is_popular:true. The complete alphabetical country list follows and includes these countries again without is_popular. Optional search applies to both sections. IDs refer to the same database country in both occurrences. Saved examples are abbreviated and fictional."
   },
   "auth": {
     "type": "noauth"
@@ -45,7 +45,7 @@
             "countries"
           ]
         },
-        "description": "Returns the full imported country list (id, sortname, name, phonecode). Optional search filters names. Saved response is an abbreviated fictional example.",
+        "description": "Popular entries appear first in this order: India, United States, United Kingdom, Canada, United Arab Emirates, Bangladesh, Pakistan, Brazil, Australia, with is_popular:true. The complete alphabetical country list follows and includes these countries again without is_popular. Optional search applies to both sections. IDs refer to the same database country in both occurrences. Saved examples are abbreviated and fictional.",
         "auth": {
           "type": "noauth"
         }
@@ -71,7 +71,7 @@
                 "countries"
               ]
             },
-            "description": "Returns the full imported country list (id, sortname, name, phonecode). Optional search filters names. Saved response is an abbreviated fictional example.",
+            "description": "Popular entries appear first in this order: India, United States, United Kingdom, Canada, United Arab Emirates, Bangladesh, Pakistan, Brazil, Australia, with is_popular:true. The complete alphabetical country list follows and includes these countries again without is_popular. Optional search applies to both sections. IDs refer to the same database country in both occurrences. Saved examples are abbreviated and fictional.",
             "auth": {
               "type": "noauth"
             }
@@ -86,10 +86,10 @@
             }
           ],
           "cookie": [],
-          "body": "{\n  \"countries\": [\n    {\n      \"id\": 101,\n      \"sortname\": \"IN\",\n      \"name\": \"India\",\n      \"phonecode\": 91\n    }\n  ]\n}"
+          "body": "{\n  \"countries\": [\n    {\n      \"id\": 1,\n      \"sortname\": \"IN\",\n      \"name\": \"India\",\n      \"phonecode\": 91,\n      \"is_popular\": true\n    },\n    {\n      \"id\": 2,\n      \"sortname\": \"US\",\n      \"name\": \"United States\",\n      \"phonecode\": 1,\n      \"is_popular\": true\n    },\n    {\n      \"id\": 3,\n      \"sortname\": \"GB\",\n      \"name\": \"United Kingdom\",\n      \"phonecode\": 44,\n      \"is_popular\": true\n    },\n    {\n      \"id\": 4,\n      \"sortname\": \"CA\",\n      \"name\": \"Canada\",\n      \"phonecode\": 1,\n      \"is_popular\": true\n    },\n    {\n      \"id\": 5,\n      \"sortname\": \"AE\",\n      \"name\": \"United Arab Emirates\",\n      \"phonecode\": 971,\n      \"is_popular\": true\n    },\n    {\n      \"id\": 6,\n      \"sortname\": \"BD\",\n      \"name\": \"Bangladesh\",\n      \"phonecode\": 880,\n      \"is_popular\": true\n    },\n    {\n      \"id\": 7,\n      \"sortname\": \"PK\",\n      \"name\": \"Pakistan\",\n      \"phonecode\": 92,\n      \"is_popular\": true\n    },\n    {\n      \"id\": 8,\n      \"sortname\": \"BR\",\n      \"name\": \"Brazil\",\n      \"phonecode\": 55,\n      \"is_popular\": true\n    },\n    {\n      \"id\": 9,\n      \"sortname\": \"AU\",\n      \"name\": \"Australia\",\n      \"phonecode\": 61,\n      \"is_popular\": true\n    },\n    {\n      \"id\": 9,\n      \"sortname\": \"AU\",\n      \"name\": \"Australia\",\n      \"phonecode\": 61\n    },\n    {\n      \"id\": 6,\n      \"sortname\": \"BD\",\n      \"name\": \"Bangladesh\",\n      \"phonecode\": 880\n    },\n    {\n      \"id\": 8,\n      \"sortname\": \"BR\",\n      \"name\": \"Brazil\",\n      \"phonecode\": 55\n    },\n    {\n      \"id\": 4,\n      \"sortname\": \"CA\",\n      \"name\": \"Canada\",\n      \"phonecode\": 1\n    },\n    {\n      \"id\": 10,\n      \"sortname\": \"FR\",\n      \"name\": \"France\",\n      \"phonecode\": 33\n    },\n    {\n      \"id\": 1,\n      \"sortname\": \"IN\",\n      \"name\": \"India\",\n      \"phonecode\": 91\n    },\n    {\n      \"id\": 7,\n      \"sortname\": \"PK\",\n      \"name\": \"Pakistan\",\n      \"phonecode\": 92\n    },\n    {\n      \"id\": 5,\n      \"sortname\": \"AE\",\n      \"name\": \"United Arab Emirates\",\n      \"phonecode\": 971\n    },\n    {\n      \"id\": 3,\n      \"sortname\": \"GB\",\n      \"name\": \"United Kingdom\",\n      \"phonecode\": 44\n    },\n    {\n      \"id\": 2,\n      \"sortname\": \"US\",\n      \"name\": \"United States\",\n      \"phonecode\": 1\n    }\n  ]\n}"
         }
       ],
-      "description": "Returns all countries alphabetically, with popular countries first. India, United States, United Kingdom, Spain, France, Saudi Arabia, China, Portugal and Russia include is_popular:true. Other countries keep their current fields. Optional search filters names."
+      "description": "Popular entries appear first in this order: India, United States, United Kingdom, Canada, United Arab Emirates, Bangladesh, Pakistan, Brazil, Australia, with is_popular:true. The complete alphabetical country list follows and includes these countries again without is_popular. Optional search applies to both sections. IDs refer to the same database country in both occurrences. Saved examples are abbreviated and fictional."
     },
     {
       "name": "GET /geo/states",

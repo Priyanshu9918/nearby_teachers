@@ -1,0 +1,151 @@
+{
+  "info": {
+    "name": "New",
+    "description": "Contains only APIs explicitly requested by the project owner.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Home Dashboard",
+      "request": {
+        "method": "GET",
+        "auth": {
+          "type": "noauth"
+        },
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/search/dashboard?lat={{lat}}&lng={{lng}}&radiusKm={{radiusKm}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "search",
+            "dashboard"
+          ],
+          "query": [
+            {
+              "key": "lat",
+              "value": "{{lat}}",
+              "description": "Required latitude (-90 to 90), except for BSL subject searches."
+            },
+            {
+              "key": "lng",
+              "value": "{{lng}}",
+              "description": "Required longitude (-180 to 180), except for BSL subject searches."
+            },
+            {
+              "key": "radiusKm",
+              "value": "{{radiusKm}}",
+              "description": "Optional radius: greater than 0, maximum 500 km; default 7."
+            },
+            {
+              "key": "subjectId",
+              "value": "{{subjectId}}",
+              "disabled": true,
+              "description": "Optional existing numeric subject ID. Set the variable and enable to use. BSL subjects use the designated global institute branch."
+            }
+          ]
+        },
+        "description": "Public home/map dashboard; no bearer token or /api prefix. Returns center, radiusKm, teacherCount, instituteCount, totalCount and results. Ordinary dashboard results include eligible nearby teachers/institutes plus institutes marked is_bsl or is_bsl_official regardless of radius, once each. BSL institutes sort first; remaining ordering is referral points descending, distance ascending, type and numeric user ID. Counts match returned listings. Suspended, unregistered or phone-unverified accounts are excluded in the ordinary branch. Missing BSL coordinates and distance are null. Explicit BSL subject searches retain their dedicated routing. Rate limit: 60 requests/minute per IP. Saved 200 response is a fictional illustration of relevant fields, not a live capture. It shows a BSL institute outside the radius ahead of a nearby teacher."
+      },
+      "response": [
+        {
+          "name": "200 — Home Dashboard with BSL first (fictional mock)",
+          "originalRequest": {
+            "method": "GET",
+            "auth": {
+              "type": "noauth"
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/search/dashboard?lat={{lat}}&lng={{lng}}&radiusKm={{radiusKm}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "search",
+                "dashboard"
+              ],
+              "query": [
+                {
+                  "key": "lat",
+                  "value": "{{lat}}",
+                  "description": "Required latitude (-90 to 90), except for BSL subject searches."
+                },
+                {
+                  "key": "lng",
+                  "value": "{{lng}}",
+                  "description": "Required longitude (-180 to 180), except for BSL subject searches."
+                },
+                {
+                  "key": "radiusKm",
+                  "value": "{{radiusKm}}",
+                  "description": "Optional radius: greater than 0, maximum 500 km; default 7."
+                },
+                {
+                  "key": "subjectId",
+                  "value": "{{subjectId}}",
+                  "disabled": true,
+                  "description": "Optional existing numeric subject ID. Set the variable and enable to use. BSL subjects use the designated global institute branch."
+                }
+              ]
+            },
+            "description": "Public home/map dashboard; no bearer token or /api prefix. Returns center, radiusKm, teacherCount, instituteCount, totalCount and results. Ordinary dashboard results include eligible nearby teachers/institutes plus institutes marked is_bsl or is_bsl_official regardless of radius, once each. BSL institutes sort first; remaining ordering is referral points descending, distance ascending, type and numeric user ID. Counts match returned listings. Suspended, unregistered or phone-unverified accounts are excluded in the ordinary branch. Missing BSL coordinates and distance are null. Explicit BSL subject searches retain their dedicated routing. Rate limit: 60 requests/minute per IP."
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-store"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n  \"center\": {\n    \"latitude\": 28.6139,\n    \"longitude\": 77.209\n  },\n  \"radiusKm\": 7,\n  \"teacherCount\": 1,\n  \"instituteCount\": 1,\n  \"totalCount\": 2,\n  \"results\": [\n    {\n      \"id\": 10,\n      \"user_id\": 25,\n      \"profile_type\": \"institute\",\n      \"full_name\": \"Example BSL Institute\",\n      \"is_bsl\": true,\n      \"is_bsl_official\": true,\n      \"latitude\": 29.693,\n      \"longitude\": 77.209,\n      \"distance_km\": 120,\n      \"city\": \"Example City\",\n      \"state\": \"Example State\",\n      \"country\": \"India\",\n      \"country_code\": \"IN\",\n      \"address_text\": \"Example institute address\",\n      \"slug\": \"example-bsl-institute\",\n      \"avatar_url\": null,\n      \"starting_rate\": 500,\n      \"price\": 500,\n      \"currency\": \"INR\",\n      \"lesson_modes\": [\n        \"online\",\n        \"in_person\"\n      ],\n      \"trial_days\": 0,\n      \"rating_avg\": 4.5,\n      \"rating_count\": 10,\n      \"referral_points\": 0,\n      \"is_verified\": true,\n      \"institute_type\": \"independent\",\n      \"subjects\": [\n        {\n          \"id\": 3,\n          \"name\": \"Example BSL Course\",\n          \"is_bsl\": true\n        }\n      ]\n    },\n    {\n      \"id\": 15,\n      \"user_id\": 32,\n      \"profile_type\": \"teacher\",\n      \"full_name\": \"Example Teacher\",\n      \"listing_name\": \"Example Teacher\",\n      \"latitude\": 28.6364,\n      \"longitude\": 77.209,\n      \"distance_km\": 2.5,\n      \"city\": \"New Delhi\",\n      \"state\": \"Delhi\",\n      \"country\": \"India\",\n      \"country_code\": \"IN\",\n      \"address_text\": \"Example teacher address\",\n      \"slug\": \"example-teacher\",\n      \"avatar_url\": null,\n      \"rate_per_hour\": 300,\n      \"price\": 300,\n      \"currency\": \"INR\",\n      \"lesson_modes\": [\n        \"online\"\n      ],\n      \"trial_days\": 1,\n      \"rating_avg\": 4.2,\n      \"rating_count\": 5,\n      \"referral_points\": 10,\n      \"is_verified\": false,\n      \"primary_subject_id\": 1,\n      \"subjects\": [\n        {\n          \"id\": 1,\n          \"name\": \"Mathematics\",\n          \"is_bsl\": false\n        }\n      ]\n    }\n  ]\n}"
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "lat",
+      "value": "28.6139",
+      "type": "string"
+    },
+    {
+      "key": "lng",
+      "value": "77.2090",
+      "type": "string"
+    },
+    {
+      "key": "radiusKm",
+      "value": "7",
+      "type": "string"
+    },
+    {
+      "key": "subjectId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

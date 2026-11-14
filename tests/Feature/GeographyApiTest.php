@@ -82,11 +82,38 @@ class GeographyApiTest extends TestCase
     public function test_countries_returns_the_complete_imported_list_and_explicit_columns(): void
     {
         $countries = $this->getJson('/geo/countries')->assertOk()->json('countries');
-        $this->assertCount(DB::table('countries')->count(), $countries);
+        $popular = array_filter($countries, static fn (array $country): bool => $country['is_popular'] ?? false);
+        $this->assertCount(DB::table('countries')->count() + count($popular), $countries);
         $this->assertContains($this->country, array_column($countries, 'id'));
         $this->assertContains($this->otherCountry, array_column($countries, 'id'));
         $this->getJson('/geo/countries?search=Geography%20country%20A')->assertOk()
             ->assertExactJson(['countries' => [['id' => $this->country, 'sortname' => 'QX', 'name' => 'Geography country A', 'phonecode' => 999]]]);
+    }
+
+    public function test_popular_countries_follow_requested_order_and_also_appear_in_full_list(): void
+    {
+        $names = ['IN' => 'India', 'US' => 'United States', 'GB' => 'United Kingdom',
+            'CA' => 'Canada', 'AE' => 'United Arab Emirates', 'BD' => 'Bangladesh',
+            'PK' => 'Pakistan', 'BR' => 'Brazil', 'AU' => 'Australia'];
+        foreach (array_reverse($names, true) as $code => $name) {
+            DB::table('countries')->updateOrInsert(['sortname' => $code], ['name' => $name, 'phonecode' => 1]);
+        }
+        DB::table('countries')->insert(['sortname' => 'FR', 'name' => 'France', 'phonecode' => 33]);
+        $countries = $this->getJson('/geo/countries')->assertOk()->assertJsonCount(DB::table('countries')->count() + 9, 'countries')->json('countries');
+        $this->assertSame(array_keys($names), array_column(array_slice($countries, 0, 9), 'sortname'));
+        foreach (array_slice($countries, 0, 9) as $country) {
+            $this->assertTrue($country['is_popular']);
+        }
+        $all = array_slice($countries, 9);
+        $alphabetical = array_column($all, 'name');
+        $sorted = $alphabetical;
+        sort($sorted);
+        $this->assertSame($sorted, $alphabetical);
+        foreach ($all as $country) {
+            $this->assertArrayNotHasKey('is_popular', $country);
+        }
+        $this->getJson('/geo/countries?search=India')->assertOk()->assertJsonCount(2, 'countries')
+            ->assertJsonPath('countries.0.is_popular', true)->assertJsonPath('countries.1.name', 'India');
     }
 
     public function test_states_only_return_rows_for_the_selected_country(): void

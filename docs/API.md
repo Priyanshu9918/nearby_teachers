@@ -401,10 +401,14 @@ greater than zero and at most 500. Unknown/missing coordinates and invalid
 radius return `422` field errors. Rate limit: 60 requests/minute per IP.
 
 The response contains **all** eligible teachers and institutes within the exact
-circular radius, sorted nearest first (ties by type and user UUID). There is
+circular radius, plus institutes marked `is_bsl` or `is_bsl_official` regardless
+of radius. BSL institutes sort first, then referral points descending, distance
+ascending, provider type and numeric user ID. There is
 no 50-result cap and no pagination. Only accounts with completed registration,
 a verified phone, a current matching provider role, valid listing coordinates
-and no suspension are included. Provider verification badges are not required.
+and no suspension are included. BSL institutes may have missing coordinates;
+their coordinates and distance remain null in that case. Provider verification
+badges are not required.
 Counts describe these returned listings and can differ from `/search/counts`,
 which does not apply these publication checks.
 
@@ -423,7 +427,7 @@ which does not apply these publication checks.
 | `results[].address_text`, `city`, `state`, `country`, `country_code`, `slug` | Public location and listing link fields. |
 | `results[].rating_avg`, `rating_count`, `trial_days`, `is_verified`, `verified_at` | Numeric ratings/counts/trial days, boolean verification flag and nullable verification date. |
 | Teacher fields | `bio`, numeric/null `rate_per_hour`, `linkedin_url`, numeric/null `primary_subject_id`. |
-| Institute fields | `description`, numeric/null `starting_rate`, `contact_person`, `instructors_text`, `website_url`, `institute_type`, boolean `is_bsl_official`, `bsl_official_since`. |
+| Institute fields | `description`, numeric/null `starting_rate`, `contact_person`, `instructors_text`, `website_url`, `institute_type`, boolean `is_bsl`, boolean `is_bsl_official`, `bsl_official_since`. |
 | `results[].created_at`, `updated_at` | Listing timestamps. |
 | `POST` | `/chat/events/send` | chat:send · Send message |
 | `POST` | `/chat/events/delivered` | chat:delivered · Confirm delivery |

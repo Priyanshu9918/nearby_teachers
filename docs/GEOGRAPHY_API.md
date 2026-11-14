@@ -74,3 +74,13 @@ after each test. No application migrations or application data clearing run:
 ```sh
 GEOGRAPHY_TEST_DATABASE=nearby_teachers_geography_test php artisan test tests/Feature/GeographyApiTest.php
 ```
+
+### Popular country ordering
+
+`GET /geo/countries` returns one `countries` array. Its popular prefix is India
+(IN), United States (US), United Kingdom (GB), Canada (CA), United Arab Emirates
+(AE), Bangladesh (BD), Pakistan (PK), Brazil (BR), Australia (AU), in that order.
+These entries carry `is_popular: true`. The complete alphabetical country list
+follows, including the same nine countries again with the same numeric IDs
+and without `is_popular`. Search filters both sections; missing countries are
+not fabricated. Clients should identify an occurrence by section and ID.

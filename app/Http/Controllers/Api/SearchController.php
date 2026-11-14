@@ -171,15 +171,19 @@ class SearchController extends Controller
             $specificFields = $type === 'teacher'
                 ? ['p.bio', 'p.rate_per_hour', 'p.linkedin_url', 'p.primary_subject_id']
                 : ['p.description', 'p.starting_rate', 'p.contact_person', 'p.instructors_text',
-                    'p.website_url', 'p.institute_type', 'p.is_bsl_official', 'p.bsl_official_since'];
+                    'p.website_url', 'p.institute_type', 'p.is_bsl', 'p.is_bsl_official', 'p.bsl_official_since'];
             $profiles = DB::table($type.'_profiles as p')
                 ->join('users as u', 'u.id', '=', 'p.user_id')
                 ->where('u.account_type', $type)
                 ->whereNull('u.suspended_at')
                 ->whereNotNull('u.phone_verified_at')
                 ->whereNotNull('u.profile_completed_at')
-                ->whereRaw($bounds, $bindings)
-                ->whereNotNull('p.longitude')
+                ->where(function ($query) use ($type, $bounds, $bindings): void {
+                    $query->whereRaw($bounds, $bindings)->whereNotNull('p.longitude');
+                    if ($type === 'institute') {
+                        $query->orWhere('p.is_bsl', true)->orWhere('p.is_bsl_official', true);
+                    }
+                })
                 ->select([
                     'p.id', 'p.user_id', 'u.full_name', 'u.referral_points', 'p.currency', 'p.lesson_modes',
                     'p.latitude', 'p.longitude', 'p.address_text', 'p.city', 'p.state',
@@ -189,7 +193,12 @@ class SearchController extends Controller
                 ])
                 ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
                 ->selectRaw('ST_Distance_Sphere(POINT(IF(p.longitude = -180, 180, p.longitude), p.latitude), POINT(?, ?)) AS distance_m', [$longitude, $latitude])
-                ->having('distance_m', '<=', $radiusKm * 1000)
+                ->having(function ($query) use ($type, $radiusKm): void {
+                    $query->having('distance_m', '<=', $radiusKm * 1000);
+                    if ($type === 'institute') {
+                        $query->orHaving('is_bsl', true)->orHaving('is_bsl_official', true);
+                    }
+                })
                 ->get();
 
             // Load subjects in bulk, rather than querying once per map marker.
@@ -202,9 +211,9 @@ class SearchController extends Controller
 
             foreach ($profiles as $profile) {
                 $profile->profile_type = $type;
-                $profile->latitude = (float) $profile->latitude;
-                $profile->longitude = (float) $profile->longitude;
-                $profile->distance_km = (float) $profile->distance_m / 1000;
+                $profile->latitude = $profile->latitude === null ? null : (float) $profile->latitude;
+                $profile->longitude = $profile->longitude === null ? null : (float) $profile->longitude;
+                $profile->distance_km = $profile->distance_m === null ? null : (float) $profile->distance_m / 1000;
                 unset($profile->distance_m);
                 $profile->lesson_modes = json_decode($profile->lesson_modes, true, 512, JSON_THROW_ON_ERROR);
                 $rate = $type === 'teacher' ? 'rate_per_hour' : 'starting_rate';
@@ -218,6 +227,7 @@ class SearchController extends Controller
                 if ($type === 'teacher') {
                     $profile->primary_subject_id = $profile->primary_subject_id === null ? null : (int) $profile->primary_subject_id;
                 } else {
+                    $profile->is_bsl = (bool) $profile->is_bsl;
                     $profile->is_bsl_official = (bool) $profile->is_bsl_official;
                 }
                 $profile->subjects = $subjects->get($profile->user_id, collect())->map(static fn (object $subject): array => [
@@ -240,6 +250,8 @@ class SearchController extends Controller
             'instituteCount' => $counts['institute'],
             'totalCount' => $results->count(),
             'results' => $results->sortBy([
+                static fn (object $a, object $b): int => (int) (($b->is_bsl ?? false) || ($b->is_bsl_official ?? false))
+                    <=> (int) (($a->is_bsl ?? false) || ($a->is_bsl_official ?? false)),
                 ['referral_points', 'desc'], ['distance_km', 'asc'], ['profile_type', 'asc'], ['user_id', 'asc'],
             ])->values(),
         ]);
@@ -580,7 +592,7 @@ class SearchController extends Controller
         $response = ['results' => $rows];
         if ($endpoint === 'dashboard') {
             $response += ['center' => ['latitude' => isset($data['lat']) ? (float) $data['lat'] : null,
-                    'longitude' => isset($data['lng']) ? (float) $data['lng'] : null],
+                'longitude' => isset($data['lng']) ? (float) $data['lng'] : null],
                 'radiusKm' => (float) ($data['radiusKm'] ?? 7), 'teacherCount' => 0, 'instituteCount' => $count, 'totalCount' => $count];
         }
         if ($endpoint === 'bySubject') {
