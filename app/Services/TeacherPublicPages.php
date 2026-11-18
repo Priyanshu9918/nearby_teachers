@@ -42,7 +42,25 @@ final class TeacherPublicPages
                 }
             }
             $slug = $candidate;
+            $shareBase = self::seoSlug($displayName, $profile->city, $subjects->first()->name);
+            $shareSlug = $shareBase;
+            $shareAttempt = 0;
+            while (! SeoDirectory::claim('/teacher/'.$shareSlug, 'teacher', $userId)) {
+                $shareSlug = $shareBase.'-'.$userId.($shareAttempt++ > 0 ? '-'.$shareAttempt : '');
+                if ($shareAttempt > 5) {
+                    throw new LogicException('Unable to reserve a unique teacher share URL.');
+                }
+            }
+            if (($profile->subject_profile_slug ?? null) !== $shareSlug) {
+                DB::table('teacher_profiles')->where('user_id', $userId)->update(['subject_profile_slug' => $shareSlug]);
+                app(BusinessActivityRecorder::class)->record('teacher.share_url_changed', $userId, $actorUserId,
+                    before: ['subject_profile_slug' => $profile->subject_profile_slug ?? null],
+                    after: ['subject_profile_slug' => $shareSlug]);
+            }
+
             foreach (array_filter([
+                filled($profile->public_page_slug) ? '/teacher/'.$profile->public_page_slug : null,
+                filled($profile->public_page_slug) ? '/my-webpage/teacher/'.$profile->public_page_slug : null,
                 '/site/teacher/'.($profile->slug ?? ''),
                 $profile->seo_slug ? '/teachers/'.$profile->seo_slug : null,
                 $profile->seo_slug ? '/site/teacher/'.$profile->seo_slug : null,
@@ -100,8 +118,14 @@ final class TeacherPublicPages
             ->select('s.id', 's.name')->orderBy('s.name')->orderBy('s.id')->get();
     }
 
-    public static function seoSlug(string $name, string $city): string
+    public static function seoSlug(string $name, string $city, ?string $subject = null): string
     {
+        if ($subject !== null) {
+            return rtrim(substr(Str::slug($name) ?: 'teacher', 0, 60), '-').'-'
+                .rtrim(substr(Str::slug($subject) ?: 'subject', 0, 60), '-').'-'
+                .rtrim(substr(SeoDirectory::citySlug($city), 0, 70), '-');
+        }
+
         return substr((Str::slug($name) ?: 'teacher').'-'.SeoDirectory::citySlug($city), 0, 200);
     }
 
@@ -119,10 +143,11 @@ final class TeacherPublicPages
     {
         $url = isset($profile->public_page_slug) && isset($profile->seo_country)
             ? SeoDirectory::url('/teacher/'.$profile->public_page_slug) : null;
-        $myWebpageUrl = isset($profile->public_page_slug) && isset($profile->seo_country)
-            ? SeoDirectory::url('/my-webpage/teacher/'.$profile->public_page_slug) : null;
 
-        return ['teacherSeoUrl' => $url, 'teacherProfileUrl' => $url, 'webPageUrl' => $myWebpageUrl,
-            'myWebpageUrl' => $myWebpageUrl];
+        $shareUrl = $url !== null && filled($profile->subject_profile_slug ?? null)
+            ? SeoDirectory::url('/teacher/'.$profile->subject_profile_slug) : null;
+
+        return ['teacherSeoUrl' => $url, 'teacherProfileUrl' => $url, 'webPageUrl' => $shareUrl,
+            'myWebpageUrl' => $shareUrl];
     }
 }

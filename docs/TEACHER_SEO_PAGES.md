@@ -1,6 +1,6 @@
 # International teacher and institute SEO directory
 
-This extends the teacher SEO directory to institutes. Each eligible teacher and institute gets one canonical profile page, and the shared country/location/subject listings show both account types. A provider appears on each subject page selected on that profile. Existing teacher URLs remain unchanged.
+This extends the teacher SEO directory to institutes. Each eligible teacher and institute gets one canonical profile page, and the shared country/location/subject listings show both account types. A provider appears on each subject page selected on that profile. Existing teacher SEO URLs remain active. A separate subject-based full-profile link replaces teacher my-webpage links.
 
 ## Public address contract
 

@@ -10,6 +10,7 @@ final class BusinessActivityRecorder
 {
     // Each event explicitly owns its snapshot contract. No raw request/user arrays.
     private const EVENTS = [
+        'teacher.share_url_changed' => ['teacher_profile', ['subject_profile_slug']],
         'support_ticket.screenshot_attached' => ['support_ticket', ['has_screenshot']],
         'course_request.submitted' => ['custom_subject_request', ['status']],
         'course_request.cancelled' => ['custom_subject_request', ['status']],

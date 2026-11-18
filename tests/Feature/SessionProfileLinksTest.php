@@ -15,6 +15,8 @@ class SessionProfileLinksTest extends TestCase
     public function test_session_returns_provider_website_links(string $type, ?array $fields, ?string $profilePath, ?string $webpagePath): void
     {
         config(['seo.public_url' => 'https://profiles.example.test']);
+        config(['app.url' => 'http://localhost']);
+        $this->app['url']->forceRootUrl('http://localhost');
         $user = (object) ['id' => 123, 'account_type' => $type, 'suspended_at' => null, 'is_admin' => false, 'phone_verified_at' => null];
         $auth = \Mockery::mock(AuthenticationService::class);
         $auth->shouldReceive('authenticate')->with('session-token')->once()->andReturn($user);
@@ -60,7 +62,7 @@ class SessionProfileLinksTest extends TestCase
     public static function profiles(): array
     {
         return [
-            'published teacher' => ['teacher', ['country' => 'India', 'is_profile_complete' => true, 'public_page_slug' => 'ravi-123', 'seo_country' => 'in'], '/teacher/ravi-123', '/my-webpage/teacher/ravi-123'],
+            'published teacher' => ['teacher', ['country' => 'India', 'is_profile_complete' => true, 'public_page_slug' => 'ravi-kanpur', 'subject_profile_slug' => 'ravi-english-kanpur', 'seo_country' => 'in'], '/teacher/ravi-kanpur', '/teacher/ravi-english-kanpur'],
             'unpublished teacher' => ['teacher', ['is_profile_complete' => true], null, null],
             'missing teacher' => ['teacher', null, null, null],
             'institute with page' => ['institute', ['country' => 'United Arab Emirates', 'slug' => 'academy-123', 'is_profile_complete' => true, 'public_page_slug' => 'academy-city', 'seo_country' => 'in'], '/site/institute/academy-123', '/my-webpage/institute/academy-city'],

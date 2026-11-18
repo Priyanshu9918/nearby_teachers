@@ -1,5 +1,11 @@
 # Reporting architecture
 
+Teacher share URLs now include a deterministic approved subject in a separate
+`subject_profile_slug`; existing canonical SEO profile links stay unchanged.
+Version 1 `teacher.share_url_changed` and the explicit teacher-profile report
+cover share-link changes; existing SEO history covers any canonical restoration. See
+[teacher subject profile URLs](TEACHER_SUBJECT_PROFILE_URLS.md).
+
 New Other course names enter the numeric-ID custom request queue and stay out
 of profiles/catalogue until approval. Version 1 request status events and catalogue
 creation/selection occur transactionally. The new explicit approval report and

@@ -182,7 +182,7 @@ class TeacherPublicPagesTest extends TestCase
         $this->assertSame('asha-sharma-kanpur', $published->public_page_slug);
         $this->get('/in/kanpur/maths-tuition')->assertOk()->assertSee('Asha Sharma');
         $urls = TeacherPublicPages::urls($published);
-        $this->assertSame('http://localhost/my-webpage/teacher/asha-sharma-kanpur', $urls['webPageUrl']);
+        $this->assertSame('http://localhost/teacher/asha-sharma-maths-kanpur', $urls['webPageUrl']);
         $this->assertSame('http://localhost/teacher/asha-sharma-kanpur', $urls['teacherProfileUrl']);
     }
 
@@ -294,6 +294,63 @@ class TeacherPublicPagesTest extends TestCase
             $this->get('/in?lang='.$language)->assertOk()->assertSee('<html lang="'.$language.'"', false);
         }
         $this->get('/in/unknown/maths-tuition')->assertNotFound();
+    }
+
+    public function test_existing_teacher_urls_and_my_webpage_links_redirect_after_subject_url_migration(): void
+    {
+        $teacher = $this->teacher(name: 'Sahib', subjects: ['Maths', 'English']);
+        DB::table('teacher_profiles')->where('user_id', $teacher->user_id)->update(['public_page_slug' => 'sahib-kanpur', 'seo_state_hash' => null]);
+        DB::transaction(fn () => SeoDirectory::claim('/teacher/sahib-kanpur', 'teacher', $teacher->user_id));
+        DB::transaction(fn () => app(TeacherPublicPages::class)->publish($teacher->user_id));
+        $saved = DB::table('teacher_profiles')->where('user_id', $teacher->user_id)->first();
+        $this->assertSame('sahib-kanpur', $saved->public_page_slug);
+        $this->assertSame('sahib-english-kanpur', $saved->subject_profile_slug);
+        $url = 'http://localhost/teacher/sahib-english-kanpur';
+        $this->get('/my-webpage/teacher/sahib-kanpur')->assertStatus(301)->assertRedirect($url);
+        $this->get('/teacher/sahib-kanpur')->assertOk()->assertSee('Sahib');
+        $this->get($url)->assertOk()->assertSee('Sahib')->assertSee('English')->assertSee('Maths')
+            ->assertSee('<link rel="canonical" href="http://localhost/teacher/sahib-kanpur">', false)
+            ->assertSee('500.00')->assertSee('Patient teacher')->assertSee('PRIVATE HOUSE 99')->assertSee('View LinkedIn');
+        $this->assertSame($url, TeacherPublicPages::urls($saved)['myWebpageUrl']);
+        $before = DB::table('business_activity')->where('event', 'teacher.seo_state_changed')->where('entity_id', $teacher->user_id)->count();
+        DB::transaction(fn () => app(TeacherPublicPages::class)->publish($teacher->user_id));
+        $this->assertSame($before, DB::table('business_activity')->where('event', 'teacher.seo_state_changed')->where('entity_id', $teacher->user_id)->count());
+    }
+
+    public function test_subject_url_history_failure_rolls_back_new_slug_and_redirect_ownership(): void
+    {
+        $teacher = $this->teacher(name: 'Sahib');
+        $before = $teacher->public_page_slug;
+        DB::table('users')->where('id', $teacher->user_id)->update(['full_name' => 'Updated Sahib']);
+        DB::listen(function ($query): void {
+            if (str_contains($query->sql, 'insert into `business_activity`') && in_array('teacher.seo_state_changed', $query->bindings, true)) {
+                throw new \RuntimeException('History unavailable');
+            }
+        });
+        try {
+            DB::transaction(fn () => app(TeacherPublicPages::class)->publish($teacher->user_id));
+            $this->fail('History failure must roll back slug changes.');
+        } catch (\RuntimeException $error) {
+            $this->assertSame('History unavailable', $error->getMessage());
+        }
+        $this->assertDatabaseHas('teacher_profiles', ['user_id' => $teacher->user_id, 'public_page_slug' => $before]);
+        $this->assertDatabaseMissing('seo_urls', ['path' => '/teacher/updated-sahib-maths-kanpur']);
+    }
+
+    public function test_separate_share_migration_restores_an_seo_url_replaced_by_the_previous_implementation(): void
+    {
+        $teacher = $this->teacher(name: 'Sahib', subjects: ['English', 'Maths']);
+        DB::table('teacher_profiles')->where('user_id', $teacher->user_id)->update(['public_page_slug' => 'sahib-english-kanpur', 'seo_state_hash' => null]);
+        $migration = require database_path('migrations/2026_11_18_000006_separate_teacher_share_urls.php');
+        $migration->up();
+        $this->assertDatabaseHas('teacher_profiles', ['user_id' => $teacher->user_id,
+            'public_page_slug' => 'sahib-kanpur', 'subject_profile_slug' => 'sahib-english-kanpur']);
+        $this->get('/teacher/sahib-kanpur')->assertOk();
+        $this->get('/teacher/sahib-english-kanpur')->assertOk();
+        $this->get('/my-webpage/teacher/sahib-kanpur')->assertRedirect('http://localhost/teacher/sahib-english-kanpur');
+        $events = DB::table('business_activity')->count();
+        $migration->up();
+        $this->assertSame($events, DB::table('business_activity')->count());
     }
 
     public function test_seo_reports_handle_older_definitions_without_route_enabled(): void

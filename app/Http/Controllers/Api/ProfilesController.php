@@ -181,7 +181,7 @@ class ProfilesController extends Controller
         $teacherResponse = [];
         if ($isTeacher) {
             $profile = DB::table($profileTable)->where('user_id', $user->id)
-                ->select('public_page_slug', 'seo_country', 'user_id', 'slug', 'seo_slug', 'public_profile_slug', 'location_details')->first();
+                ->select('public_page_slug', 'subject_profile_slug', 'seo_country', 'user_id', 'slug', 'seo_slug', 'public_profile_slug', 'location_details')->first();
             $teacherResponse = [...TeacherPublicPages::urls($profile, $user->full_name),
                 'locationDetails' => $profile->location_details === null ? null : json_decode($profile->location_details, true, flags: JSON_THROW_ON_ERROR)];
         }
@@ -371,7 +371,7 @@ class ProfilesController extends Controller
             'is_verified', 'verified_at', 'trial_days', 'rating_avg', 'rating_count', 'district', 'sub_district', 'locality',
             'locality_type', 'postal_code', 'location_details', 'youtube_url'];
         $columns = [...$columns, ...($type === 'teacher'
-            ? ['primary_subject_id', 'bio', 'rate_per_hour', 'linkedin_url', 'public_page_slug', 'public_profile_slug', 'seo_slug', 'seo_country', 'seo_city_slug']
+            ? ['primary_subject_id', 'bio', 'rate_per_hour', 'linkedin_url', 'public_page_slug', 'subject_profile_slug', 'public_profile_slug', 'seo_slug', 'seo_country', 'seo_city_slug']
             : ['contact_person', 'description', 'starting_rate', 'instructors_text', 'website_url', 'institute_type', 'is_bsl_official', 'bsl_official_since', 'public_page_slug', 'seo_country', 'seo_city_slug'])];
         $profile = DB::table(ProfileEditor::table($type))->where('user_id', $user->id)->first($columns);
         abort_if($profile === null, 404, 'Profile not found.');

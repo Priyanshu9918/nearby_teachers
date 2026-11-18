@@ -7,7 +7,8 @@
     $subjectNames = $subjects->pluck('name')->implode(', ');
     $title = $teacher->full_name.' — '.$tr('city_title', ['subject' => $subjects->take(2)->pluck('name')->implode(', '), 'city' => $teacher->city]);
     $description = \Illuminate\Support\Str::limit($tr('city_description', ['subject' => $subjectNames, 'city' => $teacher->city]), 160);
-    $canonicalUrl = $url;
+    $canonicalUrl = isset($teacher->public_page_slug)
+        ? \App\Services\SeoDirectory::url('/teacher/'.$teacher->public_page_slug) : $url;
     $person = ['@type' => 'Person', 'name' => $teacher->full_name, 'url' => $url, 'knowsAbout' => $subjects->pluck('name')->all()];
     if ($teacher->avatar_url) $person['image'] = \App\Support\PublicMediaUrl::resolve($teacher->avatar_url);
     if ($teacher->linkedin_url) $person['sameAs'] = [$teacher->linkedin_url];

@@ -49,14 +49,14 @@ class InternationalSeoController extends Controller
         } else {
             $id = TeacherPublicPages::idFromSlug($slug);
             $query->where(function (Builder $q) use ($slug, $id): void {
-                $q->where('p.public_page_slug', $slug)->orWhere('p.slug', $slug)
+                $q->where('p.public_page_slug', $slug)->orWhere('p.subject_profile_slug', $slug)->orWhere('p.slug', $slug)
                     ->orWhere('p.seo_slug', $slug)->orWhere('p.public_profile_slug', $slug);
                 if ($id !== null && ! request()->routeIs('website.teacher')) {
                     $q->orWhere('p.user_id', $id);
                 }
             })->orderByRaw('CASE WHEN p.slug = ? THEN 0 ELSE 1 END', [$slug]);
         }
-        $teacher = $query->select('p.user_id', 'p.slug', 'p.public_page_slug', 'p.seo_country', 'p.seo_city_slug',
+        $teacher = $query->select('p.user_id', 'p.slug', 'p.public_page_slug', 'p.subject_profile_slug', 'p.seo_country', 'p.seo_city_slug',
             'p.bio', 'p.city', 'p.state', 'p.country', 'p.youtube_url', 'p.linkedin_url', 'p.rate_per_hour', 'p.currency',
             'p.lesson_modes', 'p.trial_days', 'p.rating_avg', 'p.rating_count',
             'p.address_text', 'p.locality', 'p.district', 'p.sub_district', 'p.postal_code', 'u.email', 'u.phone as contact_phone')
@@ -65,7 +65,11 @@ class InternationalSeoController extends Controller
             ->selectSub(DB::table('bookings')->selectRaw('count(*)')->whereColumn('provider_id', 'p.user_id')
                 ->where('status', 'completed'), 'lessons_completed')->first();
         abort_if($teacher === null, 404);
-        $url = SeoDirectory::url('/teacher/'.$teacher->public_page_slug);
+        $shareRequest = str_starts_with($request->path(), 'my-webpage/teacher/')
+            || $slug === ($teacher->subject_profile_slug ?? null);
+        $targetSlug = $shareRequest && filled($teacher->subject_profile_slug ?? null)
+            ? $teacher->subject_profile_slug : $teacher->public_page_slug;
+        $url = SeoDirectory::url('/teacher/'.$targetSlug);
         if ($redirect = $this->canonical($request, $url)) {
             return $redirect;
         }
@@ -211,26 +215,20 @@ class InternationalSeoController extends Controller
     public function myWebpage(Request $request, string $type, string $slug): Response
     {
         abort_unless(in_array($type, ['teacher', 'institute'], true), 404);
-        $query = $type === 'teacher' ? $this->directory->teachers() : $this->directory->institutes();
-        $query->where('p.public_page_slug', $slug);
         if ($type === 'teacher') {
-            $provider = $query->select('p.user_id', 'p.public_page_slug', 'p.slug as legacy_slug', 'p.seo_country', 'p.seo_city_slug', 'p.bio as description',
-                'p.rate_per_hour as rate', 'p.currency', 'p.lesson_modes', 'p.city', 'p.state', 'p.country')
-                ->selectRaw('COALESCE(NULLIF(p.listing_name, \'\'), u.full_name) AS full_name')
-                ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
-                ->first();
-        } else {
-            $provider = $query->select('p.user_id', 'p.public_page_slug', 'p.slug as legacy_slug', 'p.seo_country', 'p.seo_city_slug', 'p.description',
-                'p.starting_rate as rate', 'p.currency', 'p.lesson_modes', 'p.city', 'p.state', 'p.country', 'p.website_url')
-                ->selectRaw('COALESCE(NULLIF(p.listing_name, \'\'), u.full_name) AS full_name')
-                ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
-                ->first();
+            // Use the ownership registry to resolve previously shared slugs, then
+            // redirect to the complete canonical teacher profile.
+            return $this->teacher($request, $slug);
         }
+        $provider = $this->directory->institutes()->where('p.public_page_slug', $slug)
+            ->select('p.user_id', 'p.public_page_slug', 'p.slug as legacy_slug', 'p.seo_country', 'p.seo_city_slug', 'p.description',
+                'p.starting_rate as rate', 'p.currency', 'p.lesson_modes', 'p.city', 'p.state', 'p.country', 'p.website_url')
+            ->selectRaw("COALESCE(NULLIF(p.listing_name, ''), u.full_name) AS full_name")
+            ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
+            ->first();
         abort_if($provider === null, 404);
 
-        $subjects = $type === 'teacher'
-            ? TeacherPublicPages::subjects((int) $provider->user_id)
-            : ProfileEditor::subjects((int) $provider->user_id, 'institute');
+        $subjects = ProfileEditor::subjects((int) $provider->user_id, 'institute');
         $subjectIds = $subjects->pluck('id')->all();
         $request->validate(['lang' => ['sometimes', 'string', 'in:'.implode(',', PublicLanguages::codes())]]);
         $language = PublicLanguages::resolve($request, SeoDirectory::language((string) $provider->seo_country));
@@ -242,9 +240,7 @@ class InternationalSeoController extends Controller
             ->get(['r.path', 'r.city', 'sr.display_name']);
 
         $url = SeoDirectory::url('/my-webpage/'.$type.'/'.$provider->public_page_slug);
-        $oldProfileUrl = $type === 'teacher'
-            ? SeoDirectory::url('/teacher/'.$provider->public_page_slug)
-            : route('website.institute', ['slug' => $provider->legacy_slug]);
+        $oldProfileUrl = route('website.institute', ['slug' => $provider->legacy_slug]);
         $qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=420x420&margin=12&data='.rawurlencode($url);
 
         return response()->view('site.my-webpage', compact('provider', 'type', 'subjects', 'related', 'url', 'oldProfileUrl', 'qrUrl') + [
