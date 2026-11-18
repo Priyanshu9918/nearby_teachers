@@ -236,7 +236,7 @@ class AdminReportingTest extends TestCase
 
         $this->withSession(['admin_authenticated' => true]);
         $this->get('/admin/dashboard')->assertOk()->assertSee('What would you like to do?')->assertSee('BSL admin overview');
-        $this->get('/admin/moderation/photos')->assertOk()->assertSee('Photos to approve');
+        $this->get('/admin/moderation/photos')->assertOk()->assertSee('Profile photos');
         $this->get('/admin/moderation/bsl-centres')->assertOk()->assertSee('BSL Verified centres');
         $this->get('/admin/moderation/suspended-users')->assertOk()->assertSee('Suspended accounts');
         $this->get('/admin/moderation/possible-duplicates')->assertOk()->assertSee('Possible duplicate teachers');
@@ -248,7 +248,7 @@ class AdminReportingTest extends TestCase
 
     public function test_photo_review_and_bsl_badge_mutations_are_logged_and_evented(): void
     {
-        DB::table('users')->where('id', $this->teacher)->update([
+        DB::table('users')->where('id', $this->learner)->update([
             'avatar_url' => 'https://images.example.test/pending.jpg', 'avatar_status' => 'pending',
         ]);
         DB::table('institute_profiles')->where('user_id', $this->institute)->update([
@@ -256,10 +256,10 @@ class AdminReportingTest extends TestCase
         ]);
         $this->withSession(['admin_authenticated' => true]);
 
-        $this->patch('/admin/moderation/photos/'.$this->teacher, ['status' => 'approved'])
+        $this->patch('/admin/moderation/photos/'.$this->learner, ['status' => 'approved'])
             ->assertRedirect()->assertSessionHas('status', 'Photo approved.');
-        $this->assertSame('approved', DB::table('users')->where('id', $this->teacher)->value('avatar_status'));
-        $this->assertSame(1, DB::table('business_activity')->where('event', 'avatar.reviewed')->where('entity_id', $this->teacher)->count());
+        $this->assertSame('approved', DB::table('users')->where('id', $this->learner)->value('avatar_status'));
+        $this->assertSame(1, DB::table('business_activity')->where('event', 'avatar.reviewed')->where('entity_id', $this->learner)->count());
 
         $this->patch('/admin/moderation/bsl-centres/'.$this->institute, ['verified' => '1'])
             ->assertRedirect()->assertSessionHas('status', 'BSL Verified badge granted.');
@@ -269,25 +269,58 @@ class AdminReportingTest extends TestCase
         DB::table('institute_profiles')->where('user_id', $this->institute)->update(['institute_type' => 'franchise']);
         $this->patch('/admin/moderation/bsl-centres/'.$this->institute, ['verified' => '1'])->assertSessionHasErrors('verified');
         $this->assertSame(1, DB::table('business_activity')->where('event', 'institute.bsl_verified_changed')->count());
-        $this->assertSame(1, DB::table('admin_report_access_log')->where('action', 'photo-review')->where('record_id', $this->teacher)->count());
+        $this->assertSame(1, DB::table('admin_report_access_log')->where('action', 'photo-review')->where('record_id', $this->learner)->count());
+    }
+
+    public function test_provider_photos_have_delete_controls_and_admin_removal_is_audited(): void
+    {
+        foreach ([$this->teacher, $this->institute] as $id) {
+            DB::table('users')->where('id', $id)->update(['avatar_url' => 'https://images.example.test/photo.jpg', 'avatar_status' => 'approved']);
+        }
+        $this->delete('/admin/moderation/photos/'.$this->teacher)->assertRedirect(route('admin.login'));
+        $this->withSession(['admin_authenticated' => true]);
+        $this->get('/admin/moderation/photos')->assertOk()->assertSee('Delete photo');
+        foreach ([$this->teacher, $this->institute] as $id) {
+            $this->patch('/admin/moderation/photos/'.$id, ['status' => 'approved'])->assertStatus(422);
+            $this->delete('/admin/moderation/photos/'.$id)->assertRedirect()->assertSessionHas('status', 'Profile photo deleted.');
+            $this->assertDatabaseHas('users', ['id' => $id, 'avatar_url' => null, 'avatar_status' => 'rejected']);
+            $this->assertDatabaseHas('business_activity', ['event' => 'provider.avatar_removed', 'entity_id' => $id, 'version' => 1]);
+            $this->assertDatabaseHas('admin_report_access_log', ['action' => 'photo-remove', 'record_id' => $id]);
+        }
+        $this->assertSame(2, DB::table('business_activity')->where('event', 'provider.avatar_removed')->count());
+        $this->delete('/admin/moderation/photos/'.$this->teacher)->assertRedirect();
+        $this->assertSame(2, DB::table('business_activity')->where('event', 'provider.avatar_removed')->count());
+    }
+
+    public function test_provider_photo_removal_rolls_back_when_history_fails(): void
+    {
+        DB::table('users')->where('id', $this->teacher)->update(['avatar_url' => 'https://images.example.test/photo.jpg', 'avatar_status' => 'approved']);
+        DB::listen(function ($query): void {
+            if (str_contains($query->sql, 'insert into `business_activity`') && in_array('provider.avatar_removed', $query->bindings, true)) {
+                throw new \RuntimeException('History unavailable');
+            }
+        });
+        $this->withSession(['admin_authenticated' => true])->delete('/admin/moderation/photos/'.$this->teacher)->assertStatus(500);
+        $this->assertDatabaseHas('users', ['id' => $this->teacher, 'avatar_url' => 'https://images.example.test/photo.jpg', 'avatar_status' => 'approved']);
+        $this->assertDatabaseMissing('business_activity', ['event' => 'provider.avatar_removed', 'entity_id' => $this->teacher]);
     }
 
     public function test_failed_photo_history_write_rolls_back_the_photo_decision(): void
     {
-        DB::table('users')->where('id', $this->teacher)->update(['avatar_status' => 'pending']);
+        DB::table('users')->where('id', $this->learner)->update(['avatar_status' => 'pending']);
         $recorder = \Mockery::mock(BusinessActivityRecorder::class);
         $recorder->shouldReceive('record')->once()->andThrow(new \RuntimeException('History write failed.'));
         $this->app->instance(BusinessActivityRecorder::class, $recorder);
         $this->withSession(['admin_authenticated' => true])->withoutExceptionHandling();
 
         try {
-            $this->patch('/admin/moderation/photos/'.$this->teacher, ['status' => 'rejected']);
+            $this->patch('/admin/moderation/photos/'.$this->learner, ['status' => 'rejected']);
             $this->fail('The failed history write should abort the request.');
         } catch (\RuntimeException $exception) {
             $this->assertSame('History write failed.', $exception->getMessage());
         }
 
-        $this->assertSame('pending', DB::table('users')->where('id', $this->teacher)->value('avatar_status'));
+        $this->assertSame('pending', DB::table('users')->where('id', $this->learner)->value('avatar_status'));
         $this->assertSame(0, DB::table('business_activity')->where('event', 'avatar.reviewed')->count());
     }
 
@@ -323,7 +356,8 @@ class AdminReportingTest extends TestCase
         $token = app(AuthenticationService::class)->issueSessionToken($this->teacher);
         $this->withToken($token);
 
-        $this->patchJson('/moderation/photos/'.$this->teacher, ['status' => 'approved'])->assertOk();
+        DB::table('users')->where('id', $this->learner)->update(['avatar_status' => 'pending']);
+        $this->patchJson('/moderation/photos/'.$this->learner, ['status' => 'approved'])->assertOk();
         $this->patchJson('/profiles/institute/'.$this->institute.'/bsl-verified', ['verified' => true])->assertOk();
         $this->postJson('/moderation/users/'.$this->learner.'/suspend', ['reason' => 'First reason'])->assertOk();
         $this->postJson('/moderation/users/'.$this->learner.'/suspend', ['reason' => 'Updated reason'])->assertOk();

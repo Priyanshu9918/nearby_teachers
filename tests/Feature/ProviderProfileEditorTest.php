@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Services\AuthenticationService;
+use App\Services\CustomSubjectApproval;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -145,7 +146,7 @@ class ProviderProfileEditorTest extends TestCase
         ]);
         if ($bsl) {
             $response->assertOk();
-            $this->assertSame(6, DB::table('profile_subjects')->where('profile_type', $type)->where('profile_id', $this->userId)->count());
+            $this->assertSame(5, DB::table('profile_subjects')->where('profile_type', $type)->where('profile_id', $this->userId)->count());
         } else {
             $response->assertUnprocessable()->assertJsonValidationErrors('otherSubjects');
             $this->assertDatabaseMissing('subjects', ['name' => 'Limit Custom Course']);
@@ -160,12 +161,73 @@ class ProviderProfileEditorTest extends TestCase
             $this->useTeacher();
         }
         $this->patchJson('/profiles/me/steps/2', ['otherSubjects' => ['Editor Custom Course']])->assertOk();
+        $this->assertDatabaseMissing('subjects', ['name' => 'Editor Custom Course']);
+        $this->assertDatabaseMissing('profile_subjects', ['profile_type' => $type, 'profile_id' => $this->userId]);
+        $pending = DB::table('custom_subject_requests')->where('user_id', $this->userId)->where('name', 'Editor Custom Course')->value('id');
+        app(CustomSubjectApproval::class)->review($pending, 'approved');
         $id = DB::table('subjects')->where('name', 'Editor Custom Course')->value('id');
         $this->assertDatabaseHas('profile_subjects', ['profile_type' => $type, 'profile_id' => $this->userId, 'subject_id' => $id]);
         $field = $type === 'teacher' ? 'primarySubjects' : 'subjectIds';
         $this->putJson('/profiles/me', [$field => [$this->subjectId], 'otherSubjects' => ['editor custom course']])->assertOk();
         $this->assertSame(2, DB::table('profile_subjects')->where('profile_type', $type)->where('profile_id', $this->userId)->count());
         $this->assertSame(1, DB::table('subjects')->whereRaw('LOWER(name) = ?', ['editor custom course'])->count());
+    }
+
+    #[DataProvider('providers')]
+    public function test_pending_custom_courses_stay_out_of_catalogue_and_owner_profile_until_admin_approves(string $type): void
+    {
+        if ($type === 'teacher') {
+            $this->useTeacher();
+        }
+        $field = $type === 'teacher' ? 'primarySubjects' : 'subjectIds';
+        $this->patchJson('/profiles/me/steps/2', [$field => [$this->subjectId], 'otherSubjects' => ['Pending Approval Course']])
+            ->assertOk()->assertJsonPath('customCoursesPendingApproval', true);
+        $this->getJson('/subjects')->assertOk()->assertDontSee('Pending Approval Course');
+        $this->getJson('/profiles/me')->assertOk()->assertDontSee('Pending Approval Course');
+        $id = DB::table('custom_subject_requests')->where('user_id', $this->userId)->value('id');
+        $this->patch('/admin/moderation/course-requests/'.$id, ['status' => 'approved'])->assertRedirect(route('admin.login'));
+        $this->withSession(['admin_authenticated' => true])->get('/admin/moderation/course-requests')->assertOk()->assertSee('Pending Approval Course');
+        $this->patch('/admin/moderation/course-requests/'.$id, ['status' => 'approved'])->assertRedirect();
+        $this->getJson('/subjects')->assertOk()->assertSee('Pending Approval Course');
+        $this->getJson('/profiles/me')->assertOk()->assertSee('Pending Approval Course');
+        $this->assertDatabaseHas('custom_subject_requests', ['id' => $id, 'status' => 'approved']);
+        $this->assertDatabaseHas('admin_report_access_log', ['report' => 'custom-course-requests', 'record_id' => $id, 'action' => 'course-request-approved']);
+        $this->patch('/admin/moderation/course-requests/'.$id, ['status' => 'approved'])->assertRedirect();
+        $this->assertSame(1, DB::table('business_activity')->where('event', 'course_request.reviewed')->where('entity_id', $id)->count());
+    }
+
+    #[DataProvider('providers')]
+    public function test_rejected_or_cancelled_course_requests_never_create_a_subject(string $type): void
+    {
+        if ($type === 'teacher') {
+            $this->useTeacher();
+        }
+        $field = $type === 'teacher' ? 'primarySubjects' : 'subjectIds';
+        $this->patchJson('/profiles/me/steps/2', [$field => [$this->subjectId], 'otherSubjects' => ['Rejected Course']])->assertOk();
+        $id = DB::table('custom_subject_requests')->where('user_id', $this->userId)->value('id');
+        $this->withSession(['admin_authenticated' => true])->patch('/admin/moderation/course-requests/'.$id, ['status' => 'rejected'])->assertRedirect();
+        $this->assertDatabaseMissing('subjects', ['name' => 'Rejected Course']);
+        $this->getJson('/profiles/me')->assertOk()->assertDontSee('Rejected Course');
+        $this->patchJson('/profiles/me/steps/2', [$field => [$this->subjectId], 'otherSubjects' => ['Rejected Course']])->assertOk();
+        $this->patchJson('/profiles/me/steps/2', [$field => [$this->subjectId]])->assertOk();
+        $this->assertDatabaseHas('custom_subject_requests', ['id' => $id, 'status' => 'cancelled']);
+        $this->assertFalse(app(CustomSubjectApproval::class)->review($id, 'approved'));
+        $this->assertDatabaseMissing('subjects', ['name' => 'Rejected Course']);
+    }
+
+    public function test_course_approval_rolls_back_catalogue_selection_and_decision_when_history_fails(): void
+    {
+        $this->patchJson('/profiles/me/steps/2', ['otherSubjects' => ['Atomic Course']])->assertOk();
+        $id = DB::table('custom_subject_requests')->where('user_id', $this->userId)->value('id');
+        DB::listen(function ($query): void {
+            if (str_contains($query->sql, 'insert into `business_activity`') && in_array('course_request.reviewed', $query->bindings, true)) {
+                throw new \RuntimeException('History unavailable');
+            }
+        });
+        $this->withSession(['admin_authenticated' => true])->patch('/admin/moderation/course-requests/'.$id, ['status' => 'approved'])->assertStatus(500);
+        $this->assertDatabaseMissing('subjects', ['name' => 'Atomic Course']);
+        $this->assertDatabaseMissing('profile_subjects', ['profile_id' => $this->userId]);
+        $this->assertDatabaseHas('custom_subject_requests', ['id' => $id, 'status' => 'pending', 'subject_id' => null]);
     }
 
     private function saveThree(string $type): void
@@ -351,13 +413,17 @@ class ProviderProfileEditorTest extends TestCase
         $this->getJson('/auth/session')->assertOk()->assertJsonPath('instituteProfileUrl', null);
     }
 
-    public function test_institute_photo_is_moderated_without_advancing_draft(): void
+    #[DataProvider('providers')]
+    public function test_provider_photo_is_visible_immediately_without_advancing_draft(string $type): void
     {
+        if ($type === 'teacher') {
+            $this->useTeacher();
+        }
         Storage::fake('public');
         $image = UploadedFile::fake()->createWithContent('avatar.png', base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII='));
-        $this->postJson('/profiles/me/photo', ['image' => $image])->assertCreated()->assertJsonPath('user.avatar_status', 'pending');
+        $this->postJson('/profiles/me/photo', ['image' => $image])->assertCreated()->assertJsonPath('user.avatar_status', 'approved');
         $this->getJson('/profiles/me')->assertOk()->assertJsonPath('profileDraft.completedSteps', []);
-        $this->assertDatabaseHas('business_activity', ['event' => 'institute.avatar_submitted', 'entity_id' => (string) $this->userId]);
+        $this->assertDatabaseHas('business_activity', ['event' => $type.'.avatar_submitted', 'entity_id' => (string) $this->userId]);
     }
 
     public function test_institute_reports_filter_export_and_audit_draft_progress(): void

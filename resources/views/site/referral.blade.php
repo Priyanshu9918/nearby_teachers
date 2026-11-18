@@ -30,20 +30,13 @@
             <span class="btn disabled referral-download">{{ data_get($t, 'referral.downloadUnavailable', 'The app download link is not available yet.') }}</span>
         @endif
 
-        <div class="lang-picker">
-            <label for="lang-select">{{ data_get($t, 'settings.language') }}</label>
-            <select id="lang-select" onchange="const params=new URLSearchParams(window.location.search);params.set('lang',this.value);window.location.search=params.toString()">
-                @foreach ($languages as $language)
-                    <option value="{{ $language['code'] }}" @selected($language['code'] === $lang)>{{ $language['nativeName'] }}</option>
-                @endforeach
-            </select>
-        </div>
+
     </div>
 </main>
 <style>
     .referral-code-card{background:var(--app-primary-soft);border-radius:12px;padding:14px;margin:0 0 20px}
     .referral-code{display:block;color:var(--app-primary);font-size:26px;font-weight:700;letter-spacing:.14em;margin-top:6px}
-    .referral-steps{text-align:left;color:var(--app-text-primary);font-size:14px;line-height:1.6;padding-left:24px;margin:0 0 18px}
+    .referral-steps{text-align:start;color:var(--app-text-primary);font-size:14px;line-height:1.6;padding-inline-start:24px;margin:0 0 18px}
     .referral-steps li{padding:4px 0 4px 3px}
     .referral-download{display:block;margin-top:18px}
 </style>

@@ -5,7 +5,7 @@ manage the WhatsApp number, email address and LinkedIn profile through the admin
 API or the browser admin sidebar's **Contact BSL links** page. The WhatsApp URL
 is derived from the saved number, including its country code.
 
-Learners, teachers and institutes can submit a subject and message with
+Learners, teachers and institutes can submit a subject, message and optional screenshot with
 `POST /support`. New tickets receive a numeric ID and start as `pending`. The app
 loads the signed-in user's history from `GET /support/mine`; the response
 includes the latest status and timestamps, with bounded pagination. Admins can
@@ -49,6 +49,75 @@ Content-Type: application/json
 
 Creation returns `201` with the submitted ticket. `/support/mine?page=1&perPage=20`
 returns the caller's tickets and `pagination.hasMore`; `perPage` is capped at 50.
+
+## Optional screenshot upload
+
+Keep using `POST /support`; send `multipart/form-data` when attaching an image.
+The fields are `subject` (required, max 255), `message` (required, max 5000), and
+`screenshot` (optional single JPEG/PNG/WebP file, max 5 MB). SVG/PDF and non-image
+uploads are rejected with HTTP 422 under `errors.screenshot`. Existing JSON
+requests without a screenshot remain valid.
+
+```bash
+curl --request POST "{{BASE_URL}}/support" \
+  --header "Authorization: Bearer {{ACCESS_TOKEN}}" \
+  --header "Accept: application/json" \
+  --form "subject=Profile update issue" \
+  --form "message=Please check the error shown in the screenshot." \
+  --form "screenshot=@/path/to/screenshot.png"
+```
+
+Let the HTTP client set the multipart boundary; do not manually set a JSON
+Content-Type header for this request.
+
+HTTP 201 response (fictional example):
+
+```json
+{
+  "ticket": {
+    "id": 123,
+    "user_id": 45,
+    "subject": "Profile update issue",
+    "message": "Please check the error shown in the screenshot.",
+    "status": "pending",
+    "created_at": "2026-11-18 10:00:00",
+    "updated_at": "2026-11-18 10:00:00",
+    "screenshotAvailable": true,
+    "screenshotUrl": "https://example.com/support/123/screenshot"
+  }
+}
+```
+
+Without an attachment, `screenshotAvailable` is false and `screenshotUrl` is null.
+Creation, owner ticket history, admin ticket listing and status responses use
+these fields and never expose the internal storage path.
+
+```http
+GET /support/123/screenshot
+Authorization: Bearer <ticket-owner-or-admin-token>
+```
+
+This returns image bytes with the correct image Content-Type and private/no-store
+headers, not JSON. App image widgets must include the bearer header when loading
+`screenshotUrl`. Other users receive 404; missing authentication receives 401.
+Files are on the private local disk, outside public `/storage` URLs. There is no
+standalone anonymous upload endpoint or attachment-replacement endpoint.
+
+Browser admins use `/admin/support/tickets/123/screenshot` through the **View
+screenshot** action in the support report. This requires the admin session and
+logs the read. Bearer-admin screenshot reads are also access-logged.
+
+Deploy migration `2026_11_18_000004_add_support_ticket_screenshot.php` with the
+API changes. Existing tickets start without screenshots. The report/CSV exposes
+only `screenshot_available`, not private file paths or image content. Existing
+status/search/date/participant filters and streaming exports remain shared.
+
+Version 1 `support_ticket.screenshot_attached` records only `has_screenshot: true`
+in the source ticket transaction; existing submission/status events are unchanged.
+No image bytes, storage paths, subjects/messages or credentials are copied to
+business history. A failed ticket transaction deletes the newly stored file;
+no historical attachments are invented. Notification emails still dispatch after
+commit and do not contain the private file bytes.
 
 ## Admin API
 

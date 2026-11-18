@@ -148,6 +148,8 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
     Route::post('/franchise/enquiries', [EnquiriesController::class, 'franchise'])->middleware('throttle:enquiries');
     Route::post('/jobs/applications', [EnquiriesController::class, 'teachingJob'])->middleware('throttle:enquiries');
     Route::get('/support/mine', [OperationsController::class, 'mineTickets']);
+    Route::get('/support/{id}/screenshot', [OperationsController::class, 'ticketScreenshot'])
+        ->where('id', SupportTicketId::ROUTE_PATTERN)->name('support.screenshot');
     Route::get('/referrals/mine', [OperationsController::class, 'referralMine']);
     Route::post('/referrals/redeem', [OperationsController::class, 'redeemReferral']);
 
@@ -170,6 +172,7 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
         Route::get('/analytics/summary', [OperationsController::class, 'analyticsSummary']);
 
         Route::get('/moderation/photos/pending', [ModerationController::class, 'pendingPhotos']);
+        Route::delete('/moderation/photos/{userId}', [ModerationController::class, 'deletePhoto'])->where('userId', RecordId::ROUTE_PATTERN);
         Route::patch('/moderation/photos/{userId}', [ModerationController::class, 'reviewPhoto'])->where('userId', RecordId::ROUTE_PATTERN);
         Route::get('/moderation/conversations', [ModerationController::class, 'conversations']);
         Route::get('/moderation/conversations/{id}/messages', [ModerationController::class, 'conversationMessages'])->where('id', RecordId::ROUTE_PATTERN);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Reporting\BusinessActivityRecorder;
+use App\Services\ProviderPhotoRemoval;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,7 @@ class ModerationController extends Controller
     {
         $pending = DB::table('users')
             ->where('avatar_status', 'pending')
+            ->whereNotIn('account_type', ['teacher', 'institute'])
             ->select('id', 'full_name', 'avatar_url', 'account_type', 'updated_at')
             ->orderBy('updated_at')->get();
 
@@ -26,7 +28,8 @@ class ModerationController extends Controller
         $admin = $request->attributes->get('authenticated_user');
         $user = DB::transaction(function () use ($admin, $data, $userId): ?object {
             $user = DB::table('users')->where('id', $userId)->lockForUpdate()
-                ->first(['id', 'avatar_status']);
+                ->first(['id', 'avatar_status', 'account_type']);
+            abort_if($user !== null && in_array($user->account_type, ['teacher', 'institute'], true), 422, 'Provider photos publish immediately. Use DELETE to remove one.');
             if ($user === null || $user->avatar_status !== 'pending') {
                 return null;
             }
@@ -45,6 +48,14 @@ class ModerationController extends Controller
         }
 
         return response()->json(['user' => $user]);
+    }
+
+    public function deletePhoto(Request $request, int $userId): JsonResponse
+    {
+        $admin = $request->attributes->get('authenticated_user');
+        $changed = app(ProviderPhotoRemoval::class)->remove($userId, (int) $admin->id);
+
+        return response()->json(['ok' => true, 'removed' => $changed]);
     }
 
     public function conversations(): JsonResponse

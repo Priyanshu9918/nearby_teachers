@@ -1,13 +1,8 @@
 @php
     $headerCountry = $headerCountry ?? null;
     $headerLanguage = $language ?? 'en';
-    $headerLanguages = $headerCountry
-        ? config('seo.countries.'.$headerCountry.'.languages', ['en'])
-        : array_keys(config('seo.language_names', ['en' => 'English']));
-    $headerCopy = [
-        'en' => ['cities' => 'Cities & villages', 'become' => 'Become a teacher', 'get_app' => 'Get the app'],
-        'hi' => ['cities' => 'शहर और क्षेत्र', 'become' => 'शिक्षक बनें', 'get_app' => 'ऐप डाउनलोड करें'],
-    ][$headerLanguage] ?? ['cities' => 'Cities & villages', 'become' => 'Become a teacher', 'get_app' => 'Get the app'];
+    $headerLanguages = \App\Support\PublicLanguages::codes();
+    $headerCopy = ['cities' => $labels['cities'], 'become' => $labels['become'], 'get_app' => $labels['get_app']];
     $headerDownload = isset($providerSlug)
         ? route('download', ['type' => $providerType ?? 'teacher', 'slug' => $providerSlug])
         : route('download');

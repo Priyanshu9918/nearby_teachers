@@ -7,6 +7,7 @@ use App\Services\InstitutePublicPages;
 use App\Services\SeoDirectory;
 use App\Services\SeoMaintenance;
 use App\Services\TeacherPublicPages;
+use App\Support\PublicLanguages;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -287,7 +288,11 @@ class TeacherPublicPagesTest extends TestCase
             ->assertDontSee('hreflang=', false);
         $this->get('/in/en/kanpur/maths-tuition')->assertStatus(301)
             ->assertRedirect('http://localhost/in/kanpur/maths-tuition?lang=en');
-        $this->get('/in/ja/kanpur/maths-tuition')->assertNotFound();
+        $this->get('/in/ja/kanpur/maths-tuition')->assertRedirect('http://localhost/in/kanpur/maths-tuition?lang=ja');
+        foreach (PublicLanguages::codes() as $language) {
+            $this->get('/in/kanpur/maths-tuition?lang='.$language)->assertOk()->assertSee('<html lang="'.$language.'"', false);
+            $this->get('/in?lang='.$language)->assertOk()->assertSee('<html lang="'.$language.'"', false);
+        }
         $this->get('/in/unknown/maths-tuition')->assertNotFound();
     }
 

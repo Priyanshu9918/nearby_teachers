@@ -100,7 +100,17 @@
     "title": "دعوة صديق",
     "subtitle": "ساعد صديقًا على إيجاد معلم قريب",
     "shareLink": "شارك رابطك",
-    "friendsJoined": "انضم {count} أصدقاء عبر رابطك"
+    "friendsJoined": "انضم {count} أصدقاء عبر رابطك",
+    "landingTitle": "دعاك أحد الأصدقاء",
+    "landingIntro": "حمّل Nearby Teacher وأكمل التسجيل واستخدم رمز إحالة صديقك.",
+    "codeLabel": "رمز الإحالة الخاص بك",
+    "stepDownload": "حمّل التطبيق باستخدام الزر أدناه.",
+    "stepRegister": "أنشئ حسابك وأكمل التسجيل في التطبيق.",
+    "stepRedeem": "افتح الإحالات ← استخدام رمز الإحالة في التطبيق وأدخل هذا الرمز.",
+    "pointMessage": "يحصل صديقك على نقطة واحدة بعد استخدامك الرمز بنجاح.",
+    "downloadButton": "تحميل التطبيق",
+    "invalidCode": "رمز الإحالة هذا غير صالح. لا يزال بإمكانك تحميل التطبيق.",
+    "downloadUnavailable": "رابط تحميل التطبيق غير متاح بعد."
   },
   "contactBsl": {
     "title": "تواصل مع BSL",
@@ -140,12 +150,47 @@
     "seeAllHere": "شاهد جميع المعلمين والمعاهد هنا",
     "noPostsYet": "لا توجد منشورات في {city} بعد. كن أول من ينشر — افتح التطبيق للنشر.",
     "replyLikePost": "رد، أعجب، أو انشر الخاص بك — افتح تطبيق Nearby Teacher.",
-    "getApp": "احصل على التطبيق"
+    "getApp": "احصل على التطبيق",
+    "privacyPolicy": "سياسة الخصوصية",
+    "englishPolicyNotice": "سياسة الخصوصية هذه متاحة حاليًا باللغة الإنجليزية."
   },
   "errors": {
     "notFound": "غير موجود",
     "somethingWrong": "حدث خطأ ما",
     "tooManyRequests": "طلبات كثيرة جدًا. يرجى الانتظار قليلًا ثم المحاولة مرة أخرى.",
     "invalidToken": "رمز غير صالح أو منتهي الصلاحية"
+  },
+  "webpage": {
+    "title": "صفحتك على الويب",
+    "description": "شارك صفحتك على Nearby Teacher واطبع ملصق QR.",
+    "share_text": "ابحث عن {name} على Nearby Teacher",
+    "copy": "نسخ",
+    "open": "فتح",
+    "share_hint": "شارك هذا الرابط على WhatsApp أو Facebook أو بطاقة عملك.",
+    "existing_profile": "افتح صفحة ملفك الحالية",
+    "poster_title": "ملصق QR الخاص بك",
+    "poster_hint": "اطبعه لمركزك أو بوابة مدرسة أو متجر محلي. يمكن للناس مسحه لرؤية صفحتك.",
+    "print": "اطبع ملصقي",
+    "related": "ستظهر أيضًا في",
+    "poster_preview": "معاينة ملصق QR للطباعة",
+    "find_me": "اعثر عليّ في Nearby Teacher",
+    "contact_me": "ابحث عني في التطبيق أو تواصل عبر WhatsApp",
+    "scan": "امسح الرمز لعرض الملف",
+    "copied": "تم النسخ",
+    "copy_prompt": "انسخ رابط صفحتك",
+    "live": "منشور"
+  },
+  "teacherPage": {
+    "inPerson": "حضوري",
+    "homeTuition": "دروس منزلية",
+    "online": "عبر الإنترنت",
+    "trialDays": "أيام التجربة",
+    "reviews": "تقييمات الطلاب",
+    "previous": "السابق",
+    "next": "التالي",
+    "teacherIn": "معلم في",
+    "fullProfile": "الملف الكامل",
+    "viewFullProfile": "عرض الملف الكامل",
+    "links": "روابط مهنية"
   }
 }

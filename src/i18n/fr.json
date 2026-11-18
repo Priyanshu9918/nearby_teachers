@@ -100,7 +100,17 @@
     "title": "Parrainer un ami",
     "subtitle": "Aidez un ami à trouver un enseignant à proximité",
     "shareLink": "Partagez votre lien",
-    "friendsJoined": "{count} amis ont rejoint via votre lien"
+    "friendsJoined": "{count} amis ont rejoint via votre lien",
+    "landingTitle": "Un ami vous a invité",
+    "landingIntro": "Téléchargez Nearby Teacher, terminez votre inscription et saisissez le code de parrainage de votre ami.",
+    "codeLabel": "Votre code de parrainage",
+    "stepDownload": "Téléchargez l’application avec le bouton ci-dessous.",
+    "stepRegister": "Créez votre compte et terminez l’inscription dans l’application.",
+    "stepRedeem": "Ouvrez Parrainage → Utiliser un code dans l’application et saisissez ce code.",
+    "pointMessage": "Votre ami reçoit un point lorsque vous utilisez le code avec succès.",
+    "downloadButton": "Télécharger l’application",
+    "invalidCode": "Ce code de parrainage n’est pas valide. Vous pouvez quand même télécharger l’application.",
+    "downloadUnavailable": "Le lien de téléchargement n’est pas encore disponible."
   },
   "contactBsl": {
     "title": "Contacter BSL",
@@ -140,12 +150,47 @@
     "seeAllHere": "Voir tous les enseignants et instituts ici",
     "noPostsYet": "Aucune publication à {city} pour l'instant. Soyez le premier — ouvrez l'app pour publier.",
     "replyLikePost": "Répondez, aimez, ou publiez le vôtre — ouvrez l'app Nearby Teacher.",
-    "getApp": "Obtenir l'app"
+    "getApp": "Obtenir l'app",
+    "privacyPolicy": "Politique de confidentialité",
+    "englishPolicyNotice": "Cette politique de confidentialité est actuellement disponible en anglais."
   },
   "errors": {
     "notFound": "Introuvable",
     "somethingWrong": "Une erreur s'est produite",
     "tooManyRequests": "Trop de requêtes. Veuillez patienter puis réessayer.",
     "invalidToken": "Jeton invalide ou expiré"
+  },
+  "webpage": {
+    "title": "Votre page web",
+    "description": "Partagez votre page Nearby Teacher et imprimez une affiche QR.",
+    "share_text": "Retrouvez {name} sur Nearby Teacher",
+    "copy": "Copier",
+    "open": "Ouvrir",
+    "share_hint": "Partagez ce lien sur WhatsApp, Facebook ou votre carte de visite.",
+    "existing_profile": "Ouvrir votre profil existant",
+    "poster_title": "Votre affiche QR",
+    "poster_hint": "Imprimez-la pour votre centre, une école ou un commerce. Un scan permet de voir votre page.",
+    "print": "Imprimer mon affiche",
+    "related": "Vous figurerez aussi sur",
+    "poster_preview": "Aperçu de l’affiche QR à imprimer",
+    "find_me": "Retrouvez-moi sur Nearby Teacher",
+    "contact_me": "Retrouvez-moi dans l’application ou sur WhatsApp",
+    "scan": "Scannez pour voir le profil",
+    "copied": "Copié",
+    "copy_prompt": "Copiez le lien de votre page",
+    "live": "Publié"
+  },
+  "teacherPage": {
+    "inPerson": "En personne",
+    "homeTuition": "À domicile",
+    "online": "En ligne",
+    "trialDays": "Jours d’essai",
+    "reviews": "Avis des élèves",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "teacherIn": "enseignant à",
+    "fullProfile": "Profil complet",
+    "viewFullProfile": "Voir le profil complet",
+    "links": "Liens professionnels"
   }
 }

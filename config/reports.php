@@ -41,7 +41,7 @@ return [
     ],
     'job-application-courses' => [
         'title' => 'BSL job applications by course', 'table' => 'teaching_job_application_courses', 'timestamp' => 'created_at',
-        'columns' => ['id', 'application_id', 'user_id', 'course_id', 'course_name', 'created_at'],
+        'columns' => ['id', 'application_id', 'user_id', 'course_id', 'custom_request_id', 'course_name', 'created_at'],
         'participants' => ['user_id'], 'search' => ['application_id', 'course_id', 'course_name'],
     ],
     'otp-delivery' => [
@@ -115,6 +115,7 @@ return [
         'title' => 'Support tickets', 'table' => 'support_tickets', 'timestamp' => 'created_at',
         'columns' => ['id', 'user_id', 'subject', 'message', 'status', 'created_at', 'updated_at'],
         'participants' => ['user_id'], 'search' => ['subject', 'message', 'status'],
+        'computed' => ['screenshot_available' => 'CASE WHEN r.screenshot_path IS NOT NULL THEN 1 ELSE 0 END'],
     ],
     'support-contact-settings' => [
         'title' => 'Support contact settings', 'table' => 'support_contact_settings', 'timestamp' => 'updated_at',
@@ -179,6 +180,11 @@ return [
         'title' => 'Profile subjects', 'table' => 'profile_subjects', 'timestamp' => null,
         'columns' => ['id', 'profile_type', 'profile_id', 'subject_id'],
         'participants' => [], 'search' => [],
+    ],
+    'custom-course-requests' => [
+        'title' => 'Custom course approval requests', 'table' => 'custom_subject_requests', 'timestamp' => 'created_at',
+        'columns' => ['id', 'user_id', 'profile_type', 'name', 'status', 'subject_id', 'reviewed_at', 'created_at', 'updated_at'],
+        'participants' => ['user_id'], 'search' => ['name', 'status', 'profile_type'],
     ],
     'subjects' => [
         'title' => 'Subjects', 'table' => 'subjects', 'timestamp' => null,

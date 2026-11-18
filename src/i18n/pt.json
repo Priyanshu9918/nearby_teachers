@@ -100,7 +100,17 @@
     "title": "Indicar um amigo",
     "subtitle": "Ajude um amigo a encontrar um professor por perto",
     "shareLink": "Compartilhe seu link",
-    "friendsJoined": "{count} amigos entraram pelo seu link"
+    "friendsJoined": "{count} amigos entraram pelo seu link",
+    "landingTitle": "Um amigo convidou você",
+    "landingIntro": "Baixe o Nearby Teacher, conclua o cadastro e use o código de indicação do seu amigo.",
+    "codeLabel": "Seu código de indicação",
+    "stepDownload": "Baixe o aplicativo usando o botão abaixo.",
+    "stepRegister": "Crie sua conta e conclua o cadastro no aplicativo.",
+    "stepRedeem": "Abra Indicações → Usar indicação no aplicativo e insira este código.",
+    "pointMessage": "Seu amigo recebe um ponto quando você usa o código com sucesso.",
+    "downloadButton": "Baixar o aplicativo",
+    "invalidCode": "Este código de indicação é inválido. Você ainda pode baixar o aplicativo.",
+    "downloadUnavailable": "O link para baixar o aplicativo ainda não está disponível."
   },
   "contactBsl": {
     "title": "Contatar a BSL",
@@ -140,12 +150,47 @@
     "seeAllHere": "Veja todos os professores e institutos aqui",
     "noPostsYet": "Ainda não há publicações em {city}. Seja o primeiro — abra o app para publicar.",
     "replyLikePost": "Responda, curta ou publique o seu — abra o app Nearby Teacher.",
-    "getApp": "Obter o app"
+    "getApp": "Obter o app",
+    "privacyPolicy": "Política de privacidade",
+    "englishPolicyNotice": "Esta política de privacidade está disponível atualmente em inglês."
   },
   "errors": {
     "notFound": "Não encontrado",
     "somethingWrong": "Algo deu errado",
     "tooManyRequests": "Muitas solicitações. Aguarde um momento e tente novamente.",
     "invalidToken": "Token inválido ou expirado"
+  },
+  "webpage": {
+    "title": "Sua página web",
+    "description": "Compartilhe sua página do Nearby Teacher e imprima um cartaz QR.",
+    "share_text": "Encontre {name} no Nearby Teacher",
+    "copy": "Copiar",
+    "open": "Abrir",
+    "share_hint": "Compartilhe este link no WhatsApp, Facebook ou no seu cartão de visita.",
+    "existing_profile": "Abrir seu perfil atual",
+    "poster_title": "Seu cartaz QR",
+    "poster_hint": "Imprima para seu centro, uma escola ou uma loja. As pessoas podem escanear para ver sua página.",
+    "print": "Imprimir meu cartaz",
+    "related": "Você também aparecerá em",
+    "poster_preview": "Prévia do cartaz QR para impressão",
+    "find_me": "Encontre-me no Nearby Teacher",
+    "contact_me": "Encontre-me no aplicativo ou fale pelo WhatsApp",
+    "scan": "Escaneie para ver o perfil",
+    "copied": "Copiado",
+    "copy_prompt": "Copie o link da sua página",
+    "live": "Publicado"
+  },
+  "teacherPage": {
+    "inPerson": "Presencial",
+    "homeTuition": "Em domicílio",
+    "online": "Online",
+    "trialDays": "Dias de teste",
+    "reviews": "Avaliações de alunos",
+    "previous": "Anterior",
+    "next": "Próximo",
+    "teacherIn": "professor em",
+    "fullProfile": "Perfil completo",
+    "viewFullProfile": "Ver perfil completo",
+    "links": "Links profissionais"
   }
 }

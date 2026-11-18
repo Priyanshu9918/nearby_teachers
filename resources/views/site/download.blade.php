@@ -13,14 +13,7 @@
         </div>
         <p class="meta">{{ data_get($t, 'website.openingApp') }}</p>
         <p class="meta">{{ $deepLinkPath }} @if ($ref) · {{ $ref }} @endif</p>
-        <div class="lang-picker">
-            <label for="lang-select">{{ data_get($t, 'settings.language') }}</label>
-            <select id="lang-select" onchange="const params=new URLSearchParams(window.location.search);params.set('lang',this.value);window.location.search=params.toString()">
-                @foreach ($languages as $language)
-                    <option value="{{ $language['code'] }}" @selected($language['code'] === $lang)>{{ $language['nativeName'] }}</option>
-                @endforeach
-            </select>
-        </div>
+
     </div>
 </main>
 @endsection

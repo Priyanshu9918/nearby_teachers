@@ -377,6 +377,8 @@ class OnboardingController extends Controller
 
         return [
             'mobileVerified' => $mobileVerified,
+            'customCoursesPendingApproval' => in_array($accountType, ['teacher', 'institute'], true)
+                && DB::table('custom_subject_requests')->where('user_id', $user->id)->where('profile_type', $accountType)->where('status', 'pending')->exists(),
             'profileCompleted' => $profileCompleted,
             'registrationCompleted' => $profileCompleted,
             'autosaveEnabled' => $mobileVerified && $profileCompleted,

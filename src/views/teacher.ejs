@@ -73,5 +73,6 @@
 
   <p class="footer-note"><%= t.website.poweredBy %> <a href="/site"><%= t.common.appName %></a> · <a href="/site/city/<%= encodeURIComponent(teacher.city || '') %>"><%= t.website.allTeachersInstitutesIn.replace('{city}', teacher.city) %></a> · <a href="/site/feed/<%= encodeURIComponent(teacher.city || '') %>"><%= t.feed.title %></a></p>
 </div>
+<%- include('language-picker') %>
 </body>
 </html>

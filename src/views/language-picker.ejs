@@ -1,0 +1,8 @@
+<form class="lang-picker" method="get" style="max-width:760px;margin:20px auto;padding:16px">
+  <label for="site-language"><%= t.settings.language %></label>
+  <select id="site-language" onchange="const params=new URLSearchParams(location.search);params.set('lang',this.value);location.search=params.toString()">
+    <% languageOptions.forEach(function(option) { %>
+      <option value="<%= option.code %>" <%= option.code === lang ? 'selected' : '' %>><%= option.nativeName %></option>
+    <% }); %>
+  </select>
+</form>

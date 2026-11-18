@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Services\AuthenticationService;
+use App\Services\CustomSubjectApproval;
 use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -189,11 +190,17 @@ class EnquiriesTest extends TestCase
         $first = $this->postJson('/jobs/applications', [...$this->job(), 'otherSubjects' => [' Job   Abacus ', 'job abacus']])
             ->assertCreated()->assertJsonCount(2, 'application.courses');
         $domain = DB::table('subject_domains')->where('name', 'Other')->first();
+        $this->assertDatabaseMissing('subjects', ['name' => 'Job Abacus']);
+        $pending = DB::table('custom_subject_requests')->where('user_id', $this->userId)->where('profile_type', 'job')->value('id');
+        $this->assertDatabaseHas('teaching_job_application_courses', ['application_id' => $first->json('application.id'),
+            'course_id' => null, 'custom_request_id' => $pending, 'course_name' => 'Job Abacus']);
+        $this->getJson('/subjects')->assertOk()->assertDontSee('Job Abacus');
+        app(CustomSubjectApproval::class)->review($pending, 'approved');
         $custom = DB::table('subjects')->where('domain_id', $domain->id)->where('name', 'Job Abacus')->first();
         $this->assertNotNull($custom);
         $this->assertFalse((bool) $custom->is_bsl);
         $this->assertDatabaseHas('teaching_job_application_courses', ['application_id' => $first->json('application.id'),
-            'course_id' => $custom->id, 'course_name' => 'Job Abacus']);
+            'course_id' => null, 'custom_request_id' => $pending, 'course_name' => 'Job Abacus']);
         $this->getJson('/subjects')->assertOk()->assertJsonFragment(['name' => 'Job Abacus']);
         $this->postJson('/jobs/applications', [...$this->job(), 'courseIds' => [], 'otherSubjects' => ['JOB ABACUS']])
             ->assertCreated()->assertJsonPath('application.courses.0.id', $custom->id)->assertJsonCount(1, 'application.courses');
@@ -242,6 +249,7 @@ class EnquiriesTest extends TestCase
             $failHistory = false;
         }
         $this->assertDatabaseMissing('subjects', ['name' => 'Rolled back job course']);
+        $this->assertDatabaseMissing('custom_subject_requests', ['name' => 'Rolled back job course']);
         $this->assertDatabaseCount('teaching_job_applications', 0);
         $this->assertDatabaseCount('teaching_job_application_courses', 0);
         $this->assertSame(0, DB::table('business_activity')->where('actor_user_id', $this->userId)->count());

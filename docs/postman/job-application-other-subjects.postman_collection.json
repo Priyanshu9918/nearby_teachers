@@ -1,8 +1,8 @@
 {
   "info": {
-    "name": "Nearby Teacher \u2014 Apply for Job with Other Courses",
+    "name": "Nearby Teacher — Apply for Job with Other Courses",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Login with an existing phone-verified learner/teacher/institute account, or set jobToken from that account manually. Each apply request creates a separate application. Maximum 5 requests/minute. Existing BSL and saved Other IDs are allowed; unrelated non-BSL categories remain disallowed. All course names and salary values are saved as application snapshots. Run custom-only first to populate savedOtherSubjectId, or browse an existing customCourse. Set baseUrl, jobEmail, password and contact phone. Blank bearer token defaults; no real credentials included."
+    "description": "New Other course names require admin approval. Pending names are hidden from owner profiles and the public catalogue. Approve in Admin > Course approvals, then refresh GET /subjects before using savedOtherSubjectId. Login with an existing phone-verified learner/teacher/institute account, or set jobToken from that account manually. Each apply request creates a separate application. Maximum 5 requests/minute. Existing BSL and saved Other IDs are allowed; unrelated non-BSL categories remain disallowed. All course names and salary values are saved as application snapshots. Run custom-only first to populate savedOtherSubjectId, or browse an existing customCourse. Set baseUrl, jobEmail, password and contact phone. Blank bearer token defaults; no real credentials included."
   },
   "variable": [
     {
@@ -152,7 +152,11 @@
             "type": "text/javascript",
             "exec": [
               "pm.test(\"Application submitted\", () => pm.response.to.have.status(201));",
-              "if (pm.response.code === 201) pm.collectionVariables.set(\"savedOtherSubjectId\", pm.response.json().application.courses[0].id);"
+              "if (pm.response.code === 201) {",
+              " const course = pm.response.json().application.courses[0];",
+              " if (course.id !== null) pm.collectionVariables.set(\"savedOtherSubjectId\", course.id);",
+              " else pm.collectionVariables.set(\"pendingCourseRequestId\", course.requestId);",
+              "}"
             ]
           }
         }

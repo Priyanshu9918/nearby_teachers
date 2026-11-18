@@ -1,4 +1,4 @@
-const { isSupported, getTranslations, DEFAULT_LANGUAGE } = require('../i18n');
+const { isSupported, getTranslations, DEFAULT_LANGUAGE, listLanguages } = require('../i18n');
 
 const COOKIE_NAME = 'nt_lang';
 const COOKIE_MAX_AGE = 365 * 24 * 60 * 60 * 1000; // 1 year
@@ -24,16 +24,17 @@ function detectLanguage(req, res, next) {
   } else if (req.cookies && isSupported(req.cookies[COOKIE_NAME])) {
     lang = req.cookies[COOKIE_NAME];
   } else if (req.headers['accept-language']) {
-    // Take the first tag before any quality value or region subtag —
-    // "hi-IN,hi;q=0.9,en;q=0.8" -> "hi". Only use it if we actually
-    // support it; otherwise fall through to the default rather than
-    // guessing at a close match.
-    const primary = req.headers['accept-language'].split(',')[0].split('-')[0].trim();
-    if (isSupported(primary)) lang = primary;
+    const candidates = req.headers['accept-language'].split(',').map((tag, index) => {
+      const [name, ...parameters] = tag.trim().split(';');
+      const quality = parameters.find(value => value.trim().startsWith('q='));
+      return { code: name.split(/[-_]/)[0].toLowerCase(), quality: quality ? Number(quality.trim().slice(2)) : 1, index };
+    }).filter(candidate => candidate.quality > 0).sort((a, b) => b.quality - a.quality || a.index - b.index);
+    lang = candidates.find(candidate => isSupported(candidate.code))?.code || null;
   }
 
   req.lang = lang || DEFAULT_LANGUAGE;
   req.t = getTranslations(req.lang);
+  res.locals.languageOptions = listLanguages();
   next();
 }
 

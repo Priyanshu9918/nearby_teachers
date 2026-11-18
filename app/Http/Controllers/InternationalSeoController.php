@@ -6,6 +6,7 @@ use App\Services\ProfileEditor;
 use App\Services\SeoDirectory;
 use App\Services\TeacherPublicPages;
 use App\Services\YouTubeProfileLink;
+use App\Support\PublicLanguages;
 use App\Support\SeoProfileDetails;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
@@ -68,9 +69,9 @@ class InternationalSeoController extends Controller
         if ($redirect = $this->canonical($request, $url)) {
             return $redirect;
         }
-        $languages = config('seo.countries.'.$teacher->seo_country.'.languages', ['en']);
+        $languages = PublicLanguages::codes();
         $request->validate(['lang' => ['sometimes', 'string', 'in:'.implode(',', $languages)]]);
-        $language = (string) $request->query('lang', SeoDirectory::language($teacher->seo_country));
+        $language = PublicLanguages::resolve($request, SeoDirectory::language($teacher->seo_country));
         $labels = SeoDirectory::labels($language);
         $subjects = TeacherPublicPages::subjects((int) $teacher->user_id);
         $names = DB::table('seo_subject_routes')->where('country', $teacher->seo_country)->where('language', $language)
@@ -97,7 +98,7 @@ class InternationalSeoController extends Controller
         $this->logView($request, 'teacher', 'profile:'.$teacher->user_id);
 
         return response()->view('seo.teacher', compact('teacher', 'subjects', 'reviews', 'language', 'labels', 'url', 'related') + [
-            'lang' => $language, 't' => [], 'downloadHref' => route('download', ['type' => 'teacher', 'slug' => $teacher->slug]),
+            'lang' => $language, 't' => PublicLanguages::translations($language), 'downloadHref' => route('download', ['type' => 'teacher', 'slug' => $teacher->slug]),
         ]);
     }
 
@@ -105,8 +106,9 @@ class InternationalSeoController extends Controller
     {
         abort_unless(isset(config('seo.countries')[$country]), 404);
         abort_if($city === 'online', 404);
-        $language ??= (string) $request->query('lang', SeoDirectory::language($country));
-        abort_unless(in_array($language, config('seo.countries.'.$country.'.languages'), true), 404);
+        $request->validate(['lang' => ['sometimes', 'string', 'in:'.implode(',', PublicLanguages::codes())]]);
+        $language ??= PublicLanguages::resolve($request, SeoDirectory::language($country));
+        abort_unless(in_array($language, PublicLanguages::codes(), true), 404);
         $path = '/'.$request->path();
         $page = $this->directory->pages()->where('r.path', $path)->first();
         if ($page === null) {
@@ -114,7 +116,7 @@ class InternationalSeoController extends Controller
             $page = $alias ? $this->directory->pages()->where('r.id', $alias->target_id)->first() : null;
         }
         if ($page === null) {
-            $page = $this->directory->pages()->where('r.country', $country)->where('r.language', $language)
+            $page = $this->directory->pages()->where('r.country', $country)->where('r.language', SeoDirectory::language($country))
                 ->where('r.city_slug', $city)->where('r.kind', $city === 'online' ? 'online' : 'city')
                 ->where($city === 'online' ? 'sr.online_slug' : 'sr.city_slug', $slug)->first();
         }
@@ -147,7 +149,7 @@ class InternationalSeoController extends Controller
         $this->logView($request, 'city_index', 'listing:'.$page->id);
 
         return response()->view('seo.listing', compact('page', 'providers', 'labels', 'language', 'variants', 'title', 'description', 'canonicalUrl')
-            + ['lang' => $language, 't' => []]);
+            + ['lang' => $language, 't' => PublicLanguages::translations($language)]);
     }
 
     public function institute(Request $request, string $slug): Response
@@ -179,9 +181,9 @@ class InternationalSeoController extends Controller
             $institute->website_url = null;
         }
 
-        $languages = config('seo.countries.'.$institute->seo_country.'.languages', ['en']);
+        $languages = PublicLanguages::codes();
         $request->validate(['lang' => ['sometimes', 'string', 'in:'.implode(',', $languages)]]);
-        $language = (string) $request->query('lang', SeoDirectory::language($institute->seo_country));
+        $language = PublicLanguages::resolve($request, SeoDirectory::language($institute->seo_country));
         $labels = SeoDirectory::labels($language);
         $subjects = ProfileEditor::subjects((int) $institute->user_id, 'institute');
         $names = DB::table('seo_subject_routes')->where('country', $institute->seo_country)->where('language', $language)
@@ -202,7 +204,7 @@ class InternationalSeoController extends Controller
         $this->logView($request, 'institute', 'profile:'.$institute->user_id);
 
         return response()->view('seo.institute', compact('institute', 'subjects', 'reviews', 'language', 'labels', 'url', 'related') + [
-            'lang' => $language, 't' => [], 'downloadHref' => route('download', ['type' => 'institute', 'slug' => $institute->slug]),
+            'lang' => $language, 't' => PublicLanguages::translations($language), 'downloadHref' => route('download', ['type' => 'institute', 'slug' => $institute->slug]),
         ]);
     }
 
@@ -230,7 +232,8 @@ class InternationalSeoController extends Controller
             ? TeacherPublicPages::subjects((int) $provider->user_id)
             : ProfileEditor::subjects((int) $provider->user_id, 'institute');
         $subjectIds = $subjects->pluck('id')->all();
-        $language = SeoDirectory::language((string) $provider->seo_country);
+        $request->validate(['lang' => ['sometimes', 'string', 'in:'.implode(',', PublicLanguages::codes())]]);
+        $language = PublicLanguages::resolve($request, SeoDirectory::language((string) $provider->seo_country));
         $related = DB::table('seo_directory_pages as r')->join('seo_subject_routes as sr', function ($join) use ($language): void {
             $join->on('sr.subject_id', '=', 'r.subject_id')->on('sr.country', '=', 'r.country')
                 ->where('sr.language', '=', $language)->where('sr.enabled', '=', true);
@@ -245,12 +248,15 @@ class InternationalSeoController extends Controller
         $qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=420x420&margin=12&data='.rawurlencode($url);
 
         return response()->view('site.my-webpage', compact('provider', 'type', 'subjects', 'related', 'url', 'oldProfileUrl', 'qrUrl') + [
-            'lang' => 'en', 't' => [],
+            'lang' => $language, 't' => PublicLanguages::translations($language), 'language' => $language,
         ]);
     }
 
     public function localizedListing(Request $request, string $country, string $language, string $city, string $slug): Response
     {
+        abort_unless(PublicLanguages::supported($language), 404);
+        $request->query->set('lang', $language);
+
         return $this->listing($request, $country, $city, $slug, $language);
     }
 
@@ -272,7 +278,7 @@ class InternationalSeoController extends Controller
         }
 
         $countryConfig = config('seo.countries.'.$country);
-        if (in_array($segment, $countryConfig['languages'], true)) {
+        if (in_array($segment, PublicLanguages::codes(), true)) {
             return redirect()->to(SeoDirectory::url('/'.$country).'?lang='.rawurlencode($segment), 301);
         }
 
@@ -282,7 +288,7 @@ class InternationalSeoController extends Controller
     public function geoLevelThree(Request $request, string $country, string $district, string $village): Response
     {
         abort_unless(isset(config('seo.countries')[$country]), 404);
-        if (in_array($district, config('seo.countries.'.$country.'.languages'), true)) {
+        if (in_array($district, PublicLanguages::codes(), true)) {
             $locationPath = '/'.$country.'/'.$village;
             if (DB::table('seo_location_pages')->where('path', $locationPath)->exists()) {
                 return redirect()->to(SeoDirectory::url($locationPath).'?lang='.rawurlencode($district), 301);
@@ -306,7 +312,7 @@ class InternationalSeoController extends Controller
         }
 
         // Old locale-in-path URLs redirect to the same short URL with a UI language preference.
-        if (in_array($first, config('seo.countries.'.$country.'.languages'), true)) {
+        if (in_array($first, PublicLanguages::codes(), true)) {
             abort_if($second === 'online', 404);
             $locationPath = '/'.$country.'/'.$second.'/'.$third;
             if (DB::table('seo_location_pages')->where('path', $locationPath)->exists()) {
@@ -329,7 +335,7 @@ class InternationalSeoController extends Controller
     public function localizedGeoLevelFive(Request $request, string $country, string $language, string $district, string $village, string $subject): Response
     {
         abort_unless(isset(config('seo.countries')[$country]), 404);
-        abort_unless(in_array($language, config('seo.countries.'.$country.'.languages'), true), 404);
+        abort_unless(in_array($language, PublicLanguages::codes(), true), 404);
 
         $localized = DB::table('seo_subject_routes')->where('country', $country)->where('language', $language)
             ->where('city_slug', $subject)->where('enabled', true)->first();
@@ -347,7 +353,7 @@ class InternationalSeoController extends Controller
         }
         $filters = $request->validate([
             'page' => ['sometimes', 'integer', 'min:1'],
-            'lang' => ['sometimes', 'string', 'in:'.implode(',', config('seo.countries.'.$page->country.'.languages'))],
+            'lang' => ['sometimes', 'string', 'in:'.implode(',', PublicLanguages::codes())],
             'q' => ['sometimes', 'nullable', 'string', 'max:100'],
             'mode' => ['sometimes', 'nullable', 'in:online,home_tuition,in_person'],
             'trial' => ['sometimes', 'boolean'],
@@ -380,7 +386,7 @@ class InternationalSeoController extends Controller
         }
         $providers = $query->paginate(20)->withQueryString();
         abort_if($providers->currentPage() > 1 && $providers->isEmpty(), 404);
-        $language = $filters['lang'] ?? SeoDirectory::language($page->country);
+        $language = PublicLanguages::resolve($request, SeoDirectory::language($page->country));
         $subject = null;
         if ($page->subject_id !== null) {
             $subject = DB::table('seo_subject_routes')->where('country', $page->country)->where('language', $language)
@@ -423,7 +429,7 @@ class InternationalSeoController extends Controller
 
         return response()->view('seo.location', compact('page', 'providers', 'title', 'description', 'variants', 'children', 'url', 'subject', 'values', 'breadcrumbs', 'filters', 'searchTerm', 'trialOnly', 'hasActiveFilters', 'canonicalUrl', 'robots', 'clearFiltersUrl')
             + ['language' => $language, 'labels' => SeoDirectory::labels($language), 'lang' => $language,
-                't' => [], 'direction' => in_array($language, ['ar', 'ur'], true) ? 'rtl' : 'ltr']);
+                't' => PublicLanguages::translations($language), 'direction' => in_array($language, ['ar', 'ur'], true) ? 'rtl' : 'ltr']);
     }
 
     private function locationChildren(object $page): array
@@ -459,12 +465,12 @@ class InternationalSeoController extends Controller
             return $redirect;
         }
         $request->validate(['lang' => ['sometimes', 'string', 'in:'.implode(',', array_keys(config('seo.language_names')))]]);
-        $language = (string) $request->query('lang', 'en');
+        $language = PublicLanguages::resolve($request);
         $labels = SeoDirectory::labels($language);
         $pages = $this->directory->pages()->orderBy('r.country')->orderBy('r.city_slug')->orderBy('r.id')->paginate(40)->withQueryString();
 
         return response()->view('seo.hub', ['pages' => $pages, 'lang' => $language, 'language' => $language,
-            'labels' => $labels, 'headerCountry' => null, 't' => []]);
+            'labels' => $labels, 'headerCountry' => null, 't' => PublicLanguages::translations($language)]);
     }
 
     public function sitemap(): Response

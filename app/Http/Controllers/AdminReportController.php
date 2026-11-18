@@ -70,7 +70,8 @@ class AdminReportController extends Controller
             ->selectRaw('DATE(created_at) as day, count(*) as total')->groupByRaw('DATE(created_at)')->orderBy('day')->get();
         $workCounts = [
             'open_safety' => DB::table('reports')->where('status', 'open')->count(),
-            'pending_photos' => DB::table('users')->where('avatar_status', 'pending')->count(),
+            'pending_photos' => DB::table('users')->where(fn ($query) => $query->where('avatar_status', 'pending')
+                ->orWhere(fn ($providers) => $providers->whereIn('account_type', ['teacher', 'institute'])->whereNotNull('avatar_url')->where('avatar_url', '<>', '')))->count(),
             'bsl_centres' => DB::table('institute_profiles')->where('is_bsl_official', true)->count(),
             'suspended_users' => DB::table('users')->whereNotNull('suspended_at')->where('is_admin', false)->count(),
             'call_backs' => $queues['new_leads'],

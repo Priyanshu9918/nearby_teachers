@@ -44,6 +44,7 @@
                 @endif
             </div>
         @elseif ($report === 'support')
+            @if ($record->screenshot_available)<a class="btn btn-small" href="{{ route('admin.support.tickets.screenshot', ['id' => $record->id]) }}">View screenshot</a>@endif
             <div class="table-actions">
                 @foreach (['pending' => 'Pending', 'in_progress' => 'In progress', 'resolved' => 'Resolved', 'rejected' => 'Rejected'] as $status => $label)
                     @if ($record->status !== $status)

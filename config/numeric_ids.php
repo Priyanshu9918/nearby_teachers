@@ -1,6 +1,20 @@
 <?php
 
 return [
+    'custom_subject_requests' => [
+        'id' => 'custom_subject_requests',
+        'user_id' => 'users',
+    ],
+    'teaching_job_applications' => [
+        'id' => 'teaching_job_applications',
+        'user_id' => 'users',
+    ],
+    'teaching_job_application_courses' => [
+        'id' => 'teaching_job_application_courses',
+        'application_id' => 'teaching_job_applications',
+        'user_id' => 'users',
+        'custom_request_id' => 'custom_subject_requests',
+    ],
     'users' => [
         'id' => 'users',
         'suspended_by' => 'users',

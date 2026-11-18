@@ -24,7 +24,7 @@
             @forelse ($pages as $page)
                 @php
                     $pageUrl = \App\Services\SeoDirectory::url($page->path);
-                    $allowedLanguages = config('seo.countries.'.$page->country.'.languages', []);
+                    $allowedLanguages = \App\Support\PublicLanguages::codes();
                     if ($language !== $page->language && in_array($language, $allowedLanguages, true)) $pageUrl .= '?lang='.rawurlencode($language);
                 @endphp
                 <a class="directory-card directory-hub-card" href="{{ $pageUrl }}">
@@ -32,7 +32,7 @@
                     <span>{{ strtoupper($page->language) }} →</span>
                 </a>
             @empty
-                <p class="directory-empty">No published listings yet.</p>
+                <p class="directory-empty">{{ $labels['empty_hub'] }}</p>
             @endforelse
         </section>
         <nav class="seo-pages directory-pagination" aria-label="Pagination">

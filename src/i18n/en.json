@@ -163,12 +163,34 @@
     "seeAllHere": "See all teachers and institutes here",
     "noPostsYet": "No posts yet in {city}. Be the first — open the app to post.",
     "replyLikePost": "Reply, like, or post your own — open the Nearby Teacher app.",
-    "getApp": "Get the app"
+    "getApp": "Get the app",
+    "privacyPolicy": "Privacy Policy",
+    "englishPolicyNotice": "This privacy policy is currently available in English."
   },
   "errors": {
     "notFound": "Not found",
     "somethingWrong": "Something went wrong",
     "tooManyRequests": "Too many requests. Please slow down and try again shortly.",
     "invalidToken": "Invalid or expired token"
+  },
+  "webpage": {
+    "title": "Your web page",
+    "description": "Share your Nearby Teacher page and print a QR poster.",
+    "share_text": "Find {name} on Nearby Teacher",
+    "copy": "Copy",
+    "open": "Open",
+    "share_hint": "Share this link on WhatsApp, Facebook or your visiting card.",
+    "existing_profile": "Open your existing profile page",
+    "poster_title": "Your QR poster",
+    "poster_hint": "Print it for your centre, a school gate or a local shop. People can scan it to see your page.",
+    "print": "Print my poster",
+    "related": "You’ll also be listed on",
+    "poster_preview": "Printable QR poster preview",
+    "find_me": "Find me on Nearby Teacher",
+    "contact_me": "Find me in the app or contact me on WhatsApp",
+    "scan": "Scan to view profile",
+    "copied": "Copied",
+    "copy_prompt": "Copy your page link",
+    "live": "Live"
   }
 }

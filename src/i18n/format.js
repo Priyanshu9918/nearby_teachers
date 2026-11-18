@@ -4,7 +4,7 @@
 // use, so this is meant to be the actual pattern the real app copies,
 // not just what the website happens to use.
 //
-// Real, verified differences across the 8 supported languages (not
+// Real, verified differences across the supported languages (not
 // hypothetical): English/Hindi/Chinese use a 12-hour clock with
 // AM/PM; Spanish/French/Portuguese/Russian use 24-hour; Arabic uses
 // 12-hour with its own AM/PM markers (ص/م). Currency formatting
@@ -12,7 +12,7 @@
 // (£22.00 vs 22,00 £ vs 22.00 UK£) — these are exactly the kinds of
 // details worth letting Intl handle rather than guessing.
 
-const SUPPORTED = ['en', 'hi', 'es', 'fr', 'ar', 'zh', 'pt', 'ru'];
+const { SUPPORTED_LANGUAGES: SUPPORTED } = require('./index');
 
 function safeLang(lang) {
   return SUPPORTED.includes(lang) ? lang : 'en';

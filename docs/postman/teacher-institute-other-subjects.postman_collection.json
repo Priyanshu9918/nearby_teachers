@@ -1,8 +1,8 @@
 {
   "info": {
-    "name": "Nearby Teacher \u2014 Teacher & Institute Other Courses",
+    "name": "Nearby Teacher — Teacher & Institute Other Courses",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Dedicated teacher/institute custom course flow. Set baseUrl and unused phone/email variables. Run OTP request, enter received OTP (auto-filled only when test mode returns it), verify, then register. Run the teacher flow first, list subjects again, then run institute with the same customCourse to verify shared reuse. Teacher uses primarySubjects; institute uses subjectIds. otherSubjects accepts typed names, not the literal Other. Existing + custom max 5. Profile updates replace selections; omitted subject fields preserve them. Tokens start empty; no credentials from the server are included."
+    "description": "New Other course names require admin approval. Pending names are hidden from owner profiles and the public catalogue. Approve in Admin > Course approvals, then refresh GET /subjects before using savedOtherSubjectId. Dedicated teacher/institute custom course flow. Set baseUrl and unused phone/email variables. Run OTP request, enter received OTP (auto-filled only when test mode returns it), verify, then register. Run the teacher flow first, list subjects again, then run institute with the same customCourse to verify shared reuse. Teacher uses primarySubjects; institute uses subjectIds. otherSubjects accepts typed names, not the literal Other. Existing + custom max 5. Profile updates replace selections; omitted subject fields preserve them. Tokens start empty; no credentials from the server are included."
   },
   "variable": [
     {
@@ -113,7 +113,7 @@
       ]
     },
     {
-      "name": "Teacher \u2014 run with its own phone/email",
+      "name": "Teacher — run with its own phone/email",
       "item": [
         {
           "name": "1. Request teacher OTP",
@@ -243,8 +243,8 @@
                   "pm.test(\"Registered\", () => pm.response.to.have.status(200));",
                   "if (pm.response.code === 200) {",
                   " const ids = pm.response.json().draft.primarySubjects;",
-                  " pm.test(\"Resolved numeric subject ID returned\", () => pm.expect(ids[0]).to.be.a(\"number\"));",
-                  " pm.collectionVariables.set(\"savedOtherSubjectId\", ids[0]);",
+                  " if (ids.length) pm.collectionVariables.set(\"savedOtherSubjectId\", ids[0]);",
+                  " else pm.test(\"Custom course awaiting approval\", () => pm.expect(pm.response.json().customCoursesPendingApproval).to.eql(true));",
                   "}"
                 ]
               }
@@ -421,7 +421,7 @@
       ]
     },
     {
-      "name": "Institute \u2014 run with its own phone/email",
+      "name": "Institute — run with its own phone/email",
       "item": [
         {
           "name": "1. Request institute OTP",
@@ -551,8 +551,8 @@
                   "pm.test(\"Registered\", () => pm.response.to.have.status(200));",
                   "if (pm.response.code === 200) {",
                   " const ids = pm.response.json().draft.subjectIds;",
-                  " pm.test(\"Resolved numeric subject ID returned\", () => pm.expect(ids[0]).to.be.a(\"number\"));",
-                  " pm.collectionVariables.set(\"savedOtherSubjectId\", ids[0]);",
+                  " if (ids.length) pm.collectionVariables.set(\"savedOtherSubjectId\", ids[0]);",
+                  " else pm.test(\"Custom course awaiting approval\", () => pm.expect(pm.response.json().customCoursesPendingApproval).to.eql(true));",
                   "}"
                 ]
               }
@@ -729,7 +729,7 @@
       ]
     },
     {
-      "name": "Apply for teaching job \u2014 Other courses",
+      "name": "Apply for teaching job — Other courses",
       "description": "Login with an existing phone-verified learner/teacher/institute account, or set jobToken from that account manually. Each apply request creates a separate application. Maximum 5 requests/minute. Existing BSL and saved Other IDs are allowed; unrelated non-BSL categories remain disallowed. All course names and salary values are saved as application snapshots.",
       "item": [
         {
@@ -849,7 +849,11 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"Application submitted\", () => pm.response.to.have.status(201));",
-                  "if (pm.response.code === 201) pm.collectionVariables.set(\"savedOtherSubjectId\", pm.response.json().application.courses[0].id);"
+                  "if (pm.response.code === 201) {",
+                  " const course = pm.response.json().application.courses[0];",
+                  " if (course.id !== null) pm.collectionVariables.set(\"savedOtherSubjectId\", course.id);",
+                  " else pm.collectionVariables.set(\"pendingCourseRequestId\", course.requestId);",
+                  "}"
                 ]
               }
             }

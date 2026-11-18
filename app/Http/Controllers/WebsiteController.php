@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Reporting\BusinessActivityRecorder;
 use App\Services\SeoDirectory;
+use App\Support\PublicLanguages;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
@@ -15,8 +16,6 @@ use Throwable;
 
 class WebsiteController extends Controller
 {
-    private const LANGUAGES = ['en', 'hi', 'es', 'fr', 'ar', 'zh', 'pt', 'ru'];
-
     public function home(Request $request): Response
     {
         if ($request->getHost() === parse_url(config('seo.public_url'), PHP_URL_HOST)) {
@@ -321,7 +320,7 @@ class WebsiteController extends Controller
     {
         $response = response()->view($view, $data + $this->viewData($request), $status);
         $language = $request->query('lang');
-        if (is_string($language) && in_array($language, self::LANGUAGES, true)) {
+        if (is_string($language) && in_array($language, PublicLanguages::codes(), true)) {
             $response->withCookie(cookie('nt_lang', $language, 60 * 24 * 365, '/', null, $request->isSecure(), false, false, 'lax'));
         }
 
@@ -330,38 +329,12 @@ class WebsiteController extends Controller
 
     private function language(Request $request): string
     {
-        $queryLanguage = $request->query('lang');
-        if (is_string($queryLanguage) && in_array($queryLanguage, self::LANGUAGES, true)) {
-            return $queryLanguage;
-        }
-
-        $cookieLanguage = $request->cookie('nt_lang');
-        if (is_string($cookieLanguage) && in_array($cookieLanguage, self::LANGUAGES, true)) {
-            return $cookieLanguage;
-        }
-
-        $primary = strtolower(substr(trim(explode(',', (string) $request->header('Accept-Language'))[0]), 0, 2));
-
-        return in_array($primary, self::LANGUAGES, true) ? $primary : 'en';
+        return PublicLanguages::resolve($request);
     }
 
     private function languages(): array
     {
-        $languages = [];
-        foreach (self::LANGUAGES as $code) {
-            $json = file_get_contents(base_path('src/i18n/'.$code.'.json'));
-            if ($json === false) {
-                throw new \RuntimeException('Unable to read the website language catalogue.');
-            }
-            $translations = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
-            $languages[] = [
-                'code' => $code,
-                'name' => $translations['_meta']['name'],
-                'nativeName' => $translations['_meta']['nativeName'],
-            ];
-        }
-
-        return $languages;
+        return PublicLanguages::all();
     }
 
     private function logPageView(Request $request, string $pageType, ?string $target = null, ?string $platform = null): void

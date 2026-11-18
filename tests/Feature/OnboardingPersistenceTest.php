@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Reporting\BusinessActivityRecorder;
 use App\Services\AuthenticationService;
+use App\Services\CustomSubjectApproval;
 use App\Services\OtpDelivery;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -166,7 +167,10 @@ class OnboardingPersistenceTest extends TestCase
     {
         $base = array_replace($this->sharedFields(), ['accountType' => 'teacher', 'city' => 'Delhi', 'otherSubjects' => ['Shared Abacus']]);
         $teacherId = $this->userId;
-        $courseId = $this->postJson('/auth/register', $base)->assertOk()->json('draft.primarySubjects.0');
+        $this->postJson('/auth/register', $base)->assertOk()->assertJsonPath('draft.primarySubjects', []);
+        $requestId = DB::table('custom_subject_requests')->where('user_id', $teacherId)->value('id');
+        app(CustomSubjectApproval::class)->review($requestId, 'approved');
+        $courseId = DB::table('custom_subject_requests')->where('id', $requestId)->value('subject_id');
         $this->userId = NumericTestIds::next();
         DB::table('users')->insert(['id' => $this->userId, 'account_type' => 'learner', 'full_name' => 'New user',
             'phone' => '+918112912881', 'phone_verified_at' => now()]);
@@ -194,7 +198,11 @@ class OnboardingPersistenceTest extends TestCase
             $field => [$existing], 'otherSubjects' => ['  Custom   Abacus  ', 'custom abacus'],
         ]))->assertOk();
         $domain = DB::table('subject_domains')->where('name', 'Other')->first();
-        $custom = DB::table('subjects')->where('domain_id', $domain->id)->where('name', 'Custom Abacus')->first();
+        $this->assertDatabaseMissing('subjects', ['name' => 'Custom Abacus']);
+        $this->getJson('/auth/onboarding')->assertOk()->assertJsonPath('draft.'.$field, [$existing]);
+        $pending = DB::table('custom_subject_requests')->where('user_id', $this->userId)->value('id');
+        app(CustomSubjectApproval::class)->review($pending, 'approved');
+        $custom = DB::table('subjects')->where('domain_id', $domain->id)->whereRaw('LOWER(name) = ?', ['custom abacus'])->first();
         $this->assertNotNull($custom);
         $this->assertFalse((bool) $custom->is_bsl);
         $this->assertSame(1, DB::table('subjects')->where('domain_id', $domain->id)->whereRaw('LOWER(name) = ?', ['custom abacus'])->count());
@@ -223,7 +231,8 @@ class OnboardingPersistenceTest extends TestCase
         $ids = array_slice($this->teachingSubjects(), 0, 5);
         $this->postJson($endpoint, [...$base, $field => $ids, 'otherSubjects' => ['Extra']])->assertUnprocessable();
         $this->postJson($endpoint, [...$base, $field => [], 'otherSubjects' => ['Only Custom Course']])->assertOk();
-        $this->assertDatabaseHas('subjects', ['name' => 'Only Custom Course']);
+        $this->assertDatabaseMissing('subjects', ['name' => 'Only Custom Course']);
+        $this->assertDatabaseHas('custom_subject_requests', ['user_id' => $this->userId, 'name' => 'Only Custom Course', 'status' => 'pending']);
         $this->assertDatabaseMissing('subjects', ['name' => 'Extra']);
     }
 
@@ -245,6 +254,7 @@ class OnboardingPersistenceTest extends TestCase
             'accountType' => $type, 'city' => 'Delhi', 'contactPerson' => 'Asha', 'otherSubjects' => ['Rolled Back Course'],
         ]))->assertStatus(500);
         $this->assertDatabaseMissing('subjects', ['name' => 'Rolled Back Course']);
+        $this->assertDatabaseMissing('custom_subject_requests', ['name' => 'Rolled Back Course']);
         $this->assertDatabaseMissing('profile_subjects', ['profile_type' => $type, 'profile_id' => $this->userId]);
         $this->assertDatabaseMissing('business_activity', ['event' => 'provider.custom_subjects_selected', 'actor_user_id' => $this->userId]);
         $this->assertDatabaseHas('users', ['id' => $this->userId, 'registration_submitted_at' => null]);

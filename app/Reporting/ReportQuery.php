@@ -50,7 +50,7 @@ final class ReportQuery
                 }
             });
         }
-        if ($report->key === 'support' && ! empty($filters['status'])) {
+        if (in_array($report->key, ['support', 'custom-course-requests'], true) && ! empty($filters['status'])) {
             $query->where('r.status', $filters['status']);
         }
         $this->filters->dates($query, $report->timestamp ? 'r.'.$report->timestamp : null, $filters);

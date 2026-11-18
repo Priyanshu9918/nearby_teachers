@@ -52,6 +52,7 @@ class EnquiriesController extends Controller
         $phone = $this->phone($data['phone']);
         $userId = $request->attributes->get('authenticated_user')->id;
         $application = DB::transaction(function () use ($data, $phone, $userId): array {
+            DB::table('users')->where('id', $userId)->lockForUpdate()->first(['id']);
             $data = app(OtherSubjects::class)->resolve($data, 'courseIds', (int) $userId, recordProviderSelection: false);
             $courses = DB::table('subjects')->whereIn('id', $data['courseIds'])
                 ->where(fn ($query) => $query->where('is_bsl', true)->orWhereIn('domain_id',
@@ -60,6 +61,9 @@ class EnquiriesController extends Controller
             if ($courses->count() !== count($data['courseIds'])) {
                 throw ValidationException::withMessages(['courseIds' => 'Choose between 1 and 5 BSL or Other courses from GET /subjects.']);
             }
+            $allCourses = $courses->concat(collect($data['_pendingCourses'] ?? [])->map(fn ($course) => (object) [
+                'id' => null, 'name' => $course['name'], 'custom_request_id' => $course['request_id'],
+            ]));
             $createdAt = now();
             $salary = number_format((float) $data['expectedSalary'], 2, '.', '');
             $id = DB::table('teaching_job_applications')->insertGetId([
@@ -67,17 +71,21 @@ class EnquiriesController extends Controller
                 'expected_salary' => $salary, 'currency' => 'INR', 'salary_period' => 'monthly',
                 'status' => 'submitted', 'created_at' => $createdAt,
             ]);
-            DB::table('teaching_job_application_courses')->insert($courses->map(fn ($course) => [
+            DB::table('teaching_job_application_courses')->insert($allCourses->map(fn ($course) => [
                 'application_id' => $id, 'user_id' => $userId, 'course_id' => $course->id,
+                'custom_request_id' => $course->custom_request_id ?? null,
                 'course_name' => $course->name, 'created_at' => $createdAt,
             ])->all());
             app(BusinessActivityRecorder::class)->record('teaching_job_application.submitted', $id, $userId,
                 after: ['status' => 'submitted', 'course_ids' => $courses->pluck('id')->all(),
+                    'custom_request_ids' => $allCourses->pluck('custom_request_id')->filter()->values()->all(),
                     'expected_salary' => $salary, 'currency' => 'INR', 'salary_period' => 'monthly']);
 
             return ['id' => $id, 'name' => $data['name'], 'phone' => $phone,
                 'expectedSalary' => $salary, 'currency' => 'INR', 'salaryPeriod' => 'monthly',
-                'courses' => $courses->map(fn ($course) => ['id' => $course->id, 'name' => $course->name])->all(),
+                'courses' => $allCourses->map(fn ($course) => ['id' => $course->id, 'name' => $course->name,
+                    ...(isset($course->custom_request_id) ? ['requestId' => $course->custom_request_id, 'approvalStatus' => 'pending'] : []),
+                ])->all(),
                 'status' => 'submitted', 'createdAt' => $createdAt->toISOString()];
         });
 

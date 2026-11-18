@@ -36,7 +36,7 @@
 
     <div class="lang-picker">
       <label for="lang-select" style="display:block; font-size:12px; color:#888780; margin-bottom:6px;"><%= t.settings.language %></label>
-      <select id="lang-select" onchange="location.href = '?lang=' + this.value + (window.location.search.includes('ref=') ? '&ref=<%= ref %>' : '')">
+      <select id="lang-select" onchange="const params=new URLSearchParams(location.search);params.set('lang',this.value);location.search=params.toString()">
         <% languages.forEach(function(l) { %>
           <option value="<%= l.code %>" <%= l.code === lang ? 'selected' : '' %>><%= l.nativeName %></option>
         <% }); %>

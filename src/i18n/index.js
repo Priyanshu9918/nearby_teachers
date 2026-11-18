@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const SUPPORTED_LANGUAGES = ['en', 'hi', 'es', 'fr', 'ar', 'zh', 'pt', 'ru'];
+const SUPPORTED_LANGUAGES = require('../../resources/languages.json').map(language => language.code);
 const DEFAULT_LANGUAGE = 'en';
 
 // Loaded once at startup, not per-request — these are small static

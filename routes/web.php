@@ -1,10 +1,11 @@
 <?php
 
 use App\Http\Controllers\AdminController;
-use App\Http\Controllers\AdminReportController;
+use App\Http\Controllers\AdminCourseRequestsController;
 use App\Http\Controllers\AdminPushNotificationController;
-use App\Http\Controllers\AdminSupportController;
+use App\Http\Controllers\AdminReportController;
 use App\Http\Controllers\AdminSeoController;
+use App\Http\Controllers\AdminSupportController;
 use App\Http\Controllers\AdminWorkspaceController;
 use App\Http\Controllers\DeveloperController;
 use App\Http\Controllers\InternationalSeoController;
@@ -110,11 +111,19 @@ Route::middleware(RequireAdminSession::class)->prefix('admin')->name('admin.')->
     Route::get('/reports/{report}', [AdminReportController::class, 'index'])->name('reports.index');
 
     Route::get('/support/contact-details', [AdminSupportController::class, 'contactDetails'])->name('support.contact');
+    Route::get('/support/tickets/{id}/screenshot', [AdminSupportController::class, 'screenshot'])
+        ->where('id', SupportTicketId::ROUTE_PATTERN)->name('support.tickets.screenshot');
     Route::put('/support/contact-details', [AdminSupportController::class, 'updateContactDetails'])->name('support.contact.update');
     Route::patch('/support/tickets/{id}/status', [AdminSupportController::class, 'updateTicketStatus'])
         ->where('id', SupportTicketId::ROUTE_PATTERN)->name('support.tickets.status');
 
+    Route::get('/moderation/course-requests', [AdminCourseRequestsController::class, 'index'])->name('course-requests.index');
+    Route::patch('/moderation/course-requests/{id}', [AdminCourseRequestsController::class, 'review'])
+        ->where('id', RecordId::ROUTE_PATTERN)->name('course-requests.review');
+
     Route::get('/moderation/photos', [AdminWorkspaceController::class, 'photos'])->name('moderation.photos');
+    Route::delete('/moderation/photos/{userId}', [AdminWorkspaceController::class, 'deletePhoto'])
+        ->where('userId', RecordId::ROUTE_PATTERN)->name('moderation.photos.delete');
     Route::patch('/moderation/photos/{userId}', [AdminWorkspaceController::class, 'reviewPhoto'])
         ->where('userId', RecordId::ROUTE_PATTERN)->name('moderation.photos.review');
     Route::get('/moderation/bsl-centres', [AdminWorkspaceController::class, 'bslCentres'])->name('moderation.bsl');

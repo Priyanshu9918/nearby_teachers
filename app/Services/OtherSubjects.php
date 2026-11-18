@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Reporting\BusinessActivityRecorder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 final class OtherSubjects
@@ -29,38 +28,13 @@ final class OtherSubjects
     /** Resolve only inside the source transaction, so failed source mutations leave no catalogue entries. */
     public function resolve(array $data, string $field, int $actorId, bool $recordProviderSelection = true, ?int $maxSubjects = 5): array
     {
-        if (empty($data['otherSubjects'])) {
-            return $data;
-        }
-        if (DB::transactionLevel() < 1) {
-            throw new \LogicException('Resolve custom subjects inside the source transaction.');
-        }
-        // The unique category name plus this row lock serializes concurrent custom submissions.
-        DB::table('subject_domains')->insertOrIgnore(['name' => 'Other', 'sort_order' => 999]);
-        $domain = DB::table('subject_domains')->where('name', 'Other')->lockForUpdate()->first();
-        $ids = array_map('intval', $data[$field] ?? []);
-        foreach ($data['otherSubjects'] as $name) {
-            $name = self::normalize($name);
-            $subject = DB::table('subjects')->where('domain_id', $domain->id)->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])->lockForUpdate()->first();
-            if ($subject === null) {
-                $id = DB::table('subjects')->insertGetId(['domain_id' => $domain->id, 'name' => $name, 'is_bsl' => false]);
-                app(BusinessActivityRecorder::class)->record('subject.other_created', $id, $actorId,
-                    after: ['domain_id' => (int) $domain->id, 'name' => $name]);
-            } else {
-                $id = (int) $subject->id;
-            }
-            $ids[] = $id;
-        }
-        $data[$field] = array_values(array_unique($ids));
-        if ($maxSubjects !== null && count($data[$field]) > $maxSubjects) {
-            throw ValidationException::withMessages(['otherSubjects' => 'Choose at most five subjects including custom courses.']);
-        }
-        if ($recordProviderSelection) {
+        $resolved = app(CustomSubjectApproval::class)->resolve($data, $field, $actorId, $maxSubjects);
+        if ($recordProviderSelection && ! empty($data['otherSubjects'])) {
             app(BusinessActivityRecorder::class)->record('provider.custom_subjects_selected', $actorId, $actorId,
-                after: ['subject_ids' => $data[$field]]);
+                after: ['subject_ids' => $resolved[$field] ?? []]);
         }
 
-        return $data;
+        return $resolved;
     }
 
     private static function normalize(string $name): string

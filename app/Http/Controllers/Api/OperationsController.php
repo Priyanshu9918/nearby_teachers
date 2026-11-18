@@ -10,6 +10,7 @@ use App\Services\ChatBlocking;
 use App\Services\SafetyReportCreator;
 use App\Services\SupportContactDetails;
 use App\Services\SupportTicketManager;
+use App\Services\SupportTicketScreenshot;
 use App\Support\ReferralRating;
 use App\Support\SafetyReportCategory;
 use App\Support\SafetyReportTarget;
@@ -18,6 +19,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class OperationsController extends Controller
 {
@@ -203,11 +205,12 @@ class OperationsController extends Controller
         $data = $request->validate([
             'subject' => ['required', 'string', 'max:255'],
             'message' => ['required', 'string', 'max:5000'],
+            'screenshot' => SupportTicketScreenshot::rules(),
         ]);
         $user = $request->attributes->get('authenticated_user');
         abort_unless($user !== null && in_array($user->account_type, ['learner', 'teacher', 'institute'], true), 403,
             'Learner, teacher or institute account required.');
-        $ticket = $tickets->create((int) $user->id, trim($data['subject']), trim($data['message']));
+        $ticket = $tickets->create((int) $user->id, trim($data['subject']), trim($data['message']), $data['screenshot'] ?? null);
 
         $to = $contact->current()->email;
         if (! filled($to)) {
@@ -220,7 +223,20 @@ class OperationsController extends Controller
             )->afterCommit();
         }
 
-        return response()->json(['ticket' => $ticket], 201)->header('Cache-Control', 'no-store, private');
+        return response()->json(['ticket' => SupportTicketScreenshot::payload($ticket)], 201)->header('Cache-Control', 'no-store, private');
+    }
+
+    public function ticketScreenshot(Request $request, int $id): BinaryFileResponse
+    {
+        $user = $request->attributes->get('authenticated_user');
+        $ticket = DB::table('support_tickets')->where('id', $id)->first(['id', 'user_id', 'screenshot_path']);
+        abort_if($ticket === null || ((int) $ticket->user_id !== (int) $user->id && ! ($user->is_admin ?? false)), 404);
+        $response = SupportTicketScreenshot::response($ticket->screenshot_path);
+        if ($user->is_admin ?? false) {
+            app(ReportAccessLog::class)->record($request, 'support', 'api-screenshot-view', $id);
+        }
+
+        return $response;
     }
 
     public function mineTickets(Request $request): JsonResponse
@@ -233,13 +249,13 @@ class OperationsController extends Controller
         $perPage = (int) ($data['perPage'] ?? 20);
         $rows = DB::table('support_tickets')
             ->where('user_id', $request->attributes->get('authenticated_user')->id)
-            ->select('id', 'subject', 'message', 'status', 'created_at', 'updated_at')
+            ->select('id', 'subject', 'message', 'status', 'screenshot_path', 'created_at', 'updated_at')
             ->orderByDesc('created_at')->orderByDesc('id')
             ->offset(($page - 1) * $perPage)->limit($perPage + 1)->get();
         $hasMore = $rows->count() > $perPage;
 
         return response()->json([
-            'tickets' => $rows->take($perPage)->values(),
+            'tickets' => $rows->take($perPage)->map(fn ($ticket) => SupportTicketScreenshot::payload($ticket))->values(),
             'pagination' => ['page' => $page, 'perPage' => $perPage, 'hasMore' => $hasMore],
         ])->header('Cache-Control', 'no-store, private');
     }
@@ -270,7 +286,7 @@ class OperationsController extends Controller
         $hasMore = $query->count() > $perPage;
 
         return response()->json([
-            'tickets' => $query->take($perPage)->values(),
+            'tickets' => $query->take($perPage)->map(fn ($ticket) => SupportTicketScreenshot::payload($ticket))->values(),
             'pagination' => ['page' => $page, 'perPage' => $perPage, 'hasMore' => $hasMore],
         ])->header('Cache-Control', 'no-store, private');
     }
@@ -286,7 +302,7 @@ class OperationsController extends Controller
         }
         app(ReportAccessLog::class)->record($request, 'support', 'api-status', $id);
 
-        return response()->json(['ticket' => $ticket])->header('Cache-Control', 'no-store, private');
+        return response()->json(['ticket' => SupportTicketScreenshot::payload($ticket)])->header('Cache-Control', 'no-store, private');
     }
 
     public function referralMine(Request $request): JsonResponse

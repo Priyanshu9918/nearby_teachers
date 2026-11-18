@@ -55,7 +55,7 @@ final class OwnerMetrics
 
         return [
             'safety_reports' => DB::table('reports')->where('status', 'open')->count(),
-            'photos' => DB::table('users')->where('avatar_status', 'pending')->count(),
+            'photos' => DB::table('users')->where('avatar_status', 'pending')->whereNotIn('account_type', ['teacher', 'institute'])->count(),
             'possible_duplicates' => $this->possibleDuplicateCount(),
             'job_applications' => $jobs,
             'franchise_enquiries' => $franchises,

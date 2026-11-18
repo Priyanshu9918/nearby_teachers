@@ -1,8 +1,7 @@
 # Job applications with Other courses
 
-Import [the dedicated Postman collection](postman/job-application-other-subjects.postman_collection.json). The teacher/institute Other course collection also includes a job application folder. Set `baseUrl`, `jobEmail`, `password`, `jobContactPhone` and log in with an existing phone-verified account; alternatively supply its bearer in `jobToken`.
-
-`POST /jobs/applications` accepts:
+`POST /jobs/applications` still accepts approved BSL/Other course IDs and typed
+custom names:
 
 ```json
 {
@@ -14,10 +13,42 @@ Import [the dedicated Postman collection](postman/job-application-other-subjects
 }
 ```
 
-Use real BSL course IDs or saved Other course IDs from `GET /subjects`. `otherSubjects` creates/reuses public subjects inside the same shared Other category used by teacher/institute registration. Course matching ignores case and extra whitespace. The course ID array may be omitted or empty when submitting custom names alone. After resolving duplicates, select 1–5 distinct courses in total. Each typed name must be nonblank and at most 200 characters; the optional typed-name array accepts 1–5 entries. Other non-BSL categories remain ineligible.
+New typed names now enter the admin Course approvals queue. They do not create
+public catalogue entries immediately. Existing Other names reuse their approved
+IDs. One to five distinct approved and requested courses are allowed; typed-only
+applications remain valid. Name, phone, salary, authentication and throttling
+rules remain unchanged.
 
-All existing name, international contact-phone, positive monthly INR salary, authentication, verified-phone, suspension and rate-limit rules remain. Learner, teacher and institute accounts can apply. Success is `201` with `application.courses` containing numeric IDs and names. Applying does not modify the account's profile subjects.
+Successful submission is HTTP 201. An approved course response is `{ "id": 1,
+"name": "Approved course" }`. A new custom entry has no invented catalogue ID:
 
-Applications save course names as immutable submission snapshots, so later catalogue renames do not change existing applications. Course creation, application rows, course snapshots and reporting events share one transaction. Errors leave no partial catalogue entries or applications. Version 1 `subject.other_created` covers newly created catalogue subjects; existing version 1 `teaching_job_application.submitted` records resolved course IDs and salary. Job submissions do not emit provider profile selection events. No historical records are backfilled, and direct SQL/admin catalogue edits are outside these event contracts.
+```json
+{
+  "id": null,
+  "name": "Abacus",
+  "requestId": 12,
+  "approvalStatus": "pending"
+}
+```
 
-Existing admin `job-applications` and `job-application-courses` reports and streamed CSV exports show the saved course snapshots with the same filters, admin authentication and access logging. The public subject catalogue shows new courses to subsequent users. No new migration is required.
+Application course names remain immutable private submission snapshots. Pending
+snapshots have nullable `course_id` and an explicit `custom_request_id`. Approval
+creates/reuses a shared subject and records its ID on the request; it does not
+rewrite historical job snapshots or attach courses to a provider profile.
+Rejected custom names remain only in private job/request history.
+
+Migration `2026_11_18_000003_create_custom_subject_requests.php` creates the queue
+and nullable snapshot references. Source mutations, snapshots and events share
+one transaction. Version 1 `teaching_job_application.submitted` retains approved
+`course_ids`, adds `custom_request_ids`, and retains salary metadata. The new
+request events record actual status transitions. `subject.other_created` happens
+only at actual catalogue approval; no provider selection event is emitted for jobs.
+
+The existing `job-applications` and `job-application-courses` admin reports/CSV
+include snapshots, with `custom_request_id` explicitly registered in the latter.
+The new approval request report uses shared access control, logging and filters.
+No old data or approval history is invented. See [approval lifecycle](OTHER_SUBJECTS.md).
+
+[Postman collection](postman/job-application-other-subjects.postman_collection.json):
+after submitting a new course, approve it in admin and refresh `GET /subjects`
+before sending requests that require a numeric catalogue ID.

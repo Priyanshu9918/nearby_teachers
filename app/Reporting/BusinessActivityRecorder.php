@@ -10,6 +10,12 @@ final class BusinessActivityRecorder
 {
     // Each event explicitly owns its snapshot contract. No raw request/user arrays.
     private const EVENTS = [
+        'support_ticket.screenshot_attached' => ['support_ticket', ['has_screenshot']],
+        'course_request.submitted' => ['custom_subject_request', ['status']],
+        'course_request.cancelled' => ['custom_subject_request', ['status']],
+        'course_request.reviewed' => ['custom_subject_request', ['status', 'subject_id']],
+        'provider.avatar_removed' => ['user', ['avatar_status', 'has_photo']],
+        'provider.avatar_auto_published' => ['user', ['avatar_status']],
         'teacher.youtube_link_updated' => ['teacher_profile', ['has_link']],
         'institute.youtube_link_updated' => ['institute_profile', ['has_link']],
         'provider.custom_subjects_selected' => ['user', ['subject_ids']],
@@ -58,7 +64,7 @@ final class BusinessActivityRecorder
         'support.contact_details_updated' => ['support_contact_settings', ['changed_fields']],
         // Version 1 submission history excludes contact details; no follow-up/decision workflow exists yet.
         'franchise_enquiry.submitted' => ['franchise_enquiry', ['status']],
-        'teaching_job_application.submitted' => ['teaching_job_application', ['status', 'course_ids', 'expected_salary', 'currency', 'salary_period']],
+        'teaching_job_application.submitted' => ['teaching_job_application', ['status', 'course_ids', 'custom_request_ids', 'expected_salary', 'currency', 'salary_period']],
         // Form submission and completion are distinct; learners complete after DOB and required parent approval.
         'registration.submitted' => ['user', ['account_type', 'registration_submitted_at']],
         'registration.completed' => ['user', ['account_type', 'profile_completed_at']],

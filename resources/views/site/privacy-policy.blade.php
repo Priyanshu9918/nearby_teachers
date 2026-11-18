@@ -15,6 +15,7 @@
         <a class="policy-home" href="{{ route('website.home') }}">Nearby Teacher</a>
         <p class="policy-eyebrow">Your information and choices</p>
         <h1>Nearby Teacher Privacy Policy</h1>
+        @if ($lang !== 'en')<p class="policy-intro" lang="{{ $lang }}" dir="{{ data_get($t, '_meta.rtl') ? 'rtl' : 'ltr' }}">{{ data_get($t, 'website.englishPolicyNotice') }}</p>@endif
         <p class="policy-byline">5 Nov 2026 <span aria-hidden="true">·</span> &#64;Prateek Gupta</p>
         <p class="policy-intro">Nearby Teacher helps learners find teachers and institutes near them. This policy explains what personal data the Nearby Teacher app and website collect, why, who sees it, and how you can control it. Nearby Teacher is operated by BSL Ed Tech Private Limited (British School of Language), C-9 LDA Market, BSL Building, Alambagh Bus Stand, Lucknow 226005, India. It covers the mobile apps (Android and iOS) and www.teachers.britishschooloflanguages.com.</p>
     </header>

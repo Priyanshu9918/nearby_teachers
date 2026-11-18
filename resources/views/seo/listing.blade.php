@@ -26,14 +26,14 @@
 <article class="directory-card">
     <div class="directory-card-heading">
         <div class="directory-avatar" aria-hidden="true">@if ($item->avatar_url)<img src="{{ \App\Support\PublicMediaUrl::resolve($item->avatar_url) }}" alt="" loading="lazy" width="48" height="48">@else{{ mb_substr($item->full_name, 0, 1) }}@endif</div>
-        <div><h2><a href="{{ \App\Services\SeoDirectory::url($profilePath) }}">{{ $item->full_name }}</a></h2><span class="directory-kind">{{ $item->provider_type === 'institute' ? 'Institute' : 'Teacher' }}</span></div>
+        <div><h2><a href="{{ \App\Services\SeoDirectory::url($profilePath) }}">{{ $item->full_name }}</a></h2><span class="directory-kind">{{ $item->provider_type === 'institute' ? $labels['institute'] : $labels['teacher'] }}</span></div>
     </div>
-    <p class="directory-place">@if ($item->rating_count > 0)★ {{ number_format((float) $item->rating_avg, 1) }} ({{ $item->rating_count }}) <span>·</span> @else{{ $labels['no_reviews'] }} <span>·</span> @endif{{ \App\Support\SeoProfileDetails::address($item) }}</p>
+    <p class="directory-place">{{-- Student review ratings temporarily hidden. @if ($item->rating_count > 0)★ {{ number_format((float) $item->rating_avg, 1) }} ({{ $item->rating_count }}) <span>·</span> @else{{ $labels['no_reviews'] }} <span>·</span> @endif --}}{{ \App\Support\SeoProfileDetails::address($item) }}</p>
     @if ($item->subject_names)<p class="directory-subjects">{{ $item->subject_names }}</p>@endif
     <div class="directory-tags">@foreach (json_decode($item->lesson_modes ?: '[]', true) as $mode)@if(isset($labels[$mode]))<span>{{ $labels[$mode] }}</span>@endif @endforeach @if($item->trial_days > 0)<span>{{ \App\Services\SeoDirectory::text($labels, (int) $item->trial_days === 1 ? 'trial_duration_one' : 'trial_duration', ['days' => (int) $item->trial_days]) }}</span>@endif</div>
     @if ($item->rate !== null)<p class="directory-rate">{{ number_format((float) $item->rate, 0) }} {{ $item->currency }}/hour · {{ $labels['rate'] }}</p>@endif
     @include('seo.partials.profile-details', ['item' => $item, 'contactHref' => route('download', ['type' => $item->provider_type, 'slug' => $item->public_page_slug])])
-    <div class="directory-actions"><a class="directory-contact" href="{{ route('download', ['type' => $item->provider_type, 'slug' => $item->public_page_slug]) }}">Get the app to contact</a><a class="directory-profile" href="{{ \App\Services\SeoDirectory::url($profilePath) }}">{{ $labels['profile'] }}</a></div>
+    <div class="directory-actions"><a class="directory-contact" href="{{ route('download', ['type' => $item->provider_type, 'slug' => $item->public_page_slug]) }}">{{ $labels['download_contact'] }}</a><a class="directory-profile" href="{{ \App\Services\SeoDirectory::url($profilePath) }}">{{ $labels['profile'] }}</a></div>
 </article>
 @endforeach</section>
 <nav class="seo-pages" aria-label="Pagination">@if ($providers->previousPageUrl())<a class="text-link" href="{{ $providers->previousPageUrl() }}" rel="prev">{{ $labels['previous'] }}</a>@endif @if ($providers->nextPageUrl())<a class="text-link" href="{{ $providers->nextPageUrl() }}" rel="next">{{ $labels['next'] }}</a>@endif</nav>

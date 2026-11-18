@@ -133,6 +133,7 @@ class ProfilesController extends Controller
         $updateParts[] = 'updated_at = now()';
 
         DB::transaction(function () use ($data, $subjectsField, $user, $type, $profileTable, $updateParts, $bindings, $location, $subjectLimit): void {
+            DB::table('users')->where('id', $user->id)->lockForUpdate()->first(['id']);
             $lockedProfile = DB::table($profileTable)->where('user_id', $user->id)->lockForUpdate()->first();
             if ($lockedProfile === null) {
                 abort(404, 'Profile not found');
@@ -192,7 +193,11 @@ class ProfilesController extends Controller
                 'locationDetails' => $profile->location_details === null ? null : json_decode($profile->location_details, true, flags: JSON_THROW_ON_ERROR)];
         }
 
-        return response()->json(['ok' => true, ...$teacherResponse]);
+        $awaitingApproval = ! empty($data['otherSubjects']) && DB::table('custom_subject_requests')
+            ->where('user_id', $user->id)->where('profile_type', $type)->where('status', 'pending')->exists();
+
+        return response()->json(['ok' => true, ...$teacherResponse, 'customCoursesPendingApproval' => $awaitingApproval,
+            ...($awaitingApproval ? ['message' => 'New courses have been submitted for admin approval and will remain hidden until approved.'] : [])]);
     }
 
     // Existing teacher routes remain restricted to teachers and delegate to the shared editor.
@@ -392,13 +397,13 @@ class ProfilesController extends Controller
         $path = $data['image']->store($type.'-photos', 'public');
         $url = PublicMediaUrl::fromStoragePath($path);
         DB::transaction(function () use ($user, $url, $type): void {
-            DB::table('users')->where('id', $user->id)->update(['avatar_url' => $url, 'avatar_status' => 'pending', 'updated_at' => now()]);
+            DB::table('users')->where('id', $user->id)->update(['avatar_url' => $url, 'avatar_status' => 'approved', 'updated_at' => now()]);
             app(BusinessActivityRecorder::class)->record($type.'.avatar_submitted', $user->id, $user->id,
-                after: ['avatar_status' => 'pending']);
+                after: ['avatar_status' => 'approved']);
         });
 
         return response()->json(['user' => DB::table('users')->where('id', $user->id)->first(['id', 'avatar_url', 'avatar_status']),
-            'message' => 'Photo uploaded; it will appear on your public profile after review.'], 201);
+            'message' => 'Photo uploaded and is now visible on your profile.'], 201);
     }
 
     public function show(Request $request, string $type, int $id): JsonResponse

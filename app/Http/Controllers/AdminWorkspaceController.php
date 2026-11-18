@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Reporting\BusinessActivityRecorder;
 use App\Reporting\ReportAccessLog;
+use App\Services\ProviderPhotoRemoval;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +21,11 @@ class AdminWorkspaceController extends Controller
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'in:15,25,50'],
         ]);
-        $photos = DB::table('users')->where('avatar_status', 'pending')
+        $photos = DB::table('users')->where(function ($query): void {
+            $query->where('avatar_status', 'pending')->orWhere(function ($providers): void {
+                $providers->whereIn('account_type', ['teacher', 'institute'])->whereNotNull('avatar_url')->where('avatar_url', '<>', '');
+            });
+        })
             ->select('id', 'full_name', 'avatar_url', 'account_type', 'updated_at')
             ->orderBy('updated_at')->orderBy('id')
             ->paginate((int) ($filters['per_page'] ?? 25))->withQueryString();
@@ -34,8 +39,9 @@ class AdminWorkspaceController extends Controller
         $data = $request->validate(['status' => ['required', 'in:approved,rejected']]);
         $changed = DB::transaction(function () use ($data, $userId): bool {
             $user = DB::table('users')->where('id', $userId)->lockForUpdate()
-                ->first(['id', 'avatar_status']);
+                ->first(['id', 'avatar_status', 'account_type']);
             abort_if($user === null, 404);
+            abort_if(in_array($user->account_type, ['teacher', 'institute'], true), 422, 'Provider photos publish immediately. Use Delete photo to remove one.');
             if ($user->avatar_status !== 'pending') {
                 return false;
             }
@@ -56,6 +62,14 @@ class AdminWorkspaceController extends Controller
         }
 
         return back()->with('status', 'Photo '.($data['status'] === 'approved' ? 'approved' : 'rejected').'.');
+    }
+
+    public function deletePhoto(Request $request, int $userId): RedirectResponse
+    {
+        $changed = app(ProviderPhotoRemoval::class)->remove($userId);
+        $this->access->record($request, 'users', 'photo-remove', $userId);
+
+        return back()->with('status', $changed ? 'Profile photo deleted.' : 'No profile photo to delete.');
     }
 
     public function bslCentres(Request $request): View

@@ -44,7 +44,7 @@ CREATE TABLE users (
   -- accounts with no photo default to 'approved' so this doesn't
   -- retroactively hide anything that predates the feature.
   avatar_status TEXT NOT NULL DEFAULT 'approved' CHECK (avatar_status IN ('pending', 'approved', 'rejected')),
-  -- One of the 8 codes in src/i18n/ (en, hi, es, fr, ar, zh, pt, ru).
+  -- One of the 14 codes in resources/languages.json (shared with src/i18n/).
   -- Defaults to English; the client is free to override at first launch
   -- based on device locale without waiting for the user to explicitly
   -- pick one, then persist that choice here via PATCH

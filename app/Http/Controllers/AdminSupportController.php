@@ -5,13 +5,26 @@ namespace App\Http\Controllers;
 use App\Reporting\ReportAccessLog;
 use App\Services\SupportContactDetails;
 use App\Services\SupportTicketManager;
+use App\Services\SupportTicketScreenshot;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 final class AdminSupportController extends Controller
 {
     public function __construct(private readonly ReportAccessLog $access) {}
+
+    public function screenshot(Request $request, int $id): BinaryFileResponse
+    {
+        $ticket = DB::table('support_tickets')->where('id', $id)->first(['screenshot_path']);
+        abort_if($ticket === null, 404);
+        $response = SupportTicketScreenshot::response($ticket->screenshot_path);
+        $this->access->record($request, 'support', 'screenshot-view', $id);
+
+        return $response;
+    }
 
     public function contactDetails(Request $request, SupportContactDetails $contact): View
     {

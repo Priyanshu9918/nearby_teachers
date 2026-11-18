@@ -20,6 +20,9 @@
         <div class="field"><label for="type">Participant account type</label><select name="type" id="type"><option value="">All types</option>@foreach (['learner' => 'Student', 'teacher' => 'Teacher', 'institute' => 'Institute'] as $value => $label)<option value="{{ $value }}" @selected(($filters['type'] ?? '') === $value)>{{ $label }}</option>@endforeach</select></div>
         <div class="field"><label for="user">User ID</label><input name="user" id="user" value="{{ $filters['user'] ?? '' }}"></div>
         @endif
+        @if (($report ?? null) === 'custom-course-requests')
+        <div class="field"><label for="status">Request status</label><select name="status" id="status"><option value="">All statuses</option>@foreach (['pending', 'approved', 'rejected', 'cancelled'] as $value)<option value="{{ $value }}" @selected(($filters['status'] ?? '') === $value)>{{ ucfirst($value) }}</option>@endforeach</select></div>
+        @endif
         @if (($report ?? null) === 'support')
         <div class="field"><label for="status">Ticket status</label><select name="status" id="status"><option value="">All statuses</option>@foreach (['pending' => 'Pending', 'in_progress' => 'In progress', 'resolved' => 'Resolved', 'rejected' => 'Rejected'] as $value => $label)<option value="{{ $value }}" @selected(($filters['status'] ?? '') === $value)>{{ $label }}</option>@endforeach</select></div>
         @endif

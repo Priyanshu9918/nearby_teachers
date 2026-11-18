@@ -11,6 +11,7 @@ use App\Services\OtpDelivery;
 use App\Services\ParentalConsent;
 use App\Services\ProfileDraft;
 use App\Services\ProfileEditor;
+use App\Support\PublicLanguages;
 use App\Support\ReferralRating;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -33,8 +34,6 @@ class AuthController extends Controller
     private const MAX_OTP_ATTEMPTS = 5;
 
     private const SAFETY_DISCLAIMER = 'Nearby Teacher does not conduct criminal background checks, identity verification, or credential checks on teachers or institutes — except the "BSL Verified" badge, which only confirms an institute is directly operated by BSL and is not a safety certification. You are solely responsible for evaluating the suitability and safety of any teacher or institute before engaging their services, especially for a minor in your care. We recommend independently verifying credentials, checking references, and meeting before committing to lessons — particularly for in-person or unsupervised sessions involving a minor.';
-
-    private const LANGUAGES = ['en', 'hi', 'es', 'fr', 'ar', 'zh', 'pt', 'ru'];
 
     public function __construct(private readonly AuthenticationService $authentication, private readonly OtpDelivery $delivery) {}
 
@@ -392,7 +391,7 @@ class AuthController extends Controller
 
     public function setPreferredLanguage(Request $request): JsonResponse
     {
-        $data = $request->validate(['language' => ['required', 'in:'.implode(',', self::LANGUAGES)]]);
+        $data = $request->validate(['language' => ['required', 'in:'.implode(',', PublicLanguages::codes())]]);
         $user = $request->attributes->get('authenticated_user');
 
         DB::table('users')->where('id', $user->id)->update([
@@ -408,15 +407,23 @@ class AuthController extends Controller
         $data = $request->validate(['avatarUrl' => ['required', 'url', 'max:2048']]);
         $user = $request->attributes->get('authenticated_user');
 
-        DB::table('users')->where('id', $user->id)->update([
-            'avatar_url' => $data['avatarUrl'],
-            'avatar_status' => 'pending',
-            'updated_at' => now(),
-        ]);
+        $provider = in_array($user->account_type, ['teacher', 'institute'], true);
+        $status = $provider ? 'approved' : 'pending';
+        DB::transaction(function () use ($user, $data, $provider, $status): void {
+            DB::table('users')->where('id', $user->id)->update([
+                'avatar_url' => $data['avatarUrl'],
+                'avatar_status' => $status,
+                'updated_at' => now(),
+            ]);
+            if ($provider) {
+                app(BusinessActivityRecorder::class)->record($user->account_type.'.avatar_submitted', $user->id, $user->id,
+                    after: ['avatar_status' => $status]);
+            }
+        });
 
         return response()->json([
             'user' => DB::table('users')->select('id', 'avatar_url', 'avatar_status')->where('id', $user->id)->first(),
-            'message' => 'Photo submitted — it will appear on your profile once reviewed.',
+            'message' => $provider ? 'Photo saved and is now visible on your profile.' : 'Photo submitted — it will appear on your profile once reviewed.',
         ]);
     }
 

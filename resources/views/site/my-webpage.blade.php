@@ -1,12 +1,12 @@
 @extends('site.layout')
-@section('documentLanguage', 'en')
+@section('documentLanguage', $lang)
 @php
     $subjectNames = $subjects->pluck('name')->implode(' · ');
     $place = collect([$provider->city, $provider->state])->filter()->unique()->implode(', ');
-    $shareText = 'Find '.$provider->full_name.' on Nearby Teacher';
+    $shareText = str_replace('{name}', $provider->full_name, $t['webpage']['share_text']);
 @endphp
-@section('title', 'Your web page — '.$provider->full_name)
-@section('description', 'Share your Nearby Teacher page and print a QR poster.')
+@section('title', $t['webpage']['title'].' — '.$provider->full_name)
+@section('description', $t['webpage']['description'])
 @section('content')
 <style>
     body{background:var(--app-background);color:var(--app-text-primary)}
@@ -21,45 +21,45 @@
 </style>
 <main class="webpage">
     <section class="web-dashboard">
-        <h1>Your web page</h1>
+        <h1>{{ $t['webpage']['title'] }}</h1>
         <div class="web-card">
             <div class="web-owner">
                 <div class="web-avatar">@if($provider->avatar_url)<img src="{{ \App\Support\PublicMediaUrl::resolve($provider->avatar_url) }}" alt="">@else{{ mb_strtoupper(mb_substr($provider->full_name, 0, 2)) }}@endif</div>
                 <div><h2>{{ $provider->full_name }}</h2><p>Your page is live</p></div>
-                <span class="web-status">● Live</span>
+                <span class="web-status">● {{ $t['webpage']['live'] }}</span>
             </div>
             <div class="web-link"><span aria-hidden="true">↗</span><a id="public-page-url" href="{{ $url }}">{{ $url }}</a></div>
             <div class="web-actions">
-                <button type="button" id="copy-page">▢ Copy</button>
-                <button type="button" class="share" id="share-page">♧ Share</button>
-                <button type="button" id="open-page">↗ Open</button>
+                <button type="button" id="copy-page">▢ {{ $t['webpage']['copy'] }}</button>
+                <button type="button" class="share" id="share-page">♧ {{ $t['feed']['share'] }}</button>
+                <button type="button" id="open-page">↗ {{ $t['webpage']['open'] }}</button>
             </div>
-            <p class="web-hint">Share this link on WhatsApp, Facebook or your visiting card.</p>
-            <p class="web-hint"><a href="{{ $oldProfileUrl }}">Open your existing profile page</a></p>
+            <p class="web-hint">{{ $t['webpage']['share_hint'] }}</p>
+            <p class="web-hint"><a href="{{ $oldProfileUrl }}">{{ $t['webpage']['existing_profile'] }}</a></p>
         </div>
         <div class="web-poster">
-            <h2>Your QR poster</h2>
-            <p>Print it for your centre, a school gate or a local shop. People can scan it to see your page.</p>
-            <button type="button" class="print" onclick="window.print()">▣ Print my poster</button>
+            <h2>{{ $t['webpage']['poster_title'] }}</h2>
+            <p>{{ $t['webpage']['poster_hint'] }}</p>
+            <button type="button" class="print" onclick="window.print()">▣ {{ $t['webpage']['print'] }}</button>
         </div>
         @if($related->isNotEmpty())
-            <div class="web-related"><h2>You'll also be listed on</h2>
+            <div class="web-related"><h2>{{ $t['webpage']['related'] }}</h2>
                 @foreach($related as $listing)
                     <a href="{{ \App\Services\SeoDirectory::url($listing->path) }}"><span aria-hidden="true">♧</span>{{ $listing->display_name }} in {{ $listing->city }}<span style="margin-left:auto">↗</span></a>
                 @endforeach
             </div>
         @endif
     </section>
-    <section class="poster-wrap" aria-label="Printable QR poster preview">
+    <section class="poster-wrap" aria-label="{{ $t['webpage']['poster_preview'] }}">
         <article class="poster">
-            <header class="poster-brand"><strong>मुझे Nearby Teacher पर ढूँढें</strong><small>{{ $provider->full_name }} · {{ $place }}</small></header>
+            <header class="poster-brand"><strong>{{ $t['webpage']['find_me'] }}</strong><small>{{ $provider->full_name }} · {{ $place }}</small></header>
             <div class="poster-main">
                 <div class="web-avatar">@if($provider->avatar_url)<img src="{{ \App\Support\PublicMediaUrl::resolve($provider->avatar_url) }}" alt="">@else{{ mb_strtoupper(mb_substr($provider->full_name, 0, 2)) }}@endif</div>
                 <h2>{{ $provider->full_name }}</h2><p>{{ $place }}</p>
                 @if($subjectNames)<p class="subjects">{{ $subjectNames }}</p>@endif
-                <div class="poster-qr"><img src="{{ $qrUrl }}" alt="QR code linking to {{ $url }}"><div><strong>ऐप से मुझे ढूँढें या WhatsApp करें</strong><small>{{ $url }}</small></div></div>
+                <div class="poster-qr"><img src="{{ $qrUrl }}" alt="QR code linking to {{ $url }}"><div><strong>{{ $t['webpage']['contact_me'] }}</strong><small>{{ $url }}</small></div></div>
             </div>
-            <footer class="poster-footer"><span>Nearby Teacher</span><span>Scan to view profile</span></footer>
+            <footer class="poster-footer"><span>Nearby Teacher</span><span>{{ $t['webpage']['scan'] }}</span></footer>
         </article>
     </section>
 </main>
@@ -73,9 +73,9 @@
         document.getElementById('copy-page')?.addEventListener('click', async (event) => {
             try {
                 await navigator.clipboard.writeText(url);
-                event.currentTarget.textContent = 'Copied';
+                event.currentTarget.textContent = @js($t['webpage']['copied']);
             } catch {
-                window.prompt('Copy your page link', url);
+                window.prompt(@js($t['webpage']['copy_prompt']), url);
             }
         });
         document.getElementById('share-page')?.addEventListener('click', async () => {

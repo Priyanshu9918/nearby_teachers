@@ -629,7 +629,7 @@
           },
           "response": [
             {
-              "name": "201 — Photo uploaded for review",
+              "name": "201 — Photo uploaded and visible",
               "originalRequest": {
                 "method": "POST",
                 "header": [
@@ -671,7 +671,7 @@
                 }
               ],
               "cookie": [],
-              "body": "{\n  \"user\": {\n    \"id\": 123,\n    \"avatar_url\": \"https://example.test/storage/institute-photos/academy.png\",\n    \"avatar_status\": \"pending\"\n  },\n  \"message\": \"Photo uploaded; it will appear on your public profile after review.\"\n}"
+              "body": "{\n  \"user\": {\n    \"id\": 123,\n    \"avatar_url\": \"https://example.test/storage/institute-photos/academy.png\",\n    \"avatar_status\": \"approved\"\n  },\n  \"message\": \"Photo uploaded and is now visible on your profile.\"\n}"
             }
           ]
         },

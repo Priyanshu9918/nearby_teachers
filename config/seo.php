@@ -2,7 +2,7 @@
 
 return [
     'public_url' => env('SEO_PUBLIC_URL', config('app.url')),
-    'language_names' => ['en' => 'English', 'hi' => 'हिन्दी', 'bn' => 'বাংলা', 'ur' => 'اردو', 'es' => 'Español', 'ar' => 'العربية', 'ru' => 'Русский', 'zh' => '中文', 'ja' => '日本語', 'fr' => 'Français', 'pt' => 'Português'],
+    'language_names' => array_column(json_decode(file_get_contents(resource_path('languages.json')), true, flags: JSON_THROW_ON_ERROR), 'nativeName', 'code'),
     'city_slugs' => [
         'कानपुर' => 'kanpur', 'नई दिल्ली' => 'new-delhi', 'दिल्ली' => 'delhi',
         '東京' => 'tokyo', '大阪' => 'osaka', '北京' => 'beijing', '上海' => 'shanghai',

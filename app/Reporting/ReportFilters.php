@@ -44,6 +44,9 @@ final class ReportFilters
         if ($report === 'support') {
             $rules['status'] = ['nullable', 'in:pending,in_progress,resolved,rejected'];
         }
+        if ($report === 'custom-course-requests') {
+            $rules['status'] = ['nullable', 'in:pending,approved,rejected,cancelled'];
+        }
 
         $filters = $request->validate($rules);
         if (isset($filters['range'])) {

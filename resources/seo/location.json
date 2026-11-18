@@ -75,5 +75,26 @@
     "village_title": "Преподаватели и учебные заведения в :village, :district",
     "subject_village_title": "Преподаватели и учебные заведения по предмету «:subject» в :village, :district",
     "browse": "Смотрите анкеты преподавателей и учебных заведений, предметы, цены и форматы занятий."
+  },
+  "de": {
+    "country_title": "Lehrkräfte und Institute in :country",
+    "district_title": "Lehrkräfte und Institute in :district, :country",
+    "village_title": "Lehrkräfte und Institute in :village, :district",
+    "subject_village_title": ":subject-Lehrkräfte und Institute in :village, :district",
+    "browse": "Vergleiche Profile, Fächer, Preise und Unterrichtsformen von Lehrkräften und Instituten."
+  },
+  "id": {
+    "country_title": "Pengajar dan lembaga di seluruh :country",
+    "district_title": "Pengajar dan lembaga di :district, :country",
+    "village_title": "Pengajar dan lembaga di :village, :district",
+    "subject_village_title": "Pengajar dan lembaga :subject di :village, :district",
+    "browse": "Jelajahi profil, mata pelajaran, biaya, dan metode belajar pengajar dan lembaga."
+  },
+  "vi": {
+    "country_title": "Giáo viên và trung tâm trên khắp :country",
+    "district_title": "Giáo viên và trung tâm tại :district, :country",
+    "village_title": "Giáo viên và trung tâm tại :village, :district",
+    "subject_village_title": "Giáo viên và trung tâm :subject tại :village, :district",
+    "browse": "Xem hồ sơ giáo viên và trung tâm, môn học, học phí và hình thức học."
   }
 }

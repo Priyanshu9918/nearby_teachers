@@ -1,5 +1,15 @@
 # Reporting architecture
 
+New Other course names enter the numeric-ID custom request queue and stay out
+of profiles/catalogue until approval. Version 1 request status events and catalogue
+creation/selection occur transactionally. The new explicit approval report and
+job snapshot references retain shared CSV/access contracts. See [course approvals](OTHER_SUBJECTS.md).
+
+Provider photos now publish immediately. Version 1 `provider.avatar_removed`
+records removal status/presence, while `provider.avatar_auto_published` records
+the transition of existing pending provider photos at migration time. Both are
+transactional and exclude image URLs/content. See [provider photo lifecycle](PROVIDER_PROFILE_PHOTOS.md).
+
 Provider profile YouTube links are exposed/searchable in the existing teacher
 and institute reports. Version 1 `teacher.youtube_link_updated` and
 `institute.youtube_link_updated` events retain presence flags in the source
@@ -177,9 +187,9 @@ Tracked activity events include:
 | `teacher.profile_step_updated` | Teacher profile step number and changed field names; values such as name, bio, and location are not copied into the event |
 | `teacher.profile_published` | Published status, terms acceptance and profile-completion flag, in the same transaction as page creation |
 | `institute.seo_state_changed` | Version 1 institute SEO publication state, public slug, normalized country/city slug, selected subject IDs and online flag; no contact/address snapshots |
-| `teacher.avatar_submitted` | Pending moderation status only; image URL/content is not copied into history |
+| `teacher.avatar_submitted` | Immediate approved status only for new provider uploads; image URL/content is not copied into history |
 | `learner.profile_updated` | Changed profile field names only; no name, email, DOB, phone or `phone_pin` values are copied into history |
-| `learner.avatar_submitted` | Pending moderation status only; image URL/content is not copied into history |
+| `learner.avatar_submitted` | Immediate approved status only for new provider uploads; image URL/content is not copied into history |
 | `onboarding.age_verified` | Previous/new age-verified and minor flags; no raw DOB, guardian contact or consent token snapshot |
 | `booking.created` | Initial status, lesson mode, requested time and price |
 | `booking.status_changed` | Previous/new status; repeated same-status requests add no change event |
@@ -409,7 +419,7 @@ Contact BSL settings and support-ticket status workflow: `support` and
 search fields and timestamps in `config/reports.php`; browser views and exports
 continue through the shared access logger and bounded/streamed report pipeline.
 Version 1 `support_ticket.submitted` and `support_ticket.status_changed` events
-record only status values inside the ticket transaction. Version 1
+record only status values inside the ticket transaction. Optional screenshots add version 1 `support_ticket.screenshot_attached` with a presence flag only; the support report/CSV exposes `screenshot_available`, while private files require an owner/admin-authenticated, access-logged read. Version 1
 `support.contact_details_updated` records changed field names only. Ticket text,
 WhatsApp/email/LinkedIn values are not copied into business history. Tracking
 starts at deployment; existing ticket statuses are migrated from `open` to
@@ -427,9 +437,9 @@ profile/subject selections are preserved. See the SEO repair section in
 
 Version 1 `institute.onboarding_subjects_updated` records before/after numeric subject IDs for institute registration and onboarding edits, in the source transaction. Recorder failure rolls back the selections and registration. Existing subjects are not backfilled; separate profile editor changes and direct SQL are outside this event coverage. The shared business activity report exposes these snapshots.
 
-Custom provider courses: version 1 `subject.other_created` stores normalized public name and numeric category ID, with numeric subject entity references; version 1 `provider.custom_subjects_selected` stores resolved selected IDs on the user entity. Creation, selection and history share the registration/profile transaction. No credentials or raw requests are retained. The existing `activity` report and CSV exporter expose these events with normal admin guards/access logging. Ordinary ID-only edits, direct SQL/admin catalogue edits and prior data are not reconstructed. See [Other subjects](OTHER_SUBJECTS.md).
+Custom provider courses: version 1 `subject.other_created` stores normalized public name and numeric category ID, with numeric subject entity references; version 1 `provider.custom_subjects_selected` stores resolved selected IDs on the user entity. Pending request creation/selection history shares the registration/profile transaction; catalogue creation occurs only inside the later admin approval transaction. No credentials or raw requests are retained. The existing `activity` report and CSV exporter expose these events with normal admin guards/access logging. Ordinary ID-only edits, direct SQL/admin catalogue edits and prior data are not reconstructed. See [Other subjects](OTHER_SUBJECTS.md).
 
-Job applications also accept shared Other courses via optional `otherSubjects`, or saved Other IDs in `courseIds`. Existing BSL selections remain supported. Creation and the existing version 1 application event share the source transaction; course name snapshots remain historical. See [job contract and dedicated collection](JOB_APPLICATION_OTHER_SUBJECTS.md).
+Job applications also accept shared Other courses via optional `otherSubjects`, or saved Other IDs in `courseIds`. Existing BSL selections remain supported. Pending request creation and the existing version 1 application event share the source transaction; snapshots retain nullable catalogue IDs and explicit request IDs until catalogue approval without rewriting their historical names. See [job contract and dedicated collection](JOB_APPLICATION_OTHER_SUBJECTS.md).
 
 BSL search eligibility and automatic subject assignment emit version 1
 `institute.bsl_search_changed`, `institute.bsl_subjects_removed` and `institute.bsl_subjects_assigned` in the source
