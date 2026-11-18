@@ -1,4 +1,5 @@
 @extends('site.layout')
+@section('languagePickerInHeader', '1')
 @section('documentLanguage', $language)
 @section('documentDirection', $direction)
 @section('title', $title)

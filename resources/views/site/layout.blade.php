@@ -29,7 +29,9 @@
 </head>
 <body>
     @yield('content')
-    @include('site.partials.language-picker')
+    @unless(View::hasSection('languagePickerInHeader'))
+        @include('site.partials.language-picker')
+    @endunless
     <footer class="site-footer">
         <span>{{ data_get($t, 'common.appName', 'Nearby Teacher') }}</span>
         <a href="{{ route('website.privacy-policy', ['lang' => $lang]) }}">{{ data_get($t, 'website.privacyPolicy', 'Privacy Policy') }}</a>

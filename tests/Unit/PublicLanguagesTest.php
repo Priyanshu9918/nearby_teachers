@@ -4,8 +4,10 @@ namespace Tests\Unit;
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\I18nController;
+use App\Http\Middleware\PersistPublicLanguage;
 use App\Services\SeoDirectory;
 use App\Support\PublicLanguages;
+use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -83,6 +85,32 @@ class PublicLanguagesTest extends TestCase
         $this->assertSame('en', $response['served']);
     }
 
+    public function test_encrypted_language_cookie_persists_from_seo_to_referral_without_javascript(): void
+    {
+        $encrypt = app(EncryptCookies::class);
+        $persist = app(PersistPublicLanguage::class);
+        $request = Request::create('/directory?lang=vi', 'GET');
+        $response = $encrypt->handle($request, fn ($request) => $persist->handle($request,
+            fn ($request) => response()->json(['language' => PublicLanguages::resolve($request)])));
+        $cookie = collect($response->headers->getCookies())->first(fn ($cookie) => $cookie->getName() === 'nt_lang');
+        $this->assertNotNull($cookie);
+        $this->assertNotSame('vi', $cookie->getValue());
+        $this->assertTrue($cookie->isHttpOnly());
+        $referral = Request::create('/download?ref=ABC123', 'GET', [], ['nt_lang' => $cookie->getValue()], [], ['HTTP_ACCEPT_LANGUAGE' => 'en']);
+        $response = $encrypt->handle($referral, fn ($request) => $persist->handle($request,
+            fn ($request) => response()->json(['language' => PublicLanguages::resolve($request)])));
+        $this->assertSame('vi', json_decode($response->getContent(), true)['language']);
+    }
+
+    public function test_language_is_not_persisted_on_invalid_or_failed_requests(): void
+    {
+        $middleware = app(PersistPublicLanguage::class);
+        $response = $middleware->handle(Request::create('/?lang=xx'), fn () => response('OK'));
+        $this->assertSame([], $response->headers->getCookies());
+        $response = $middleware->handle(Request::create('/?lang=de'), fn () => response('Invalid', 422));
+        $this->assertSame([], $response->headers->getCookies());
+    }
+
     #[DataProvider('languages')]
     public function test_referral_pages_translate_invitations_and_offer_all_languages_without_database_access(string $language): void
     {
@@ -95,6 +123,10 @@ class PublicLanguagesTest extends TestCase
         $this->assertStringContainsString('dir="'.($t['_meta']['rtl'] ? 'rtl' : 'ltr').'"', $html);
         $this->assertStringContainsString(e($t['referral']['landingTitle']), $html);
         $this->assertStringContainsString('ABC123', $html);
+        $this->assertStringContainsString('id="referral-language"', $html);
+        $this->assertSame(1, substr_count($html, 'name="lang"'));
+        $this->assertLessThan(strpos($html, '<main'), strpos($html, 'id="referral-language"'));
+        $this->assertStringNotContainsString('document.cookie', $html);
         foreach (PublicLanguages::codes() as $code) {
             $this->assertStringContainsString('value="'.$code.'"', $html);
         }

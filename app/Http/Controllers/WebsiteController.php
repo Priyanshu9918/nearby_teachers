@@ -318,13 +318,7 @@ class WebsiteController extends Controller
 
     private function renderWebsite(Request $request, string $view, array $data = [], int $status = 200): Response
     {
-        $response = response()->view($view, $data + $this->viewData($request), $status);
-        $language = $request->query('lang');
-        if (is_string($language) && in_array($language, PublicLanguages::codes(), true)) {
-            $response->withCookie(cookie('nt_lang', $language, 60 * 24 * 365, '/', null, $request->isSecure(), false, false, 'lax'));
-        }
-
-        return $response;
+        return response()->view($view, $data + $this->viewData($request), $status);
     }
 
     private function language(Request $request): string

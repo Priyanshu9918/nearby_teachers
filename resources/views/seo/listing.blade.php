@@ -1,4 +1,5 @@
 @extends('site.layout')
+@section('languagePickerInHeader', '1')
 @section('documentLanguage', $language)
 @section('documentDirection', in_array($language, ['ar', 'ur'], true) ? 'rtl' : 'ltr')
 @section('title', $title)

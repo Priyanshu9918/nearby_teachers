@@ -1,7 +1,8 @@
 <?php
 
-use App\Http\Middleware\RequireApiAuthentication;
 use App\Http\Middleware\NormalizePublicMediaUrls;
+use App\Http\Middleware\PersistPublicLanguage;
+use App\Http\Middleware\RequireApiAuthentication;
 use App\Http\Middleware\TrackAuthActivity;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -20,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ['middleware' => ['api', RequireApiAuthentication::class]]
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->web(append: [PersistPublicLanguage::class]);
         $middleware->api(prepend: [TrackAuthActivity::class]);
         $middleware->api(append: [NormalizePublicMediaUrls::class]);
     })

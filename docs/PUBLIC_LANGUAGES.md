@@ -19,10 +19,16 @@ their native script. PHP and the legacy Node service read the same allowlist.
   Existing reviewed country/subject URL mappings and publication defaults remain
   separate from the UI allowlist. Switching UI language creates no catalogue
   entities or fake historical publication events.
+- Referral invitations and SEO pages use the same shared picker in their header,
+  with no duplicate footer selector. Other public layouts retain the footer picker.
 - The shared website picker includes referral invitations, download pages,
   directories, profile pages, share/QR poster pages and other public layouts.
   It preserves query parameters such as referral codes and search filters,
   resets pagination, and persists explicit selection for later navigation.
+  The web middleware writes an HTTP-only cookie through Laravel EncryptCookies;
+  templates never overwrite it with a raw JavaScript cookie. This keeps SEO and
+  referral selection consistent on the same application host. An explicit
+  `?lang=` remains the highest-priority override by design.
 - SEO controls (search/filter/navigation/contact/trials), referral instructions,
   share/copy/print controls and QR poster copy have translations for every code.
   Teacher-entered biographies, names, addresses and unreviewed course names
