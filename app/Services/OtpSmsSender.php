@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use libphonenumber\PhoneNumberUtil;
 use RuntimeException;
 use Throwable;
@@ -82,6 +83,8 @@ final class OtpSmsSender
 
         // This gateway's supplied contract uses credentials in the GET query.
         // Do not follow redirects, retry ambiguous sends, or expose HTTP exceptions.
+        $stage = 'request';
+        $httpStatus = null;
         try {
             $response = Http::withoutRedirecting()->connectTimeout(3)->timeout(10)->get(self::MUZZTECH_ENDPOINT, [
                 'api_key' => $settings['api_key'],
@@ -90,15 +93,39 @@ final class OtpSmsSender
                 'message' => str_replace('{otp}', $code, $settings['message']),
                 'template_id' => $settings['template_id'],
             ]);
+            $httpStatus = $response->status();
+            $stage = 'response';
             $payload = $response->json();
             $status = is_array($payload) ? data_get($payload, $settings['success_field']) : null;
             $status = is_bool($status) ? ($status ? 'true' : 'false') : $status;
             $expected = is_bool($settings['success_value']) ? ($settings['success_value'] ? 'true' : 'false') : $settings['success_value'];
             if (! $response->successful() || ! is_scalar($status)
                 || strtolower(trim((string) $status)) !== strtolower(trim((string) $expected))) {
+                $markers = [];
+                foreach (['status', 'success', 'code', 'response', 'data.status', 'data.success', 'data.accepted'] as $field) {
+                    if (! is_array($payload) || ! \Illuminate\Support\Arr::has($payload, $field)) {
+                        continue;
+                    }
+                    $value = data_get($payload, $field);
+                    $normalized = is_bool($value) ? ($value ? 'true' : 'false') : (is_scalar($value) ? strtolower(trim((string) $value)) : 'non_scalar');
+                    // Only known status words/codes may leave the gateway payload.
+                    $markers[$field] = in_array($normalized, ['true', 'false', 'success', 'successful', 'ok', 'accepted', 'queued', 'sent', 'error', 'failed', 'failure', '0', '1', '200', '201', '202'], true)
+                        ? $normalized : 'redacted';
+                }
+                Log::warning('Muzztech SMS acknowledgement mismatch.', [
+                    'http_status' => $response->status(),
+                    'json_response' => is_array($payload),
+                    'status_markers' => $markers,
+                ]);
                 throw new RuntimeException('SMS was not acknowledged by the gateway.');
             }
-        } catch (Throwable) {
+        } catch (Throwable $exception) {
+            Log::warning('Muzztech SMS delivery diagnostic.', [
+                'stage' => $stage,
+                'http_status' => $httpStatus,
+                'failure_kind' => $exception instanceof \Illuminate\Http\Client\ConnectionException
+                    ? 'connection_or_timeout' : ($stage === 'request' ? 'request_error' : 'response_not_acknowledged'),
+            ]);
             // A previous RequestException can include the complete query/key/OTP.
             throw new RuntimeException('Muzztech SMS delivery was not acknowledged.');
         }

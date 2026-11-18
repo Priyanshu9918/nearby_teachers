@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Services\OtpSmsSender;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -70,6 +71,7 @@ class OtpSmsSenderTest extends TestCase
 
     public function test_connection_exceptions_are_scrubbed_without_retry_or_previous_exception(): void
     {
+        Log::spy();
         Http::fake(['*' => Http::failedConnection()]);
         try {
             app(OtpSmsSender::class)->send('+919876543210', '123456', 'IN');
@@ -79,7 +81,30 @@ class OtpSmsSenderTest extends TestCase
             $this->assertNull($exception->getPrevious());
             $this->assertStringNotContainsString('test-api-key', (string) $exception);
             $this->assertStringNotContainsString('123456', (string) $exception);
+            Log::shouldHaveReceived('warning')->with('Muzztech SMS delivery diagnostic.', [
+                'stage' => 'request', 'http_status' => null, 'failure_kind' => 'connection_or_timeout',
+            ])->once();
         }
+    }
+
+    public function test_mismatch_diagnostics_only_log_allowlisted_status_markers(): void
+    {
+        Log::spy();
+        Http::fake(['*' => Http::response([
+            'status' => 'test-api-key', 'success' => true, 'code' => '123456',
+            'phone' => '+919876543210', 'message' => 'private-provider-detail',
+            'data' => ['accepted' => true],
+        ])]);
+        try {
+            app(OtpSmsSender::class)->send('+919876543210', '123456', 'IN');
+            $this->fail('Mismatched acknowledgement must remain a failure.');
+        } catch (RuntimeException) {
+            Log::shouldHaveReceived('warning')->with('Muzztech SMS acknowledgement mismatch.', [
+                'http_status' => 200, 'json_response' => true,
+                'status_markers' => ['status' => 'redacted', 'success' => 'true', 'code' => 'redacted', 'data.accepted' => 'true'],
+            ])->once();
+        }
+        Http::assertSentCount(1);
     }
 
     public function test_missing_or_placeholder_template_and_message_without_otp_never_call_the_gateway(): void
