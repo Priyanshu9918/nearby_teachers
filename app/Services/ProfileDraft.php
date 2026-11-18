@@ -88,8 +88,8 @@ final class ProfileDraft
             4 => [$teacher ? 'ratePerHour' : 'startingRate' => $teacher ? ($profile->rate_per_hour ?? null) : ($profile->starting_rate ?? null),
                 'currency' => $profile->currency ?? null, 'trialDays' => isset($profile->trial_days) ? (int) $profile->trial_days : null],
             5 => $teacher
-                ? ['bio' => $profile->bio ?? null, 'linkedinUrl' => $profile->linkedin_url ?? null]
-                : ['description' => $profile->description ?? null, 'websiteUrl' => $profile->website_url ?? null, 'instructorsText' => $profile->instructors_text ?? null],
+                ? ['bio' => $profile->bio ?? null, 'linkedinUrl' => $profile->linkedin_url ?? null, 'youtubeUrl' => $profile->youtube_url ?? null]
+                : ['description' => $profile->description ?? null, 'websiteUrl' => $profile->website_url ?? null, 'instructorsText' => $profile->instructors_text ?? null, 'youtubeUrl' => $profile->youtube_url ?? null],
             6 => ['agreeToTerms' => (bool) ($profile->is_profile_complete ?? false) && ($user->terms_accepted_at ?? null) !== null],
         ];
         $draft['steps'] = [];

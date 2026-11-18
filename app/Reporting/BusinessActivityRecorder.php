@@ -10,6 +10,8 @@ final class BusinessActivityRecorder
 {
     // Each event explicitly owns its snapshot contract. No raw request/user arrays.
     private const EVENTS = [
+        'teacher.youtube_link_updated' => ['teacher_profile', ['has_link']],
+        'institute.youtube_link_updated' => ['institute_profile', ['has_link']],
         'provider.custom_subjects_selected' => ['user', ['subject_ids']],
         'subject.other_created' => ['subject', ['domain_id', 'name']],
         'teacher.seo_state_changed' => ['teacher_profile', ['status', 'public_page_slug', 'country', 'city_slug', 'language', 'subject_ids', 'online']],

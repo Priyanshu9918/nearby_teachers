@@ -129,7 +129,8 @@ final class SeoDirectory
             ->selectSub(DB::table('profile_subjects as ps')->join('subjects as s', 's.id', '=', 'ps.subject_id')
                 ->selectRaw("GROUP_CONCAT(s.name ORDER BY s.name SEPARATOR ', ')")
                 ->where('ps.profile_type', 'teacher')->whereColumn('ps.profile_id', 'p.user_id'), 'subject_names')
-            ->addSelect('u.referral_points');
+            ->addSelect('u.referral_points', 'u.email', 'u.phone as contact_phone', 'p.address_text', 'p.state', 'p.country', 'p.sub_district', 'p.postal_code', 'p.youtube_url')
+            ->addSelect('p.linkedin_url');
 
         $institutes = DB::table('institute_profiles as p')->join('users as u', 'u.id', '=', 'p.user_id')
             ->where('u.account_type', 'institute')->whereNull('u.suspended_at')->whereNotNull('u.phone_verified_at')
@@ -148,7 +149,8 @@ final class SeoDirectory
             ->selectSub(DB::table('profile_subjects as ps')->join('subjects as s', 's.id', '=', 'ps.subject_id')
                 ->selectRaw("GROUP_CONCAT(s.name ORDER BY s.name SEPARATOR ', ')")
                 ->where('ps.profile_type', 'institute')->whereColumn('ps.profile_id', 'p.user_id'), 'subject_names')
-            ->addSelect('u.referral_points');
+            ->addSelect('u.referral_points', 'u.email', 'u.phone as contact_phone', 'p.address_text', 'p.state', 'p.country', 'p.sub_district', 'p.postal_code', 'p.youtube_url')
+            ->selectRaw('NULL AS linkedin_url');
 
         return $teachers->unionAll($institutes);
     }

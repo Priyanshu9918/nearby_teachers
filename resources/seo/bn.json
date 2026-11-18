@@ -22,5 +22,7 @@
   "lessons": "সম্পন্ন পাঠ",
   "more": "আরও শিক্ষক দেখুন",
   "language": "ভাষা",
-  "directory": "শিক্ষক তালিকা"
+  "directory": "শিক্ষক তালিকা",
+  "trial_duration": ":days দিনের ট্রায়াল",
+  "trial_duration_one": ":days দিনের ট্রায়াল"
 }

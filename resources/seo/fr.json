@@ -22,5 +22,7 @@
   "lessons": "Cours terminés",
   "more": "Voir d’autres professeurs",
   "language": "Langue",
-  "directory": "Annuaire des professeurs"
+  "directory": "Annuaire des professeurs",
+  "trial_duration": "Essai de :days jours",
+  "trial_duration_one": "Essai de :days jour"
 }

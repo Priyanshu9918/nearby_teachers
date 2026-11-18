@@ -38,3 +38,9 @@
 a{overflow-wrap:anywhere}
 @media(max-width:600px){.directory-search{padding:12px}.directory-active-filters{align-items:flex-start}.directory-pagination{gap:12px}}
 </style>
+
+<style>
+.seo-profile-details{overflow-wrap:anywhere;font-size:13px;line-height:1.6}
+.seo-profile-details p{margin:8px 0}.seo-profile-details .bio{white-space:pre-line;font-size:13px;margin:4px 0 12px}
+.teacher-location,.directory-place{overflow-wrap:anywhere}
+</style>

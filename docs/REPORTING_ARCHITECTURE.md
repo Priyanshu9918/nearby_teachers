@@ -1,5 +1,10 @@
 # Reporting architecture
 
+Provider profile YouTube links are exposed/searchable in the existing teacher
+and institute reports. Version 1 `teacher.youtube_link_updated` and
+`institute.youtube_link_updated` events retain presence flags in the source
+transaction, without archiving URL values. See [profile YouTube links](PROFILE_YOUTUBE_LINKS.md).
+
 Public filtered search adds nullable, explicitly registered price/currency,
 lesson mode and trial-day columns to the existing search analytics history and
 admin report/CSV. Historical rows stay null; no raw query text or exact GPS is

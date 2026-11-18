@@ -14,6 +14,7 @@ use App\Services\ProfileEditor;
 use App\Services\TeacherAddress;
 use App\Services\TeacherLocation;
 use App\Services\TeacherPublicPages;
+use App\Services\YouTubeProfileLink;
 use App\Support\PublicMediaUrl;
 use App\Support\ReferralRating;
 use Illuminate\Http\JsonResponse;
@@ -70,6 +71,7 @@ class ProfilesController extends Controller
             $subjectsField => ['sometimes', 'array', ...($isTeacher ? ['min:1'] : []), ...$subjectMaxRules],
             $subjectsField.'.*' => ['required', 'integer', 'distinct', 'exists:subjects,id'],
         ];
+        $rules['youtubeUrl'] = YouTubeProfileLink::rules();
         $rules += TeacherAddress::rules() + OtherSubjects::rules($subjectLimit);
         if ($isTeacher) {
             $rules['subjectIds'] = ['prohibited'];
@@ -107,6 +109,8 @@ class ProfilesController extends Controller
         $this->appendField($updateParts, $bindings, $data, 'countryCode', 'country_code', true);
         $this->appendField($updateParts, $bindings, $data, 'trialDays', 'trial_days');
 
+        $this->appendField($updateParts, $bindings, $data, 'youtubeUrl', 'youtube_url');
+
         if ($isTeacher) {
             $this->appendField($updateParts, $bindings, $data, 'linkedinUrl', 'linkedin_url');
         } else {
@@ -140,6 +144,12 @@ class ProfilesController extends Controller
                 'UPDATE '.$profileTable.' SET '.implode(', ', $updateParts).' WHERE user_id = ?',
                 [...$bindings, $user->id]
             );
+
+            if (array_key_exists('youtubeUrl', $data) && ($lockedProfile->youtube_url ?? null) !== $data['youtubeUrl']) {
+                app(BusinessActivityRecorder::class)->record($type.'.youtube_link_updated', $user->id, $user->id,
+                    before: ['has_link' => filled($lockedProfile->youtube_url ?? null)],
+                    after: ['has_link' => filled($data['youtubeUrl'])]);
+            }
 
             if (array_key_exists($subjectsField, $data)) {
                 if ($type === 'teacher') {
@@ -239,7 +249,7 @@ class ProfilesController extends Controller
             '2' => [$subjects, 'otherSubjects'],
             '3' => ['lessonModes', 'latitude', 'longitude', 'addressText', 'city', 'state', 'country', 'countryCode', 'district', 'subDistrict', 'locality', 'localityType', 'postalCode'],
             '4' => [$isTeacher ? 'ratePerHour' : 'startingRate', 'currency', 'trialDays'],
-            '5' => $isTeacher ? ['bio', 'linkedinUrl'] : ['description', 'websiteUrl', 'instructorsText'],
+            '5' => $isTeacher ? ['bio', 'linkedinUrl', 'youtubeUrl'] : ['description', 'websiteUrl', 'instructorsText', 'youtubeUrl'],
             default => abort(404),
         };
         $payload = $request->only($allowed);
@@ -354,7 +364,7 @@ class ProfilesController extends Controller
         $columns = ['id', 'user_id', 'listing_name', 'is_profile_complete', 'completed_profile_steps', 'profile_draft_saved_at',
             'currency', 'lesson_modes', 'latitude', 'longitude', 'address_text', 'city', 'state', 'country', 'country_code', 'slug',
             'is_verified', 'verified_at', 'trial_days', 'rating_avg', 'rating_count', 'district', 'sub_district', 'locality',
-            'locality_type', 'postal_code', 'location_details'];
+            'locality_type', 'postal_code', 'location_details', 'youtube_url'];
         $columns = [...$columns, ...($type === 'teacher'
             ? ['primary_subject_id', 'bio', 'rate_per_hour', 'linkedin_url', 'public_page_slug', 'public_profile_slug', 'seo_slug', 'seo_country', 'seo_city_slug']
             : ['contact_person', 'description', 'starting_rate', 'instructors_text', 'website_url', 'institute_type', 'is_bsl_official', 'bsl_official_since', 'public_page_slug', 'seo_country', 'seo_city_slug'])];

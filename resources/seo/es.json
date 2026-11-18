@@ -22,5 +22,7 @@
   "lessons": "Clases completadas",
   "more": "Explorar más profesores",
   "language": "Idioma",
-  "directory": "Directorio de profesores"
+  "directory": "Directorio de profesores",
+  "trial_duration": "Prueba de :days días",
+  "trial_duration_one": "Prueba de :days día"
 }

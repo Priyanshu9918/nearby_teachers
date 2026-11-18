@@ -22,5 +22,7 @@
   "lessons": "مکمل اسباق",
   "more": "مزید اساتذہ دیکھیں",
   "language": "زبان",
-  "directory": "اساتذہ کی فہرست"
+  "directory": "اساتذہ کی فہرست",
+  "trial_duration": ":days دن کا ٹرائل",
+  "trial_duration_one": ":days دن کا ٹرائل"
 }

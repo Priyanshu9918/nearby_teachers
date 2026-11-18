@@ -117,6 +117,7 @@ CREATE TABLE teacher_profiles (
   country       TEXT,
   country_code  TEXT, -- ISO 3166-1 alpha-2 (e.g. 'IN'), used client-side to render the flag
   linkedin_url  TEXT, -- optional, shown on the profile as a credibility signal
+  youtube_url TEXT, -- optional YouTube channel or video
   slug          TEXT UNIQUE, -- URL-friendly identifier for the public website page, generated on first publish
   is_verified   BOOLEAN NOT NULL DEFAULT FALSE,
   verified_at   TIMESTAMPTZ, -- when verification was granted; null if never verified
@@ -144,6 +145,7 @@ CREATE TABLE institute_profiles (
   instructors_text TEXT, -- free-text list of staff, per product decision: no sub-accounts
   slug          TEXT UNIQUE, -- URL-friendly identifier for the public website page (e.g. "bright-route-institute-kanpur"), generated on first publish
   website_url   TEXT, -- the institute's own external website, optional
+  youtube_url TEXT, -- optional YouTube channel or video
   is_verified   BOOLEAN NOT NULL DEFAULT FALSE,
   verified_at   TIMESTAMPTZ, -- when verification was granted; null if never verified
   trial_days    SMALLINT NOT NULL DEFAULT 0 CHECK (trial_days BETWEEN 0 AND 7), -- 0 = no trial, 1-6 = that many trial days, 7 = a full week trial

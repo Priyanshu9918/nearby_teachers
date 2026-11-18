@@ -22,5 +22,7 @@
   "lessons": "Lessons completed",
   "more": "Explore more teachers and institutes",
   "language": "Language",
-  "directory": "Teacher and institute directory"
+  "directory": "Teacher and institute directory",
+  "trial_duration": ":days days trial",
+  "trial_duration_one": ":days day trial"
 }

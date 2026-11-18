@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Services\ProfileEditor;
 use App\Services\SeoDirectory;
 use App\Services\TeacherPublicPages;
+use App\Services\YouTubeProfileLink;
+use App\Support\SeoProfileDetails;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -54,8 +56,9 @@ class InternationalSeoController extends Controller
             })->orderByRaw('CASE WHEN p.slug = ? THEN 0 ELSE 1 END', [$slug]);
         }
         $teacher = $query->select('p.user_id', 'p.slug', 'p.public_page_slug', 'p.seo_country', 'p.seo_city_slug',
-            'p.bio', 'p.city', 'p.state', 'p.country', 'p.linkedin_url', 'p.rate_per_hour', 'p.currency',
-            'p.lesson_modes', 'p.trial_days', 'p.rating_avg', 'p.rating_count')
+            'p.bio', 'p.city', 'p.state', 'p.country', 'p.youtube_url', 'p.linkedin_url', 'p.rate_per_hour', 'p.currency',
+            'p.lesson_modes', 'p.trial_days', 'p.rating_avg', 'p.rating_count',
+            'p.address_text', 'p.locality', 'p.district', 'p.sub_district', 'p.postal_code', 'u.email', 'u.phone as contact_phone')
             ->selectRaw('COALESCE(NULLIF(p.listing_name, \'\'), u.full_name) AS full_name')
             ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
             ->selectSub(DB::table('bookings')->selectRaw('count(*)')->whereColumn('provider_id', 'p.user_id')
@@ -75,6 +78,7 @@ class InternationalSeoController extends Controller
         foreach ($subjects as $subject) {
             $subject->name = $names[$subject->id] ?? $subject->name;
         }
+        $teacher->youtube_url = YouTubeProfileLink::valid($teacher->youtube_url) ? $teacher->youtube_url : null;
         $linkedin = $teacher->linkedin_url;
         if (! is_string($linkedin) || ! filter_var($linkedin, FILTER_VALIDATE_URL)
             || ! in_array(strtolower((string) parse_url($linkedin, PHP_URL_SCHEME)), ['http', 'https'], true)) {
@@ -89,6 +93,7 @@ class InternationalSeoController extends Controller
             ->where('r.kind', 'city')->where('r.city_slug', $teacher->seo_city_slug)
             ->whereIn('r.subject_id', $subjects->pluck('id'))->orderBy('r.id')->limit(5)
             ->get(['r.path', 'r.city', 'sr.display_name']);
+        SeoProfileDetails::prepare($teacher);
         $this->logView($request, 'teacher', 'profile:'.$teacher->user_id);
 
         return response()->view('seo.teacher', compact('teacher', 'subjects', 'reviews', 'language', 'labels', 'url', 'related') + [
@@ -126,10 +131,11 @@ class InternationalSeoController extends Controller
         $providers = $this->directory->matching($page)->select('providers.provider_type', 'providers.user_id', 'providers.public_page_slug',
             'providers.city', 'providers.rate', 'providers.currency', 'providers.rating_avg', 'providers.rating_count',
             'providers.lesson_modes', 'providers.trial_days', 'providers.subject_names', 'providers.is_bsl_official',
-            'providers.avatar_url', 'providers.referral_points', 'providers.full_name')
+            'providers.email', 'providers.contact_phone', 'providers.address_text', 'providers.state', 'providers.country', 'providers.sub_district', 'providers.postal_code', 'providers.youtube_url', 'providers.linkedin_url', 'providers.description', 'providers.locality', 'providers.district', 'providers.avatar_url', 'providers.referral_points', 'providers.full_name')
             ->orderByDesc('providers.referral_points')->orderByDesc('providers.is_bsl_official')
             ->orderByDesc('providers.rating_count')->orderByDesc('providers.rating_avg')->orderBy('providers.provider_type')->orderBy('providers.user_id')
             ->paginate(20)->withQueryString();
+        $providers->getCollection()->each(fn ($item) => SeoProfileDetails::prepare($item));
         abort_if($providers->isEmpty(), 404);
         $variants = [];
         $labels = SeoDirectory::labels($language);
@@ -156,8 +162,8 @@ class InternationalSeoController extends Controller
             $query->where(fn (Builder $scope) => $scope->where('p.public_page_slug', $slug)->orWhere('p.slug', $slug));
         }
         $institute = $query->select('p.user_id', 'p.slug', 'p.public_page_slug', 'p.seo_country', 'p.seo_city_slug',
-            'p.description', 'p.website_url', 'p.city', 'p.state', 'p.country', 'p.starting_rate', 'p.currency',
-            'p.lesson_modes', 'p.trial_days', 'p.rating_avg', 'p.rating_count', 'p.is_bsl_official', 'p.bsl_official_since', 'p.institute_type')
+            'p.description', 'p.youtube_url', 'p.website_url', 'p.city', 'p.state', 'p.country', 'p.starting_rate', 'p.currency',
+            'p.lesson_modes', 'p.trial_days', 'p.rating_avg', 'p.rating_count', 'p.is_bsl_official', 'p.bsl_official_since', 'p.institute_type', 'p.address_text', 'p.locality', 'p.district', 'p.sub_district', 'p.postal_code', 'u.email', 'u.phone as contact_phone')
             ->selectRaw('COALESCE(NULLIF(p.listing_name, \'\'), u.full_name) AS full_name')
             ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
             ->selectSub(DB::table('bookings')->selectRaw('count(*)')->whereColumn('provider_id', 'p.user_id')
@@ -167,6 +173,7 @@ class InternationalSeoController extends Controller
         if ($redirect = $this->canonical($request, $url)) {
             return $redirect;
         }
+        $institute->youtube_url = YouTubeProfileLink::valid($institute->youtube_url) ? $institute->youtube_url : null;
         $website = is_string($institute->website_url) ? parse_url($institute->website_url) : false;
         if (! is_array($website) || ! in_array(strtolower((string) ($website['scheme'] ?? '')), ['http', 'https'], true)) {
             $institute->website_url = null;
@@ -191,6 +198,7 @@ class InternationalSeoController extends Controller
             ->where('r.kind', 'city')->where('r.city_slug', $institute->seo_city_slug)
             ->whereIn('r.subject_id', $subjects->pluck('id'))->orderBy('r.id')->limit(5)
             ->get(['r.path', 'r.city', 'sr.display_name']);
+        SeoProfileDetails::prepare($institute);
         $this->logView($request, 'institute', 'profile:'.$institute->user_id);
 
         return response()->view('seo.institute', compact('institute', 'subjects', 'reviews', 'language', 'labels', 'url', 'related') + [
@@ -350,7 +358,7 @@ class InternationalSeoController extends Controller
             ->select('providers.provider_type', 'providers.user_id', 'providers.public_page_slug', 'providers.city',
                 'providers.district', 'providers.locality', 'providers.rate', 'providers.currency', 'providers.rating_avg',
                 'providers.rating_count', 'providers.lesson_modes', 'providers.trial_days', 'providers.full_name',
-                'providers.avatar_url', 'providers.subject_names', 'providers.referral_points', 'providers.is_bsl_official')
+                'providers.email', 'providers.contact_phone', 'providers.address_text', 'providers.state', 'providers.country', 'providers.sub_district', 'providers.postal_code', 'providers.youtube_url', 'providers.linkedin_url', 'providers.description', 'providers.avatar_url', 'providers.subject_names', 'providers.referral_points', 'providers.is_bsl_official')
             ->orderByDesc('providers.referral_points')->orderByDesc('providers.is_bsl_official')
             ->orderByDesc('providers.rating_count')->orderByDesc('providers.rating_avg')->orderBy('providers.provider_type')
             ->orderBy('providers.user_id');
@@ -410,6 +418,8 @@ class InternationalSeoController extends Controller
             $breadcrumbs[] = ['label' => $subject, 'url' => null];
         }
         $this->logView($request, 'seo_'.$page->kind, $page->path);
+
+        $providers->getCollection()->each(fn ($item) => SeoProfileDetails::prepare($item));
 
         return response()->view('seo.location', compact('page', 'providers', 'title', 'description', 'variants', 'children', 'url', 'subject', 'values', 'breadcrumbs', 'filters', 'searchTerm', 'trialOnly', 'hasActiveFilters', 'canonicalUrl', 'robots', 'clearFiltersUrl')
             + ['language' => $language, 'labels' => SeoDirectory::labels($language), 'lang' => $language,

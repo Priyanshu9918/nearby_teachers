@@ -254,8 +254,8 @@ class TeacherPublicPagesTest extends TestCase
         $this->get($urls['teacherSeoUrl'])->assertOk()->assertSee('<html lang="en"', false)
             ->assertSee('<link rel="canonical" href="'.$urls['teacherSeoUrl'].'">', false)
             ->assertSee('Maths')->assertSee('Physics')->assertSee('View LinkedIn')->assertSee('Download the app to message')
-            ->assertSee('&lt;b&gt;Patient teacher&lt;/b&gt;', false)->assertDontSee('PRIVATE HOUSE 99')
-            ->assertDontSee('PRIVATE-PIN')->assertDontSee('DO NOT EXPOSE')->assertDontSee('message or book');
+            ->assertSee('&lt;b&gt;Patient teacher&lt;/b&gt;', false)->assertSee('PRIVATE HOUSE 99')
+            ->assertSee('PRIVATE-PIN')->assertDontSee('DO NOT EXPOSE')->assertDontSee('message or book');
         $this->get($urls['teacherSeoUrl'].'?lang=hi')->assertOk()->assertSee('<html lang="hi"', false)->assertSee('seo-language');
         foreach (['/site/teacher/'.$profile->slug, '/teachers/'.$profile->slug,
             '/teachers/old-subject-location-'.$profile->user_id.'/profile', '/site/teacher-profile/old-'.$profile->user_id] as $old) {

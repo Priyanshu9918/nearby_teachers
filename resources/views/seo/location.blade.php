@@ -81,12 +81,13 @@
                     </div>
                     <p class="directory-place">
                         @if ($item->rating_count > 0)★ {{ number_format((float) $item->rating_avg, 1) }} ({{ $item->rating_count }}) <span>·</span> @else{{ $labels['no_reviews'] }} <span>·</span> @endif
-                        {{ collect([$item->locality, $item->district, $item->city])->filter()->unique()->implode(', ') }}
+                        {{ \App\Support\SeoProfileDetails::address($item) }}
                     </p>
                     @if($item->subject_names)<p class="directory-subjects">{{ $item->subject_names }}</p>@endif
-                    <div class="directory-tags">@foreach (json_decode($item->lesson_modes ?: '[]', true) as $mode)@if(isset($labels[$mode]))<span>{{ $labels[$mode] }}</span>@endif @endforeach @if($item->trial_days > 0)<span class="directory-free-trial">Free trial · {{ $item->trial_days }} {{ (int) $item->trial_days === 1 ? 'day' : 'days' }}</span>@endif</div>
+                    <div class="directory-tags">@foreach (json_decode($item->lesson_modes ?: '[]', true) as $mode)@if(isset($labels[$mode]))<span>{{ $labels[$mode] }}</span>@endif @endforeach @if($item->trial_days > 0)<span class="directory-free-trial">{{ \App\Services\SeoDirectory::text($labels, (int) $item->trial_days === 1 ? 'trial_duration_one' : 'trial_duration', ['days' => (int) $item->trial_days]) }}</span>@endif</div>
                     @if ($item->rate !== null)<p class="directory-rate">Fees from {{ number_format((float) $item->rate, 0) }} {{ $item->currency }}/hour</p>@endif
-                    <div class="directory-actions"><a class="directory-contact" href="{{ route('download', ['type' => $item->provider_type, 'slug' => $item->public_page_slug]) }}">Get the app to contact</a><a class="directory-profile" href="{{ $profileUrl }}">View profile</a></div>
+                    @include('seo.partials.profile-details', ['item' => $item, 'contactHref' => route('download', ['type' => $item->provider_type, 'slug' => $item->public_page_slug])])
+    <div class="directory-actions"><a class="directory-contact" href="{{ route('download', ['type' => $item->provider_type, 'slug' => $item->public_page_slug]) }}">Get the app to contact</a><a class="directory-profile" href="{{ $profileUrl }}">View profile</a></div>
                 </article>
             @empty
                 <p class="directory-empty">No teachers or institutes match these filters. Try clearing a filter or changing your search.</p>

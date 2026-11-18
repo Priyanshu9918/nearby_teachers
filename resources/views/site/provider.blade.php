@@ -44,6 +44,9 @@
         @elseif (!$isInstitute && $provider->linkedin_url)
             <p><a class="text-link" href="{{ $provider->linkedin_url }}">{{ data_get($t, 'profile.linkedIn') }}</a></p>
         @endif
+        @if (\App\Services\YouTubeProfileLink::valid($provider->youtube_url ?? null))
+            <p><a class="text-link" href="{{ $provider->youtube_url }}" target="_blank" rel="noopener noreferrer nofollow ugc">YouTube ↗</a></p>
+        @endif
         @if ($description)<p class="bio">{{ $description }}</p>@endif
         @if ($subjects->isNotEmpty())
             <div class="tags">@foreach ($subjects as $subject)<span class="tag">{{ $subject->name }}</span>@endforeach</div>

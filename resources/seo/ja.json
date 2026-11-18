@@ -22,5 +22,7 @@
   "lessons": "完了したレッスン",
   "more": "他の講師を見る",
   "language": "言語",
-  "directory": "講師一覧"
+  "directory": "講師一覧",
+  "trial_duration": ":days日間の体験",
+  "trial_duration_one": ":days日間の体験"
 }

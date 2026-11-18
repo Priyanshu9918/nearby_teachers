@@ -22,5 +22,7 @@
   "lessons": "已完成课程",
   "more": "浏览更多教师",
   "language": "语言",
-  "directory": "教师目录"
+  "directory": "教师目录",
+  "trial_duration": "试用 :days 天",
+  "trial_duration_one": "试用 :days 天"
 }

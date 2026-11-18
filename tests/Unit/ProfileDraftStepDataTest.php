@@ -21,7 +21,7 @@ class ProfileDraftStepDataTest extends TestCase
         $profile = (object) ['listing_name' => 'Public Name', 'contact_person' => 'Contact Person', 'is_profile_complete' => false,
             'completed_profile_steps' => '[1,2,3]', 'lesson_modes' => '["online"]', 'city' => 'Kanpur', 'district' => 'Kanpur Nagar',
             'rate_per_hour' => '600.00', 'starting_rate' => '700.00', 'trial_days' => 2, 'currency' => 'INR',
-            'bio' => 'Teacher story', 'description' => 'Institute story', 'linkedin_url' => 'https://example.test/teacher',
+            'youtube_url' => 'https://www.youtube.com/@example', 'bio' => 'Teacher story', 'description' => 'Institute story', 'linkedin_url' => 'https://example.test/teacher',
             'website_url' => 'https://example.test/institute', 'instructors_text' => 'Teaching team', 'location_details' => '{"private":"PRIVATE_ENRICHMENT"}'];
         $draft = ProfileDraft::forOwner($profile, $user, $type, ['7', 9]);
         $this->assertSame(range(1, 6), array_column($draft['steps'], 'step'));
@@ -30,6 +30,7 @@ class ProfileDraftStepDataTest extends TestCase
         $this->assertSame([7, 9], $draft['steps'][1]['data'][$type === 'teacher' ? 'primarySubjects' : 'subjectIds']);
         $this->assertSame(['online'], $draft['steps'][2]['data']['lessonModes']);
         $this->assertSame('Kanpur', $draft['steps'][2]['data']['city']);
+        $this->assertSame('https://www.youtube.com/@example', $draft['steps'][4]['data']['youtubeUrl']);
         $this->assertFalse($draft['steps'][5]['data']['agreeToTerms']);
         if ($type === 'teacher') {
             $this->assertArrayNotHasKey('contactPerson', $draft['steps'][0]['data']);

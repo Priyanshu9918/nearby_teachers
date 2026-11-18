@@ -66,6 +66,50 @@ class ProviderProfileEditorTest extends TestCase
         return [['teacher'], ['institute']];
     }
 
+    #[DataProvider('providers')]
+    public function test_step_five_saves_restores_and_clears_youtube_without_overwriting_story(string $type): void
+    {
+        if ($type === 'teacher') {
+            $this->useTeacher();
+        }
+        $table = $type.'_profiles';
+        $story = $type === 'teacher' ? 'bio' : 'description';
+        DB::table($table)->where('user_id', $this->userId)->update([$story => 'Existing profile story remains unchanged.']);
+        $url = 'https://www.youtube.com/@example';
+        $this->patchJson('/profiles/me/steps/5', ['youtubeUrl' => $url])->assertOk()
+            ->assertJsonPath('profileDraft.steps.4.data.youtubeUrl', $url);
+        $this->getJson('/profiles/me')->assertOk()->assertJsonPath('profile.youtube_url', $url)
+            ->assertJsonPath('profileDraft.steps.4.data.youtubeUrl', $url);
+        $this->assertDatabaseHas($table, ['user_id' => $this->userId, $story => 'Existing profile story remains unchanged.', 'youtube_url' => $url]);
+        $this->assertDatabaseHas('business_activity', ['event' => $type.'.youtube_link_updated', 'entity_id' => $this->userId, 'version' => 1]);
+        $this->patchJson('/profiles/me/steps/5', ['youtubeUrl' => 'https://youtube.com.evil.test/channel'])->assertUnprocessable()
+            ->assertJsonValidationErrors('youtubeUrl');
+        $this->assertDatabaseHas($table, ['user_id' => $this->userId, 'youtube_url' => $url]);
+        $this->putJson('/profiles/me', ['youtubeUrl' => null])->assertOk();
+        $this->getJson('/profiles/me')->assertOk()->assertJsonPath('profile.youtube_url', null)
+            ->assertJsonPath('profileDraft.steps.4.data.youtubeUrl', null);
+        $events = DB::table('business_activity')->where('entity_id', $this->userId)->where('event', $type.'.youtube_link_updated')->get();
+        $this->assertCount(2, $events);
+        $this->assertSame(['has_link' => true], json_decode($events[0]->after_data, true));
+        $this->assertSame(['has_link' => false], json_decode($events[1]->after_data, true));
+    }
+
+    #[DataProvider('providers')]
+    public function test_youtube_link_and_history_roll_back_together(string $type): void
+    {
+        if ($type === 'teacher') {
+            $this->useTeacher();
+        }
+        DB::listen(function ($query) use ($type): void {
+            if (str_contains($query->sql, 'insert into `business_activity`') && in_array($type.'.youtube_link_updated', $query->bindings, true)) {
+                throw new \RuntimeException('History unavailable');
+            }
+        });
+        $this->patchJson('/profiles/me/steps/5', ['youtubeUrl' => 'https://youtu.be/example'])->assertStatus(500);
+        $this->assertDatabaseHas($type.'_profiles', ['user_id' => $this->userId, 'youtube_url' => null]);
+        $this->assertDatabaseMissing('business_activity', ['entity_id' => $this->userId, 'event' => $type.'.youtube_link_updated']);
+    }
+
     public static function subjectLimitCases(): array
     {
         return [['teacher', false], ['institute', false], ['institute', true]];
