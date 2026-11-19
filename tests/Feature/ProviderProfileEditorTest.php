@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Reporting\BusinessActivityRecorder;
 use App\Services\AuthenticationService;
 use App\Services\CustomSubjectApproval;
 use Illuminate\Http\UploadedFile;
@@ -424,6 +425,50 @@ class ProviderProfileEditorTest extends TestCase
         $this->postJson('/profiles/me/photo', ['image' => $image])->assertCreated()->assertJsonPath('user.avatar_status', 'approved');
         $this->getJson('/profiles/me')->assertOk()->assertJsonPath('profileDraft.completedSteps', []);
         $this->assertDatabaseHas('business_activity', ['event' => $type.'.avatar_submitted', 'entity_id' => (string) $this->userId]);
+    }
+
+    public function test_teacher_primary_subject_is_saved_restored_and_preserved_by_legacy_requests(): void
+    {
+        $this->useTeacher();
+        $other = DB::table('subjects')->insertGetId(['domain_id' => DB::table('subjects')->where('id', $this->subjectId)->value('domain_id'), 'name' => 'Another subject']);
+        $this->patchJson('/teacher/profile/steps/2', ['primarySubjects' => [$this->subjectId, $other], 'primarySubjectId' => $other])
+            ->assertOk()->assertJsonPath('primarySubjectId', $other)
+            ->assertJsonPath('profileDraft.steps.1.data.primarySubjectId', $other);
+        $this->assertSame(2, DB::table('profile_subjects')->where('profile_type', 'teacher')->where('profile_id', $this->userId)->count());
+        $this->getJson('/teacher/profile')->assertOk()->assertJsonPath('profile.primary_subject_id', $other);
+        $this->patchJson('/profiles/me/steps/2', ['primarySubjects' => [$other, $this->subjectId]])
+            ->assertOk()->assertJsonPath('primarySubjectId', $other);
+        $this->patchJson('/teacher/profile/steps/2', ['primarySubjects' => [$this->subjectId]])
+            ->assertUnprocessable()->assertJsonValidationErrors('primarySubjectId');
+        $this->patchJson('/teacher/profile/steps/2', ['primarySubjects' => [$this->subjectId], 'primarySubjectId' => $this->subjectId])
+            ->assertOk()->assertJsonPath('primarySubjectId', $this->subjectId);
+        $this->assertSame(2, DB::table('business_activity')->where('event', 'teacher.primary_subject_changed')->where('entity_id', $this->userId)->count());
+        $report = '/admin/reports/teacher-profiles?user='.$this->userId;
+        $this->get($report)->assertRedirect('/admin/login');
+        $this->get($report.'&export=1')->assertRedirect('/admin/login');
+        $this->withSession(['admin_authenticated' => true])->get($report)->assertOk()->assertSee('primary subject id');
+        $rows = array_map('str_getcsv', preg_split('/\r?\n/', trim($this->get($report.'&export=1')->assertOk()->streamedContent())));
+        $columns = array_flip($rows[0]);
+        $this->assertCount(2, $rows);
+        $this->assertSame((string) $this->subjectId, $rows[1][$columns['primary_subject_id']]);
+        $this->assertDatabaseHas('admin_report_access_log', ['report' => 'teacher-profiles', 'action' => 'export']);
+    }
+
+    public function test_primary_history_failure_rolls_back_subject_replacement_and_progress(): void
+    {
+        $this->useTeacher();
+        $this->app->instance(BusinessActivityRecorder::class, new class
+        {
+            public function record(...$arguments): never
+            {
+                throw new \RuntimeException('Primary history unavailable');
+            }
+        });
+        $this->patchJson('/teacher/profile/steps/2', ['primarySubjects' => [$this->subjectId], 'primarySubjectId' => $this->subjectId])->assertStatus(500);
+        $this->assertDatabaseHas('teacher_profiles', ['user_id' => $this->userId, 'primary_subject_id' => null]);
+        $this->assertDatabaseMissing('profile_subjects', ['profile_type' => 'teacher', 'profile_id' => $this->userId]);
+        $this->assertDatabaseMissing('business_activity', ['event' => 'teacher.primary_subject_changed', 'entity_id' => $this->userId]);
+        $this->getJson('/teacher/profile')->assertOk()->assertJsonPath('profileDraft.completedSteps', []);
     }
 
     public function test_institute_reports_filter_export_and_audit_draft_progress(): void

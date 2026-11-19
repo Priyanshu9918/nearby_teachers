@@ -463,3 +463,15 @@ not referral earnings, and have no separate bonus event. They are visible in
 the shared user report/export. Star ratings and referral earning rules do not
 change. Migration rollback resets only the future default; it retains grants
 and append-only history. Historical totals before this grant are not inferred.
+
+Teacher primary selection: version 1 `teacher.primary_subject_changed` records
+before/after nullable numeric `primary_subject_id` in the registration/onboarding
+or profile-update transaction. Failed history writes roll back the source change.
+The existing activity report and streamed CSV expose these allowlisted snapshots;
+the teacher-profiles report also explicitly exposes current `primary_subject_id`.
+No historical primary preference is inferred or backfilled. Legacy null-primary
+records retain the alphabetical share-URL fallback. Direct SQL, subject deletion,
+and selections made before this feature are outside this event's coverage.
+Historical share slugs recorded by `teacher.share_url_changed` remain reserved in
+`seo_urls` and redirect directly to the current share URL, preserving the existing
+name/location canonical and sitemap policy.

@@ -42,7 +42,8 @@ final class TeacherPublicPages
                 }
             }
             $slug = $candidate;
-            $shareBase = self::seoSlug($displayName, $profile->city, $subjects->first()->name);
+            $primary = $subjects->firstWhere('id', $profile->primary_subject_id) ?? $subjects->first();
+            $shareBase = self::seoSlug($displayName, $profile->city, $primary->name);
             $shareSlug = $shareBase;
             $shareAttempt = 0;
             while (! SeoDirectory::claim('/teacher/'.$shareSlug, 'teacher', $userId)) {

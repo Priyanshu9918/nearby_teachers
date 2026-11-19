@@ -83,7 +83,8 @@ final class ProfileDraft
         }
         $data = [
             1 => $basics,
-            2 => [$teacher ? 'primarySubjects' : 'subjectIds' => array_values(array_map('intval', $subjectIds))],
+            2 => [$teacher ? 'primarySubjects' : 'subjectIds' => array_values(array_map('intval', $subjectIds)),
+                ...($teacher ? ['primarySubjectId' => isset($profile->primary_subject_id) ? (int) $profile->primary_subject_id : null] : [])],
             3 => $location,
             4 => [$teacher ? 'ratePerHour' : 'startingRate' => $teacher ? ($profile->rate_per_hour ?? null) : ($profile->starting_rate ?? null),
                 'currency' => $profile->currency ?? null, 'trialDays' => isset($profile->trial_days) ? (int) $profile->trial_days : null],

@@ -13,6 +13,7 @@ use App\Services\ProfileDraft;
 use App\Services\ProfileEditor;
 use App\Services\TeacherAddress;
 use App\Services\TeacherLocation;
+use App\Services\TeacherPrimarySubject;
 use App\Services\TeacherPublicPages;
 use App\Services\YouTubeProfileLink;
 use App\Support\PublicMediaUrl;
@@ -75,7 +76,7 @@ class ProfilesController extends Controller
         $rules += TeacherAddress::rules() + OtherSubjects::rules($subjectLimit);
         if ($isTeacher) {
             $rules['subjectIds'] = ['prohibited'];
-            $rules['primarySubjectId'] = ['prohibited'];
+            $rules['primarySubjectId'] = ['sometimes', 'required', 'integer', 'exists:subjects,id'];
             $rules['linkedinUrl'] = ['sometimes', 'nullable', 'url:http,https', 'max:2048'];
         } else {
             $rules['instructorsText'] = ['sometimes', 'nullable', 'string', 'max:2000'];
@@ -140,6 +141,9 @@ class ProfilesController extends Controller
             }
 
             $data = app(OtherSubjects::class)->resolve($data, $subjectsField, (int) $user->id, maxSubjects: $subjectLimit);
+            if ($type === 'teacher') {
+                app(TeacherPrimarySubject::class)->save((int) $user->id, $data);
+            }
 
             DB::update(
                 'UPDATE '.$profileTable.' SET '.implode(', ', $updateParts).' WHERE user_id = ?',
@@ -153,9 +157,6 @@ class ProfilesController extends Controller
             }
 
             if (array_key_exists($subjectsField, $data)) {
-                if ($type === 'teacher') {
-                    DB::table($profileTable)->where('user_id', $user->id)->update(['primary_subject_id' => null]);
-                }
                 DB::table('profile_subjects')
                     ->where('profile_type', $type)
                     ->where('profile_id', $user->id)
@@ -181,8 +182,10 @@ class ProfilesController extends Controller
         $teacherResponse = [];
         if ($isTeacher) {
             $profile = DB::table($profileTable)->where('user_id', $user->id)
-                ->select('public_page_slug', 'subject_profile_slug', 'seo_country', 'user_id', 'slug', 'seo_slug', 'public_profile_slug', 'location_details')->first();
+                ->select('public_page_slug', 'subject_profile_slug', 'seo_country', 'user_id', 'slug', 'seo_slug', 'public_profile_slug', 'location_details', 'primary_subject_id')->first();
             $teacherResponse = [...TeacherPublicPages::urls($profile, $user->full_name),
+                'primarySubjectId' => $profile->primary_subject_id === null ? null : (int) $profile->primary_subject_id,
+                'primarySubjects' => ProfileEditor::subjects((int) $user->id, 'teacher')->pluck('id')->all(),
                 'locationDetails' => $profile->location_details === null ? null : json_decode($profile->location_details, true, flags: JSON_THROW_ON_ERROR)];
         }
 
@@ -251,7 +254,7 @@ class ProfilesController extends Controller
         $story = $isTeacher ? 'bio' : 'description';
         $allowed = match ($step) {
             '1' => $isTeacher ? ['fullName', 'listingName'] : ['fullName', 'listingName', 'contactPerson'],
-            '2' => [$subjects, 'otherSubjects'],
+            '2' => $isTeacher ? [$subjects, 'primarySubjectId', 'otherSubjects'] : [$subjects, 'otherSubjects'],
             '3' => ['lessonModes', 'latitude', 'longitude', 'addressText', 'city', 'state', 'country', 'countryCode', 'district', 'subDistrict', 'locality', 'localityType', 'postalCode'],
             '4' => [$isTeacher ? 'ratePerHour' : 'startingRate', 'currency', 'trialDays'],
             '5' => $isTeacher ? ['bio', 'linkedinUrl', 'youtubeUrl'] : ['description', 'websiteUrl', 'instructorsText', 'youtubeUrl'],

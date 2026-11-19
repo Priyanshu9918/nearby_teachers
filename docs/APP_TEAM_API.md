@@ -959,3 +959,5 @@ Job applications also accept shared Other courses via optional `otherSubjects`, 
 using the saved teacher/institute profile country. Both are null when no
 provider country is saved (including learner accounts). No country is inferred
 from phone numbers or IP addresses.
+
+Teacher subject selection now also accepts `primarySubjectId` while keeping the merged `primarySubjects` array and Other approval flow unchanged. See [Teacher primary subject API](TEACHER_PRIMARY_SUBJECT.md) for registration, step-save, response and compatibility examples.

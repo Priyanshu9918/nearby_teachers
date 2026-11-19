@@ -8,6 +8,7 @@ use App\Services\OnboardingState;
 use App\Services\OtherSubjects;
 use App\Services\TeacherAddress;
 use App\Services\TeacherLocation;
+use App\Services\TeacherPrimarySubject;
 use App\Services\TeacherPublicPages;
 use App\Support\ReferralRating;
 use Illuminate\Http\JsonResponse;
@@ -121,7 +122,8 @@ class OnboardingController extends Controller
             'city' => ['sometimes', 'nullable', 'string', 'max:120'],
             'latitude' => ['sometimes', 'nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['sometimes', 'nullable', 'numeric', 'between:-180,180'],
-            'primarySubjectId' => ['prohibited'],
+            'primarySubjectId' => ($request->input('accountType') ?? $user?->account_type ?? $request->attributes->get('authenticated_user')?->account_type) === 'teacher'
+                ? ['sometimes', 'required', 'integer', 'exists:subjects,id'] : ['prohibited'],
             'subjectIds' => ['prohibited'],
             'primarySubjects' => ['sometimes', 'array', 'min:1', 'max:5'],
             'primarySubjects.*' => ['required', 'integer', 'distinct', 'exists:subjects,id'],
@@ -228,13 +230,12 @@ class OnboardingController extends Controller
 
             if ($accountType === 'teacher') {
                 $this->ensureProviderProfile('teacher_profiles', $user->id);
+                app(TeacherPrimarySubject::class)->save((int) $user->id, $data);
                 $profileUpdates = ['updated_at' => $now];
                 if (array_key_exists('city', $data)) {
                     $profileUpdates['city'] = $this->nullableString($data['city']);
                 }
                 if (array_key_exists('primarySubjects', $data)) {
-                    // All selected subjects are peers; do not designate a single primary.
-                    $profileUpdates['primary_subject_id'] = null;
                     DB::table('profile_subjects')->where('profile_type', 'teacher')->where('profile_id', $user->id)->delete();
                     foreach ($data['primarySubjects'] as $subjectId) {
                         DB::table('profile_subjects')->insert([
@@ -245,6 +246,10 @@ class OnboardingController extends Controller
                 DB::table('teacher_profiles')->where('user_id', $user->id)->update($profileUpdates);
                 app(TeacherLocation::class)->store((int) $user->id, $location);
                 app(TeacherAddress::class)->store((int) $user->id, $data);
+                if (array_key_exists('primarySubjectId', $data)
+                    && DB::table('teacher_profiles')->where('user_id', $user->id)->where('is_profile_complete', true)->exists()) {
+                    app(TeacherPublicPages::class)->publish((int) $user->id, (int) $user->id);
+                }
             } elseif ($accountType === 'institute') {
                 $this->ensureProviderProfile('institute_profiles', $user->id);
                 $profileUpdates = ['updated_at' => $now];
@@ -338,7 +343,7 @@ class OnboardingController extends Controller
         if ($accountType === 'teacher') {
             $teacher = DB::table('teacher_profiles as p')
                 ->where('p.user_id', $user->id)
-                ->select('p.public_page_slug', 'p.seo_country', 'p.user_id', 'p.slug', 'p.seo_slug', 'p.public_profile_slug', 'p.city', 'p.primary_subject_id', 'p.latitude', 'p.longitude', 'p.location_details',
+                ->select('p.public_page_slug', 'p.subject_profile_slug', 'p.seo_country', 'p.user_id', 'p.slug', 'p.seo_slug', 'p.public_profile_slug', 'p.city', 'p.primary_subject_id', 'p.latitude', 'p.longitude', 'p.location_details',
                     ...array_map(fn ($column) => 'p.'.$column, array_values(TeacherAddress::FIELDS)))
                 ->first();
         } elseif ($accountType === 'institute') {
@@ -360,6 +365,7 @@ class OnboardingController extends Controller
             ...($accountType === 'institute' ? ['subjectIds' => DB::table('profile_subjects')->where('profile_type', 'institute')
                 ->where('profile_id', $user->id)->orderBy('id')->pluck('subject_id')->map(fn ($id) => (int) $id)->all()] : ['primarySubjects' => $teacher === null ? [] : DB::table('profile_subjects')->where('profile_type', 'teacher')
                 ->where('profile_id', $user->id)->orderBy('id')->pluck('subject_id')->map(fn ($id) => (int) $id)->all()]),
+            ...($accountType === 'teacher' ? ['primarySubjectId' => isset($teacher->primary_subject_id) ? (int) $teacher->primary_subject_id : null] : []),
             'contactPerson' => $institute->contact_person ?? null,
             'passwordSet' => $passwordSet,
             'termsAccepted' => $user->terms_accepted_at !== null,

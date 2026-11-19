@@ -6,6 +6,7 @@ use App\Reporting\BusinessActivityRecorder;
 use App\Services\InstitutePublicPages;
 use App\Services\SeoDirectory;
 use App\Services\SeoMaintenance;
+use App\Services\TeacherPrimarySubject;
 use App\Services\TeacherPublicPages;
 use App\Support\PublicLanguages;
 use Illuminate\Support\Facades\Artisan;
@@ -294,6 +295,25 @@ class TeacherPublicPagesTest extends TestCase
             $this->get('/in?lang='.$language)->assertOk()->assertSee('<html lang="'.$language.'"', false);
         }
         $this->get('/in/unknown/maths-tuition')->assertNotFound();
+    }
+
+    public function test_explicit_primary_changes_only_share_slug_and_preserves_all_subject_listings(): void
+    {
+        $teacher = $this->teacher(name: 'Sahib', subjects: ['Maths', 'English', 'Physics', 'Chemistry', 'Hindi']);
+        $before = DB::table('teacher_profiles')->where('user_id', $teacher->user_id)->first();
+        $pages = DB::table('seo_directory_pages')->orderBy('id')->get()->toJson();
+        DB::transaction(function () use ($teacher): void {
+            app(TeacherPrimarySubject::class)->save($teacher->user_id, ['primarySubjectId' => $this->subjects['Maths']]);
+            app(TeacherPublicPages::class)->publish($teacher->user_id, $teacher->user_id);
+        });
+        $after = DB::table('teacher_profiles')->where('user_id', $teacher->user_id)->first();
+        $this->assertSame($before->public_page_slug, $after->public_page_slug);
+        $this->assertSame($before->seo_state_hash, $after->seo_state_hash);
+        $this->assertSame('sahib-maths-kanpur', $after->subject_profile_slug);
+        $this->assertSame($pages, DB::table('seo_directory_pages')->orderBy('id')->get()->toJson());
+        $this->assertCount(5, TeacherPublicPages::subjects($teacher->user_id));
+        $this->get('/teacher/'.$before->subject_profile_slug)->assertStatus(301)->assertRedirect('http://localhost/teacher/sahib-maths-kanpur');
+        $this->get('/teacher/sahib-maths-kanpur')->assertOk()->assertSee('rel="canonical" href="http://localhost/teacher/'.$before->public_page_slug.'"', false);
     }
 
     public function test_existing_teacher_urls_and_my_webpage_links_redirect_after_subject_url_migration(): void

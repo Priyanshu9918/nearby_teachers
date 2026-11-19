@@ -67,6 +67,14 @@ class InternationalSeoController extends Controller
         abort_if($teacher === null, 404);
         $shareRequest = str_starts_with($request->path(), 'my-webpage/teacher/')
             || $slug === ($teacher->subject_profile_slug ?? null);
+        // Historical share slugs remain owned by the teacher and redirect directly
+        // to the latest share URL; the name/location canonical remains unchanged.
+        if (! $shareRequest && $ownership !== null && $slug !== $teacher->public_page_slug
+            && $request->routeIs('website.teacher')) {
+            $shareRequest = DB::table('business_activity')->where('event', 'teacher.share_url_changed')
+                ->where('entity_type', 'teacher_profile')->where('entity_id', $teacher->user_id)
+                ->where('before_data->subject_profile_slug', $slug)->exists();
+        }
         $targetSlug = $shareRequest && filled($teacher->subject_profile_slug ?? null)
             ? $teacher->subject_profile_slug : $teacher->public_page_slug;
         $url = SeoDirectory::url('/teacher/'.$targetSlug);

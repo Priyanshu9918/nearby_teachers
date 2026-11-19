@@ -106,7 +106,7 @@ class OnboardingPersistenceTest extends TestCase
             ->assertJsonPath('registrationCompleted', false)->assertJsonPath('autosaveEnabled', false)
             ->assertJsonPath('draft.role', 'teacher')->assertJsonPath('draft.fullName', 'Saved Teacher')
             ->assertJsonPath('draft.email', 'saved@example.test')->assertJsonPath('draft.city', 'Jaipur')
-            ->assertJsonPath('draft.primarySubjects', [$subject])->assertJsonMissingPath('draft.primarySubjectId');
+            ->assertJsonPath('draft.primarySubjects', [$subject])->assertJsonPath('draft.primarySubjectId', $subject);
         $this->patchJson('/auth/onboarding', ['city' => 'Delhi'])->assertStatus(409);
         $this->assertSame('Jaipur', DB::table('teacher_profiles')->where('user_id', $this->userId)->value('city'));
     }
@@ -268,12 +268,37 @@ class OnboardingPersistenceTest extends TestCase
             ['Maths', 'Physics', 'Chemistry', 'English', 'Hindi', 'Biology']);
     }
 
+    public function test_other_approval_keeps_primary_and_fills_fifth_subject_slot(): void
+    {
+        $ids = array_slice($this->teachingSubjects(), 0, 4);
+        $this->postJson('/auth/register', array_replace($this->sharedFields(), [
+            'accountType' => 'teacher', 'city' => 'Jaipur', 'primarySubjects' => $ids,
+            'primarySubjectId' => $ids[1], 'otherSubjects' => ['Business Communication'],
+        ]))->assertOk()->assertJsonPath('draft.primarySubjectId', $ids[1])->assertJsonPath('customCoursesPendingApproval', true);
+        $requestId = DB::table('custom_subject_requests')->where('user_id', $this->userId)->where('status', 'pending')->value('id');
+        app(CustomSubjectApproval::class)->review($requestId, 'approved');
+        $this->assertSame(5, DB::table('profile_subjects')->where('profile_type', 'teacher')->where('profile_id', $this->userId)->count());
+        $this->getJson('/auth/onboarding')->assertOk()->assertJsonPath('draft.primarySubjectId', $ids[1])->assertJsonPath('customCoursesPendingApproval', false);
+    }
+
+    public function test_registration_saves_explicit_primary_with_all_five_mappings(): void
+    {
+        $ids = array_slice($this->teachingSubjects(), 0, 5);
+        $this->postJson('/auth/register', array_replace($this->sharedFields(), [
+            'accountType' => 'teacher', 'city' => 'Jaipur', 'primarySubjects' => $ids, 'primarySubjectId' => $ids[2],
+        ]))->assertOk()->assertJsonPath('draft.primarySubjectId', $ids[2])->assertJsonPath('draft.primarySubjects', $ids);
+        $this->assertDatabaseHas('teacher_profiles', ['user_id' => $this->userId, 'primary_subject_id' => $ids[2]]);
+        $this->assertSame(5, DB::table('profile_subjects')->where('profile_type', 'teacher')->where('profile_id', $this->userId)->count());
+        $this->patchJson('/auth/onboarding', ['primarySubjectId' => $ids[1]])->assertOk()->assertJsonPath('draft.primarySubjectId', $ids[1]);
+        $this->getJson('/auth/onboarding')->assertOk()->assertJsonPath('draft.primarySubjectId', $ids[1]);
+    }
+
     public function test_registration_accepts_five_subjects_without_a_single_primary(): void
     {
         $ids = array_slice($this->teachingSubjects(), 0, 5);
         $result = $this->postJson('/auth/register', array_replace($this->sharedFields(), [
             'accountType' => 'teacher', 'city' => 'Jaipur', 'primarySubjects' => $ids,
-        ]))->assertOk()->assertJsonMissingPath('draft.primarySubjectId')
+        ]))->assertOk()->assertJsonPath('draft.primarySubjectId', null)
             ->assertJsonPath('draft.primarySubjects', $ids)->json();
         $this->assertSame(5, DB::table('profile_subjects')->where('profile_type', 'teacher')->where('profile_id', $this->userId)->count());
         $this->assertNull($result['teacherSeoUrl']);
@@ -288,10 +313,10 @@ class OnboardingPersistenceTest extends TestCase
         $ids = array_slice($this->teachingSubjects(), 0, 5);
         $this->postJson('/auth/onboarding/complete', array_replace($this->sharedFields(), [
             'accountType' => 'teacher', 'city' => 'Jaipur', 'primarySubjects' => $ids,
-        ]))->assertOk()->assertJsonMissingPath('draft.primarySubjectId');
+        ]))->assertOk()->assertJsonPath('draft.primarySubjectId', null);
         $this->assertNull(DB::table('teacher_profiles')->where('user_id', $this->userId)->value('primary_subject_id'));
         $this->patchJson('/auth/onboarding', ['primarySubjects' => [$ids[3], $ids[4]]])
-            ->assertOk()->assertJsonMissingPath('draft.primarySubjectId')
+            ->assertOk()->assertJsonPath('draft.primarySubjectId', null)
             ->assertJsonPath('draft.primarySubjects', [$ids[3], $ids[4]]);
         $this->assertSame(2, DB::table('profile_subjects')->where('profile_type', 'teacher')->where('profile_id', $this->userId)->count());
     }
@@ -316,7 +341,7 @@ class OnboardingPersistenceTest extends TestCase
         }
     }
 
-    public function test_retired_primary_field_is_rejected_without_mutating_saved_subjects(): void
+    public function test_unselected_primary_is_rejected_without_mutating_saved_subjects(): void
     {
         $ids = $this->teachingSubjects();
         $selected = array_slice($ids, 0, 5);

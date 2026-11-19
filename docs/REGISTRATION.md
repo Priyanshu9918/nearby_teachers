@@ -191,7 +191,7 @@ using public `GET /subjects` first:
 }
 ```
 
-`primarySubjects` accepts 1–5 distinct existing IDs. All selected subjects are equal; none is designated as the primary subject. The response includes `draft.primarySubjects`. Registration/onboarding reject the retired `primarySubjectId` and `subjectIds` inputs. Invalid/empty/duplicate selections or more than five IDs return `422`. Teacher `PUT /profiles/me` also uses `primarySubjects`; institutes retain `subjectIds`.
+`primarySubjects` accepts 1–5 distinct existing IDs. The array remains the complete merged selection. Optional `primarySubjectId` identifies one selected approved subject and is returned as `draft.primarySubjectId`; legacy requests can omit it. Registration/onboarding still reject teacher `subjectIds`. See [primary subject API](TEACHER_PRIMARY_SUBJECT.md). Invalid/empty/duplicate selections or more than five IDs return `422`. Teacher `PUT /profiles/me` also uses `primarySubjects`; institutes retain `subjectIds`.
 
 Institute uses the same endpoint with this full body:
 
