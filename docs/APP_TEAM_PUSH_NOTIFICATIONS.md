@@ -101,7 +101,7 @@ FCM acceptance does not confirm OS display or user visibility. The backend recor
    - **Account type or location**: combine learner/teacher/institute with any city/state/country filters. A location-only filter is allowed.
    - **Every device for one user**: paste the user's numeric ID from the user report.
    - **One specific device**: open **Registered push devices**, find the target, and paste its backend `deviceId`. That report never shows the FID.
-4. Check the live active-device count, set title/message, and optionally choose an app destination from the dropdown (currently Feed, `/feed`), or select “No specific screen”. The server validates destinations against `config/push_notifications.php`; add entries only after confirming support in the mobile app’s route allowlist.
+4. Check the live active-device count, set title/message, and optionally choose an app destination from the dropdown: Feed (`/feed`), Message (`/message`), Home (`/home`), Profile (`/profile`), Referral (`/referral`), or Nearby (`/nearby`). Select “No specific screen” to omit the deep link. The server validates destinations against `config/push_notifications.php`. The mobile app must handle these same paths in its route allowlist; only `/feed` was previously documented here, and the other five destinations require verification in the mobile app.
 5. Type `SEND` and queue the campaign.
 6. Review **Campaign history** and **Delivery attempts**. `accepted` means the FCM HTTP request was accepted; `failed` means the provider rejected it or the worker could not send it. An FCM `UNREGISTERED` result disables the stale device and clears its encrypted FID.
 
