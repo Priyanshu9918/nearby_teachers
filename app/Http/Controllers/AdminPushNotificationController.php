@@ -75,7 +75,7 @@ class AdminPushNotificationController extends Controller
         }
         $adminEmail = filled(config('admin.email')) ? (string) config('admin.email') : null;
 
-        DB::transaction(function () use ($target, $filters, $message, $data, $recipientCount, $adminEmail, $activity, $request): void {
+        DB::transaction(function () use ($target, $filters, $message, $data, $recipientCount, $adminEmail, $activity, $access, $request): void {
             $campaignId = DB::table('push_campaigns')->insertGetId([
                 'title' => trim($message['title']),
                 'body' => trim($message['body']),
