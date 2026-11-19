@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Throwable;
@@ -23,6 +24,7 @@ class AdminPushNotificationController extends Controller
 
         return view('admin.push-notifications.index', [
             'messagingEnabled' => (bool) config('services.nearby_teacher.firebase_messaging_enabled'),
+            'deepLinks' => config('push_notifications.deep_links', []),
         ]);
     }
 
@@ -48,8 +50,10 @@ class AdminPushNotificationController extends Controller
         $message = $request->validate([
             'title' => ['required', 'string', 'max:120'],
             'body' => ['required', 'string', 'max:2000'],
-            'deep_link' => ['nullable', 'string', 'max:300', 'regex:/^\/(?!\/)[A-Za-z0-9_\/?=&.%~-]*$/D'],
+            'deep_link' => ['nullable', 'string', 'max:300', Rule::in(array_keys(config('push_notifications.deep_links', [])))],
             'confirmation' => ['required', 'in:SEND'],
+        ], [
+            'deep_link.in' => 'Choose an app destination from the dropdown.',
         ]);
         try {
             $messaging->assertConfigured();

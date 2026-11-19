@@ -33,7 +33,12 @@
         <p class="flash audience-count" id="audience-count" role="status" aria-live="polite">Loading audience preview…</p>
         <div class="form-grid">
             <div class="field"><label for="push-title">Notification title</label><input name="title" id="push-title" maxlength="120" value="{{ old('title') }}" required><small>Short heading shown in the user's notification.</small></div>
-            <div class="field"><label for="deep-link">App deep link <span>(optional)</span></label><input name="deep_link" id="deep-link" maxlength="300" value="{{ old('deep_link') }}" placeholder="/feed"><small>Optional in-app path, for example <code>/feed</code>. Leave blank if no screen should open.</small></div>
+            <div class="field"><label for="deep-link">App deep link <span>(optional)</span></label><select name="deep_link" id="deep-link">
+                <option value="">No specific screen</option>
+                @foreach ($deepLinks as $path => $label)
+                    <option value="{{ $path }}" @selected(old('deep_link') === $path)>{{ $label }} ({{ $path }})</option>
+                @endforeach
+            </select><small>Choose the app screen to open when the notification is tapped. Leave “No specific screen” selected to send without a deep link.</small></div>
         </div>
         <div class="field"><label for="push-body">Message</label><textarea name="body" id="push-body" maxlength="2000" required>{{ old('body') }}</textarea><small id="body-count">0 / 2,000 characters</small></div>
         <div class="field"><label for="confirmation">Confirmation</label><input name="confirmation" id="confirmation" autocomplete="off" required pattern="SEND" placeholder="Type SEND"><small>Type <strong>SEND</strong> to confirm that you reviewed the audience and message.</small></div>
