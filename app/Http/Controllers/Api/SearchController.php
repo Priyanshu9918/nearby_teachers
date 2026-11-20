@@ -287,13 +287,10 @@ class SearchController extends Controller
                 ->whereNotNull('p.longitude');
 
             if ($bsl) {
-                // Instant subjects also expose eligible nearby individual teachers here.
+                // Use the same teacher eligibility rules as regular nearby search.
                 if ($type === 'institute') {
                     $query->whereRaw('1 = 0');
                 }
-                $query->where('u.account_type', $type)->whereNull('u.suspended_at')
-                    ->whereNotNull('u.phone_verified_at')->whereNotNull('u.profile_completed_at')
-                    ->where('p.is_profile_complete', true);
             }
 
             if (isset($data['subjectId'])) {
