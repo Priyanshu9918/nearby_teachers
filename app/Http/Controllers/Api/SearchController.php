@@ -120,8 +120,10 @@ class SearchController extends Controller
             }
             $branches[] = $query;
         }
+        // Count only matching rows, without projecting/sorting response fields or distances.
+        $countBranches = array_map(static fn ($branch) => (clone $branch)->select([])->selectRaw('COUNT(*) AS aggregate'), $branches);
+        $total = (int) DB::query()->fromSub($countBranches[0]->unionAll($countBranches[1]), 'provider_counts')->sum('aggregate');
         $query = DB::query()->fromSub($branches[0]->unionAll($branches[1]), 'providers');
-        $total = (clone $query)->count();
         $page = (int) ($data['page'] ?? 1);
         $perPage = (int) ($data['perPage'] ?? 20);
         if (isset($data['lat'], $data['lng'])) {
@@ -407,39 +409,49 @@ class SearchController extends Controller
         if ($bsl) {
             return $this->bslSearchResponse('otherCity', $data, (int) $data['subjectId']);
         }
-        $sql = <<<'SQL'
-            WITH t AS (
-              SELECT 'teacher' AS profile_type, user_id, city, country, lesson_modes, 0 AS is_bsl,
-                     rate_per_hour AS price, rating_avg, rating_count, is_verified, trial_days,
-                     referral_user.referral_points
-              FROM teacher_profiles JOIN users referral_user ON referral_user.id = teacher_profiles.user_id
-              UNION ALL
-              SELECT 'institute' AS profile_type, user_id, city, country, lesson_modes, is_bsl,
-                     starting_rate AS price, rating_avg, rating_count, is_verified, trial_days,
-                     referral_user.referral_points
-              FROM institute_profiles JOIN users referral_user ON referral_user.id = institute_profiles.user_id
-            )
-            SELECT t.profile_type, t.user_id, u.full_name,
-                   CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url,
-                   t.city, t.country, t.price, t.rating_avg, t.rating_count, t.is_verified, t.trial_days, t.referral_points, t.is_bsl
-            FROM t
-            JOIN users u ON u.id = t.user_id
-            WHERE u.suspended_at IS NULL
-              AND ((t.is_bsl = 1 AND LOWER(TRIM(t.city)) = LOWER(?))
-                OR (t.is_bsl = 0 AND JSON_CONTAINS(t.lesson_modes, JSON_QUOTE('online')) = 1
-                  AND (t.city LIKE ? OR t.country LIKE ?)))
-            SQL;
-        $bindings = [trim($data['city']), '%'.$data['city'].'%', '%'.$data['city'].'%'];
-        if (isset($data['subjectId'])) {
-            $sql .= ' AND EXISTS (SELECT 1 FROM profile_subjects ps WHERE ps.profile_type = t.profile_type AND ps.profile_id = t.user_id AND ps.subject_id = ?)';
-            $bindings[] = $data['subjectId'];
+        $branches = [];
+        foreach (['teacher' => 'rate_per_hour', 'institute' => 'starting_rate'] as $type => $price) {
+            // Filter each profile table before combining rows; join its user only once.
+            $branch = DB::table($type.'_profiles as p')->join('users as u', 'u.id', '=', 'p.user_id')
+                ->whereNull('u.suspended_at')
+                ->selectRaw('? AS profile_type', [$type])
+                ->addSelect('p.user_id', 'u.full_name')
+                ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
+                ->addSelect('p.city', 'p.country')
+                ->selectRaw('p.'.$price.' AS price')
+                ->addSelect('p.rating_avg', 'p.rating_count', 'p.is_verified', 'p.trial_days', 'u.referral_points')
+                ->selectRaw($type === 'teacher' ? '0 AS is_bsl' : 'p.is_bsl');
+            $branch->where(function ($locations) use ($type, $data): void {
+                if ($type === 'institute') {
+                    $locations->where(function ($bsl) use ($data): void {
+                        $bsl->where('p.is_bsl', 1)->whereRaw('LOWER(TRIM(p.city)) = LOWER(?)', [trim($data['city'])]);
+                    })->orWhere(function ($regular) use ($data): void {
+                        $regular->where('p.is_bsl', 0)->whereJsonContains('p.lesson_modes', 'online')
+                            ->where(fn ($location) => $location->where('p.city', 'like', '%'.$data['city'].'%')
+                                ->orWhere('p.country', 'like', '%'.$data['city'].'%'));
+                    });
+                } else {
+                    $locations->whereJsonContains('p.lesson_modes', 'online')
+                        ->where(fn ($location) => $location->where('p.city', 'like', '%'.$data['city'].'%')
+                            ->orWhere('p.country', 'like', '%'.$data['city'].'%'));
+                }
+            });
+            if (isset($data['subjectId'])) {
+                $branch->whereExists(function ($subjects) use ($type, $data): void {
+                    $subjects->selectRaw('1')->from('profile_subjects as ps')
+                        ->where('ps.profile_type', $type)->whereColumn('ps.profile_id', 'p.user_id')
+                        ->where('ps.subject_id', $data['subjectId']);
+                });
+            }
+            if (isset($data['q']) && $data['q'] !== '') {
+                $branch->where('u.full_name', 'like', '%'.$data['q'].'%');
+            }
+            $branches[] = $branch;
         }
-        if (isset($data['q']) && $data['q'] !== '') {
-            $sql .= ' AND u.full_name LIKE ?';
-            $bindings[] = '%'.$data['q'].'%';
-        }
-        $sql .= ' ORDER BY t.is_bsl DESC, t.referral_points DESC, '.$this->weightedRating('t.rating_avg', 't.rating_count').' DESC, t.user_id ASC LIMIT 50';
-        $results = DB::select($sql, $bindings);
+        $results = DB::query()->fromSub($branches[0]->unionAll($branches[1]), 't')
+            ->orderByDesc('t.is_bsl')->orderByDesc('t.referral_points')
+            ->orderByRaw($this->weightedRating('t.rating_avg', 't.rating_count').' DESC')
+            ->orderBy('t.user_id')->limit(50)->get()->all();
         foreach ($results as $result) {
             $result->is_bsl = (bool) $result->is_bsl;
         }
@@ -465,22 +477,23 @@ class SearchController extends Controller
             return $this->bslSearchResponse('bySubject', $data, (int) $subjectId);
         }
         $base = <<<'SQL'
-            WITH t AS (
+            WITH selected_profiles AS (
+              SELECT profile_type, profile_id FROM profile_subjects WHERE subject_id = ?
+            ), t AS (
               SELECT 'teacher' AS profile_type, user_id, latitude, longitude, city, state, country, 0 AS is_bsl,
                      rate_per_hour AS price, rating_avg, rating_count, is_verified, trial_days,
                      referral_user.referral_points
               FROM teacher_profiles JOIN users referral_user ON referral_user.id = teacher_profiles.user_id
+              WHERE /* teacher bounds */ EXISTS (SELECT 1 FROM selected_profiles ps WHERE ps.profile_type = 'teacher' AND ps.profile_id = teacher_profiles.user_id)
               UNION ALL
               SELECT 'institute' AS profile_type, user_id, latitude, longitude, city, state, country, is_bsl,
                      starting_rate AS price, rating_avg, rating_count, is_verified, trial_days,
                      referral_user.referral_points
               FROM institute_profiles JOIN users referral_user ON referral_user.id = institute_profiles.user_id
+              WHERE /* institute bounds */ institute_profiles.is_bsl = 0 AND EXISTS (SELECT 1 FROM selected_profiles ps WHERE ps.profile_type = 'institute' AND ps.profile_id = institute_profiles.user_id)
             ), matching AS (
               SELECT t.* FROM t
-              WHERE t.is_bsl = 0 AND EXISTS (
-                SELECT 1 FROM profile_subjects ps
-                WHERE ps.profile_type = t.profile_type AND ps.profile_id = t.user_id AND ps.subject_id = ?
-              )
+              WHERE t.is_bsl = 0
             )
             SQL;
         $tier = $data['tier'];
@@ -489,10 +502,8 @@ class SearchController extends Controller
             $data['lng'] = (float) $data['lng'] === -180.0 ? 180.0 : (float) $data['lng'];
             [$bounds, $boundsBindings] = GeoBounds::sql((float) $data['lat'], (float) $data['lng'], $radiusMeters);
             $base = str_replace(
-                ['FROM teacher_profiles JOIN users referral_user ON referral_user.id = teacher_profiles.user_id',
-                    'FROM institute_profiles JOIN users referral_user ON referral_user.id = institute_profiles.user_id'],
-                ['FROM teacher_profiles JOIN users referral_user ON referral_user.id = teacher_profiles.user_id WHERE '.$bounds,
-                    'FROM institute_profiles JOIN users referral_user ON referral_user.id = institute_profiles.user_id WHERE '.$bounds],
+                ['/* teacher bounds */', '/* institute bounds */'],
+                [$bounds.' AND', $bounds.' AND'],
                 $base,
             );
             $point = 'POINT(?, ?)';
@@ -507,12 +518,12 @@ class SearchController extends Controller
                 ORDER BY m.referral_points DESC, distance_m ASC, m.user_id ASC LIMIT 50
                 SQL, $point, $point);
             $bindings = [
-                ...$boundsBindings, ...$boundsBindings, $subjectId,
+                $subjectId, ...$boundsBindings, ...$boundsBindings,
                 (float) $data['lng'], (float) $data['lat'],
                 (float) $data['lng'], (float) $data['lat'], $radiusMeters,
             ];
             $countSql = $base.' SELECT count(*) AS total FROM matching m WHERE m.latitude IS NOT NULL AND m.longitude IS NOT NULL AND ST_Distance_Sphere(POINT(IF(m.longitude = -180, 180, m.longitude), m.latitude), POINT(?, ?)) <= ?';
-            $countBindings = [...$boundsBindings, ...$boundsBindings, $subjectId, (float) $data['lng'], (float) $data['lat'], $radiusMeters];
+            $countBindings = [$subjectId, ...$boundsBindings, ...$boundsBindings, (float) $data['lng'], (float) $data['lat'], $radiusMeters];
             $results = array_map(static function (object $result): object {
                 $result->distance_km = $result->distance_m / 1000;
                 unset($result->distance_m);

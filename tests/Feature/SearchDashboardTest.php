@@ -225,7 +225,8 @@ class SearchDashboardTest extends TestCase
         $this->getJson('/search/dashboard?lat=10&lng=20')->assertOk()
             ->assertJsonPath('results.0.user_id', $institute)->assertJsonPath('results.1.user_id', $teacher);
         app(BslInstitute::class)->set($institute, false);
-        $this->getJson('/search?lat=10&lng=20&subjectId='.$subject)->assertOk()->assertJsonCount(0, 'results');
+        $this->getJson('/search?lat=10&lng=20&subjectId='.$subject)->assertOk()->assertJsonCount(1, 'results')
+            ->assertJsonPath('results.0.user_id', $teacher);
     }
 
     public function test_other_city_only_includes_bsl_for_its_saved_city(): void
