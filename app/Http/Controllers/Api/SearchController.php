@@ -511,7 +511,8 @@ class SearchController extends Controller
                 SELECT m.profile_type, m.user_id, u.full_name,
                        CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url,
                        m.price, m.rating_avg, m.rating_count, m.is_verified, m.trial_days, m.referral_points,
-                       ST_Distance_Sphere(POINT(IF(m.longitude = -180, 180, m.longitude), m.latitude), %s) AS distance_m
+                       ST_Distance_Sphere(POINT(IF(m.longitude = -180, 180, m.longitude), m.latitude), %s) AS distance_m,
+                       COUNT(*) OVER () AS match_count
                 FROM matching m JOIN users u ON u.id = m.user_id
                 WHERE m.latitude IS NOT NULL AND m.longitude IS NOT NULL
                   AND ST_Distance_Sphere(POINT(IF(m.longitude = -180, 180, m.longitude), m.latitude), %s) <= ?
@@ -522,15 +523,11 @@ class SearchController extends Controller
                 (float) $data['lng'], (float) $data['lat'],
                 (float) $data['lng'], (float) $data['lat'], $radiusMeters,
             ];
-            $countSql = $base.' SELECT count(*) AS total FROM matching m WHERE m.latitude IS NOT NULL AND m.longitude IS NOT NULL AND ST_Distance_Sphere(POINT(IF(m.longitude = -180, 180, m.longitude), m.latitude), POINT(?, ?)) <= ?';
-            $countBindings = [$subjectId, ...$boundsBindings, ...$boundsBindings, (float) $data['lng'], (float) $data['lat'], $radiusMeters];
-            $results = array_map(static function (object $result): object {
+            [$results, $totalCount] = $this->countedSubjectResults($sql, $bindings);
+            foreach ($results as $result) {
                 $result->distance_km = $result->distance_m / 1000;
                 unset($result->distance_m);
-
-                return $result;
-            }, DB::select($sql, $bindings));
-            $totalCount = (int) DB::selectOne($countSql, $countBindings)->total;
+            }
             app(SearchAnalyticsRecorder::class)->record('subject', 'nearby_grid', null, $subjectId,
                 $totalCount, (float) $data['lat'], (float) $data['lng'], (float) ($data['radiusKm'] ?? 7));
 
@@ -544,32 +541,28 @@ class SearchController extends Controller
         if (in_array($tier, ['city', 'state', 'country'], true)) {
             $column = ['city' => 'city', 'state' => 'state', 'country' => 'country'][$tier];
             $value = $data[$column];
-            $sql = $base." SELECT m.profile_type, m.user_id, u.full_name, CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url, m.price, m.rating_avg, m.rating_count, m.is_verified, m.trial_days, m.referral_points, m.city, m.state, m.country FROM matching m JOIN users u ON u.id = m.user_id WHERE lower(m.$column) = lower(?) ORDER BY m.referral_points DESC, ".$this->weightedRating('m.rating_avg', 'm.rating_count').' DESC, m.user_id ASC LIMIT 50';
-            $countSql = $base." SELECT count(*) AS total FROM matching m WHERE lower(m.$column) = lower(?)";
-
-            $totalCount = (int) DB::selectOne($countSql, [$subjectId, $value])->total;
+            $sql = $base." SELECT m.profile_type, m.user_id, u.full_name, CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url, m.price, m.rating_avg, m.rating_count, m.is_verified, m.trial_days, m.referral_points, m.city, m.state, m.country, COUNT(*) OVER () AS match_count FROM matching m JOIN users u ON u.id = m.user_id WHERE lower(m.$column) = lower(?) ORDER BY m.referral_points DESC, ".$this->weightedRating('m.rating_avg', 'm.rating_count').' DESC, m.user_id ASC LIMIT 50';
+            [$results, $totalCount] = $this->countedSubjectResults($sql, [$subjectId, $value]);
             app(SearchAnalyticsRecorder::class)->record('subject', $tier, $value, $subjectId, $totalCount);
 
             return $this->providerResponse([
                 'tier' => $tier,
                 'totalCount' => $totalCount,
-                'results' => DB::select($sql, [$subjectId, $value]),
+                'results' => $results,
             ], includeSubjects: true);
         }
 
         if ($tier === 'other-countries') {
             if (isset($data['country'])) {
-                $sql = $base.' SELECT m.profile_type, m.user_id, u.full_name, CASE WHEN u.avatar_status = \'approved\' THEN u.avatar_url ELSE NULL END AS avatar_url, m.price, m.rating_avg, m.rating_count, m.is_verified, m.trial_days, m.referral_points, m.city, m.country FROM matching m JOIN users u ON u.id = m.user_id WHERE lower(m.country) = lower(?) ORDER BY m.referral_points DESC, '.$this->weightedRating('m.rating_avg', 'm.rating_count').' DESC, m.user_id ASC LIMIT 50';
-                $countSql = $base.' SELECT count(*) AS total FROM matching m WHERE lower(m.country) = lower(?)';
-
-                $totalCount = (int) DB::selectOne($countSql, [$subjectId, $data['country']])->total;
+                $sql = $base.' SELECT m.profile_type, m.user_id, u.full_name, CASE WHEN u.avatar_status = \'approved\' THEN u.avatar_url ELSE NULL END AS avatar_url, m.price, m.rating_avg, m.rating_count, m.is_verified, m.trial_days, m.referral_points, m.city, m.country, COUNT(*) OVER () AS match_count FROM matching m JOIN users u ON u.id = m.user_id WHERE lower(m.country) = lower(?) ORDER BY m.referral_points DESC, '.$this->weightedRating('m.rating_avg', 'm.rating_count').' DESC, m.user_id ASC LIMIT 50';
+                [$results, $totalCount] = $this->countedSubjectResults($sql, [$subjectId, $data['country']]);
                 app(SearchAnalyticsRecorder::class)->record('subject', 'country', $data['country'], $subjectId, $totalCount);
 
                 return $this->providerResponse([
                     'tier' => $tier,
                     'country' => $data['country'],
                     'totalCount' => $totalCount,
-                    'results' => DB::select($sql, [$subjectId, $data['country']]),
+                    'results' => $results,
                 ], includeSubjects: true);
             }
             $countries = DB::select($base.' SELECT m.country, count(*) AS trainer_count FROM matching m WHERE m.country IS NOT NULL GROUP BY m.country ORDER BY trainer_count DESC', [$subjectId]);
@@ -579,6 +572,17 @@ class SearchController extends Controller
         }
 
         return response()->json(['error' => 'Invalid search tier'], 400);
+    }
+
+    private function countedSubjectResults(string $sql, array $bindings): array
+    {
+        $results = DB::select($sql, $bindings);
+        $totalCount = (int) ($results[0]->match_count ?? 0);
+        foreach ($results as $result) {
+            unset($result->match_count);
+        }
+
+        return [$results, $totalCount];
     }
 
     private function isBslSubject(?int $subjectId): bool
@@ -649,23 +653,27 @@ class SearchController extends Controller
 
     private function providerResponse(array $data, bool $includeSubjects = false): JsonResponse
     {
-        if ($includeSubjects) {
-            foreach (['teacher', 'institute'] as $type) {
-                $ids = collect($data['results'])->where('profile_type', $type)->pluck('user_id')->unique();
-                $subjects = $ids->isEmpty() ? collect() : DB::table('profile_subjects as ps')
-                    ->join('subjects as s', 's.id', '=', 'ps.subject_id')
-                    ->where('ps.profile_type', $type)->whereIn('ps.profile_id', $ids)
-                    ->orderBy('s.name')->orderBy('s.id')
-                    ->get(['ps.profile_id', 's.id', 's.name', 's.is_bsl'])->groupBy('profile_id');
-                foreach ($data['results'] as $row) {
-                    if ($row->profile_type === $type) {
-                        $row->subjects = $subjects->get($row->user_id, collect())->map(static fn ($subject) => [
-                            'id' => (int) $subject->id,
-                            'name' => $subject->name,
-                            'is_bsl' => (bool) $subject->is_bsl,
-                        ])->values()->all();
+        if ($includeSubjects && count($data['results']) > 0) {
+            $idsByType = collect($data['results'])->groupBy('profile_type')
+                ->map(fn ($rows) => $rows->pluck('user_id')->unique());
+            $subjects = DB::table('profile_subjects as ps')
+                ->join('subjects as s', 's.id', '=', 'ps.subject_id')
+                ->where(function ($query) use ($idsByType): void {
+                    foreach ($idsByType as $type => $ids) {
+                        $query->orWhere(fn ($branch) => $branch->where('ps.profile_type', $type)
+                            ->whereIn('ps.profile_id', $ids));
                     }
-                }
+                })
+                ->orderBy('s.name')->orderBy('s.id')
+                ->get(['ps.profile_type', 'ps.profile_id', 's.id', 's.name', 's.is_bsl'])
+                ->groupBy(['profile_type', 'profile_id']);
+            foreach ($data['results'] as $row) {
+                $matches = $subjects->get($row->profile_type)?->get($row->user_id) ?? collect();
+                $row->subjects = $matches->map(static fn ($subject) => [
+                    'id' => (int) $subject->id,
+                    'name' => $subject->name,
+                    'is_bsl' => (bool) $subject->is_bsl,
+                ])->all();
             }
         }
         $data['results'] = app(UserPresence::class)->decorate($data['results']);

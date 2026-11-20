@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\StudentProfilesController;
 use App\Http\Controllers\Api\SubjectsController;
 use App\Http\Controllers\Api\SupportContactController;
 use App\Http\Middleware\AttachOptionalApiUser;
+use App\Http\Middleware\MeasureSearchTiming;
 use App\Http\Middleware\RequireAdminApi;
 use App\Http\Middleware\RequireApiAuthentication;
 use App\Http\Middleware\ThrottlePresence;
@@ -56,11 +57,12 @@ Route::middleware(AttachOptionalApiUser::class)
     ->where('postId', RecordId::ROUTE_PATTERN);
 Route::middleware(AttachOptionalApiUser::class)->get('/feed', [CommunityController::class, 'feed']);
 Route::middleware('throttle:60,1')->group(function (): void {
-    Route::get('/search/filter', [SearchController::class, 'filter']);
+    Route::get('/search/filter', [SearchController::class, 'filter'])->middleware(MeasureSearchTiming::class);
     Route::get('/search/dashboard', [SearchController::class, 'dashboard']);
     Route::get('/search/counts', [SearchController::class, 'counts']);
-    Route::get('/search/other-city', [SearchController::class, 'otherCity']);
-    Route::get('/search/by-subject/{subjectId}', [SearchController::class, 'bySubject'])->where('subjectId', RecordId::ROUTE_PATTERN);
+    Route::get('/search/other-city', [SearchController::class, 'otherCity'])->middleware(MeasureSearchTiming::class);
+    Route::get('/search/by-subject/{subjectId}', [SearchController::class, 'bySubject'])
+        ->where('subjectId', RecordId::ROUTE_PATTERN)->middleware(MeasureSearchTiming::class);
     Route::get('/search', [SearchController::class, 'nearby']);
 });
 
