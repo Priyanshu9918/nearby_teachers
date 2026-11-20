@@ -42,7 +42,7 @@ Route::post('/auth/parental-consent/confirm', [AuthController::class, 'confirmPa
 Route::get('/auth/safety-disclaimer', [AuthController::class, 'safetyDisclaimer']);
 Route::get('/i18n/languages', [I18nController::class, 'languages']);
 Route::get('/i18n/{lang}', [I18nController::class, 'translations']);
-Route::get('/subjects', SubjectsController::class);
+Route::middleware(AttachOptionalApiUser::class)->get('/subjects', SubjectsController::class);
 Route::get('/contact-info', [SupportContactController::class, 'show'])->middleware('throttle:60,1');
 Route::prefix('geo')->middleware('throttle:60,1')->group(function (): void {
     Route::get('/countries', [GeographyController::class, 'countries']);

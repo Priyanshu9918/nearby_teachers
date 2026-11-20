@@ -3,13 +3,21 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Support\PublicLanguages;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 
 class SubjectsController extends Controller
 {
     public function __invoke(): JsonResponse
     {
+        $user = request()->attributes->get('authenticated_user');
+        $language = PublicLanguages::supported($user?->preferred_language ?? null)
+            ? $user->preferred_language
+            : 'en';
+        $translations = $language === 'en' ? [] : $this->translations($language);
+
         $rows = DB::table('subject_domains')
             ->leftJoin('subjects', 'subjects.domain_id', '=', 'subject_domains.id')
             ->select(
@@ -32,7 +40,7 @@ class SubjectsController extends Controller
             if (! isset($domains[$row->domain_id])) {
                 $domains[$row->domain_id] = [
                     'id' => (int) $row->domain_id,
-                    'name' => $row->domain_name,
+                    'name' => $this->translate($row->domain_name, $translations),
                     'icon' => $row->domain_icon,
                     'subjects' => [],
                 ];
@@ -43,7 +51,7 @@ class SubjectsController extends Controller
 
             $subject = [
                 'id' => (int) $row->subject_id,
-                'name' => $row->subject_name,
+                'name' => $this->translate($row->subject_name, $translations),
                 'domain_id' => (int) $row->domain_id,
                 'is_bsl' => (bool) $row->is_bsl,
             ];
@@ -68,8 +76,38 @@ class SubjectsController extends Controller
         ];
 
         return response()->json([
+            'language' => $language,
             'bslFeatured' => $featured,
             'domains' => [$virtualDomain, ...array_values($domains)],
         ]);
+    }
+
+    private function translations(string $language): array
+    {
+        $path = resource_path('translations/subjects/'.$language.'.json');
+        $custom = File::exists($path)
+            ? json_decode(File::get($path), true, flags: JSON_THROW_ON_ERROR)
+            : [];
+
+        $seoPath = resource_path('seo/subjects.json');
+        if (! File::exists($seoPath)) {
+            return $custom;
+        }
+
+        $catalog = json_decode(File::get($seoPath), true, flags: JSON_THROW_ON_ERROR);
+        foreach ($catalog as $entry) {
+            $english = $entry['en'] ?? null;
+            $localized = $entry[$language] ?? null;
+            if (is_string($english) && is_string($localized) && $localized !== $english) {
+                $custom[$english] = $localized;
+            }
+        }
+
+        return $custom;
+    }
+
+    private function translate(string $name, array $translations): string
+    {
+        return $translations[$name] ?? $name;
     }
 }
