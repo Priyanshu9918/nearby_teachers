@@ -324,6 +324,16 @@ class SearchController extends Controller
             })
             ->join('users as u', fn ($join) => $join->whereRaw('u.id = COALESCE(teacher.user_id, institute.user_id)'))
             ->selectRaw('STRAIGHT_JOIN nearest.profile_type, COALESCE(teacher.user_id, institute.user_id) AS user_id,
+                COALESCE(teacher.id, institute.id) AS id,
+                COALESCE(teacher.city, institute.city) AS city,
+                COALESCE(teacher.state, institute.state) AS state,
+                COALESCE(teacher.country, institute.country) AS country,
+                COALESCE(teacher.latitude, institute.latitude) AS latitude,
+                COALESCE(teacher.longitude, institute.longitude) AS longitude,
+                COALESCE(teacher.currency, institute.currency) AS currency,
+                COALESCE(teacher.lesson_modes, institute.lesson_modes) AS lesson_modes,
+                COALESCE(institute.is_bsl, 0) AS is_bsl,
+                COALESCE(institute.is_bsl_official, 0) AS is_bsl_official,
                 COALESCE(teacher.rate_per_hour, institute.starting_rate) AS price,
                 COALESCE(teacher.rating_avg, institute.rating_avg) AS rating_avg,
                 COALESCE(teacher.rating_count, institute.rating_count) AS rating_count,
@@ -333,6 +343,10 @@ class SearchController extends Controller
             ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
             ->orderByDesc('nearest.referral_points')->orderBy('nearest.distance_m')->orderBy('nearest.profile_type')->orderBy('nearest.profile_id')
             ->get()->map(static function (object $result): object {
+                $result->price = $result->price === null ? null : (float) $result->price;
+                $result->lesson_modes = json_decode($result->lesson_modes ?: '[]', true, 512, JSON_THROW_ON_ERROR);
+                $result->is_bsl = (bool) $result->is_bsl;
+                $result->is_bsl_official = (bool) $result->is_bsl_official;
                 $result->referral_points = (int) $result->referral_points;
                 $result->rating_avg = (float) $result->rating_avg;
                 $result->rating_count = (int) $result->rating_count;
@@ -351,7 +365,7 @@ class SearchController extends Controller
             (float) $data['lat'], (float) $data['lng'], (float) ($data['radiusKm'] ?? 7),
             ($data['freeOnly'] ?? 'false') === 'true');
 
-        return $this->providerResponse(['results' => $rows])
+        return $this->providerResponse(['results' => $rows], includeSubjects: true)
             ->header('Server-Timing', 'search;dur='.round((hrtime(true) - $started) / 1000000, 2));
     }
 
@@ -596,21 +610,6 @@ class SearchController extends Controller
                 ])->all();
         }
         if ($endpoint === 'nearby' && $nearbyTeachers !== null) {
-            $profiles = DB::table('teacher_profiles')->whereIn('user_id', $nearbyTeachers->pluck('user_id'))
-                ->get(['id', 'user_id', 'city', 'state', 'country', 'latitude', 'longitude', 'currency', 'lesson_modes'])
-                ->keyBy('user_id');
-            foreach ($nearbyTeachers as $teacher) {
-                $profile = $profiles->get($teacher->user_id);
-                if ($profile !== null) {
-                    foreach (['id', 'city', 'state', 'country', 'latitude', 'longitude', 'currency'] as $field) {
-                        $teacher->{$field} = $profile->{$field};
-                    }
-                    $teacher->lesson_modes = json_decode($profile->lesson_modes ?: '[]', true, 512, JSON_THROW_ON_ERROR);
-                }
-                $teacher->price = $teacher->price === null ? null : (float) $teacher->price;
-                $teacher->is_bsl = false;
-                $teacher->is_bsl_official = false;
-            }
             $rows = $rows->concat($nearbyTeachers)->values();
             $count = $rows->count();
         }

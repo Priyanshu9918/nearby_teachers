@@ -293,6 +293,7 @@ class SearchDashboardTest extends TestCase
             'profile_type' => 'teacher', 'profile_id' => $teacher, 'subject_id' => $subject,
         ]);
         foreach ([
+            '/search?lat=10&lng=20&subjectId='.$subject,
             '/search/other-city?city=SubjectResponseCity',
             '/search/by-subject/'.$subject.'?tier=city&city=SubjectResponseCity',
             '/search/by-subject/'.$subject.'?tier=nearby&lat=10&lng=20',
@@ -300,6 +301,14 @@ class SearchDashboardTest extends TestCase
             $response = $this->getJson($url)->assertOk();
             $row = collect($response->json('results'))->firstWhere('user_id', $teacher);
             $this->assertNotNull($row);
+            if (str_starts_with($url, '/search?')) {
+                $this->assertSame('SubjectResponseCity', $row['city']);
+                $this->assertSame(['online'], $row['lesson_modes']);
+                $this->assertEquals(500, $row['price']);
+                foreach (['id', 'state', 'country', 'latitude', 'longitude', 'currency', 'is_bsl', 'is_bsl_official'] as $field) {
+                    $this->assertArrayHasKey($field, $row);
+                }
+            }
             $this->assertSame([
                 ['id' => $subject, 'name' => 'Response Course', 'is_bsl' => false],
             ], $row['subjects']);
