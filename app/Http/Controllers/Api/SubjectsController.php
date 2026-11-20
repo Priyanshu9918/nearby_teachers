@@ -69,7 +69,7 @@ class SubjectsController extends Controller
         usort($featured, static fn (array $a, array $b): int => strcasecmp($a['name'], $b['name']));
         $virtualDomain = [
             'id' => 'instant-teacher-available',
-            'name' => 'Instant Teacher Available',
+            'name' => $this->translate('Instant Teacher Available', $translations),
             'icon' => 'ti-bolt',
             'isVirtual' => true,
             'subjects' => $featured,
@@ -99,7 +99,7 @@ class SubjectsController extends Controller
             $english = $entry['en'] ?? null;
             $localized = $entry[$language] ?? null;
             if (is_string($english) && is_string($localized) && $localized !== $english) {
-                $custom[$english] = $localized;
+                $custom[$english] ??= $localized;
             }
         }
 
