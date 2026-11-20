@@ -965,3 +965,11 @@ provider country is saved (including learner accounts). No country is inferred
 from phone numbers or IP addresses.
 
 Teacher subject selection now also accepts `primarySubjectId` while keeping the merged `primarySubjects` array and Other approval flow unchanged. See [Teacher primary subject API](TEACHER_PRIMARY_SUBJECT.md) for registration, step-save, response and compatibility examples.
+
+Subject catalogue localization includes all labels listed in
+`resources/translations/subjects/catalogue.json` for the 14 supported languages,
+including categories and the virtual availability category. Translation maps are
+local JSON assets; the API makes no translation-service calls. Additional maps
+were prepared using machine translation and may need terminology review.
+New or renamed catalogue labels need corresponding translation entries; unmatched
+names retain the original database label. SEO assets and routes are unchanged.
