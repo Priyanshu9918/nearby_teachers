@@ -82,13 +82,13 @@ final class CustomSubjectApproval
         return $data;
     }
 
-    public function review(int $id, string $decision): bool
+    public function review(int $id, string $decision, ?int $domainId = null): bool
     {
         if (! in_array($decision, ['approved', 'rejected'], true)) {
             throw ValidationException::withMessages(['status' => 'Choose approve or reject.']);
         }
 
-        return DB::transaction(function () use ($id, $decision): bool {
+        return DB::transaction(function () use ($id, $decision, $domainId): bool {
             $candidate = DB::table('custom_subject_requests')->where('id', $id)->first(['user_id']);
             abort_if($candidate === null, 404);
             // Match registration/profile saves: serialize all decisions for an
@@ -108,8 +108,15 @@ final class CustomSubjectApproval
                 if ($table !== null) {
                     abort_if(DB::table($table)->where('user_id', $user->id)->lockForUpdate()->first() === null, 422, 'Provider profile not found.');
                 }
-                DB::table('subject_domains')->insertOrIgnore(['name' => 'Other', 'sort_order' => 999]);
-                $domain = DB::table('subject_domains')->where('name', 'Other')->lockForUpdate()->first();
+                if ($domainId === null) {
+                    DB::table('subject_domains')->insertOrIgnore(['name' => 'Other', 'sort_order' => 999]);
+                    $domain = DB::table('subject_domains')->where('name', 'Other')->lockForUpdate()->first();
+                } else {
+                    $domain = DB::table('subject_domains')->where('id', $domainId)->lockForUpdate()->first();
+                    if ($domain === null) {
+                        throw ValidationException::withMessages(['domain_id' => 'Choose an existing category.']);
+                    }
+                }
                 $subjectId = DB::table('subjects')->where('domain_id', $domain->id)
                     ->whereRaw('LOWER(name) = ?', [mb_strtolower($request->name)])->value('id');
                 $selected = $table === null ? [] : DB::table('profile_subjects')->where('profile_type', $request->profile_type)->where('profile_id', $user->id)->pluck('subject_id')->map(fn ($value) => (int) $value)->all();

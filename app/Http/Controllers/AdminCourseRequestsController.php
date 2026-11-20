@@ -24,13 +24,18 @@ class AdminCourseRequestsController extends Controller
             ->orderBy('r.created_at')->orderBy('r.id')->paginate($filters['per_page'] ?? 25)->withQueryString();
         app(ReportAccessLog::class)->record($request, 'custom-course-requests', 'course-request-list');
 
-        return view('admin.moderation.course-requests', compact('requests', 'status'));
+        $domains = DB::table('subject_domains')->orderBy('sort_order')->orderBy('name')->get(['id', 'name']);
+
+        return view('admin.moderation.course-requests', compact('requests', 'status', 'domains'));
     }
 
     public function review(Request $request, int $id): RedirectResponse
     {
-        $data = $request->validate(['status' => ['required', 'in:approved,rejected']]);
-        $changed = app(CustomSubjectApproval::class)->review($id, $data['status']);
+        $data = $request->validate([
+            'status' => ['required', 'in:approved,rejected'],
+            'domain_id' => ['exclude_unless:status,approved', 'required', 'integer', 'exists:subject_domains,id'],
+        ]);
+        $changed = app(CustomSubjectApproval::class)->review($id, $data['status'], isset($data['domain_id']) ? (int) $data['domain_id'] : null);
         app(ReportAccessLog::class)->record($request, 'custom-course-requests', 'course-request-'.$data['status'], $id);
 
         return back()->with('status', $changed ? 'Course request '.$data['status'].'.' : 'This request has already been reviewed or cancelled.');

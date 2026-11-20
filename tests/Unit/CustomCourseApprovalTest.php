@@ -196,7 +196,9 @@ class CustomCourseApprovalTest extends TestCase
             'id' => 90, 'name' => '<script>Abacus</script>', 'full_name' => 'Teacher', 'profile_type' => 'teacher',
             'status' => 'pending', 'user_id' => 42, 'created_at' => '2026-11-18 10:00:00',
         ]]), 1, 25);
-        $html = view('admin.moderation.course-requests', ['requests' => $requests, 'status' => 'pending', 'errors' => new ViewErrorBag])->render();
+        $html = view('admin.moderation.course-requests', ['requests' => $requests, 'status' => 'pending', 'domains' => collect([(object) ['id' => 3, 'name' => 'Mathematics']]), 'errors' => new ViewErrorBag])->render();
+        $this->assertStringContainsString('name="domain_id" required', $html);
+        $this->assertStringContainsString('<option value="3">Mathematics</option>', $html);
         $this->assertStringContainsString('>Approve</button>', $html);
         $this->assertStringContainsString('>Reject</button>', $html);
         $this->assertStringContainsString('&lt;script&gt;Abacus&lt;/script&gt;', $html);
