@@ -12,10 +12,10 @@ class SubjectsController extends Controller
 {
     public function __invoke(): JsonResponse
     {
-        $user = request()->attributes->get('authenticated_user');
-        $language = PublicLanguages::supported($user?->preferred_language ?? null)
-            ? $user->preferred_language
-            : 'en';
+        $request = request();
+        $user = $request->attributes->get('authenticated_user');
+        $requestedLanguage = $user?->preferred_language ?? $request->query('lang', 'en');
+        $language = PublicLanguages::supported($requestedLanguage) ? $requestedLanguage : 'en';
         $translations = $language === 'en' ? [] : $this->translations($language);
 
         $rows = DB::table('subject_domains')

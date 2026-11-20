@@ -632,7 +632,7 @@ compatibility/system endpoints are here. Classification does not widen access.
 | `PATCH` | `/auth/avatar` | Verified bearer | `avatarUrl` (URL) | Updates the photo URL and marks it pending moderation. |
 | `GET` | `/auth/safety-disclaimer` | Public | — | Returns the disclaimer text. |
 | `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging. Booking actions are paused. |
-| `GET` | `/subjects` | Public; optional bearer | — | Subject domains with their subjects and BSL catalog data. With a valid bearer, names use the account's saved `preferred_language`; defaults/falls back to English when no translation exists. Response includes `language`. |
+| `GET` | `/subjects` | Public; optional bearer | Guest: optional `lang` supported language code; authenticated: saved `preferred_language` takes precedence | Subject domains with their subjects and BSL catalog data. Defaults/falls back to English when no supported language is selected; missing individual translations use the database English name. Response includes `language`. |
 | `GET` | `/contact-info` | Public | — | Current WhatsApp number/link, support email and LinkedIn contact. |
 | `POST` | `/franchise/enquiries` | Verified bearer; learner and teacher supported (institute also currently accepted) | `name`, `phone`, `location` | Submits a franchise enquiry for admin review; the signed-in account is linked automatically. |
 | `POST` | `/jobs/applications` | Verified bearer; learner and teacher supported (institute also currently accepted) | `name`, `phone`, `expectedSalary`, `courseIds` (BSL/Other IDs) and/or `otherSubjects` (typed names), 1–5 combined | Submits a teaching job application for admin review; the signed-in account is linked automatically. |
@@ -675,7 +675,7 @@ compatibility/system endpoints are here. Classification does not widen access.
 
 | Endpoint | Access | Response |
 |---|---|---|
-| `GET /subjects` | Public; optional bearer | `{language,bslFeatured:[{id,name,domain_id}],domains:[{id,name,icon,subjects}]}`; language follows saved account preference, otherwise `en`. Missing individual translations fall back to the database English name. |
+| `GET /subjects` | Public; optional bearer | `{language,bslFeatured:[{id,name,domain_id}],domains:[{id,name,icon,subjects}]}`; guests can request `?lang=hi`; a valid bearer uses saved account preference. Otherwise `en`. Missing individual translations fall back to the database English name. |
 | `GET /i18n/languages` | Public | `{languages:[{code,name,nativeName,rtl}]}` |
 | `GET /i18n/{lang}` | Public | `{requested,served,translations}`; unsupported language falls back to English. |
 
@@ -684,8 +684,9 @@ The first domain is virtual: `id:"instant-teacher-available"`,
 `isVirtual:true`, with BSL featured subjects. Domain IDs therefore have mixed
 string/integer types. Use subject IDs, not the virtual domain ID, in API requests.
 Send the user's bearer token with `GET /subjects` to receive names in their
-saved primary language. Without a bearer, the response uses English. The API
-keeps numeric subject IDs stable; use those IDs in registration/profile requests.
+saved primary language. Guests can request a language with `?lang=hi` (any
+supported language code). The API keeps numeric subject IDs stable; use those
+IDs in registration/profile requests.
 
 Booking actions are paused. Conversation inbox/history/send are shared participant routes. Start/send
 contact actions enforce safety/guardian gates. Cursor lists use perPage 1–100,
