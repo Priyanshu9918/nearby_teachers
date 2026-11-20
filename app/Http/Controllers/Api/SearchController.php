@@ -596,6 +596,21 @@ class SearchController extends Controller
                 ])->all();
         }
         if ($endpoint === 'nearby' && $nearbyTeachers !== null) {
+            $profiles = DB::table('teacher_profiles')->whereIn('user_id', $nearbyTeachers->pluck('user_id'))
+                ->get(['id', 'user_id', 'city', 'state', 'country', 'latitude', 'longitude', 'currency', 'lesson_modes'])
+                ->keyBy('user_id');
+            foreach ($nearbyTeachers as $teacher) {
+                $profile = $profiles->get($teacher->user_id);
+                if ($profile !== null) {
+                    foreach (['id', 'city', 'state', 'country', 'latitude', 'longitude', 'currency'] as $field) {
+                        $teacher->{$field} = $profile->{$field};
+                    }
+                    $teacher->lesson_modes = json_decode($profile->lesson_modes ?: '[]', true, 512, JSON_THROW_ON_ERROR);
+                }
+                $teacher->price = $teacher->price === null ? null : (float) $teacher->price;
+                $teacher->is_bsl = false;
+                $teacher->is_bsl_official = false;
+            }
             $rows = $rows->concat($nearbyTeachers)->values();
             $count = $rows->count();
         }
@@ -619,7 +634,7 @@ class SearchController extends Controller
             }
         }
 
-        return $this->providerResponse($response);
+        return $this->providerResponse($response, includeSubjects: $endpoint === 'nearby' && $nearbyTeachers !== null);
     }
 
     private function providerResponse(array $data, bool $includeSubjects = false): JsonResponse
