@@ -193,7 +193,6 @@ class SearchDashboardTest extends TestCase
             '/search/by-subject/'.$subject.'?tier=city',
             '/search/by-subject/'.$subject.'?tier=state',
             '/search/by-subject/'.$subject.'?tier=country',
-            '/search?lat=10&lng=20&subjectId='.$subject,
             '/search?lat=10&lng=20&subjectId='.$subject.'&q=Exclusive%20BSL',
 
             '/search/dashboard?lat=10&lng=20&subjectId='.$subject,
@@ -205,6 +204,12 @@ class SearchDashboardTest extends TestCase
             $this->getJson($url)->assertOk()->assertJsonCount(1, 'results')
                 ->assertJsonPath('results.0.profile_type', 'institute')->assertJsonPath('results.0.user_id', $institute);
         }
+        $this->getJson('/search?lat=10&lng=20&subjectId='.$subject)->assertOk()
+            ->assertJsonCount(2, 'results')->assertJsonPath('results.0.user_id', $institute)
+            ->assertJsonPath('results.1.user_id', $teacher);
+        $this->getJson('/search?lat=11&lng=20&subjectId='.$subject)->assertOk()
+            ->assertJsonCount(1, 'results')->assertJsonPath('results.0.user_id', $institute);
+
         // BSL discovery must be identical for arbitrary, empty and missing cities.
         foreach (['Kanpur', 'Noida', 'Unknown City', ''] as $city) {
             foreach ([

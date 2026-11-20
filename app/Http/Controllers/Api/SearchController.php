@@ -268,7 +268,7 @@ class SearchController extends Controller
             'q' => ['sometimes', 'string', 'max:200'],
             'freeOnly' => ['sometimes', 'in:true,false'],
         ]);
-        if ($bsl) {
+        if ($bsl && ! isset($data['lat'], $data['lng'])) {
             return $this->bslSearchResponse('nearby', $data, (int) $data['subjectId']);
         }
         $started = hrtime(true);
@@ -285,6 +285,16 @@ class SearchController extends Controller
                 ->selectRaw('ST_Distance_Sphere(POINT(IF(p.longitude = -180, 180, p.longitude), p.latitude), POINT(?, ?)) AS distance_m', [$longitude, (float) $data['lat']])
                 ->whereRaw($bounds, $boundsBindings)
                 ->whereNotNull('p.longitude');
+
+            if ($bsl) {
+                // Instant subjects also expose eligible nearby individual teachers here.
+                if ($type === 'institute') {
+                    $query->whereRaw('1 = 0');
+                }
+                $query->where('u.account_type', $type)->whereNull('u.suspended_at')
+                    ->whereNotNull('u.phone_verified_at')->whereNotNull('u.profile_completed_at')
+                    ->where('p.is_profile_complete', true);
+            }
 
             if (isset($data['subjectId'])) {
                 $query->whereExists(function ($subjects) use ($type, $data): void {
@@ -334,6 +344,10 @@ class SearchController extends Controller
 
                 return $result;
             });
+
+        if ($bsl) {
+            return $this->bslSearchResponse('nearby', $data, (int) $data['subjectId'], $rows);
+        }
 
         app(SearchAnalyticsRecorder::class)->record('nearby', 'nearby_grid', null,
             isset($data['subjectId']) ? (int) $data['subjectId'] : null, $rows->count(),
@@ -550,7 +564,7 @@ class SearchController extends Controller
         return $subjectId !== null && DB::table('subjects')->where('id', $subjectId)->where('is_bsl', true)->exists();
     }
 
-    private function bslSearchResponse(string $endpoint, array $data, int $subjectId): JsonResponse
+    private function bslSearchResponse(string $endpoint, array $data, int $subjectId, ?\Illuminate\Support\Collection $nearbyTeachers = null): JsonResponse
     {
         // BSL subject searches deliberately bypass geographic and online-only restrictions.
         $query = DB::table('institute_profiles as p')->join('users as u', 'u.id', '=', 'p.user_id')
@@ -583,6 +597,10 @@ class SearchController extends Controller
                 ->orderBy('s.name')->get(['s.id', 's.name', 's.is_bsl'])->map(fn ($subject) => [
                     'id' => (int) $subject->id, 'name' => $subject->name, 'is_bsl' => (bool) $subject->is_bsl,
                 ])->all();
+        }
+        if ($endpoint === 'nearby' && $nearbyTeachers !== null) {
+            $rows = $rows->concat($nearbyTeachers)->values();
+            $count = $rows->count();
         }
         app(SearchAnalyticsRecorder::class)->record($endpoint === 'bySubject' ? 'subject' : ($endpoint === 'otherCity' ? 'other_city' : $endpoint),
             $data['tier'] ?? ($endpoint === 'otherCity' ? 'city_or_country' : 'nearby_grid'), null, $subjectId, $count);
