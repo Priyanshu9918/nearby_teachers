@@ -9,6 +9,7 @@ use App\Reporting\ReportFilters;
 use App\Reporting\ReportQuery;
 use App\Reporting\ReportRegistry;
 use App\Reporting\XlsxExporter;
+use App\Services\SeoDirectory;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -55,6 +56,9 @@ class AdminReportController extends Controller
                             ->where('language', $settings['language']));
                     }
                 });
+                $countSql = $key === 'seo-pages' ? SeoDirectory::COUNT_SQL
+                    : str_replace('lp.', 'r.', SeoDirectory::LOCATION_COUNT_SQL);
+                $query->from($definition->table.' as r')->whereRaw($countSql.' > 0');
             }
             if ($key === 'no-result-searches') {
                 $query->where('result_count', 0);
@@ -165,6 +169,9 @@ class AdminReportController extends Controller
                     ->where('r.language', $settings['language']));
             }
         });
+        $countSql = $report === 'seo-pages' ? SeoDirectory::COUNT_SQL
+            : str_replace('lp.', 'r.', SeoDirectory::LOCATION_COUNT_SQL);
+        $query->whereRaw($countSql.' > 0');
     }
 
     private function scopeSafetyReports(Builder $query, string $report): void

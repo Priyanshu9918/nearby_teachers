@@ -385,6 +385,25 @@ class TeacherPublicPagesTest extends TestCase
         }
     }
 
+    public function test_admin_seo_reports_hide_empty_pages_without_deleting_their_urls(): void
+    {
+        $teacher = $this->teacher();
+        $listing = DB::table('seo_directory_pages')->where('country', 'in')->where('city', 'Kanpur')->first();
+        $this->assertNotNull($listing);
+        $path = $listing->path;
+        $admin = $this->withSession(['admin_authenticated' => true]);
+        $admin->get('/admin/reports/seo-pages?q='.urlencode($path))->assertOk()->assertSee($path);
+
+        DB::table('users')->where('id', $teacher->user_id)->update(['suspended_at' => now()]);
+        $this->assertDatabaseHas('seo_directory_pages', ['id' => $listing->id, 'path' => $path]);
+        $admin->get('/admin/reports/seo-pages?q='.urlencode($path))->assertOk()->assertDontSee('<code class="seo-url-preview">'.$path.'</code>', false);
+        $csv = $admin->get('/admin/reports/seo-pages?q='.urlencode($path).'&export=1')->assertOk()->streamedContent();
+        $this->assertStringNotContainsString($path, $csv);
+
+        DB::table('users')->where('id', $teacher->user_id)->update(['suspended_at' => null]);
+        $admin->get('/admin/reports/seo-pages?q='.urlencode($path))->assertOk()->assertSee('<code class="seo-url-preview">'.$path.'</code>', false);
+    }
+
     public function test_location_wording_changes_keep_aliases_and_disabling_removes_sitemap_entries(): void
     {
         $this->institute();

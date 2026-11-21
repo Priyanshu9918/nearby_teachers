@@ -29,11 +29,17 @@ router.get('/mine', requireAuth, async (req, res) => {
       const candidate = generateReferralCode();
       try {
         const result = await query(
-          `UPDATE users SET referral_code = $1 WHERE id = $2 RETURNING referral_code`,
+          `UPDATE users SET referral_code = $1 WHERE id = $2 AND referral_code IS NULL RETURNING referral_code`,
           [candidate, req.user.id]
         );
-        code = result.rows[0].referral_code;
-        break;
+        if (result.rows[0]) {
+          code = result.rows[0].referral_code;
+          break;
+        }
+        // Another request assigned the code first; return that saved value.
+        const existing = await query(`SELECT referral_code FROM users WHERE id = $1`, [req.user.id]);
+        code = existing.rows[0]?.referral_code;
+        if (code) break;
       } catch (err) {
         if (err.code !== '23505') throw err; // not a unique_violation — a real error
       }
