@@ -403,8 +403,8 @@ radius return `422` field errors. Rate limit: 60 requests/minute per IP.
 
 The response contains **all** eligible teachers and institutes within the exact
 circular radius, plus institutes marked `is_bsl` or `is_bsl_official` regardless
-of radius. BSL institutes sort first, then referral points descending, distance
-ascending, provider type and numeric user ID. There is
+of radius. Results sort by referral points descending, then BSL/official status,
+distance ascending, provider type and numeric user ID. There is
 no 50-result cap and no pagination. Only accounts with completed registration,
 a verified phone, a current matching provider role, valid listing coordinates
 and no suspension are included. BSL institutes may have missing coordinates;

@@ -126,10 +126,11 @@ class SearchController extends Controller
         $query = DB::query()->fromSub($branches[0]->unionAll($branches[1]), 'providers');
         $page = (int) ($data['page'] ?? 1);
         $perPage = (int) ($data['perPage'] ?? 20);
+        $query->orderByDesc('referral_points');
         if (isset($data['lat'], $data['lng'])) {
             $query->orderByRaw('distance_km IS NULL')->orderBy('distance_km');
         }
-        $rows = $query->orderByDesc('referral_points')
+        $rows = $query
             ->orderBy('profile_type')->orderBy('user_id')->offset(($page - 1) * $perPage)->limit($perPage)->get();
         foreach ($rows as $row) {
             $row->price = $row->price === null ? null : (float) $row->price;
@@ -252,9 +253,11 @@ class SearchController extends Controller
             'instituteCount' => $counts['institute'],
             'totalCount' => $results->count(),
             'results' => $results->sortBy([
+                static fn (object $a, object $b): int => (int) ($b->referral_points ?? 0)
+                    <=> (int) ($a->referral_points ?? 0),
                 static fn (object $a, object $b): int => (int) (($b->is_bsl ?? false) || ($b->is_bsl_official ?? false))
                     <=> (int) (($a->is_bsl ?? false) || ($a->is_bsl_official ?? false)),
-                ['referral_points', 'desc'], ['distance_km', 'asc'], ['profile_type', 'asc'], ['user_id', 'asc'],
+                ['distance_km', 'asc'], ['profile_type', 'asc'], ['user_id', 'asc'],
             ])->values(),
         ]);
     }
@@ -449,7 +452,7 @@ class SearchController extends Controller
             $branches[] = $branch;
         }
         $results = DB::query()->fromSub($branches[0]->unionAll($branches[1]), 't')
-            ->orderByDesc('t.is_bsl')->orderByDesc('t.referral_points')
+            ->orderByDesc('t.referral_points')->orderByDesc('t.is_bsl')
             ->orderByRaw($this->weightedRating('t.rating_avg', 't.rating_count').' DESC')
             ->orderBy('t.user_id')->limit(50)->get()->all();
         foreach ($results as $result) {
@@ -606,7 +609,7 @@ class SearchController extends Controller
         if (($data['freeOnly'] ?? 'false') === 'true') {
             $query->where('p.starting_rate', 0);
         }
-        $rows = $query->limit(1)->get();
+        $rows = $query->orderByDesc('u.referral_points')->orderByDesc('p.is_bsl_official')->orderBy('p.id')->limit(1)->get();
         $count = $rows->count();
         if ($endpoint === 'counts') {
             return response()->json(['teacher_count' => 0, 'institute_count' => $count]);
@@ -625,7 +628,13 @@ class SearchController extends Controller
                 ])->all();
         }
         if ($endpoint === 'nearby' && $nearbyTeachers !== null) {
-            $rows = $rows->concat($nearbyTeachers)->values();
+            $rows = $rows->concat($nearbyTeachers)->sortBy([
+                static fn (object $a, object $b): int => (int) ($b->referral_points ?? 0)
+                    <=> (int) ($a->referral_points ?? 0),
+                static fn (object $a, object $b): int => (float) ($a->distance_km ?? INF)
+                    <=> (float) ($b->distance_km ?? INF),
+                ['profile_type', 'asc'], ['user_id', 'asc'],
+            ])->values();
             $count = $rows->count();
         }
         app(SearchAnalyticsRecorder::class)->record($endpoint === 'bySubject' ? 'subject' : ($endpoint === 'otherCity' ? 'other_city' : $endpoint),

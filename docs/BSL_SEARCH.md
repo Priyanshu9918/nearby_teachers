@@ -15,14 +15,15 @@ Integration checks are in SearchDashboardTest and require a disposable MySQL dat
 
 F, city may be omitted when subjectId identifies a BSL subject. Ordinary searches still require city.
 
-`/search/other-city` also includes the designated, non-suspended BSL institute only when its saved city matches the requested city, regardless of online availability. It sorts first within the bounded results. Ordinary providers still require online availability and matching location. Explicit non-BSL subject and name filters still apply. Results expose a boolean `is_bsl` so clients can preserve this online-availability exception.
+`/search/other-city` also includes the designated, non-suspended BSL institute only when its saved city matches the requested city, regardless of online availability. It ranks by referral points like other providers; BSL status breaks ties after points. Ordinary providers still require online availability and matching location. Explicit non-BSL subject and name filters still apply. Results expose a boolean `is_bsl` so clients can preserve this online-availability exception.
 
 Provider results from `/search/other-city` and every provider-list tier of `/search/by-subject/{subjectId}` include `subjects: [{id, name, is_bsl}]` for assigned courses, or `[]` when none are assigned. Country aggregate responses retain their existing shape.
 
 The home dashboard also includes eligible institutes marked `is_bsl` or
 `is_bsl_official` without a BSL subject filter, regardless of radius or missing
-coordinates. They sort first and are returned once, with counts reflecting the
-complete list. Missing coordinates and distance remain null. Completed
+coordinates. Results rank by referral points first; BSL/official status breaks
+ties. Institutes are returned once, with counts reflecting the complete list.
+Missing coordinates and distance remain null. Completed
 registration, verified phone, matching role and no suspension are required in
 this ordinary dashboard branch. Explicit BSL subject routing remains unchanged.
 This changes discovery only; no business state changes or new history events

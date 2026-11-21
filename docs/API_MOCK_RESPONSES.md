@@ -3753,7 +3753,7 @@ Content-Type: `application/json`
 
 ### GET /search/dashboard — home and map
 
-Public home/map dashboard. Required lat/lng, optional radiusKm >0 and <=500 (default 7). Returns ALL matching active, registered, phone-verified teachers and institutes, nearest first. Coordinates and prices are numbers, lesson_modes/subjects are arrays, flags are booleans. Counts match returned results. No pagination or 50-result cap. Phone/email are not exposed. See docs/APP_TEAM_API.md#home-and-map-dashboard. Saved examples are fictional contract illustrations, not live captures.
+Public home/map dashboard. Required lat/lng, optional radiusKm >0 and <=500 (default 7). Returns ALL matching active, registered, phone-verified teachers and institutes, ordered by referral points descending, then BSL/official status and distance. Coordinates and prices are numbers, lesson_modes/subjects are arrays, flags are booleans. Counts match returned results. No pagination or 50-result cap. Phone/email are not exposed. See docs/APP_TEAM_API.md#home-and-map-dashboard. Saved examples are fictional contract illustrations, not live captures.
 
 Request:
 
@@ -3916,7 +3916,7 @@ Content-Type: `application/json`
 
 ### GET /search
 
-Nearest 50; q is optional. Remove subjectId to search all subjects. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures.
+Top 50 ordered by referral points descending, then distance; q is optional. Remove subjectId to search all subjects. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures.
 
 Request:
 

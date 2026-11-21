@@ -315,8 +315,8 @@ see [contact action integration](#whatsapp-and-call-integration).
 `GET /search/dashboard` requires `lat` and `lng`, with optional `radiusKm`
 (default 7, maximum 500). It returns numeric coordinates/prices, subjects arrays,
 teacher/institute/total counts and all eligible nearby providers. Institutes with
-`is_bsl` or `is_bsl_official` are included regardless of radius and sort first;
-remaining ordering uses referral points descending then distance ascending.
+`is_bsl` or `is_bsl_official` are included regardless of radius. Results sort by
+referral points descending, then BSL/official status and distance ascending.
 Counts include each returned institute once. Missing BSL coordinates/distance
 are null. Phones
 and private account fields are omitted; this lookup does not consume phone quota.

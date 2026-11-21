@@ -38,11 +38,13 @@ trial_days, ratings, referral points/rating, approved avatar and presence status
 They omit contact details, exact coordinates and private addresses. distance_km
 is null when caller or provider coordinates are unavailable. Only complete provider profiles with matching
 account types, completed registration, verified phones and no suspension qualify.
-Filtering occurs before counts and pagination. With lat/lng, sort order is known distance first, distance ascending, referral
-points descending, provider type, then numeric user ID. Without coordinates,
-referral points descending, provider type and numeric user ID provide stable
-ordering. All matches are available across bounded pages, rather than one
-unbounded response.
+Filtering occurs before counts and pagination. Referral points sort descending
+first. With lat/lng, known distance ascending is the next key; providers without
+coordinates sort after known distances when referral points tie. Provider type
+and numeric user ID provide stable ordering after that. Without coordinates,
+provider type and numeric user ID provide stable ordering after referral points.
+All matches are available across bounded pages, rather than one unbounded
+response.
 
 For a BSL subject, the existing BSL discovery rule applies: return the designated
 BSL institute, bypassing geography and ordinary subject membership. Price,

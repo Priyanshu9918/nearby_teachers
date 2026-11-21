@@ -720,13 +720,13 @@ class DeveloperController extends Controller
 
         if ($key === 'GET /search') {
             $example['query'] = 'lat=28.6139&lng=77.2090&radiusKm=7';
-            $example['guide'] = 'Nearest 50 providers. Optional subjectId, q and freeOnly filters run before shortlisting. Server-Timing shows search execution time; it excludes network and application startup.';
+            $example['guide'] = 'Top 50 providers ranked by referral points descending, then distance ascending. Optional subjectId, q and freeOnly filters run before shortlisting. Server-Timing shows search execution time; it excludes network and application startup.';
         } elseif ($key === 'GET /search/filter') {
             $example['query'] = 'mode=nearby&lat=28.58&lng=77.31&radiusKm=7&maxPrice=500&currency=INR&lessonMode=online&trialDays=3';
-            $example['guide'] = 'Public filter search; no bearer token. Modes: nearby, other-city (city or country required), online. Optional subjectId, q, minPrice/maxPrice (inclusive; default currency INR), freeOnly=true/false, lessonMode=online/in_person/home_tuition and exact trialDays=0..7. Optional paired lat/lng sorts nearest first in any mode; omit radiusKm for no distance cutoff. An explicit radiusKm requires coordinates. Unknown provider distances sort last. Page pagination: page=1, perPage=20 (max 50). Use minPrice=2000 for 2000+. Only complete, registered, verified-phone, non-suspended providers are returned. BSL subjects use the BSL institute with geography bypass, while price/mode/trial filters still apply.';
+            $example['guide'] = 'Public filter search; no bearer token. Modes: nearby, other-city (city or country required), online. Optional subjectId, q, minPrice/maxPrice (inclusive; default currency INR), freeOnly=true/false, lessonMode=online/in_person/home_tuition and exact trialDays=0..7. Results rank by referral points descending first; when paired lat/lng are supplied, nearest distance breaks ties. Omit radiusKm for no distance cutoff. An explicit radiusKm requires coordinates. Unknown provider distances sort last. Page pagination: page=1, perPage=20 (max 50). Use minPrice=2000 for 2000+. Only complete, registered, verified-phone, non-suspended providers are returned. BSL subjects use the BSL institute with geography bypass, while price/mode/trial filters still apply.';
         } elseif ($key === 'GET /search/dashboard') {
             $example['query'] = 'lat=28.6139&lng=77.2090&radiusKm=7';
-            $example['guide'] = 'Home/map dashboard: all active, registered, phone-verified providers in the radius, nearest first, with coordinates, public listing details, subjects and counts. No 50-result cap. Phone/email are not returned.';
+            $example['guide'] = 'Home/map dashboard: all active, registered, phone-verified providers in the radius, ranked by referral points descending, then BSL/official status and distance, with coordinates, public listing details, subjects and counts. No 50-result cap. Phone/email are not returned.';
         } elseif ($key === 'GET /search/counts') {
             $example['query'] = 'lat=28.6139&lng=77.2090&radiusKm=7';
         } elseif ($key === 'GET /search/other-city') {
