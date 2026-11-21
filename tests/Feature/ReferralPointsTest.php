@@ -51,16 +51,16 @@ class ReferralPointsTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_successful_redemption_awards_both_users_100_points_only_once(): void
+    public function test_successful_redemption_awards_both_users_50_points_only_once(): void
     {
         $referrer = $this->user('teacher', 'Referrer');
         $referred = $this->user('learner', 'Referred');
         DB::table('users')->where('id', $referrer)->update(['referral_code' => 'REFERRER01']);
 
         $this->postJson('/referrals/redeem', ['code' => 'REFERRER01'], $this->bearerFor($referred))
-            ->assertOk()->assertJsonPath('referrerReferralPoints', 100)->assertJsonPath('redeemerReferralPoints', 100);
-        $this->assertSame(100, (int) DB::table('users')->where('id', $referrer)->value('referral_points'));
-        $this->assertSame(100, (int) DB::table('users')->where('id', $referred)->value('referral_points'));
+            ->assertOk()->assertJsonPath('referrerReferralPoints', 50)->assertJsonPath('redeemerReferralPoints', 50);
+        $this->assertSame(50, (int) DB::table('users')->where('id', $referrer)->value('referral_points'));
+        $this->assertSame(50, (int) DB::table('users')->where('id', $referred)->value('referral_points'));
         $this->assertSame(1, DB::table('referrals')->where('referrer_id', $referrer)->count());
 
         $activity = DB::table('business_activity')->where('event', 'referral.joined')->first();
@@ -70,21 +70,21 @@ class ReferralPointsTest extends TestCase
         $this->assertSame(['source' => 'referral_code'], json_decode($activity->after_data, true, 512, JSON_THROW_ON_ERROR));
         $pointActivity = DB::table('business_activity')->where('event', 'referral.recorded')->first();
         $this->assertNotNull($pointActivity);
-        $this->assertSame(['point_delta' => 100], json_decode($pointActivity->after_data, true, 512, JSON_THROW_ON_ERROR));
+        $this->assertSame(['point_delta' => 50], json_decode($pointActivity->after_data, true, 512, JSON_THROW_ON_ERROR));
         $redeemerActivity = DB::table('business_activity')->where('event', 'referral.redeemer_credited')->first();
         $this->assertNotNull($redeemerActivity);
-        $this->assertSame(['point_delta' => 100], json_decode($redeemerActivity->after_data, true, 512, JSON_THROW_ON_ERROR));
+        $this->assertSame(['point_delta' => 50], json_decode($redeemerActivity->after_data, true, 512, JSON_THROW_ON_ERROR));
 
         $this->postJson('/referrals/redeem', ['code' => 'REFERRER01'], $this->bearerFor($referred))
             ->assertStatus(409);
-        $this->assertSame(100, (int) DB::table('users')->where('id', $referrer)->value('referral_points'));
-        $this->assertSame(100, (int) DB::table('users')->where('id', $referred)->value('referral_points'));
+        $this->assertSame(50, (int) DB::table('users')->where('id', $referrer)->value('referral_points'));
+        $this->assertSame(50, (int) DB::table('users')->where('id', $referred)->value('referral_points'));
         $this->assertSame(1, DB::table('business_activity')->where('event', 'referral.joined')->count());
         $this->assertSame(1, DB::table('business_activity')->where('event', 'referral.recorded')->count());
         $this->assertSame(1, DB::table('business_activity')->where('event', 'referral.redeemer_credited')->count());
 
         $this->getJson('/referrals/mine', $this->bearerFor($referrer))
-            ->assertOk()->assertJsonPath('referralPoints', 100)->assertJsonPath('referredCount', 1)
+            ->assertOk()->assertJsonPath('referralPoints', 50)->assertJsonPath('referredCount', 1)
             ->assertJsonPath('referred.0.full_name', 'Referred')
             ->assertJsonPath('referred.0.account_type', 'learner')
             ->assertJsonPath('referred.0.avatar_url', null);
@@ -205,9 +205,9 @@ class ReferralPointsTest extends TestCase
             $this->getJson($url)->assertOk()
                 ->assertJsonPath($resultsKey.'.0.user_id', $institute)
                 ->assertJsonPath($resultsKey.'.0.referral_points', 5)
-                ->assertJsonPath($resultsKey.'.0.rating_avg', 5)
+                ->assertJsonPath($resultsKey.'.0.rating_avg', 4.2)
                 ->assertJsonPath($resultsKey.'.0.review_rating_avg', 4.2)
-                ->assertJsonPath($resultsKey.'.0.rating_count', 107)
+                ->assertJsonPath($resultsKey.'.0.rating_count', 7)
                 ->assertJsonPath($resultsKey.'.0.review_rating_count', 7);
         }
         $this->assertNotSame($teacher, $institute);
@@ -229,16 +229,16 @@ class ReferralPointsTest extends TestCase
             ->assertJsonPath('posts.0.author_id', $institute)
             ->assertJsonPath('posts.0.author_type', 'institute')
             ->assertJsonPath('posts.0.referral_points', 4)
-            ->assertJsonPath('posts.0.rating_avg', 4)
+            ->assertJsonPath('posts.0.rating_avg', 4.5)
             ->assertJsonPath('posts.0.review_rating_avg', 4.5)
-            ->assertJsonPath('posts.0.rating_count', 109)
+            ->assertJsonPath('posts.0.rating_count', 9)
             ->assertJsonPath('posts.0.review_rating_count', 9);
         $cursor = urlencode($first->json('pagination.nextCursor'));
 
         $second = $this->getJson('/feed?city=ReferralCity&perPage=1&cursor='.$cursor)->assertOk()
             ->assertJsonPath('posts.0.author_id', $teacher)
             ->assertJsonPath('posts.0.referral_points', 2)
-            ->assertJsonPath('posts.0.rating_avg', 2)
+            ->assertJsonPath('posts.0.rating_avg', 4.8)
             ->assertJsonPath('posts.0.review_rating_avg', 4.8);
         $cursor = urlencode($second->json('pagination.nextCursor'));
 
@@ -246,36 +246,36 @@ class ReferralPointsTest extends TestCase
             ->assertJsonPath('posts.0.author_id', $learner)
             ->assertJsonPath('posts.0.author_type', 'learner')
             ->assertJsonPath('posts.0.referral_points', 0)
-            ->assertJsonPath('posts.0.rating_avg', 0)
+            ->assertJsonPath('posts.0.rating_avg', null)
             ->assertJsonPath('posts.0.review_rating_avg', null)
-            ->assertJsonPath('posts.0.rating_count', 100)
+            ->assertJsonPath('posts.0.rating_count', 0)
             ->assertJsonPath('posts.0.review_rating_count', 0);
     }
 
-    public function test_100_point_rating_is_consistent_in_search_feed_and_public_profile_without_changing_reviews(): void
+    public function test_referral_points_and_review_ratings_are_separate_across_responses(): void
     {
         $id = $this->provider('teacher', '100 point teacher', 100, 4.2, 7);
         DB::table('teacher_profiles')->where('user_id', $id)->update(['is_profile_complete' => true]);
         foreach (['/search?lat=10&lng=20', '/search/dashboard?lat=10&lng=20',
             '/search/filter?mode=nearby&lat=10&lng=20', '/search/other-city?city=ReferralCity'] as $url) {
-            $this->getJson($url)->assertOk()->assertJsonPath('results.0.rating_avg', 100)
+            $this->getJson($url)->assertOk()->assertJsonPath('results.0.rating_avg', 4.2)
                 ->assertJsonPath('results.0.referral_points', 100)
-                ->assertJsonPath('results.0.review_rating_avg', 4.2)->assertJsonPath('results.0.rating_count', 107)
+                ->assertJsonPath('results.0.review_rating_avg', 4.2)->assertJsonPath('results.0.rating_count', 7)
                 ->assertJsonPath('results.0.review_rating_count', 7);
         }
-        $this->getJson('/profiles/teacher/'.$id)->assertOk()->assertJsonPath('profile.rating_avg', 100)
+        $this->getJson('/profiles/teacher/'.$id)->assertOk()->assertJsonPath('profile.rating_avg', 4.2)
             ->assertJsonPath('profile.referral_points', 100)->assertJsonPath('profile.review_rating_avg', 4.2);
         $headers = $this->bearerFor($id);
-        $this->getJson('/profiles/me', $headers)->assertOk()->assertJsonPath('profile.rating_avg', 100)
-            ->assertJsonPath('user.rating_avg', 100)->assertJsonPath('profile.review_rating_avg', 4.2);
-        $this->getJson('/auth/session', $headers)->assertOk()->assertJsonPath('user.rating_avg', 100)
-            ->assertJsonPath('profile.rating_avg', 100)->assertJsonPath('profile.review_rating_avg', 4.2);
+        $this->getJson('/profiles/me', $headers)->assertOk()->assertJsonPath('profile.rating_avg', 4.2)
+            ->assertJsonPath('user.rating_avg', null)->assertJsonPath('profile.review_rating_avg', 4.2);
+        $this->getJson('/auth/session', $headers)->assertOk()->assertJsonPath('user.rating_avg', null)
+            ->assertJsonPath('profile.rating_avg', 4.2)->assertJsonPath('profile.review_rating_avg', 4.2);
         $learner = $this->user('learner', '100 point learner', 100);
-        $this->getJson('/student/profile', $this->bearerFor($learner))->assertOk()->assertJsonPath('profile.rating_avg', 100)->assertJsonPath('profile.rating_count', 100)
+        $this->getJson('/student/profile', $this->bearerFor($learner))->assertOk()->assertJsonPath('profile.rating_avg', null)->assertJsonPath('profile.rating_count', 0)
             ->assertJsonPath('profile.review_rating_count', 0);
         DB::table('posts')->insert(['id' => NumericTestIds::next(), 'author_id' => $id, 'post_type' => 'offer',
             'city' => 'Rating100City', 'body' => 'Point rating example', 'created_at' => now()]);
-        $this->getJson('/feed?city=Rating100City')->assertOk()->assertJsonPath('posts.0.rating_avg', 100);
+        $this->getJson('/feed?city=Rating100City')->assertOk()->assertJsonPath('posts.0.rating_avg', 4.2);
         $this->assertDatabaseHas('teacher_profiles', ['user_id' => $id, 'rating_avg' => 4.2, 'rating_count' => 7]);
     }
 

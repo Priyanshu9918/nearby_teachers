@@ -335,7 +335,8 @@ class OperationsController extends Controller
         $points = (int) DB::table('users')->where('id', $user->id)->value('referral_points');
 
         return response()->json([
-            'rating_avg' => $points,
+            'rating_avg' => null,
+            'rating_count' => 0,
             'referral_rating' => ReferralRating::fromPoints($points),
             'code' => $code,
             'link' => rtrim(config('services.nearby_teacher.app_base_url', 'http://157.245.125.79/nearby_teachers/public'), '/').'/download?ref='.$code,
@@ -347,7 +348,7 @@ class OperationsController extends Controller
 
     public function redeemReferral(Request $request): JsonResponse
     {
-        $pointsPerParticipant = 100;
+        $pointsPerParticipant = 50;
         $data = $request->validate(['code' => ['required', 'string', 'max:32']]);
         $user = $request->attributes->get('authenticated_user');
         $referrer = DB::table('users')->where('referral_code', $data['code'])->value('id');

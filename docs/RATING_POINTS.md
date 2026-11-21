@@ -1,34 +1,34 @@
-# API point rating
+# Referral points and review ratings
 
-`rating_avg` in search, feed, public/owner provider profiles, student profiles,
-authentication user payloads, session profiles, onboarding user payloads and
-the referral leaderboard represents the current `users.referral_points` score.
-100 points produces `rating_avg: 100`; 107 points produces `rating_avg: 107`.
-No additional 100 is added while serializing a response. The registration bonus
-must already be present in the database through migration `2026_11_05_000002`.
+Referral points and review ratings are separate response values. A new account
+starts with 100 points from the database default. A successful referral-code
+redemption adds 50 points to the code owner and 50 to the redeemer, once per
+redeeming account. Earlier point awards and balances are not rewritten.
 
-Where review aggregates previously appeared, `review_rating_avg` preserves the
-real review average (including null when absent). `rating_count` starts at 100 and adds the actual review count: no reviews
-returns 100; seven reviews returns 107. `review_rating_count` preserves the
-actual count (0 or 7 respectively). Repeated serialization does not add the
-baseline again. `referral_rating` retains its legacy five-star conversion,
-so 100 points produces 0.5 there. Frontends displaying the point rating should
-use `rating_avg` or `referral_points`, not `referral_rating`.
+| Response field | Meaning |
+|---|---|
+| `referral_points` | Current account point balance |
+| `referral_rating` | `round(min(5, max(0, referral_points) / 200), 2)` |
+| `rating_avg` | Actual provider review average, or null when no reviews |
+| `rating_count` | Actual review count; zero when no reviews |
+| `review_rating_avg`, `review_rating_count` | Explicit aliases of the review values |
 
-Example relevant fields for an account with no reviews:
+For an account with 150 points and no reviews, the response is:
 
 ```json
 {
-  "referral_points": 100,
-  "rating_avg": 100,
-  "referral_rating": 0.5,
-  "review_rating_avg": 0,
-  "rating_count": 100,
+  "referral_points": 150,
+  "referral_rating": 0.75,
+  "rating_avg": null,
+  "rating_count": 0,
+  "review_rating_avg": null,
   "review_rating_count": 0
 }
 ```
 
-This is a response contract change from the former five-star review average.
-Stored provider review averages and counts, review writes, report/CSV history,
-and ranking queries remain unchanged. No business mutation or event is added.
-Country aggregates and count-only responses do not have individual ratings.
+Learners have no provider reviews and expose null/zero review fields. Stored
+provider review aggregates, review writes, referral history and search ranking
+queries are unchanged. The response mapping is computed without rewriting
+existing records. Older `referral.recorded` events retain their recorded
+point deltas; new redemptions record a 50-point owner event and a 50-point
+redeemer event in the same transaction.

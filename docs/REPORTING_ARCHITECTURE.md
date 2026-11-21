@@ -161,7 +161,7 @@ commit together with `point_delta: 0`. Older click events may contain
 `point_delta: 1` because clicks awarded points before this change. No IP
 address, user agent, raw cookie or request is copied into referral history.
 Successful code redemption records the referred account in `referrals`,
-increments both accounts by 100 points, and records `referral.joined`,
+increments both accounts by 50 points, and records `referral.joined`,
 `referral.recorded` (owner) and `referral.redeemer_credited` (redeemer) in the
 same transaction. The unique referred-account
 constraint prevents duplicate joins and point awards. Existing referral points
@@ -183,8 +183,8 @@ Tracked activity events include:
 | `auth.logged_out` | Previous/new auth version and `scope:all_sessions`; token revocation and history commit together |
 | `registration.submitted` | Previous/new account type and `registration_submitted_at`; the full form saved before learner DOB completion |
 | `registration.completed` | Previous/new account type and completion timestamp |
-| `referral.recorded` | Owner point delta after successful redemption; 100 for new redemptions, while older events retain their original delta; the referred account is actor and the referrer is related user |
-| `referral.redeemer_credited` | 100-point redeemer bonus after successful redemption; the referred account is actor and the referrer is related user |
+| `referral.recorded` | Owner point delta after successful redemption; 50 for new redemptions, while older events retain their original delta; the referred account is actor and the referrer is related user |
+| `referral.redeemer_credited` | 50-point redeemer bonus after successful redemption; the referred account is actor and the referrer is related user |
 | `referral.clicked` | Click analytics only (`point_delta: 0` after this change); the code owner is the related user |
 | `referral.joined` | `source: referral_code`; the referred account is actor and the code owner is related user |
 | `avatar.reviewed` | Previous/new moderation status only; API actions record the admin user ID and browser admin actions use the admin access log; image URL is excluded |
@@ -462,8 +462,11 @@ The existing-account grant emits version 1 `user.registration_points_granted`
 with before/after points and delta in the same transaction, once per user;
 completed grants are skipped on retry. New-user defaults are initial state,
 not referral earnings, and have no separate bonus event. They are visible in
-the shared user report/export. Star ratings and referral earning rules do not
-change. Migration rollback resets only the future default; it retains grants
+the shared user report/export. The registration-point migration did not change
+referral earning rules. Current redemption awards 50 points to each participant;
+review `rating_avg` and `rating_count` now expose actual review aggregates in
+API responses, while `referral_points` and `referral_rating` expose the point
+score. Migration rollback resets only the future default; it retains grants
 and append-only history. Historical totals before this grant are not inferred.
 
 Teacher primary selection: version 1 `teacher.primary_subject_changed` records

@@ -107,7 +107,7 @@
     "stepDownload": "Baixe o aplicativo usando o botão abaixo.",
     "stepRegister": "Crie sua conta e conclua o cadastro no aplicativo.",
     "stepRedeem": "Abra Indicações → Usar indicação no aplicativo e insira este código.",
-    "pointMessage": "Depois de usar o código com sucesso, você e seu amigo recebem 100 pontos cada.",
+    "pointMessage": "Depois de usar o código com sucesso, você e seu amigo recebem 50 pontos cada.",
     "downloadButton": "Baixar o aplicativo",
     "invalidCode": "Este código de indicação é inválido. Você ainda pode baixar o aplicativo.",
     "downloadUnavailable": "O link para baixar o aplicativo ainda não está disponível."

@@ -107,7 +107,7 @@
     "stepDownload": "Descarga la app con el botón de abajo.",
     "stepRegister": "Crea tu cuenta y completa el registro en la app.",
     "stepRedeem": "Abre Recomendaciones → Canjear recomendación en la app e introduce este código.",
-    "pointMessage": "Al canjear el código correctamente, tú y tu amigo recibiréis 100 puntos cada uno.",
+    "pointMessage": "Al canjear el código correctamente, tú y tu amigo recibiréis 50 puntos cada uno.",
     "downloadButton": "Descargar la app",
     "invalidCode": "Este código no es válido. Puedes descargar la app de todos modos.",
     "downloadUnavailable": "El enlace de descarga de la app aún no está disponible."

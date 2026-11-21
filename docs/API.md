@@ -781,7 +781,7 @@ shown in this shared documentation category.
 | `GET` | `/support/mine` | Verified bearer | Optional `page`, `perPage` (default 20, max 50) | Lists the caller's tickets with status and timestamps. |
 | `GET` | `/download?ref=CODE` | Public referral link | `ref` | Shows referral code, registration/redeem instructions and an app download button. Clicks are analytics only and do not award points. Android carries the code through Play Install Referrer. |
 | `GET` | `/referrals/mine` | Verified bearer | — | Returns or creates the caller's referral code, points and referred users. Points are awarded to code owners only after successful redemption. |
-| `POST` | `/referrals/redeem` | Verified bearer | `code` | Links the authenticated account to the code owner and awards 100 additional points to both accounts in the same transaction. Self-referrals are rejected; an already-credited account receives `409`. Returns both current balances. |
+| `POST` | `/referrals/redeem` | Verified bearer | `code` | Links the authenticated account to the code owner and awards 50 additional points to both accounts in the same transaction. Self-referrals are rejected; an already-credited account receives `409`. Returns both current balances. |
 | `POST` | `/analytics/page-view` | Public | `pageType`; optional `target`, `platform`, `referrer` | Records a view. `pageType`: `institute`, `teacher`, `city_index`, `city_feed`, `city_directory`, `download`, `app_profile`. Limited to 120 requests/minute per IP. |
 
 ### Catalog and settings details
@@ -1192,7 +1192,10 @@ Search provider rows, feed posts and authentication/session users expose
 `referral_rating`, calculated as `round(min(5, max(0, referral_points) / 200), 2)`.
 100 points = 0.5 stars, 500 = 2.5, 1000 and 2000 = 5. This is a points-based
 score for the app to display separately from review-derived `rating_avg` and
-`rating_count`. Scores are computed on response; no review data or ranking rules
+`rating_count`. With no reviews, `rating_avg` is null and `rating_count` is zero.
+Learner accounts have no review rating. `review_rating_avg` and
+`review_rating_count` remain explicit aliases of the review values. Scores are
+computed on response; no stored review data or ranking rules
 are changed. No extra migration or business mutation event is needed. The
 underlying points and bonus history remain available in existing reports.
 

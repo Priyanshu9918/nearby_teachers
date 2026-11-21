@@ -107,7 +107,7 @@
     "stepDownload": "Téléchargez l’application avec le bouton ci-dessous.",
     "stepRegister": "Créez votre compte et terminez l’inscription dans l’application.",
     "stepRedeem": "Ouvrez Parrainage → Utiliser un code dans l’application et saisissez ce code.",
-    "pointMessage": "Après avoir utilisé le code avec succès, votre ami et vous recevez chacun 100 points.",
+    "pointMessage": "Après avoir utilisé le code avec succès, votre ami et vous recevez chacun 50 points.",
     "downloadButton": "Télécharger l’application",
     "invalidCode": "Ce code de parrainage n’est pas valide. Vous pouvez quand même télécharger l’application.",
     "downloadUnavailable": "Le lien de téléchargement n’est pas encore disponible."

@@ -33,8 +33,8 @@ class StudentProfilesController extends Controller
         return response()->json([
             'profile' => [
                 'referral_points' => (int) $saved->referral_points,
-                'rating_avg' => (int) $saved->referral_points,
-                'rating_count' => 100,
+                'rating_avg' => null,
+                'rating_count' => 0,
                 'review_rating_count' => 0,
                 'referral_rating' => ReferralRating::fromPoints((int) $saved->referral_points),
                 'userId' => $saved->id,

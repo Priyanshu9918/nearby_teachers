@@ -120,7 +120,7 @@
     "stepDownload": "Unduh aplikasi menggunakan tombol di bawah.",
     "stepRegister": "Buat akun dan selesaikan pendaftaran di aplikasi.",
     "stepRedeem": "Buka Referral → Gunakan referral di aplikasi dan masukkan kode ini.",
-    "pointMessage": "Setelah berhasil menggunakan kode, Anda dan teman Anda masing-masing menerima 100 poin.",
+    "pointMessage": "Setelah berhasil menggunakan kode, Anda dan teman Anda masing-masing menerima 50 poin.",
     "downloadButton": "Unduh aplikasi",
     "invalidCode": "Kode referral ini tidak valid. Anda tetap dapat mengunduh aplikasi.",
     "downloadUnavailable": "Tautan unduhan aplikasi belum tersedia."
