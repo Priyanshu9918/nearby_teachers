@@ -25,7 +25,7 @@
                 <li>{{ data_get($t, 'referral.stepRegister', 'Create your account and complete registration in the app.') }}</li>
                 <li>{{ data_get($t, 'referral.stepRedeem', 'Open Referrals → Redeem referral in the app and apply this code.') }}</li>
             </ol>
-            <p class="meta">{{ data_get($t, 'referral.pointMessage', 'Your friend receives one point after you successfully apply the code.') }}</p>
+            <p class="meta">{{ data_get($t, 'referral.pointMessage', 'You and your friend each receive 100 points after you successfully apply the code.') }}</p>
         @else
             <p class="sub">{{ data_get($t, 'referral.invalidCode', 'This referral code is not valid. You can still download the app.') }}</p>
         @endif

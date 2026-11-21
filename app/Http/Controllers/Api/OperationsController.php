@@ -347,6 +347,7 @@ class OperationsController extends Controller
 
     public function redeemReferral(Request $request): JsonResponse
     {
+        $pointsPerParticipant = 100;
         $data = $request->validate(['code' => ['required', 'string', 'max:32']]);
         $user = $request->attributes->get('authenticated_user');
         $referrer = DB::table('users')->where('referral_code', $data['code'])->value('id');
@@ -357,7 +358,7 @@ class OperationsController extends Controller
             return response()->json(['error' => "You can't refer yourself"], 400);
         }
         try {
-            $id = DB::transaction(function () use ($referrer, $user): int|string {
+            $id = DB::transaction(function () use ($referrer, $user, $pointsPerParticipant): int|string {
                 DB::table('users')->where('id', $referrer)->lockForUpdate()->first(['id']);
                 $id = DB::table('referrals')->insertGetId([
                     'referrer_id' => $referrer,
@@ -366,9 +367,12 @@ class OperationsController extends Controller
                 ]);
                 app(BusinessActivityRecorder::class)->record('referral.joined', $id, $user->id, $referrer,
                     after: ['source' => 'referral_code']);
-                DB::table('users')->where('id', $referrer)->increment('referral_points', 1, ['updated_at' => now()]);
+                DB::table('users')->where('id', $referrer)->increment('referral_points', $pointsPerParticipant, ['updated_at' => now()]);
                 app(BusinessActivityRecorder::class)->record('referral.recorded', $id, $user->id, $referrer,
-                    after: ['point_delta' => 1]);
+                    after: ['point_delta' => $pointsPerParticipant]);
+                DB::table('users')->where('id', $user->id)->increment('referral_points', $pointsPerParticipant, ['updated_at' => now()]);
+                app(BusinessActivityRecorder::class)->record('referral.redeemer_credited', $id, $user->id, $referrer,
+                    after: ['point_delta' => $pointsPerParticipant]);
 
                 return $id;
             }, 3);
@@ -383,6 +387,7 @@ class OperationsController extends Controller
         return response()->json([
             'referral' => DB::table('referrals')->where('id', $id)->first(),
             'referrerReferralPoints' => (int) DB::table('users')->where('id', $referrer)->value('referral_points'),
+            'redeemerReferralPoints' => (int) DB::table('users')->where('id', $user->id)->value('referral_points'),
         ]);
     }
 

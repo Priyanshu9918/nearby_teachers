@@ -781,7 +781,7 @@ shown in this shared documentation category.
 | `GET` | `/support/mine` | Verified bearer | Optional `page`, `perPage` (default 20, max 50) | Lists the caller's tickets with status and timestamps. |
 | `GET` | `/download?ref=CODE` | Public referral link | `ref` | Shows referral code, registration/redeem instructions and an app download button. Clicks are analytics only and do not award points. Android carries the code through Play Install Referrer. |
 | `GET` | `/referrals/mine` | Verified bearer | — | Returns or creates the caller's referral code, points and referred users. Points are awarded to code owners only after successful redemption. |
-| `POST` | `/referrals/redeem` | Verified bearer | `code` | Links the authenticated account to the code owner and awards the owner one point in the same transaction. Self-referrals are rejected; an already-credited account receives `409`. |
+| `POST` | `/referrals/redeem` | Verified bearer | `code` | Links the authenticated account to the code owner and awards 100 additional points to both accounts in the same transaction. Self-referrals are rejected; an already-credited account receives `409`. Returns both current balances. |
 | `POST` | `/analytics/page-view` | Public | `pageType`; optional `target`, `platform`, `referrer` | Records a view. `pageType`: `institute`, `teacher`, `city_index`, `city_feed`, `city_directory`, `download`, `app_profile`. Limited to 120 requests/minute per IP. |
 
 ### Catalog and settings details

@@ -107,7 +107,7 @@
     "stepDownload": "使用下方按钮下载应用。",
     "stepRegister": "创建账户并在应用中完成注册。",
     "stepRedeem": "在应用中打开“推荐”→“使用推荐码”，并输入此码。",
-    "pointMessage": "您成功使用推荐码后，朋友将获得一积分。",
+    "pointMessage": "成功使用推荐码后，您和朋友将各获得100积分。",
     "downloadButton": "下载应用",
     "invalidCode": "此推荐码无效。您仍可下载应用。",
     "downloadUnavailable": "应用下载链接暂不可用。"

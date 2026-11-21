@@ -72,6 +72,7 @@ final class BusinessActivityRecorder
         'registration.completed' => ['user', ['account_type', 'profile_completed_at']],
         'user.registration_points_granted' => ['user', ['referral_points', 'point_delta']],
         'referral.recorded' => ['referral', ['point_delta']],
+        'referral.redeemer_credited' => ['referral', ['point_delta']],
         'referral.clicked' => ['referral_click', ['point_delta']],
         'referral.joined' => ['referral', ['source']],
         // Age history stores flags, never birth dates, guardian contacts or consent tokens.

@@ -664,7 +664,7 @@ compatibility/system endpoints are here. Classification does not widen access.
 | `GET` | `/support/mine` | Verified bearer | Optional `page`, `perPage` (default 20, max 50) | Lists the caller's tickets with status and timestamps. |
 | `GET` | `/download?ref=CODE` | Public referral link | `ref` | Shows the referral code, app registration/redeem steps and a download button. Clicks are analytics only; the one-year cookie deduplicates click reporting. Android carries the code through Play Install Referrer. |
 | `GET` | `/referrals/mine` | Verified bearer | — | Returns or creates the caller's referral code and link, `referredCount`, `referralPoints`, and the joined-user list in `referred` (`id`, `full_name`, `account_type`, approved `avatar_url`, `created_at`). Points are awarded only when a referred account successfully redeems the code. |
-| `POST` | `/referrals/redeem` | Verified bearer | `code` | Links this account to the code owner and awards the owner one point in the same transaction. Self-referrals are rejected; an already-credited account receives `409`. Success includes the code owner's current `referrerReferralPoints`. |
+| `POST` | `/referrals/redeem` | Verified bearer | `code` | Links this account to the code owner and awards 100 additional points to each account in the same transaction. Self-referrals are rejected; an already-credited account receives `409`. Success includes `referrerReferralPoints` and `redeemerReferralPoints` current balances. |
 | `POST` | `/analytics/page-view` | Public | `pageType`; optional `target`, `platform`, `referrer` | Records a view. `pageType`: `institute`, `teacher`, `city_index`, `city_feed`, `city_directory`, `download`, `app_profile`. Limited to 120 requests/minute per IP. |
 | `GET` | `/health` | Public | — | `{ok:true}`. |
 | `GET` | `/up` | Public | — | Laravel health HTML; use `/health` for JSON. |
@@ -715,7 +715,7 @@ never reset the idle clock. Multiple devices are independent. See
 
 Existing referral rows seed the initial points balance. Valid referral-link
 opens are recorded for analytics and do not award points. Each successfully
-redeemed code awards one point to its owner; the referred account can only be
+redeemed code awards 100 additional points to each account; the referred account can only be
 credited once. Search and city-feed results put higher-point accounts first;
 ratings remain available alongside points for teacher and institute providers.
 Learners can post to the city feed but do not have provider ratings.

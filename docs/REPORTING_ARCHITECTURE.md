@@ -161,8 +161,9 @@ commit together with `point_delta: 0`. Older click events may contain
 `point_delta: 1` because clicks awarded points before this change. No IP
 address, user agent, raw cookie or request is copied into referral history.
 Successful code redemption records the referred account in `referrals`,
-increments the code owner's points once, and records `referral.joined` plus
-`referral.recorded` in the same transaction. The unique referred-account
+increments both accounts by 100 points, and records `referral.joined`,
+`referral.recorded` (owner) and `referral.redeemer_credited` (redeemer) in the
+same transaction. The unique referred-account
 constraint prevents duplicate joins and point awards. Existing referral points
 and history are not rewritten; new points come from successful code redemption.
 Referral activity history is not backfilled.
@@ -182,7 +183,8 @@ Tracked activity events include:
 | `auth.logged_out` | Previous/new auth version and `scope:all_sessions`; token revocation and history commit together |
 | `registration.submitted` | Previous/new account type and `registration_submitted_at`; the full form saved before learner DOB completion |
 | `registration.completed` | Previous/new account type and completion timestamp |
-| `referral.recorded` | One point awarded after successful redemption; the referred account is actor and the referrer is related user |
+| `referral.recorded` | Owner point delta after successful redemption; 100 for new redemptions, while older events retain their original delta; the referred account is actor and the referrer is related user |
+| `referral.redeemer_credited` | 100-point redeemer bonus after successful redemption; the referred account is actor and the referrer is related user |
 | `referral.clicked` | Click analytics only (`point_delta: 0` after this change); the code owner is the related user |
 | `referral.joined` | `source: referral_code`; the referred account is actor and the code owner is related user |
 | `avatar.reviewed` | Previous/new moderation status only; API actions record the admin user ID and browser admin actions use the admin access log; image URL is excluded |

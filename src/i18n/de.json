@@ -120,7 +120,7 @@
     "stepDownload": "Lade die App über die Schaltfläche unten herunter.",
     "stepRegister": "Erstelle dein Konto und schließe die Registrierung in der App ab.",
     "stepRedeem": "Öffne in der App Empfehlungen → Empfehlung einlösen und gib diesen Code ein.",
-    "pointMessage": "Dein Freund erhält einen Punkt, wenn du den Code erfolgreich einlöst.",
+    "pointMessage": "Nach erfolgreicher Einlösung des Codes erhalten du und dein Freund jeweils 100 Punkte.",
     "downloadButton": "App herunterladen",
     "invalidCode": "Dieser Empfehlungscode ist ungültig. Du kannst die App trotzdem herunterladen.",
     "downloadUnavailable": "Der Download-Link für die App ist noch nicht verfügbar."

@@ -51,15 +51,16 @@ class ReferralPointsTest extends TestCase
         parent::tearDown();
     }
 
-    public function test_successful_redemption_records_join_and_awards_one_point_only_once(): void
+    public function test_successful_redemption_awards_both_users_100_points_only_once(): void
     {
         $referrer = $this->user('teacher', 'Referrer');
         $referred = $this->user('learner', 'Referred');
         DB::table('users')->where('id', $referrer)->update(['referral_code' => 'REFERRER01']);
 
         $this->postJson('/referrals/redeem', ['code' => 'REFERRER01'], $this->bearerFor($referred))
-            ->assertOk()->assertJsonPath('referrerReferralPoints', 1);
-        $this->assertSame(1, (int) DB::table('users')->where('id', $referrer)->value('referral_points'));
+            ->assertOk()->assertJsonPath('referrerReferralPoints', 100)->assertJsonPath('redeemerReferralPoints', 100);
+        $this->assertSame(100, (int) DB::table('users')->where('id', $referrer)->value('referral_points'));
+        $this->assertSame(100, (int) DB::table('users')->where('id', $referred)->value('referral_points'));
         $this->assertSame(1, DB::table('referrals')->where('referrer_id', $referrer)->count());
 
         $activity = DB::table('business_activity')->where('event', 'referral.joined')->first();
@@ -69,16 +70,21 @@ class ReferralPointsTest extends TestCase
         $this->assertSame(['source' => 'referral_code'], json_decode($activity->after_data, true, 512, JSON_THROW_ON_ERROR));
         $pointActivity = DB::table('business_activity')->where('event', 'referral.recorded')->first();
         $this->assertNotNull($pointActivity);
-        $this->assertSame(['point_delta' => 1], json_decode($pointActivity->after_data, true, 512, JSON_THROW_ON_ERROR));
+        $this->assertSame(['point_delta' => 100], json_decode($pointActivity->after_data, true, 512, JSON_THROW_ON_ERROR));
+        $redeemerActivity = DB::table('business_activity')->where('event', 'referral.redeemer_credited')->first();
+        $this->assertNotNull($redeemerActivity);
+        $this->assertSame(['point_delta' => 100], json_decode($redeemerActivity->after_data, true, 512, JSON_THROW_ON_ERROR));
 
         $this->postJson('/referrals/redeem', ['code' => 'REFERRER01'], $this->bearerFor($referred))
             ->assertStatus(409);
-        $this->assertSame(1, (int) DB::table('users')->where('id', $referrer)->value('referral_points'));
+        $this->assertSame(100, (int) DB::table('users')->where('id', $referrer)->value('referral_points'));
+        $this->assertSame(100, (int) DB::table('users')->where('id', $referred)->value('referral_points'));
         $this->assertSame(1, DB::table('business_activity')->where('event', 'referral.joined')->count());
         $this->assertSame(1, DB::table('business_activity')->where('event', 'referral.recorded')->count());
+        $this->assertSame(1, DB::table('business_activity')->where('event', 'referral.redeemer_credited')->count());
 
         $this->getJson('/referrals/mine', $this->bearerFor($referrer))
-            ->assertOk()->assertJsonPath('referralPoints', 1)->assertJsonPath('referredCount', 1)
+            ->assertOk()->assertJsonPath('referralPoints', 100)->assertJsonPath('referredCount', 1)
             ->assertJsonPath('referred.0.full_name', 'Referred')
             ->assertJsonPath('referred.0.account_type', 'learner')
             ->assertJsonPath('referred.0.avatar_url', null);
@@ -148,8 +154,32 @@ class ReferralPointsTest extends TestCase
             ->assertServerError();
 
         $this->assertSame(0, (int) DB::table('users')->where('id', $referrer)->value('referral_points'));
+        $this->assertSame(0, (int) DB::table('users')->where('id', $referred)->value('referral_points'));
         $this->assertSame(0, DB::table('referrals')->where('referred_id', $referred)->count());
         $this->assertSame(0, DB::table('business_activity')->where('event', 'referral.joined')->count());
+    }
+
+    public function test_both_point_awards_roll_back_when_redeemer_history_fails(): void
+    {
+        $referrer = $this->user('teacher', 'Referrer');
+        $referred = $this->user('learner', 'Referred');
+        DB::table('users')->where('id', $referrer)->update(['referral_code' => 'ROLLBACK02']);
+        DB::listen(static function ($query): void {
+            if (str_contains(strtolower($query->sql), 'insert into `business_activity`')
+                && in_array('referral.redeemer_credited', $query->bindings, true)) {
+                throw new RuntimeException('Redeemer activity write failed');
+            }
+        });
+
+        $this->postJson('/referrals/redeem', ['code' => 'ROLLBACK02'], $this->bearerFor($referred))
+            ->assertServerError();
+
+        $this->assertSame(0, (int) DB::table('users')->where('id', $referrer)->value('referral_points'));
+        $this->assertSame(0, (int) DB::table('users')->where('id', $referred)->value('referral_points'));
+        $this->assertSame(0, DB::table('referrals')->where('referred_id', $referred)->count());
+        $this->assertSame(0, DB::table('business_activity')->whereIn('event', [
+            'referral.joined', 'referral.recorded', 'referral.redeemer_credited',
+        ])->count());
     }
 
     public function test_provider_searches_rank_by_points_and_return_rating_fields(): void
