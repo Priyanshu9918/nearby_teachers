@@ -91,24 +91,27 @@ class SearchDashboardTest extends TestCase
     {
         $this->useTestDatabase();
         $teacher = $this->provider('teacher', 10, 20);
-        DB::table('users')->where('id', $teacher)->update(['referral_points' => 100]);
+        DB::table('users')->where('id', $teacher)->update(['referral_points' => 300]);
         $bsl = $this->provider('institute', 50, 50);
+        DB::table('users')->where('id', $bsl)->update(['referral_points' => 100]);
         app(BslInstitute::class)->set($bsl, true);
         $official = $this->provider('institute', 51, 50);
+        DB::table('users')->where('id', $official)->update(['referral_points' => 200]);
         DB::table('institute_profiles')->where('user_id', $official)->update(['is_bsl_official' => true]);
         $this->provider('institute', 52, 50); // Ordinary distant institutes stay excluded.
 
         $response = $this->getJson('/search/dashboard?lat=10&lng=20')->assertOk()
             ->assertJsonPath('teacherCount', 1)->assertJsonPath('instituteCount', 2)
             ->assertJsonPath('totalCount', 3)->assertJsonCount(3, 'results');
-        $this->assertEqualsCanonicalizing([$bsl, $official], array_column(array_slice($response->json('results'), 0, 2), 'user_id'));
-        $this->assertGreaterThan(7, $response->json('results.0.distance_km'));
-        $this->assertSame($teacher, $response->json('results.2.user_id'));
+        $this->assertSame([$teacher, $official, $bsl], array_column($response->json('results'), 'user_id'));
+        $this->assertLessThan(7, $response->json('results.0.distance_km'));
+        $this->assertGreaterThan(7, $response->json('results.2.distance_km'));
 
         DB::table('institute_profiles')->where('user_id', $bsl)->update(['latitude' => 10, 'longitude' => 20]);
         $this->getJson('/search/dashboard?lat=10&lng=20')->assertOk()
             ->assertJsonCount(3, 'results')->assertJsonPath('instituteCount', 2)
-            ->assertJsonPath('results.0.user_id', $bsl)->assertJsonPath('results.0.is_bsl', true);
+            ->assertJsonPath('results.0.user_id', $teacher)
+            ->assertJsonPath('results.2.user_id', $bsl)->assertJsonPath('results.2.is_bsl', true);
 
         DB::table('institute_profiles')->where('user_id', $bsl)->update(['latitude' => null, 'longitude' => null]);
         $response = $this->getJson('/search/dashboard?lat=10&lng=20')->assertOk()->assertJsonCount(3, 'results');
@@ -123,6 +126,45 @@ class SearchDashboardTest extends TestCase
                 ->assertJsonPath('instituteCount', 0)->assertJsonPath('totalCount', 1)
                 ->assertJsonPath('results.0.user_id', $teacher);
             DB::table('users')->whereIn('id', [$bsl, $official])->update([$field => $field === 'suspended_at' ? null : now()]);
+        }
+    }
+
+    public function test_referral_points_are_primary_for_other_city_and_subject_searches(): void
+    {
+        $this->useTestDatabase();
+        $domain = DB::table('subject_domains')->insertGetId(['name' => 'Search ranking test']);
+        $subject = DB::table('subjects')->insertGetId(['domain_id' => $domain, 'name' => 'Ranking course']);
+        $lowerPoints = $this->provider('teacher', 10, 20);
+        $higherPoints = $this->provider('institute', 10.04, 20);
+
+        DB::table('users')->where('id', $lowerPoints)->update([
+            'referral_points' => 100,
+        ]);
+        DB::table('teacher_profiles')->where('user_id', $lowerPoints)->update([
+            'city' => 'Noida', 'state' => 'Uttar Pradesh', 'country' => 'India',
+            'rating_avg' => 5, 'rating_count' => 100,
+        ]);
+        DB::table('users')->where('id', $higherPoints)->update([
+            'referral_points' => 200,
+        ]);
+        DB::table('institute_profiles')->where('user_id', $higherPoints)->update([
+            'city' => 'Noida', 'state' => 'Uttar Pradesh', 'country' => 'India',
+            'rating_avg' => 1, 'rating_count' => 1,
+        ]);
+        DB::table('profile_subjects')->insert([
+            ['profile_type' => 'teacher', 'profile_id' => $lowerPoints, 'subject_id' => $subject],
+            ['profile_type' => 'institute', 'profile_id' => $higherPoints, 'subject_id' => $subject],
+        ]);
+
+        $this->getJson('/search?lat=10&lng=20&subjectId='.$subject)->assertOk()
+            ->assertJsonPath('results.0.user_id', $higherPoints);
+        $this->getJson('/search/other-city?'.http_build_query(['city' => 'Noida', 'subjectId' => $subject]))->assertOk()
+            ->assertJsonPath('results.0.user_id', $higherPoints);
+        foreach (['tier=nearby&lat=10&lng=20', 'tier=city&city=Noida',
+            'tier=state&state=Uttar%20Pradesh', 'tier=country&country=India',
+            'tier=other-countries&country=India'] as $query) {
+            $this->getJson('/search/by-subject/'.$subject.'?'.$query)->assertOk()
+                ->assertJsonPath('results.0.user_id', $higherPoints);
         }
     }
 

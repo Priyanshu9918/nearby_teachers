@@ -140,20 +140,20 @@ class SearchFilterTest extends TestCase
         $this->assertSame(0, DB::table('search_analytics')->where('subject_id', $this->subject)->count());
     }
 
-    public function test_no_radius_returns_all_matches_nearest_first_with_unknown_coordinates_last(): void
+    public function test_referral_points_rank_before_distance_and_distance_breaks_ties_in_all_modes(): void
     {
         $near = $this->provider();
         $far = $this->provider('institute', ['latitude' => 29.58]);
         $unknown = $this->provider('teacher', ['latitude' => null, 'longitude' => null]);
         $this->provider('teacher', ['rate_per_hour' => 1000]);
         DB::table('users')->where('id', $far)->update(['referral_points' => 1000]);
-        DB::table('users')->where('id', $unknown)->update(['referral_points' => 2000]);
+        DB::table('users')->where('id', $unknown)->update(['referral_points' => 1000]);
         foreach (['nearby', 'other-city', 'online'] as $mode) {
             $response = $this->search(['mode' => $mode, 'city' => 'Noida', 'maxPrice' => 500])
                 ->assertOk()->assertJsonPath('totalCount', 3);
-            $this->assertSame([$near, $far, $unknown], array_column($response->json('results'), 'user_id'));
-            $this->assertGreaterThan(7, $response->json('results.1.distance_km'));
-            $response->assertJsonPath('results.2.distance_km', null);
+            $this->assertSame([$far, $unknown, $near], array_column($response->json('results'), 'user_id'));
+            $this->assertGreaterThan(7, $response->json('results.0.distance_km'));
+            $response->assertJsonPath('results.1.distance_km', null);
         }
         $this->search(['radiusKm' => 7, 'maxPrice' => 500])->assertOk()->assertJsonPath('totalCount', 1);
         $this->assertDatabaseHas('search_analytics', ['subject_id' => $this->subject, 'radius_km' => null, 'result_count' => 3]);

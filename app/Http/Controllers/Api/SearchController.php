@@ -631,6 +631,8 @@ class SearchController extends Controller
             $rows = $rows->concat($nearbyTeachers)->sortBy([
                 static fn (object $a, object $b): int => (int) ($b->referral_points ?? 0)
                     <=> (int) ($a->referral_points ?? 0),
+                static fn (object $a, object $b): int => (int) (($b->is_bsl ?? false) || ($b->is_bsl_official ?? false))
+                    <=> (int) (($a->is_bsl ?? false) || ($a->is_bsl_official ?? false)),
                 static fn (object $a, object $b): int => (float) ($a->distance_km ?? INF)
                     <=> (float) ($b->distance_km ?? INF),
                 ['profile_type', 'asc'], ['user_id', 'asc'],
