@@ -951,12 +951,12 @@ Postman collections include the new step-wise response examples.
 |---|---|---|---|---|
 | `GET` | `/geo/countries` | Public | Optional `search` | All imported countries: `id`, `sortname`, `name`, `phonecode`. Unpaginated. |
 | `GET` | `/geo/states` | Public | Required `country_id`; optional `search` | All states belonging to that country: `id`, `name`, `country_id`. |
-| `GET` | `/geo/cities` | Public | Required `state_id` or `country_id`; optional `search`, `lang`, `page`, `perPage` | State cities or country-assigned cities without a state. Legacy full-list response remains when pagination is omitted; explicit pagination allows up to 100 rows. |
+| `GET` | `/geo/cities` | Public | Required `state_id` or `country_id`; optional `search`, `lang` | Full list of state cities or country-assigned cities without a state; no pagination. |
 | `GET` | `/geo/districts` | Public | Required `state_id` or `country_id`; optional `search`, `lang` | District catalog entries retain numeric IDs. |
 | `GET` | `/geo/localities` | Public | Required `district_id` or `city_id`; optional `search`, `lang` | Locality catalog entries retain numeric IDs. |
 
 Example: `/geo/countries` → `/geo/states?country_id=101` →
-`/geo/cities?state_id=1&perPage=50&page=1`. Use IDs from the preceding
+`/geo/cities?state_id=1`. Use IDs from the preceding
 response. Add `lang=hi` to display reviewed translations; IDs remain stable.
 Clear dependent selections when country/state changes. These replace the
 previous country-code geography URLs.

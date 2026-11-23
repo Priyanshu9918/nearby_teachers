@@ -115,6 +115,19 @@ class LocationIdentityTest extends TestCase
         $this->assertDatabaseHas('business_activity', ['event' => 'location.city_registered', 'entity_id' => $city->id]);
     }
 
+    public function test_existing_catalog_rows_link_to_profile_and_owner_response(): void
+    {
+        $district = DB::table('districts')->insertGetId(['country_id' => $this->country, 'state_id' => $this->state, 'name' => 'Kanpur Nagar']);
+        $subDistrict = DB::table('sub_districts')->insertGetId(['country_id' => $this->country, 'state_id' => $this->state,
+            'district_id' => $district, 'name' => 'Kanpur Sadar']);
+        DB::table('teacher_profiles')->where('user_id', $this->user)->update(['district' => 'Kanpur Nagar', 'sub_district' => 'Kanpur Sadar']);
+        DB::transaction(fn () => app(LocationIdentity::class)->store($this->user, [], 'teacher', true));
+        $this->assertDatabaseHas('teacher_profiles', ['user_id' => $this->user, 'district_id' => $district, 'sub_district_id' => $subDistrict]);
+        $profile = DB::table('teacher_profiles')->where('user_id', $this->user)->first();
+        $draft = ProfileDraft::loadForOwner($profile, $this->user, 'teacher', 'en');
+        $this->assertSame($subDistrict, $draft['steps'][2]['data']['subDistrictId']);
+    }
+
     public function test_inconsistent_parent_ids_are_rejected(): void
     {
         $other = DB::table('countries')->insertGetId(['name' => 'Other', 'sortname' => 'ZZ', 'phonecode' => 999]);
@@ -196,6 +209,20 @@ class LocationIdentityTest extends TestCase
 
         $this->assertDatabaseHas('teacher_profiles', ['user_id' => $this->user, 'city_id' => $otherCity]);
         $this->assertDatabaseHas('teacher_profiles', ['user_id' => $this->user, 'district_id' => null, 'locality_id' => null]);
+    }
+
+    public function test_maps_city_text_does_not_inherit_a_stale_other_city_id(): void
+    {
+        $lucknow = DB::table('cities')->insertGetId(['name' => 'Lucknow', 'state_id' => $this->state, 'country_id' => $this->country]);
+        $payload = app(LocationIdentity::class)->forProfile(['countryCode' => 'IN', 'state' => 'Uttar Pradesh',
+            'city' => 'Kasaya', 'cityId' => $lucknow], DB::table('teacher_profiles')->where('user_id', $this->user)->first());
+        $this->assertSame('Kasaya', $payload['city']);
+        $this->assertArrayNotHasKey('cityId', $payload);
+        DB::transaction(fn () => app(TeacherAddress::class)->store($this->user, $payload));
+        $kasaya = DB::table('cities')->where('state_id', $this->state)->where('name', 'Kasaya')->first();
+        $this->assertNotNull($kasaya);
+        $this->assertDatabaseHas('teacher_profiles', ['user_id' => $this->user, 'city' => 'Kasaya', 'city_id' => $kasaya->id]);
+        $this->assertNotEquals($lucknow, $kasaya->id);
     }
 
     public function test_admin_location_id_update_keeps_existing_city_and_resolves_its_parents(): void

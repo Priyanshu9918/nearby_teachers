@@ -115,17 +115,15 @@ class GeographyApiTest extends TestCase
         $this->getJson('/geo/cities?state_id=9007199254740991')->assertNotFound();
     }
 
-    public function test_cities_are_state_scoped_with_stable_bounded_pages(): void
+    public function test_cities_are_state_scoped_and_always_return_full_list(): void
     {
         $this->getJson('/geo/cities?state_id='.$this->firstState.'&perPage=1')->assertOk()
-            ->assertJsonPath('state_id', $this->firstState)->assertJsonCount(1, 'cities')
+            ->assertJsonPath('state_id', $this->firstState)->assertJsonCount(4, 'cities')
             ->assertJsonPath('cities.0.name', 'Alpha')->assertJsonPath('cities.0.state_id', $this->firstState)
-            ->assertJsonPath('pagination.total', 4)->assertJsonPath('pagination.lastPage', 4);
-        $this->getJson('/geo/cities?state_id='.$this->firstState.'&perPage=1&page=2')->assertOk()->assertJsonPath('cities.0.name', 'Beta');
+            ->assertJsonMissingPath('pagination');
+        $this->getJson('/geo/cities?state_id='.$this->firstState.'&perPage=1&page=2')->assertOk()->assertJsonCount(4, 'cities');
         $this->getJson('/geo/cities?state_id='.$this->secondState)->assertOk()->assertJsonCount(1, 'cities')->assertJsonPath('cities.0.name', 'Other state city');
         $this->getJson('/geo/cities?state_id='.$this->foreignState)->assertOk()->assertJsonCount(1, 'cities')->assertJsonPath('cities.0.name', 'Foreign city');
-        $this->getJson('/geo/cities?state_id='.$this->firstState.'&perPage=101')->assertUnprocessable();
-        $this->getJson('/geo/cities?state_id='.$this->firstState.'&page=0')->assertUnprocessable();
     }
 
     public function test_search_is_literal_and_cannot_escape_the_selected_state(): void

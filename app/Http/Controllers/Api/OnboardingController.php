@@ -342,11 +342,11 @@ class OnboardingController extends Controller
         if ($accountType === 'teacher') {
             $teacher = DB::table('teacher_profiles as p')
                 ->where('p.user_id', $user->id)
-                ->select('p.public_page_slug', 'p.subject_profile_slug', 'p.seo_country', 'p.user_id', 'p.slug', 'p.seo_slug', 'p.public_profile_slug', 'p.country_id', 'p.state_id', 'p.city_id', 'p.district_id', 'p.locality_id', 'p.primary_subject_id', 'p.latitude', 'p.longitude', 'p.location_details',
+                ->select('p.public_page_slug', 'p.subject_profile_slug', 'p.seo_country', 'p.user_id', 'p.slug', 'p.seo_slug', 'p.public_profile_slug', 'p.country_id', 'p.state_id', 'p.city_id', 'p.district_id', 'p.sub_district_id', 'p.locality_id', 'p.primary_subject_id', 'p.latitude', 'p.longitude', 'p.location_details',
                     ...array_map(fn ($column) => 'p.'.$column, array_values(TeacherAddress::FIELDS)))
                 ->first();
         } elseif ($accountType === 'institute') {
-            $institute = DB::table('institute_profiles')->select('country_id', 'state_id', 'city_id', 'district_id', 'locality_id', 'contact_person', 'latitude', 'longitude', 'location_details', ...array_values(TeacherAddress::FIELDS))->where('user_id', $user->id)->first();
+            $institute = DB::table('institute_profiles')->select('country_id', 'state_id', 'city_id', 'district_id', 'sub_district_id', 'locality_id', 'contact_person', 'latitude', 'longitude', 'location_details', ...array_values(TeacherAddress::FIELDS))->where('user_id', $user->id)->first();
         }
 
         $provider = $teacher ?? $institute;

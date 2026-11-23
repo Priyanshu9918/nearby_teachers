@@ -201,7 +201,7 @@
       },
       "response": [
         {
-          "name": "200 — Cities with pagination",
+          "name": "200 — Full city list",
           "originalRequest": {
             "method": "GET",
             "header": [
@@ -211,7 +211,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/geo/cities?state_id={{state_id}}&perPage=50&page=1",
+              "raw": "{{baseUrl}}/geo/cities?state_id={{state_id}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -223,18 +223,10 @@
                 {
                   "key": "state_id",
                   "value": "{{state_id}}"
-                },
-                {
-                  "key": "perPage",
-                  "value": "50"
-                },
-                {
-                  "key": "page",
-                  "value": "1"
                 }
               ]
             },
-            "description": "Required state_id from GET /geo/states. Returns cities in that state (id, name, state_id). Optional search, page and perPage; default 50, maximum 100 per page.",
+            "description": "Required state_id from GET /geo/states. Returns cities in that state (id, name, state_id). Optional search; returns the full matching list.",
             "auth": {
               "type": "noauth"
             }
@@ -249,7 +241,7 @@
             }
           ],
           "cookie": [],
-          "body": "{\n  \"state_id\": 1,\n  \"cities\": [\n    {\n      \"id\": 3,\n      \"name\": \"Port Blair\",\n      \"state_id\": 1\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"perPage\": 50,\n    \"total\": 1,\n    \"lastPage\": 1\n  }\n}"
+          "body": "{\n  \"state_id\": 1,\n  \"cities\": [\n    {\n      \"id\": 3,\n      \"name\": \"Port Blair\",\n      \"state_id\": 1\n    }\n  ]\n}"
         }
       ]
     }

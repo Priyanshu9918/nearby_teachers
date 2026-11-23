@@ -71,8 +71,6 @@ class GeographyController
     public function cities(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'perPage' => ['sometimes', 'integer', 'min:1', 'max:100'],
-            'page' => ['sometimes', 'integer', 'min:1'],
             'state_id' => ['required_without:country_id', 'nullable', 'integer', 'min:1', 'max:9007199254740991'],
             'country_id' => ['sometimes', 'integer', 'min:1', 'max:9007199254740991', 'exists:countries,id'],
             'search' => ['sometimes', 'string', 'max:100'],
@@ -96,21 +94,13 @@ class GeographyController
         if ($stateId === null) {
             $columns[] = 'country_id';
         }
-        $pagination = null;
-        if (isset($data['perPage']) || isset($data['page'])) {
-            $paginator = $query->paginate((int) ($data['perPage'] ?? 100), $columns);
-            $cities = $paginator->getCollection();
-            $pagination = ['total' => $paginator->total(), 'lastPage' => $paginator->lastPage(), 'page' => $paginator->currentPage(), 'perPage' => $paginator->perPage()];
-        } else {
-            $cities = $query->get($columns);
-        }
+        $cities = $query->get($columns);
 
         LocationIdentity::labels('city', $cities, $data['lang'] ?? 'en');
 
         return response()->json([
             ...($stateId === null ? ['country_id' => $countryId] : ['state_id' => $stateId]),
             'cities' => $cities,
-            ...($pagination === null ? [] : ['pagination' => $pagination]),
         ]);
     }
 

@@ -28,8 +28,7 @@ without a state; districts accept `country_id` or `city_id`, sub-districts accep
 when no district is assigned. Search supports the selected language's translated name. Responses
 retain `id` and translate `name` when reviewed wording exists, including
 `canonical_name` on translated entries. English/default responses retain their
-existing shape. Cities additionally support explicit `perPage` (1–100) and `page`;
-without pagination parameters the existing complete-list response is preserved. Missing translations fall back to the catalog name. IDs never vary by
+existing shape. Cities return the complete matching list without pagination. Missing translations fall back to the catalog name. IDs never vary by
 language. The city catalog additionally preserves country_id for cities with no
 state. Existing such cities require reviewed country assignment; migration does
 not infer their country from their name.

@@ -751,7 +751,7 @@ shown in this shared documentation category.
 | `POST` | `/auth/acknowledge-safety-disclaimer` | Verified bearer | — | Records acknowledgement required before messaging; booking is paused. |
 | `GET` | `/subjects` | Public | — | Subject domains with their subjects and BSL catalog data. |
 | `GET` | `/contact-info` | Public | — | Current BSL WhatsApp, email and LinkedIn actions for the app. |
-| `GET` | `/geo/countries`, `/geo/states`, `/geo/cities` | Public | Optional `search`; states require `country_id`; cities require `state_id` and accept `page`, `perPage` | Imported SQL country list, country-scoped states and state-scoped paginated cities. See [Geography API](GEOGRAPHY_API.md). |
+| `GET` | `/geo/countries`, `/geo/states`, `/geo/cities` | Public | Optional `search`; states require `country_id`; cities require `state_id` | Imported SQL country list, country-scoped states and the complete state-scoped city list. See [Geography API](GEOGRAPHY_API.md). |
 | `GET` | `/i18n/languages` | Public | — | Supported language metadata. |
 | `GET` | `/i18n/{lang}` | Public | Language code in path | Returns translations; unsupported language codes serve English and identify the requested/served language. |
 | `GET` | `/messages` | Verified bearer | `perPage`, `cursor` | Conversations for the signed-in participant. |

@@ -31,15 +31,13 @@ All endpoints accept optional `search` and `lang`. Search checks canonical and
 reviewed translated names. A translated result keeps its numeric `id`, returns
 the translated `name`, and includes `canonical_name`. Missing translations fall
 back to the catalog name. IDs never change by language. Results sort by canonical
-name, then ID. Country and state lists are unpaginated. City queries retain the
-legacy complete-list response unless `page` or `perPage` is supplied; pagination
-allows 1–100 rows and returns `pagination.lastPage`.
+name, then ID. Country, state and city lists are unpaginated; city queries return the complete matching list.
 
 Missing, empty, non-integer or non-positive parent IDs return 422. A city query
 requires `state_id` or `country_id`; supplying both verifies that the state
 belongs to the country. District queries require `state_id` or `country_id`;
 locality queries require `district_id` or `city_id`. A known parent without
-children returns an empty array. Invalid pagination or search values return 422.
+children returns an empty array. Invalid search values return 422.
 
 Example response for `GET /geo/cities?state_id=1` (illustrative subset):
 

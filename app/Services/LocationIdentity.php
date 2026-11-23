@@ -68,7 +68,7 @@ final class LocationIdentity
             $records[$field] = $record;
         }
         // Derive ancestors without interpreting translated labels.
-        foreach (['locality', 'district', 'city', 'state'] as $field) {
+        foreach (['locality', 'subDistrict', 'district', 'city', 'state'] as $field) {
             if (! isset($records[$field])) {
                 continue;
             }
@@ -141,7 +141,8 @@ final class LocationIdentity
             foreach ($parents as $parent) {
                 if (isset($data[$parent.'Id'])) {
                     $column = self::column($parent).'_id';
-                    if ($parent === 'city' && in_array($field, ['district', 'subDistrict', 'locality'], true)) {
+                    if (in_array($parent, ['state', 'city', 'district'], true)
+                        && in_array($field, ['district', 'subDistrict', 'locality'], true)) {
                         $query->where(fn ($scope) => $scope->where($column, $data[$parent.'Id'])->orWhereNull($column));
                     } else {
                         $query->where($column, $data[$parent.'Id']);
@@ -163,6 +164,24 @@ final class LocationIdentity
 
     public function forProfile(array $data, ?object $profile): array
     {
+        // Maps text is the user's new selection. A stale client ID must not replace it.
+        $locationOrder = array_keys(self::TABLES);
+        foreach ($locationOrder as $index => $field) {
+            if (! isset($data[$field.'Id']) || ! filled($data[$field] ?? null)) {
+                continue;
+            }
+            $label = trim(preg_replace('/\s+/u', ' ', $data[$field]));
+            $catalogName = DB::table(self::TABLES[$field])->where('id', $data[$field.'Id'])->value('name');
+            $matches = $catalogName !== null && mb_strtolower(trim($catalogName)) === mb_strtolower($label);
+            $matches = $matches || DB::table('location_translations')->where('location_type', $field)
+                ->where('location_id', $data[$field.'Id'])->whereRaw('LOWER(TRIM(name)) = LOWER(?)', [$label])->exists();
+            if ($matches) {
+                continue;
+            }
+            foreach (array_slice($locationOrder, $index) as $child) {
+                unset($data[$child.'Id']);
+            }
+        }
         $normalized = $this->resolveLegacy($data);
         if ($profile === null || $data === []) {
             return $normalized;

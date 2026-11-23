@@ -372,7 +372,7 @@ class ProfilesController extends Controller
         $type = $this->providerType($request);
         $user = $request->attributes->get('authenticated_user');
         $columns = ['id', 'user_id', 'listing_name', 'is_profile_complete', 'completed_profile_steps', 'profile_draft_saved_at',
-            'country_id', 'state_id', 'city_id', 'district_id', 'locality_id', 'currency', 'lesson_modes', 'latitude', 'longitude', 'address_text', 'city', 'state', 'country', 'country_code', 'slug',
+            'country_id', 'state_id', 'city_id', 'district_id', 'sub_district_id', 'locality_id', 'currency', 'lesson_modes', 'latitude', 'longitude', 'address_text', 'city', 'state', 'country', 'country_code', 'slug',
             'is_verified', 'verified_at', 'trial_days', 'rating_avg', 'rating_count', 'district', 'sub_district', 'locality',
             'locality_type', 'postal_code', 'location_details', 'youtube_url'];
         $columns = [...$columns, ...($type === 'teacher'
