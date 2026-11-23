@@ -339,7 +339,7 @@ class ProfilesController extends Controller
         }
         $request->validate(['agreeToTerms' => ['required', 'accepted']]);
 
-        return DB::transaction(function () use ($user, $type, $table): JsonResponse {
+        return DB::transaction(function () use ($request, $user, $type, $table): JsonResponse {
             $profile = DB::table($table)->where('user_id', $user->id)->lockForUpdate()->first();
             abort_if($profile === null, 404, 'Profile not found.');
             $missing = ProfileEditor::missingFields($profile, $type, ProfileEditor::subjects((int) $user->id, $type)->isNotEmpty());
