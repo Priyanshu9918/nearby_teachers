@@ -951,13 +951,15 @@ Postman collections include the new step-wise response examples.
 |---|---|---|---|---|
 | `GET` | `/geo/countries` | Public | Optional `search` | All imported countries: `id`, `sortname`, `name`, `phonecode`. Unpaginated. |
 | `GET` | `/geo/states` | Public | Required `country_id`; optional `search` | All states belonging to that country: `id`, `name`, `country_id`. |
-| `GET` | `/geo/cities` | Public | Required `state_id`; optional `search`, `page`, `perPage` | Cities belonging to that state: `id`, `name`, `state_id`. Default 50 per page, maximum 100. |
+| `GET` | `/geo/cities` | Public | Required `state_id` or `country_id`; optional `search`, `lang`, `page`, `perPage` | State cities or country-assigned cities without a state. Legacy full-list response remains when pagination is omitted; explicit pagination allows up to 100 rows. |
+| `GET` | `/geo/districts` | Public | Required `state_id` or `country_id`; optional `search`, `lang` | District catalog entries retain numeric IDs. |
+| `GET` | `/geo/localities` | Public | Required `district_id` or `city_id`; optional `search`, `lang` | Locality catalog entries retain numeric IDs. |
 
 Example: `/geo/countries` → `/geo/states?country_id=101` →
-`/geo/cities?state_id=1&perPage=50&page=1`. Use IDs from the preceding response.
-Missing/invalid parent IDs return 422; unknown IDs return 404. Cities responses
-include `state_id`, `cities` and `pagination`. Clear dependent selections when
-country/state changes. These replace the previous country-code geography URLs.
+`/geo/cities?state_id=1&perPage=50&page=1`. Use IDs from the preceding
+response. Add `lang=hi` to display reviewed translations; IDs remain stable.
+Clear dependent selections when country/state changes. These replace the
+previous country-code geography URLs.
 See [Geography API](GEOGRAPHY_API.md) and the dedicated
 [Postman collection](postman/geography.postman_collection.json).
 
@@ -979,3 +981,9 @@ local JSON assets; the API makes no translation-service calls. Additional maps
 were prepared using machine translation and may need terminology review.
 New or renamed catalogue labels need corresponding translation entries; unmatched
 names retain the original database label. SEO assets and routes are unchanged.
+
+
+Numeric location filters and localized catalog labels are supported. New clients
+should submit `countryId`, `stateId`, `cityId`, `districtId`, and `localityId`
+where applicable, using numeric catalog IDs. See [location identity and rollout](LOCATION_IDENTITY.md)
+for endpoint contracts, legacy compatibility, translation import and SEO rules.

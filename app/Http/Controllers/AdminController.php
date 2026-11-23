@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\BslInstitute;
+use App\Services\LocationIdentity;
 use App\Services\ProfileEditor;
 use App\Services\TeacherPublicPages;
 use Illuminate\Database\Query\Builder;
@@ -137,6 +138,7 @@ class AdminController extends Controller
                         'updated_at' => $now,
                     ]
                 );
+                app(LocationIdentity::class)->store((int) $userId, $data + ['countryCode' => $data['country_code'] ?? null], $this->accountType($section));
             }
         });
 
@@ -174,9 +176,10 @@ class AdminController extends Controller
                 ->exists(), 404);
 
             if ($section !== 'students') {
+                app(LocationIdentity::class)->store((int) $id, $data + ['countryCode' => $data['countryCode'] ?? $data['country_code'] ?? null], $this->accountType($section));
                 DB::table($this->profileTable($section))
                     ->where('user_id', $id)
-                    ->update($this->profileData($data, $section) + ['updated_at' => now()]);
+                    ->update($this->profileData($data, $section, partial: true) + ['updated_at' => now()]);
                 if ($section === 'teachers') {
                     app(TeacherPublicPages::class)->publish($id);
                 }
@@ -312,10 +315,15 @@ class AdminController extends Controller
             $rules['website_url'] = ['nullable', 'url', 'max:2048'];
         }
 
-        return $request->validate($rules);
+        if ($section !== 'students' && $section !== 'subjects') {
+            $rules += LocationIdentity::rules();
+        }
+        $data = $request->validate($rules);
+
+        return $section === 'students' || $section === 'subjects' ? $data : app(LocationIdentity::class)->normalize($data);
     }
 
-    private function profileData(array $data, string $section): array
+    private function profileData(array $data, string $section, bool $partial = false): array
     {
         $common = [
             'currency' => $data['currency'] ?? 'INR',
@@ -324,21 +332,28 @@ class AdminController extends Controller
             'country' => $data['country'] ?? null,
             'country_code' => isset($data['country_code']) ? strtoupper($data['country_code']) : null,
         ];
+        if ($partial) {
+            $common = array_intersect_key($common, $data);
+        }
 
         if ($section === 'teachers') {
-            return $common + [
+            $specific = [
                 'bio' => $data['bio'] ?? null,
                 'rate_per_hour' => $data['rate_per_hour'] ?? null,
                 'linkedin_url' => $data['linkedin_url'] ?? null,
             ];
+
+            return $common + ($partial ? array_intersect_key($specific, $data) : $specific);
         }
 
-        return $common + [
+        $specific = [
             'description' => $data['description'] ?? null,
             'starting_rate' => $data['starting_rate'] ?? null,
             'instructors_text' => $data['instructors_text'] ?? null,
             'website_url' => $data['website_url'] ?? null,
         ];
+
+        return $common + ($partial ? array_intersect_key($specific, $data) : $specific);
     }
 
     private function assertSection(string $section): void

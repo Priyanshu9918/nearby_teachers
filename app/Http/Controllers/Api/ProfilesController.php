@@ -7,6 +7,7 @@ use App\Reporting\BusinessActivityRecorder;
 use App\Services\BslInstitute;
 use App\Services\CountryCurrency;
 use App\Services\InstitutePublicPages;
+use App\Services\LocationIdentity;
 use App\Services\OnboardingState;
 use App\Services\OtherSubjects;
 use App\Services\ProfileDraft;
@@ -16,6 +17,7 @@ use App\Services\TeacherLocation;
 use App\Services\TeacherPrimarySubject;
 use App\Services\TeacherPublicPages;
 use App\Services\YouTubeProfileLink;
+use App\Support\PublicLanguages;
 use App\Support\PublicMediaUrl;
 use App\Support\ReferralRating;
 use Illuminate\Http\JsonResponse;
@@ -49,6 +51,7 @@ class ProfilesController extends Controller
             return response()->json(['error' => 'Only teacher or institute accounts have a listing profile'], 400);
         }
 
+        $request->merge(app(LocationIdentity::class)->forProfile($request->validate(LocationIdentity::inputRules()), DB::table($type.'_profiles')->where('user_id', $user->id)->first()));
         $isTeacher = $type === 'teacher';
         $subjectsField = $isTeacher ? 'primarySubjects' : 'subjectIds';
         $subjectLimit = ProfileEditor::subjectLimit((int) $user->id, $type);
@@ -106,8 +109,6 @@ class ProfilesController extends Controller
         $this->appendField($updateParts, $bindings, $data, $descriptionField, $descriptionField);
         $this->appendField($updateParts, $bindings, $data, $rateField, $isTeacher ? 'rate_per_hour' : 'starting_rate');
         $this->appendField($updateParts, $bindings, $data, 'addressText', 'address_text');
-        $this->appendField($updateParts, $bindings, $data, 'city', 'city');
-        $this->appendField($updateParts, $bindings, $data, 'countryCode', 'country_code', true);
         $this->appendField($updateParts, $bindings, $data, 'trialDays', 'trial_days');
 
         $this->appendField($updateParts, $bindings, $data, 'youtubeUrl', 'youtube_url');
@@ -249,13 +250,14 @@ class ProfilesController extends Controller
         if (! app(OnboardingState::class)->registrationCompleted($user)) {
             return response()->json(['error' => 'Complete registration before updating your profile.', 'registrationRequired' => true], 409);
         }
+        $request->merge(app(LocationIdentity::class)->forProfile($request->validate(LocationIdentity::inputRules()), DB::table($type.'_profiles')->where('user_id', $user->id)->first()));
         $isTeacher = $type === 'teacher';
         $subjects = $isTeacher ? 'primarySubjects' : 'subjectIds';
         $story = $isTeacher ? 'bio' : 'description';
         $allowed = match ($step) {
             '1' => $isTeacher ? ['fullName', 'listingName'] : ['fullName', 'listingName', 'contactPerson'],
             '2' => $isTeacher ? [$subjects, 'primarySubjectId', 'otherSubjects'] : [$subjects, 'otherSubjects'],
-            '3' => ['lessonModes', 'latitude', 'longitude', 'addressText', 'city', 'state', 'country', 'countryCode', 'district', 'subDistrict', 'locality', 'localityType', 'postalCode'],
+            '3' => ['countryId', 'stateId', 'cityId', 'districtId', 'subDistrictId', 'localityId', 'lessonModes', 'latitude', 'longitude', 'addressText', 'city', 'state', 'country', 'countryCode', 'district', 'subDistrict', 'locality', 'localityType', 'postalCode'],
             '4' => [$isTeacher ? 'ratePerHour' : 'startingRate', 'currency', 'trialDays'],
             '5' => $isTeacher ? ['bio', 'linkedinUrl', 'youtubeUrl'] : ['description', 'websiteUrl', 'instructorsText', 'youtubeUrl'],
             default => abort(404),
@@ -361,7 +363,7 @@ class ProfilesController extends Controller
                 after: ['status' => 'published', 'terms_accepted' => true, 'profile_complete' => true]);
 
             return response()->json(['ok' => true, 'published' => true, 'profileComplete' => true,
-                'profileDraft' => ProfileDraft::loadForOwner($profile, (int) $user->id, $type), ...ProfileEditor::urls($profile, $type)]);
+                'profileDraft' => ProfileDraft::loadForOwner($profile, (int) $user->id, $type, PublicLanguages::resolve($request, 'en')), ...ProfileEditor::urls($profile, $type)]);
         });
     }
 
@@ -370,7 +372,7 @@ class ProfilesController extends Controller
         $type = $this->providerType($request);
         $user = $request->attributes->get('authenticated_user');
         $columns = ['id', 'user_id', 'listing_name', 'is_profile_complete', 'completed_profile_steps', 'profile_draft_saved_at',
-            'currency', 'lesson_modes', 'latitude', 'longitude', 'address_text', 'city', 'state', 'country', 'country_code', 'slug',
+            'country_id', 'state_id', 'city_id', 'district_id', 'locality_id', 'currency', 'lesson_modes', 'latitude', 'longitude', 'address_text', 'city', 'state', 'country', 'country_code', 'slug',
             'is_verified', 'verified_at', 'trial_days', 'rating_avg', 'rating_count', 'district', 'sub_district', 'locality',
             'locality_type', 'postal_code', 'location_details', 'youtube_url'];
         $columns = [...$columns, ...($type === 'teacher'
@@ -381,6 +383,7 @@ class ProfilesController extends Controller
         $profile->lesson_modes = json_decode($profile->lesson_modes ?: '[]', true, flags: JSON_THROW_ON_ERROR);
         $profile->is_profile_complete = (bool) $profile->is_profile_complete;
         $profile->location_details = $profile->location_details === null ? null : json_decode($profile->location_details, true, flags: JSON_THROW_ON_ERROR);
+        LocationIdentity::display([$profile], PublicLanguages::resolve($request, 'en'));
         $userData = DB::table('users')->where('id', $user->id)->first(['id', 'full_name', 'email', 'phone', 'avatar_url', 'avatar_status', 'phone_verified_at', 'profile_completed_at', 'terms_accepted_at', 'referral_points']);
         ReferralRating::decorate($userData);
         ReferralRating::decorate($profile, $userData->referral_points);
@@ -388,7 +391,7 @@ class ProfilesController extends Controller
         $subjects = ProfileEditor::subjects((int) $user->id, $type);
 
         return response()->json(['user' => $userData, 'profile' => $profile, 'profileComplete' => $profile->is_profile_complete,
-            'profileDraft' => ProfileDraft::forOwner($profile, $userData, $type, $subjects->pluck('id')->all()), ...ProfileEditor::urls($profile, $type),
+            'profileDraft' => ProfileDraft::forOwner($profile, $userData, $type, $subjects->pluck('id')->all(), PublicLanguages::resolve($request, 'en')), ...ProfileEditor::urls($profile, $type),
             'subjects' => $subjects]);
     }
 
@@ -438,6 +441,7 @@ class ProfilesController extends Controller
             return response()->json(['error' => 'Not found'], 404);
         }
         ReferralRating::decorate($profile);
+        LocationIdentity::display([$profile], PublicLanguages::resolve($request, 'en'));
         // Enrichment belongs to the owner onboarding response and admin reports only.
         unset($profile->location_details, $profile->completed_profile_steps, $profile->profile_draft_saved_at);
         unset($profile->seo_state_hash);

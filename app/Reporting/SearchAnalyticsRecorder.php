@@ -18,9 +18,11 @@ final class SearchAnalyticsRecorder
         ?float $radiusKm = null,
         bool $freeOnly = false,
         array $filters = [],
+        array $locationIds = [],
     ): void {
         $location = $this->safeLocation($location);
         DB::table('search_analytics')->insert([
+            ...array_intersect_key($locationIds, array_flip(['country_id', 'state_id', 'city_id', 'district_id', 'sub_district_id', 'locality_id'])),
             'search_type' => $searchType,
             'location_type' => $locationType,
             'location' => $location,

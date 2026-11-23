@@ -14,7 +14,7 @@ final class NumericIdConversion
 
     private array $next = [];
 
-    private const ENTITIES = ['user' => 'users', 'teacher_profile' => 'teacher_profiles', 'institute_profile' => 'institute_profiles',
+    private const ENTITIES = ['country' => 'countries', 'state' => 'states', 'city' => 'cities', 'district' => 'districts', 'sub_district' => 'sub_districts', 'locality' => 'localities', 'location_translation' => 'location_translations', 'user' => 'users', 'teacher_profile' => 'teacher_profiles', 'institute_profile' => 'institute_profiles',
         'subject' => 'subjects', 'custom_subject_request' => 'custom_subject_requests', 'teaching_job_application' => 'teaching_job_applications', 'booking' => 'bookings', 'message' => 'messages',
         'message_reaction' => 'message_reactions', 'otp_delivery' => 'otp_delivery_attempts',
         'post' => 'posts', 'comment' => 'post_comments', 'report' => 'reports',
@@ -153,6 +153,15 @@ final class NumericIdConversion
         if ($old === null) {
             return null;
         }
+        // The world geography tables have always had native numeric identities
+        // and stay outside the application-record ID conversion.
+        if (in_array($entity, ['countries', 'states', 'cities', 'districts', 'sub_districts', 'localities', 'location_translations'], true) && ! isset($this->tables[$entity])) {
+            if (! ctype_digit((string) $old)) {
+                throw new RuntimeException('Geography identifiers must remain numeric.');
+            }
+
+            return (int) $old;
+        }
         // Catalogue subjects already use numeric IDs and are outside UUID conversion.
         if ($entity === 'subjects' && ctype_digit((string) $old) && (int) $old > 0) {
             return (int) $old;
@@ -207,6 +216,20 @@ final class NumericIdConversion
                 if (isset($data[$key])) {
                     $data[$key] = $this->mapped($entity, $data[$key], $create);
                 }
+            }
+            foreach (['country_id' => 'countries', 'state_id' => 'states', 'city_id' => 'cities',
+                'district_id' => 'districts', 'sub_district_id' => 'sub_districts', 'locality_id' => 'localities'] as $key => $entity) {
+                if (isset($data[$key])) {
+                    $data[$key] = $this->mapped($entity, $data[$key], $create);
+                }
+            }
+            if (isset($data['location_type'], $data['location_id'])) {
+                $entity = match ($data['location_type']) {
+                    'country' => 'countries', 'state' => 'states', 'city' => 'cities',
+                    'district' => 'districts', 'subDistrict' => 'sub_districts', 'locality' => 'localities',
+                    default => throw new RuntimeException('Unknown location snapshot entity type.'),
+                };
+                $data['location_id'] = $this->mapped($entity, $data['location_id'], $create);
             }
             $result[$column] = json_encode($data, JSON_THROW_ON_ERROR);
         }

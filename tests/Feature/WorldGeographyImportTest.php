@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Services\WorldGeographyImporter;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use RuntimeException;
@@ -26,6 +27,9 @@ class WorldGeographyImportTest extends TestCase
             $this->assertFalse(Schema::hasTable($table), 'Use an empty dedicated test database.');
         }
         (require database_path('migrations/2026_11_04_000001_prepare_world_geography_seeding.php'))->up();
+        Schema::table('cities', function (Blueprint $table): void {
+            $table->unsignedInteger('country_id')->nullable();
+        });
         $this->directory = sys_get_temp_dir().'/world-geography-'.bin2hex(random_bytes(6));
         mkdir($this->directory);
         $country = ['sortname' => 'IN', 'name' => 'India', 'phonecode' => 91, 'states' => [['name' => 'Delhi', 'cities' => ['Delhi', 'New Delhi']]], 'unassigned_cities' => []];

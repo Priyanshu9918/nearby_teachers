@@ -1,4 +1,4 @@
-# Country, state and city API
+# Country, state, city and locality API
 
 Public, read-only dropdown lookups use the separately imported SQL tables:
 
@@ -6,7 +6,10 @@ Public, read-only dropdown lookups use the separately imported SQL tables:
 |---|---|
 | `countries` | `id`, `sortname`, `name`, `phonecode` |
 | `states` | `id`, `name`, `country_id` |
-| `cities` | `id`, `name`, `state_id` |
+| `cities` | `id`, `name`, `state_id`, `country_id` |
+| `districts` | `id`, `name`, `country_id`, optional `state_id` |
+| `sub_districts` | `id`, `name`, `country_id`, optional `state_id`, `city_id`, `district_id` |
+| `localities` | `id`, `name`, `country_id`, optional `state_id`, `district_id`, `city_id` |
 
 Only the listed columns are exposed. No authentication is required. Requests
 are limited to 60 per minute per IP.
@@ -17,16 +20,26 @@ are limited to 60 per minute per IP.
 |---|---|
 | `GET /geo/countries` | All imported countries, with `id`, `sortname`, `name`, `phonecode`. |
 | `GET /geo/states?country_id=101` | All states belonging to country ID 101, with `id`, `name`, `country_id`. |
-| `GET /geo/cities?state_id=1&page=1&perPage=50` | Cities belonging to state ID 1, with `id`, `name`, `state_id`, plus pagination. |
+| `GET /geo/cities?state_id=1` | All cities in state ID 1, with `id`, `name`, `state_id`. |
+| `GET /geo/cities?country_id=101` | Cities assigned to country ID 101 that have no state; includes `country_id`. |
+| `GET /geo/districts?state_id=1` | Districts linked to state ID 1; `country_id` can be used for country-only districts. |
+| `GET /geo/districts?city_id=3` | Reviewed districts linked directly to city ID 3. |
+| `GET /geo/sub-districts?district_id=4` | Sub-districts linked to district ID 4; `city_id` can be used where no district is assigned. |
+| `GET /geo/localities?district_id=3` | Localities linked to district ID 3; `city_id` can be used when there is no district. |
 
-All three endpoints accept optional `search` to filter names. Omit search for
-the full matching list. Results sort by name, then ID. Country and state lists
-are unpaginated. Cities default to 50 per page and allow at most 100; use
-`pagination.lastPage` to load further pages.
+All endpoints accept optional `search` and `lang`. Search checks canonical and
+reviewed translated names. A translated result keeps its numeric `id`, returns
+the translated `name`, and includes `canonical_name`. Missing translations fall
+back to the catalog name. IDs never change by language. Results sort by canonical
+name, then ID. Country and state lists are unpaginated. City queries retain the
+legacy complete-list response unless `page` or `perPage` is supplied; pagination
+allows 1–100 rows and returns `pagination.lastPage`.
 
-Missing, empty, non-integer or non-positive parent IDs return 422. Unknown
-country IDs or state IDs return 404. A known parent without children returns an
-empty array. Invalid pagination or search values return 422.
+Missing, empty, non-integer or non-positive parent IDs return 422. A city query
+requires `state_id` or `country_id`; supplying both verifies that the state
+belongs to the country. District queries require `state_id` or `country_id`;
+locality queries require `district_id` or `city_id`. A known parent without
+children returns an empty array. Invalid pagination or search values return 422.
 
 Example response for `GET /geo/cities?state_id=1` (illustrative subset):
 
@@ -34,13 +47,14 @@ Example response for `GET /geo/cities?state_id=1` (illustrative subset):
 {
   "state_id": 1,
   "cities": [{"id": 3, "name": "Port Blair", "state_id": 1}],
-  "pagination": {"page": 1, "perPage": 50, "total": 1, "lastPage": 1}
+  "cities": [{"id": 3, "name": "Port Blair", "state_id": 1}]
 }
 ```
 
 Load countries first. Pass the selected country's `id` as `country_id` to states,
-then the selected state's `id` as `state_id` to cities. Clear state and city
-selections when country changes, and clear city when state changes.
+then the selected state's `id` as `state_id` to cities. Country-only city
+results cover cities with no state assignment. Clear state and city selections
+when country changes, and clear city when state changes.
 
 ## Schema transition and history
 
@@ -53,8 +67,8 @@ The supplied SQL tables must already be imported. This change does not alter
 or populate application tables. Legacy GeoNames migrations and import/export
 commands target a different schema; do not use them to populate these imported
 tables. Existing profile location names and country codes are separate from
-these dropdown IDs. Ensure indexes on `states.country_id` and `cities.state_id`
-when preparing the imported dataset for large catalogues.
+these dropdown IDs. Ensure indexes on the parent IDs when preparing large
+catalogues.
 
 These are read-only catalog queries; no new business state or history events
 are created. External SQL import history is not reconstructed or recorded by

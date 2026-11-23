@@ -4,16 +4,41 @@ use App\Services\SeoDirectory;
 
 // Explicit report contracts: new database columns are never exposed automatically.
 return [
+    'city-catalog' => [
+        'title' => 'City catalog', 'table' => 'cities',
+        'columns' => ['id', 'country_id', 'state_id', 'name'],
+        'participants' => [], 'search' => ['country_id', 'state_id', 'name'],
+    ],
+    'location-translations' => [
+        'title' => 'Location translations', 'table' => 'location_translations',
+        'columns' => ['id', 'location_type', 'location_id', 'language', 'name'],
+        'participants' => [], 'search' => ['location_type', 'location_id', 'language', 'name'],
+    ],
+    'district-catalog' => [
+        'title' => 'District catalog', 'table' => 'districts',
+        'columns' => ['id', 'country_id', 'state_id', 'city_id', 'name'],
+        'participants' => [], 'search' => ['country_id', 'state_id', 'city_id', 'name'],
+    ],
+    'sub-district-catalog' => [
+        'title' => 'Sub-district catalog', 'table' => 'sub_districts',
+        'columns' => ['id', 'country_id', 'state_id', 'city_id', 'district_id', 'name'],
+        'participants' => [], 'search' => ['country_id', 'state_id', 'city_id', 'district_id', 'name'],
+    ],
+    'locality-catalog' => [
+        'title' => 'Locality catalog', 'table' => 'localities',
+        'columns' => ['id', 'country_id', 'state_id', 'city_id', 'district_id', 'name'],
+        'participants' => [], 'search' => ['country_id', 'state_id', 'city_id', 'district_id', 'name'],
+    ],
     'seo-pages' => [
         'title' => 'SEO page URLs', 'table' => 'seo_directory_pages', 'timestamp' => 'created_at',
-        'columns' => ['id', 'subject_id', 'country', 'kind', 'city', 'path', 'created_at'],
+        'columns' => ['id', 'country_id', 'state_id', 'city_id', 'subject_id', 'country', 'kind', 'city', 'path', 'created_at'],
         'participants' => [], 'search' => ['country', 'kind', 'city', 'path'],
         'computed' => ['eligible_providers' => SeoDirectory::COUNT_SQL,
             'route_enabled' => '(SELECT enabled FROM seo_subject_routes sr WHERE sr.id = r.route_id)'],
     ],
     'seo-location-pages' => [
         'title' => 'Location page URLs', 'table' => 'seo_location_pages', 'timestamp' => 'created_at',
-        'columns' => ['id', 'kind', 'country', 'district', 'village', 'subject_slug', 'path', 'created_at'],
+        'columns' => ['id', 'country_id', 'state_id', 'city_id', 'district_id', 'locality_id', 'kind', 'country', 'district', 'village', 'subject_slug', 'path', 'created_at'],
         'participants' => [], 'search' => ['kind', 'country', 'district', 'village', 'path'],
         'computed' => ['eligible_providers' => str_replace('lp.', 'r.', SeoDirectory::LOCATION_COUNT_SQL),
             'route_enabled' => str_replace('lp.', 'r.', SeoDirectory::LOCATION_ROUTE_SQL)],
@@ -160,19 +185,19 @@ return [
     ],
     'no-result-searches' => [
         'title' => 'Searches that found no providers', 'table' => 'search_analytics', 'timestamp' => 'created_at',
-        'columns' => ['id', 'search_type', 'location_type', 'location', 'latitude_band', 'longitude_band', 'radius_km', 'subject_id', 'result_count', 'free_only', 'min_price', 'max_price', 'currency', 'lesson_mode', 'trial_days', 'created_at'],
+        'columns' => ['country_id', 'state_id', 'city_id', 'district_id', 'sub_district_id', 'locality_id', 'id', 'search_type', 'location_type', 'location', 'latitude_band', 'longitude_band', 'radius_km', 'subject_id', 'result_count', 'free_only', 'min_price', 'max_price', 'currency', 'lesson_mode', 'trial_days', 'created_at'],
         'participants' => [], 'search' => ['search_type', 'location_type', 'location', 'subject_id'],
         'computed' => ['subject_name' => '(SELECT name FROM subjects WHERE subjects.id = r.subject_id)'],
     ],
     'teacher-profiles' => [
         'title' => 'Teacher profiles', 'table' => 'teacher_profiles', 'timestamp' => 'created_at',
-        'columns' => ['id', 'user_id', 'primary_subject_id', 'youtube_url', 'listing_name', 'is_profile_complete', 'completed_profile_steps', 'profile_draft_saved_at', 'bio', 'rate_per_hour', 'currency', 'lesson_modes', 'latitude', 'longitude', 'address_text', 'city', 'state', 'country', 'country_code', 'linkedin_url', 'public_page_slug', 'subject_profile_slug', 'seo_country', 'seo_city_slug', 'location_details', 'district', 'sub_district', 'locality', 'locality_type', 'postal_code', 'slug', 'is_verified', 'verified_at', 'trial_days', 'rating_avg', 'rating_count', 'created_at', 'updated_at'],
+        'columns' => ['id', 'country_id', 'state_id', 'city_id', 'district_id', 'sub_district_id', 'locality_id', 'user_id', 'primary_subject_id', 'youtube_url', 'listing_name', 'is_profile_complete', 'completed_profile_steps', 'profile_draft_saved_at', 'bio', 'rate_per_hour', 'currency', 'lesson_modes', 'latitude', 'longitude', 'address_text', 'city', 'state', 'country', 'country_code', 'linkedin_url', 'public_page_slug', 'subject_profile_slug', 'seo_country', 'seo_city_slug', 'location_details', 'district', 'sub_district', 'locality', 'locality_type', 'postal_code', 'slug', 'is_verified', 'verified_at', 'trial_days', 'rating_avg', 'rating_count', 'created_at', 'updated_at'],
         'participants' => ['user_id'], 'search' => ['youtube_url', 'listing_name', 'city', 'bio', 'public_page_slug', 'subject_profile_slug', 'seo_country', 'seo_city_slug', 'location_details', 'district', 'sub_district', 'locality', 'postal_code'],
         'computed' => ['seo_public' => "CASE WHEN r.is_profile_complete = 1 AND r.public_page_slug IS NOT NULL AND r.seo_country IS NOT NULL AND EXISTS (SELECT 1 FROM users pu WHERE pu.id = r.user_id AND pu.account_type = 'teacher' AND pu.suspended_at IS NULL AND pu.phone_verified_at IS NOT NULL AND pu.profile_completed_at IS NOT NULL) AND EXISTS (SELECT 1 FROM profile_subjects ps WHERE ps.profile_id = r.user_id AND ps.profile_type = 'teacher') THEN 1 ELSE 0 END"],
     ],
     'institute-profiles' => [
         'title' => 'Institute profiles', 'table' => 'institute_profiles', 'timestamp' => 'created_at',
-        'columns' => ['id', 'user_id', 'youtube_url', 'listing_name', 'contact_person', 'is_profile_complete', 'completed_profile_steps', 'profile_draft_saved_at', 'description', 'starting_rate', 'currency', 'lesson_modes', 'latitude', 'longitude', 'address_text', 'city', 'state', 'country', 'country_code', 'instructors_text', 'district', 'sub_district', 'locality', 'locality_type', 'postal_code', 'location_details', 'slug', 'public_page_slug', 'seo_country', 'seo_city_slug', 'website_url', 'is_verified', 'verified_at', 'trial_days', 'institute_type', 'is_bsl', 'is_bsl_official', 'bsl_official_since', 'rating_avg', 'rating_count', 'created_at', 'updated_at'],
+        'columns' => ['id', 'country_id', 'state_id', 'city_id', 'district_id', 'sub_district_id', 'locality_id', 'user_id', 'youtube_url', 'listing_name', 'contact_person', 'is_profile_complete', 'completed_profile_steps', 'profile_draft_saved_at', 'description', 'starting_rate', 'currency', 'lesson_modes', 'latitude', 'longitude', 'address_text', 'city', 'state', 'country', 'country_code', 'instructors_text', 'district', 'sub_district', 'locality', 'locality_type', 'postal_code', 'location_details', 'slug', 'public_page_slug', 'seo_country', 'seo_city_slug', 'website_url', 'is_verified', 'verified_at', 'trial_days', 'institute_type', 'is_bsl', 'is_bsl_official', 'bsl_official_since', 'rating_avg', 'rating_count', 'created_at', 'updated_at'],
         'participants' => ['user_id'], 'search' => ['youtube_url', 'listing_name', 'contact_person', 'city', 'description', 'district', 'sub_district', 'locality', 'postal_code', 'location_details'],
         'computed' => ['seo_public' => "CASE WHEN r.is_profile_complete = 1 AND r.public_page_slug IS NOT NULL AND r.seo_country IS NOT NULL AND EXISTS (SELECT 1 FROM users pu WHERE pu.id = r.user_id AND pu.account_type = 'institute' AND pu.suspended_at IS NULL AND pu.phone_verified_at IS NOT NULL AND pu.profile_completed_at IS NOT NULL) AND EXISTS (SELECT 1 FROM profile_subjects ps WHERE ps.profile_id = r.user_id AND ps.profile_type = 'institute') THEN 1 ELSE 0 END"],
     ],

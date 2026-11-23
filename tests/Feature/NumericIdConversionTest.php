@@ -24,6 +24,9 @@ class NumericIdConversionTest extends TestCase
                 foreach (array_keys(config('numeric_ids')) as $table) {
                     DB::table($table)->delete();
                 }
+                foreach (['location_translations', 'localities', 'districts', 'states', 'countries'] as $table) {
+                    DB::table($table)->delete();
+                }
                 DB::table('subjects')->delete();
                 DB::table('subject_domains')->delete();
             });
@@ -55,6 +58,16 @@ class NumericIdConversionTest extends TestCase
         DB::table('teacher_profiles')->insert(['id' => $old(40), 'user_id' => $old(2), 'lesson_modes' => '[]']);
         $domain = DB::table('subject_domains')->insertGetId(['name' => 'Languages']);
         $subject = DB::table('subjects')->insertGetId(['name' => 'English', 'domain_id' => $domain]);
+        $country = DB::table('countries')->insertGetId(['name' => 'Conversion country', 'sortname' => 'CV', 'phonecode' => 999]);
+        $state = DB::table('states')->insertGetId(['name' => 'Conversion state', 'country_id' => $country]);
+        DB::table('districts')->insert(['id' => 42, 'country_id' => $country, 'state_id' => $state, 'name' => 'Conversion district']);
+        DB::table('location_translations')->insert(['id' => 88, 'location_type' => 'district', 'location_id' => 42, 'language' => 'hi', 'name' => 'अनुवाद']);
+        DB::table('business_activity')->insert(['id' => $old(73), 'event' => 'location.city_country_assigned', 'entity_type' => 'city',
+            'entity_id' => 77, 'actor_user_id' => null, 'related_user_id' => null, 'version' => 1,
+            'before_data' => json_encode(['country_id' => null]), 'after_data' => json_encode(['country_id' => $country, 'state_id' => $state, 'name' => 'Conversion city'])]);
+        DB::table('business_activity')->insert(['id' => $old(74), 'event' => 'location.translation_changed', 'entity_type' => 'location_translation',
+            'entity_id' => 88, 'actor_user_id' => null, 'related_user_id' => null, 'version' => 1,
+            'before_data' => '{}', 'after_data' => json_encode(['name' => 'अनुवाद', 'location_type' => 'district', 'location_id' => 42, 'language' => 'hi'])]);
         DB::table('profile_subjects')->insert(['profile_type' => 'teacher', 'profile_id' => $old(2), 'subject_id' => $subject]);
         DB::table('conversations')->insert(['id' => $old(10), 'learner_id' => $old(1), 'provider_id' => $old(2)]);
         DB::table('messages')->insert([
@@ -125,8 +138,14 @@ class NumericIdConversionTest extends TestCase
         $snapshot = json_decode($history->after_data, true);
         $this->assertSame(1, $snapshot['conversation_id']);
         $this->assertSame(1, $snapshot['reply_to_id']);
-        $this->assertSame(3, DB::table('business_activity')->count());
+        $this->assertSame(5, DB::table('business_activity')->count());
         $this->assertDatabaseHas('business_activity', ['event' => 'subject.other_created', 'entity_type' => 'subject', 'entity_id' => $subject]);
+        $this->assertSame(42, DB::table('districts')->where('name', 'Conversion district')->value('id'));
+        $this->assertSame(42, DB::table('location_translations')->where('name', 'अनुवाद')->value('location_id'));
+        $this->assertSame(77, DB::table('business_activity')->where('event', 'location.city_country_assigned')->value('entity_id'));
+        $translationHistory = DB::table('business_activity')->where('event', 'location.translation_changed')->first();
+        $this->assertSame(88, $translationHistory->entity_id);
+        $this->assertSame(42, json_decode($translationHistory->after_data, true)['location_id']);
         $this->assertSame(2, DB::table('messages')->count());
         // Deleted source records remain absent, and their historical IDs cannot be reused.
         $this->assertSame(3, DB::table('business_activity')->where('event', 'message.deleted')->value('entity_id'));

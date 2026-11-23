@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Reporting\BusinessActivityRecorder;
+use App\Support\PublicLanguages;
 use Illuminate\Support\Facades\DB;
 use LogicException;
 
@@ -36,7 +37,7 @@ final class ProfileDraft
             before: ['completed_steps' => $before['completedSteps'], 'next_step' => $before['nextStep']],
             after: ['step' => $step, 'completed_steps' => $after['completedSteps'], 'next_step' => $after['nextStep']]);
 
-        return self::loadForOwner($profile, $userId, $type);
+        return self::loadForOwner($profile, $userId, $type, PublicLanguages::resolve(request(), 'en'));
     }
 
     public static function forProfile(?object $profile): array
@@ -55,9 +56,13 @@ final class ProfileDraft
     }
 
     /** Owner response only. Business history must continue to use metadata from forProfile(). */
-    public static function forOwner(?object $profile, object $user, string $type, array $subjectIds): array
+    public static function forOwner(?object $profile, object $user, string $type, array $subjectIds, string $language = 'en'): array
     {
         ProfileEditor::table($type);
+        if ($profile !== null) {
+            $profile = clone $profile;
+            LocationIdentity::display([$profile], $language);
+        }
         $draft = self::forProfile($profile);
         $teacher = $type === 'teacher';
         $modes = $profile->lesson_modes ?? [];
@@ -81,6 +86,10 @@ final class ProfileDraft
         ] as $input => $column) {
             $location[$input] = $profile->$column ?? null;
         }
+        foreach (LocationIdentity::TABLES as $field => $_) {
+            $column = $field === 'subDistrict' ? 'sub_district_id' : $field.'_id';
+            $location[$field.'Id'] = isset($profile->$column) ? (int) $profile->$column : null;
+        }
         $data = [
             1 => $basics,
             2 => [$teacher ? 'primarySubjects' : 'subjectIds' => array_values(array_map('intval', $subjectIds)),
@@ -101,12 +110,12 @@ final class ProfileDraft
         return $draft;
     }
 
-    public static function loadForOwner(object $profile, int $userId, string $type): array
+    public static function loadForOwner(object $profile, int $userId, string $type, string $language = 'en'): array
     {
         $user = DB::table('users')->where('id', $userId)->first(['full_name', 'email', 'terms_accepted_at']);
         abort_if($user === null, 404, 'User not found.');
 
-        return self::forOwner($profile, $user, $type, ProfileEditor::subjects($userId, $type)->pluck('id')->all());
+        return self::forOwner($profile, $user, $type, ProfileEditor::subjects($userId, $type)->pluck('id')->all(), $language);
     }
 
     private static function steps(?object $profile): array

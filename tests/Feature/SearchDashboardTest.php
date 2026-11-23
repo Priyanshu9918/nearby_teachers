@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Services\BslInstitute;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -12,6 +13,12 @@ use Tests\TestCase;
 class SearchDashboardTest extends TestCase
 {
     private bool $transactionStarted = false;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->withoutMiddleware(ThrottleRequests::class);
+    }
 
     protected function tearDown(): void
     {

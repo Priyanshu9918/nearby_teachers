@@ -480,3 +480,16 @@ and selections made before this feature are outside this event's coverage.
 Historical share slugs recorded by `teacher.share_url_changed` remain reserved in
 `seo_urls` and redirect directly to the current share URL, preserving the existing
 name/location canonical and sitemap policy.
+
+
+### Numeric location identity
+
+See [LOCATION_IDENTITY.md](LOCATION_IDENTITY.md) for the location catalog,
+translation import, identity linking and SEO URL preservation contract. Version 1
+provider location identity events contain only five numeric location references
+and are recorded with the source profile mutation. Import events contain reviewed
+catalog names or translation metadata, never provider address requests. Catalog
+and translation reads/exports use the shared registry and admin access logger.
+Legacy backfill records linking time, preserves labels/URLs, and makes no claim
+about the historical time of location selection. Derived page metadata linking
+is not backfilled as a historical business event.

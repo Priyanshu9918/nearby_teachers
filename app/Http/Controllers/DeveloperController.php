@@ -551,7 +551,9 @@ class DeveloperController extends Controller
             ],
             'GET /geo/countries' => ['query' => '', 'guide' => 'Returns all imported countries: id, sortname, name and phonecode. Optional search narrows results.'],
             'GET /geo/states' => ['query' => 'country_id=101', 'guide' => 'Required country_id from the countries response. Returns all states for that country.'],
-            'GET /geo/cities' => ['query' => 'state_id=1&perPage=50&page=1', 'guide' => 'Required state_id from the states response. Returns cities in that state with pagination; optional search filters names.'],
+            'GET /geo/cities' => ['query' => 'state_id=1&perPage=50&page=1&lang=hi', 'guide' => 'Provide state_id, or country_id to list country-assigned cities without a state. Optional search and lang use reviewed catalog translations; IDs stay numeric.'],
+            'GET /geo/districts' => ['query' => 'state_id=1&lang=hi', 'guide' => 'Provide state_id or country_id. Returns district IDs with translated display names when available.'],
+            'GET /geo/localities' => ['query' => 'district_id=1&lang=hi', 'guide' => 'Provide district_id or city_id. Returns locality IDs with translated display names when available.'],
             'POST /auth/google' => [
                 'body' => ['firebaseIdToken' => 'PASTE_FIREBASE_GOOGLE_ID_TOKEN'],
                 'guide' => 'Step 1 · Google sign-in. Replace the token with a verified Firebase Google ID token. Learners aged 13–17 receive status=pending/reject/approve for parent consent; use nextScreen for routing.',

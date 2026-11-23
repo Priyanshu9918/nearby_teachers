@@ -76,3 +76,9 @@ zero/null prices, publication/privacy, BSL behavior, counts/pagination, validati
 and admin report/export access logging.
 
 Each provider in `results` includes `subjects: [{id, name, is_bsl}]` containing its assigned subjects, or an empty array when none are assigned.
+
+
+Numeric location filters and localized catalog labels are supported. New clients
+should submit `countryId`, `stateId`, `cityId`, `districtId`, and `localityId`
+where applicable, using numeric catalog IDs. See [location identity and rollout](LOCATION_IDENTITY.md)
+for endpoint contracts, legacy compatibility, translation import and SEO rules.

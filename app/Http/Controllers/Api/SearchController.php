@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Reporting\SearchAnalyticsRecorder;
+use App\Services\LocationIdentity;
 use App\Services\Presence\UserPresence;
 use App\Support\GeoBounds;
+use App\Support\PublicLanguages;
 use App\Support\ReferralRating;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -21,6 +24,8 @@ class SearchController extends Controller
 
     public function filter(Request $request): JsonResponse
     {
+        $locationIds = array_filter($request->validate(LocationIdentity::rules()), static fn ($id) => $id !== null);
+        $request->merge(app(LocationIdentity::class)->normalize($locationIds));
         $bsl = $this->isBslSubject($request->validate(['subjectId' => ['sometimes', 'integer', 'exists:subjects,id']])['subjectId'] ?? null);
         $data = $request->validate([
             'mode' => ['required', 'in:nearby,other-city,online'],
@@ -87,7 +92,15 @@ class SearchController extends Controller
                 $query->selectRaw('NULL AS distance_km');
             }
             if (! $bsl) {
-                foreach (['city', 'country'] as $location) {
+                foreach (LocationIdentity::TABLES as $location => $_) {
+                    if (isset($locationIds[$location.'Id']) || $request->filled($location.'Id')) {
+                        $query->where('p.'.($location === 'subDistrict' ? 'sub_district' : $location).'_id', (int) $request->input($location.'Id'));
+
+                        continue;
+                    }
+                    if (! in_array($location, ['city', 'country'], true)) {
+                        continue;
+                    }
                     if (isset($data[$location])) {
                         $query->whereRaw('LOWER(p.'.$location.') = LOWER(?)', [trim($data[$location])]);
                     }
@@ -145,7 +158,7 @@ class SearchController extends Controller
             isset($data['radiusKm']) ? (float) $data['radiusKm'] : null,
             ($data['freeOnly'] ?? 'false') === 'true',
             filters: ['min_price' => $data['minPrice'] ?? null, 'max_price' => $data['maxPrice'] ?? null,
-                'currency' => $currencyFiltered ? $currency : null, 'lesson_mode' => $lessonMode, 'trial_days' => $data['trialDays'] ?? null]);
+                'currency' => $currencyFiltered ? $currency : null, 'lesson_mode' => $lessonMode, 'trial_days' => $data['trialDays'] ?? null], locationIds: LocationIdentity::columns($locationIds));
 
         return $this->providerResponse(['mode' => $data['mode'], 'totalCount' => $total,
             'page' => $page, 'perPage' => $perPage, 'results' => $rows], includeSubjects: true);
@@ -403,12 +416,15 @@ class SearchController extends Controller
 
     public function otherCity(Request $request): JsonResponse
     {
+        $locationIds = array_filter($request->validate(LocationIdentity::rules()), static fn ($id) => $id !== null);
+        $request->merge(app(LocationIdentity::class)->normalize($locationIds));
         $bsl = $this->isBslSubject($request->validate(['subjectId' => ['sometimes', 'integer', 'exists:subjects,id']])['subjectId'] ?? null);
         $data = $request->validate([
-            'city' => ['required', 'string', 'max:160'],
+            'city' => [$request->filled('countryId') || $request->filled('stateId') || $request->filled('districtId') || $request->filled('subDistrictId') || $request->filled('localityId') ? 'sometimes' : 'required', 'string', 'max:160'],
             'subjectId' => ['sometimes', 'integer', 'exists:subjects,id'],
             'q' => ['sometimes', 'string', 'max:200'],
         ]);
+        $data['city'] ??= $request->input('country', $request->input('state', ''));
         if ($bsl) {
             return $this->bslSearchResponse('otherCity', $data, (int) $data['subjectId']);
         }
@@ -424,21 +440,35 @@ class SearchController extends Controller
                 ->selectRaw('p.'.$price.' AS price')
                 ->addSelect('p.rating_avg', 'p.rating_count', 'p.is_verified', 'p.trial_days', 'u.referral_points')
                 ->selectRaw($type === 'teacher' ? '0 AS is_bsl' : 'p.is_bsl');
-            $branch->where(function ($locations) use ($type, $data): void {
-                if ($type === 'institute') {
-                    $locations->where(function ($bsl) use ($data): void {
-                        $bsl->where('p.is_bsl', 1)->whereRaw('LOWER(TRIM(p.city)) = LOWER(?)', [trim($data['city'])]);
-                    })->orWhere(function ($regular) use ($data): void {
-                        $regular->where('p.is_bsl', 0)->whereJsonContains('p.lesson_modes', 'online')
+            if ($locationIds !== []) {
+                foreach (LocationIdentity::TABLES as $field => $_) {
+                    if ($request->filled($field.'Id')) {
+                        $branch->where('p.'.($field === 'subDistrict' ? 'sub_district' : $field).'_id', (int) $request->input($field.'Id'));
+                    }
+                }
+                $branch->where(function ($modes) use ($type): void {
+                    $modes->whereJsonContains('p.lesson_modes', 'online');
+                    if ($type === 'institute') {
+                        $modes->orWhere('p.is_bsl', true);
+                    }
+                });
+            } else {
+                $branch->where(function ($locations) use ($type, $data): void {
+                    if ($type === 'institute') {
+                        $locations->where(function ($bsl) use ($data): void {
+                            $bsl->where('p.is_bsl', 1)->whereRaw('LOWER(TRIM(p.city)) = LOWER(?)', [trim($data['city'])]);
+                        })->orWhere(function ($regular) use ($data): void {
+                            $regular->where('p.is_bsl', 0)->whereJsonContains('p.lesson_modes', 'online')
+                                ->where(fn ($location) => $location->where('p.city', 'like', '%'.$data['city'].'%')
+                                    ->orWhere('p.country', 'like', '%'.$data['city'].'%'));
+                        });
+                    } else {
+                        $locations->whereJsonContains('p.lesson_modes', 'online')
                             ->where(fn ($location) => $location->where('p.city', 'like', '%'.$data['city'].'%')
                                 ->orWhere('p.country', 'like', '%'.$data['city'].'%'));
-                    });
-                } else {
-                    $locations->whereJsonContains('p.lesson_modes', 'online')
-                        ->where(fn ($location) => $location->where('p.city', 'like', '%'.$data['city'].'%')
-                            ->orWhere('p.country', 'like', '%'.$data['city'].'%'));
-                }
-            });
+                    }
+                });
+            }
             if (isset($data['subjectId'])) {
                 $branch->whereExists(function ($subjects) use ($type, $data): void {
                     $subjects->selectRaw('1')->from('profile_subjects as ps')
@@ -459,13 +489,15 @@ class SearchController extends Controller
             $result->is_bsl = (bool) $result->is_bsl;
         }
         app(SearchAnalyticsRecorder::class)->record('other_city', 'city_or_country', $data['city'],
-            isset($data['subjectId']) ? (int) $data['subjectId'] : null, count($results));
+            isset($data['subjectId']) ? (int) $data['subjectId'] : null, count($results), locationIds: LocationIdentity::columns($locationIds));
 
         return $this->providerResponse(['results' => $results], includeSubjects: true);
     }
 
     public function bySubject(Request $request, int $subjectId): JsonResponse
     {
+        $locationIds = array_filter($request->validate(LocationIdentity::rules()), static fn ($id) => $id !== null);
+        $request->merge(app(LocationIdentity::class)->normalize($locationIds));
         $bsl = $this->isBslSubject($subjectId);
         $data = $request->validate([
             'tier' => ['required', 'in:nearby,city,state,country,other-countries'],
@@ -484,12 +516,14 @@ class SearchController extends Controller
               SELECT profile_type, profile_id FROM profile_subjects WHERE subject_id = ?
             ), t AS (
               SELECT 'teacher' AS profile_type, user_id, latitude, longitude, city, state, country, 0 AS is_bsl,
+                     teacher_profiles.country_id, teacher_profiles.state_id, teacher_profiles.city_id, teacher_profiles.district_id, teacher_profiles.sub_district_id, teacher_profiles.locality_id,
                      rate_per_hour AS price, rating_avg, rating_count, is_verified, trial_days,
                      referral_user.referral_points
               FROM teacher_profiles JOIN users referral_user ON referral_user.id = teacher_profiles.user_id
               WHERE /* teacher bounds */ EXISTS (SELECT 1 FROM selected_profiles ps WHERE ps.profile_type = 'teacher' AND ps.profile_id = teacher_profiles.user_id)
               UNION ALL
               SELECT 'institute' AS profile_type, user_id, latitude, longitude, city, state, country, is_bsl,
+                     institute_profiles.country_id, institute_profiles.state_id, institute_profiles.city_id, institute_profiles.district_id, institute_profiles.sub_district_id, institute_profiles.locality_id,
                      starting_rate AS price, rating_avg, rating_count, is_verified, trial_days,
                      referral_user.referral_points
               FROM institute_profiles JOIN users referral_user ON referral_user.id = institute_profiles.user_id
@@ -544,9 +578,19 @@ class SearchController extends Controller
         if (in_array($tier, ['city', 'state', 'country'], true)) {
             $column = ['city' => 'city', 'state' => 'state', 'country' => 'country'][$tier];
             $value = $data[$column];
-            $sql = $base." SELECT m.profile_type, m.user_id, u.full_name, CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url, m.price, m.rating_avg, m.rating_count, m.is_verified, m.trial_days, m.referral_points, m.city, m.state, m.country, COUNT(*) OVER () AS match_count FROM matching m JOIN users u ON u.id = m.user_id WHERE lower(m.$column) = lower(?) ORDER BY m.referral_points DESC, ".$this->weightedRating('m.rating_avg', 'm.rating_count').' DESC, m.user_id ASC LIMIT 50';
-            [$results, $totalCount] = $this->countedSubjectResults($sql, [$subjectId, $value]);
-            app(SearchAnalyticsRecorder::class)->record('subject', $tier, $value, $subjectId, $totalCount);
+            $identityPredicates = [];
+            $identityValues = [];
+            foreach (LocationIdentity::TABLES as $location => $_) {
+                if ($request->filled($location.'Id')) {
+                    $identityPredicates[] = 'm.'.($location === 'subDistrict' ? 'sub_district' : $location).'_id = ?';
+                    $identityValues[] = (int) $request->input($location.'Id');
+                }
+            }
+            $predicate = $identityPredicates === [] ? 'lower(m.'.$column.') = lower(?)' : implode(' AND ', $identityPredicates);
+            $matchValues = $identityPredicates === [] ? [$value] : $identityValues;
+            $sql = $base." SELECT m.profile_type, m.user_id, u.full_name, CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url, m.price, m.rating_avg, m.rating_count, m.is_verified, m.trial_days, m.referral_points, m.city, m.state, m.country, COUNT(*) OVER () AS match_count FROM matching m JOIN users u ON u.id = m.user_id WHERE $predicate ORDER BY m.referral_points DESC, ".$this->weightedRating('m.rating_avg', 'm.rating_count').' DESC, m.user_id ASC LIMIT 50';
+            [$results, $totalCount] = $this->countedSubjectResults($sql, [$subjectId, ...$matchValues]);
+            app(SearchAnalyticsRecorder::class)->record('subject', $tier, $value, $subjectId, $totalCount, locationIds: LocationIdentity::columns($locationIds));
 
             return $this->providerResponse([
                 'tier' => $tier,
@@ -557,9 +601,19 @@ class SearchController extends Controller
 
         if ($tier === 'other-countries') {
             if (isset($data['country'])) {
-                $sql = $base.' SELECT m.profile_type, m.user_id, u.full_name, CASE WHEN u.avatar_status = \'approved\' THEN u.avatar_url ELSE NULL END AS avatar_url, m.price, m.rating_avg, m.rating_count, m.is_verified, m.trial_days, m.referral_points, m.city, m.country, COUNT(*) OVER () AS match_count FROM matching m JOIN users u ON u.id = m.user_id WHERE lower(m.country) = lower(?) ORDER BY m.referral_points DESC, '.$this->weightedRating('m.rating_avg', 'm.rating_count').' DESC, m.user_id ASC LIMIT 50';
-                [$results, $totalCount] = $this->countedSubjectResults($sql, [$subjectId, $data['country']]);
-                app(SearchAnalyticsRecorder::class)->record('subject', 'country', $data['country'], $subjectId, $totalCount);
+                $identityPredicates = [];
+                $identityValues = [];
+                foreach (LocationIdentity::TABLES as $location => $_) {
+                    if ($request->filled($location.'Id')) {
+                        $identityPredicates[] = 'm.'.($location === 'subDistrict' ? 'sub_district' : $location).'_id = ?';
+                        $identityValues[] = (int) $request->input($location.'Id');
+                    }
+                }
+                $countryPredicate = $identityPredicates === [] ? 'lower(m.country) = lower(?)' : implode(' AND ', $identityPredicates);
+                $countryValues = $identityPredicates === [] ? [$data['country']] : $identityValues;
+                $sql = $base.' SELECT m.profile_type, m.user_id, u.full_name, CASE WHEN u.avatar_status = \'approved\' THEN u.avatar_url ELSE NULL END AS avatar_url, m.price, m.rating_avg, m.rating_count, m.is_verified, m.trial_days, m.referral_points, m.city, m.country, COUNT(*) OVER () AS match_count FROM matching m JOIN users u ON u.id = m.user_id WHERE '.$countryPredicate.' ORDER BY m.referral_points DESC, '.$this->weightedRating('m.rating_avg', 'm.rating_count').' DESC, m.user_id ASC LIMIT 50';
+                [$results, $totalCount] = $this->countedSubjectResults($sql, [$subjectId, ...$countryValues]);
+                app(SearchAnalyticsRecorder::class)->record('subject', 'country', $data['country'], $subjectId, $totalCount, locationIds: LocationIdentity::columns($locationIds));
 
                 return $this->providerResponse([
                     'tier' => $tier,
@@ -568,7 +622,7 @@ class SearchController extends Controller
                     'results' => $results,
                 ], includeSubjects: true);
             }
-            $countries = DB::select($base.' SELECT m.country, count(*) AS trainer_count FROM matching m WHERE m.country IS NOT NULL GROUP BY m.country ORDER BY trainer_count DESC', [$subjectId]);
+            $countries = DB::select($base.' SELECT m.country_id, COALESCE(c.name, m.country) AS country, count(*) AS trainer_count FROM matching m LEFT JOIN countries c ON c.id = m.country_id WHERE m.country IS NOT NULL GROUP BY m.country_id, COALESCE(c.name, m.country) ORDER BY trainer_count DESC', [$subjectId]);
             app(SearchAnalyticsRecorder::class)->record('subject', 'other_countries', null, $subjectId, count($countries));
 
             return response()->json(['tier' => $tier, 'countries' => $countries]);
@@ -593,7 +647,7 @@ class SearchController extends Controller
         return $subjectId !== null && DB::table('subjects')->where('id', $subjectId)->where('is_bsl', true)->exists();
     }
 
-    private function bslSearchResponse(string $endpoint, array $data, int $subjectId, ?\Illuminate\Support\Collection $nearbyTeachers = null): JsonResponse
+    private function bslSearchResponse(string $endpoint, array $data, int $subjectId, ?Collection $nearbyTeachers = null): JsonResponse
     {
         // BSL subject searches deliberately bypass geographic and online-only restrictions.
         $query = DB::table('institute_profiles as p')->join('users as u', 'u.id', '=', 'p.user_id')
@@ -604,7 +658,16 @@ class SearchController extends Controller
             ->selectRaw("'institute' AS profile_type, p.starting_rate AS price")
             ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url");
         if ($endpoint === 'otherCity') {
-            $query->whereRaw('LOWER(TRIM(p.city)) = LOWER(?)', [trim($data['city'])]);
+            $hasLocationId = false;
+            foreach (LocationIdentity::TABLES as $field => $_) {
+                if (request()->filled($field.'Id')) {
+                    $query->where('p.'.($field === 'subDistrict' ? 'sub_district' : $field).'_id', (int) request()->input($field.'Id'));
+                    $hasLocationId = true;
+                }
+            }
+            if (! $hasLocationId) {
+                $query->whereRaw('LOWER(TRIM(p.city)) = LOWER(?)', [trim($data['city'])]);
+            }
         }
         if (($data['freeOnly'] ?? 'false') === 'true') {
             $query->where('p.starting_rate', 0);
@@ -640,7 +703,8 @@ class SearchController extends Controller
             $count = $rows->count();
         }
         app(SearchAnalyticsRecorder::class)->record($endpoint === 'bySubject' ? 'subject' : ($endpoint === 'otherCity' ? 'other_city' : $endpoint),
-            $data['tier'] ?? ($endpoint === 'otherCity' ? 'city_or_country' : 'nearby_grid'), null, $subjectId, $count);
+            $data['tier'] ?? ($endpoint === 'otherCity' ? 'city_or_country' : 'nearby_grid'), $data['city'] ?? null, $subjectId, $count,
+            locationIds: LocationIdentity::columns(array_filter(request()->only(array_map(fn ($field) => $field.'Id', array_keys(LocationIdentity::TABLES))), static fn ($id) => $id !== null)));
         if ($endpoint === 'bySubject' && $data['tier'] === 'other-countries' && ! isset($data['country'])) {
             return response()->json(['tier' => $data['tier'], 'countries' => $rows->whereNotNull('country')->map(fn ($row) => [
                 'country' => $row->country, 'trainer_count' => 1,
@@ -687,6 +751,25 @@ class SearchController extends Controller
                 ])->all();
             }
         }
+        foreach (['teacher', 'institute'] as $type) {
+            $ids = collect($data['results'])->where('profile_type', $type)->pluck('user_id');
+            if ($ids->isEmpty()) {
+                continue;
+            }
+            $locations = DB::table($type.'_profiles')->whereIn('user_id', $ids)
+                ->get(['user_id', 'country_id', 'state_id', 'city_id', 'district_id', 'sub_district_id', 'locality_id'])->keyBy('user_id');
+            foreach ($data['results'] as $row) {
+                if ($row->profile_type !== $type) {
+                    continue;
+                }
+                foreach (LocationIdentity::TABLES as $field => $_) {
+                    $column = $field === 'subDistrict' ? 'sub_district_id' : $field.'_id';
+                    $value = $locations->get($row->user_id)?->$column;
+                    $row->$column = $value === null ? null : (int) $value;
+                }
+            }
+        }
+        LocationIdentity::display($data['results'], PublicLanguages::resolve(request(), 'en'));
         $data['results'] = app(UserPresence::class)->decorate($data['results']);
         $teacherIds = [];
         foreach ($data['results'] as $row) {

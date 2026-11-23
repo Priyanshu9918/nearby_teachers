@@ -9,9 +9,9 @@ use Illuminate\Support\Str;
 
 final class SeoDirectory
 {
-    public const COUNT_SQL = "((SELECT count(*) FROM teacher_profiles sp JOIN users su ON su.id = sp.user_id WHERE su.account_type = 'teacher' AND su.suspended_at IS NULL AND su.phone_verified_at IS NOT NULL AND su.profile_completed_at IS NOT NULL AND sp.is_profile_complete = 1 AND sp.public_page_slug IS NOT NULL AND sp.seo_country = r.country AND ((r.kind = 'city' AND sp.seo_city_slug = r.city_slug) OR (r.kind = 'online' AND JSON_CONTAINS(sp.lesson_modes, JSON_QUOTE('online')) = 1)) AND EXISTS (SELECT 1 FROM profile_subjects sx WHERE sx.profile_type = 'teacher' AND sx.profile_id = sp.user_id AND sx.subject_id = r.subject_id)) + (SELECT count(*) FROM institute_profiles ip JOIN users iu ON iu.id = ip.user_id WHERE iu.account_type = 'institute' AND iu.suspended_at IS NULL AND iu.phone_verified_at IS NOT NULL AND iu.profile_completed_at IS NOT NULL AND ip.is_profile_complete = 1 AND ip.public_page_slug IS NOT NULL AND ip.seo_country = r.country AND ((r.kind = 'city' AND ip.seo_city_slug = r.city_slug) OR (r.kind = 'online' AND JSON_CONTAINS(ip.lesson_modes, JSON_QUOTE('online')) = 1)) AND EXISTS (SELECT 1 FROM profile_subjects ix WHERE ix.profile_type = 'institute' AND ix.profile_id = ip.user_id AND ix.subject_id = r.subject_id)))";
+    public const COUNT_SQL = "((SELECT count(*) FROM teacher_profiles sp JOIN users su ON su.id = sp.user_id WHERE su.account_type = 'teacher' AND su.suspended_at IS NULL AND su.phone_verified_at IS NOT NULL AND su.profile_completed_at IS NOT NULL AND sp.is_profile_complete = 1 AND sp.public_page_slug IS NOT NULL AND sp.seo_country = r.country AND ((r.kind = 'city' AND ((sp.city_id IS NOT NULL AND r.city_id IS NOT NULL AND sp.city_id = r.city_id) OR ((sp.city_id IS NULL OR r.city_id IS NULL) AND sp.seo_city_slug = r.city_slug))) OR (r.kind = 'online' AND JSON_CONTAINS(sp.lesson_modes, JSON_QUOTE('online')) = 1)) AND EXISTS (SELECT 1 FROM profile_subjects sx WHERE sx.profile_type = 'teacher' AND sx.profile_id = sp.user_id AND sx.subject_id = r.subject_id)) + (SELECT count(*) FROM institute_profiles ip JOIN users iu ON iu.id = ip.user_id WHERE iu.account_type = 'institute' AND iu.suspended_at IS NULL AND iu.phone_verified_at IS NOT NULL AND iu.profile_completed_at IS NOT NULL AND ip.is_profile_complete = 1 AND ip.public_page_slug IS NOT NULL AND ip.seo_country = r.country AND ((r.kind = 'city' AND ((ip.city_id IS NOT NULL AND r.city_id IS NOT NULL AND ip.city_id = r.city_id) OR ((ip.city_id IS NULL OR r.city_id IS NULL) AND ip.seo_city_slug = r.city_slug))) OR (r.kind = 'online' AND JSON_CONTAINS(ip.lesson_modes, JSON_QUOTE('online')) = 1)) AND EXISTS (SELECT 1 FROM profile_subjects ix WHERE ix.profile_type = 'institute' AND ix.profile_id = ip.user_id AND ix.subject_id = r.subject_id)))";
 
-    public const LOCATION_COUNT_SQL = "((SELECT count(*) FROM teacher_profiles p JOIN users u ON u.id = p.user_id WHERE u.account_type = 'teacher' AND u.suspended_at IS NULL AND u.phone_verified_at IS NOT NULL AND u.profile_completed_at IS NOT NULL AND p.is_profile_complete = 1 AND p.public_page_slug IS NOT NULL AND p.seo_country = lp.country AND (lp.kind = 'country' OR p.district = lp.district) AND (lp.kind IN ('country', 'district') OR COALESCE(NULLIF(p.locality, ''), p.city) = lp.village) AND (lp.subject_id IS NULL OR EXISTS (SELECT 1 FROM profile_subjects ps WHERE ps.profile_type = 'teacher' AND ps.profile_id = p.user_id AND ps.subject_id = lp.subject_id))) + (SELECT count(*) FROM institute_profiles ip JOIN users iu ON iu.id = ip.user_id WHERE iu.account_type = 'institute' AND iu.suspended_at IS NULL AND iu.phone_verified_at IS NOT NULL AND iu.profile_completed_at IS NOT NULL AND ip.is_profile_complete = 1 AND ip.public_page_slug IS NOT NULL AND ip.seo_country = lp.country AND (lp.kind = 'country' OR ip.district = lp.district) AND (lp.kind IN ('country', 'district') OR COALESCE(NULLIF(ip.locality, ''), ip.city) = lp.village) AND (lp.subject_id IS NULL OR EXISTS (SELECT 1 FROM profile_subjects ips WHERE ips.profile_type = 'institute' AND ips.profile_id = ip.user_id AND ips.subject_id = lp.subject_id))))";
+    public const LOCATION_COUNT_SQL = "((SELECT count(*) FROM teacher_profiles p JOIN users u ON u.id = p.user_id WHERE u.account_type = 'teacher' AND u.suspended_at IS NULL AND u.phone_verified_at IS NOT NULL AND u.profile_completed_at IS NOT NULL AND p.is_profile_complete = 1 AND p.public_page_slug IS NOT NULL AND p.seo_country = lp.country AND (lp.kind = 'country' OR ((p.district_id IS NOT NULL AND lp.district_id IS NOT NULL AND p.district_id = lp.district_id) OR ((p.district_id IS NULL OR lp.district_id IS NULL) AND p.district = lp.district))) AND (lp.kind IN ('country', 'district') OR ((p.locality_id IS NOT NULL AND lp.locality_id IS NOT NULL AND p.locality_id = lp.locality_id) OR ((p.locality_id IS NULL OR lp.locality_id IS NULL) AND COALESCE(NULLIF(p.locality, ''), p.city) = lp.village))) AND (lp.subject_id IS NULL OR EXISTS (SELECT 1 FROM profile_subjects ps WHERE ps.profile_type = 'teacher' AND ps.profile_id = p.user_id AND ps.subject_id = lp.subject_id))) + (SELECT count(*) FROM institute_profiles ip JOIN users iu ON iu.id = ip.user_id WHERE iu.account_type = 'institute' AND iu.suspended_at IS NULL AND iu.phone_verified_at IS NOT NULL AND iu.profile_completed_at IS NOT NULL AND ip.is_profile_complete = 1 AND ip.public_page_slug IS NOT NULL AND ip.seo_country = lp.country AND (lp.kind = 'country' OR ((ip.district_id IS NOT NULL AND lp.district_id IS NOT NULL AND ip.district_id = lp.district_id) OR ((ip.district_id IS NULL OR lp.district_id IS NULL) AND ip.district = lp.district))) AND (lp.kind IN ('country', 'district') OR ((ip.locality_id IS NOT NULL AND lp.locality_id IS NOT NULL AND ip.locality_id = lp.locality_id) OR ((ip.locality_id IS NULL OR lp.locality_id IS NULL) AND COALESCE(NULLIF(ip.locality, ''), ip.city) = lp.village))) AND (lp.subject_id IS NULL OR EXISTS (SELECT 1 FROM profile_subjects ips WHERE ips.profile_type = 'institute' AND ips.profile_id = ip.user_id AND ips.subject_id = lp.subject_id))))";
 
     // Subject-area pages must follow the same enabled wording as city listings.
     public const LOCATION_ROUTE_SQL = "(lp.kind <> 'subject_village' OR (lp.subject_id IS NOT NULL AND EXISTS (SELECT 1 FROM seo_subject_routes lr WHERE lr.subject_id = lp.subject_id AND lr.country = lp.country AND lr.language = lp.language AND lr.enabled = 1 AND lr.city_slug = lp.subject_slug)))";
@@ -24,6 +24,11 @@ final class SeoDirectory
     public static function country(object $profile): ?string
     {
         $code = strtolower(trim($profile->country_code ?? ''));
+        if (isset($profile->country_id)) {
+            $code = strtolower((string) DB::table('countries')->where('id', $profile->country_id)->value('sortname'));
+
+            return isset(config('seo.countries')[$code]) ? $code : null;
+        }
         $name = Str::lower(trim($profile->country ?? ''));
         if ($name === '') {
             return isset(config('seo.countries')[$code]) ? $code : null;
@@ -102,7 +107,13 @@ final class SeoDirectory
         if ($page->kind === 'online') {
             $query->whereJsonContains('providers.lesson_modes', 'online');
         } else {
-            $query->where('providers.seo_city_slug', $page->city_slug);
+            $query->where(function ($scope) use ($page): void {
+                if (isset($page->city_id)) {
+                    $scope->where('providers.city_id', $page->city_id)->orWhere(fn ($legacy) => $legacy->whereNull('providers.city_id')->where('providers.seo_city_slug', $page->city_slug));
+                } else {
+                    $scope->where('providers.seo_city_slug', $page->city_slug);
+                }
+            });
         }
 
         return $query;
@@ -121,7 +132,7 @@ final class SeoDirectory
                 ->from('profile_subjects as ps')->where('ps.profile_type', 'teacher')
                 ->whereColumn('ps.profile_id', 'p.user_id')->where('ps.subject_id', $subjectId)))
             ->selectRaw("'teacher' AS provider_type")
-            ->addSelect('p.user_id', 'p.public_page_slug', 'p.seo_country', 'p.seo_city_slug', 'p.city', 'p.district', 'p.locality')
+            ->addSelect('p.country_id', 'p.state_id', 'p.city_id', 'p.district_id', 'p.locality_id', 'p.user_id', 'p.public_page_slug', 'p.seo_country', 'p.seo_city_slug', 'p.city', 'p.district', 'p.locality')
             ->selectRaw("COALESCE(NULLIF(p.listing_name, ''), u.full_name) AS full_name")
             ->selectRaw('p.rate_per_hour AS rate')->addSelect('p.bio as description', 'p.currency', 'p.rating_avg', 'p.rating_count', 'p.lesson_modes', 'p.trial_days')
             ->selectRaw('0 AS is_bsl_official')
@@ -142,7 +153,7 @@ final class SeoDirectory
                 ->from('profile_subjects as ps')->where('ps.profile_type', 'institute')
                 ->whereColumn('ps.profile_id', 'p.user_id')->where('ps.subject_id', $subjectId)))
             ->selectRaw("'institute' AS provider_type")
-            ->addSelect('p.user_id', 'p.public_page_slug', 'p.seo_country', 'p.seo_city_slug', 'p.city', 'p.district', 'p.locality')
+            ->addSelect('p.country_id', 'p.state_id', 'p.city_id', 'p.district_id', 'p.locality_id', 'p.user_id', 'p.public_page_slug', 'p.seo_country', 'p.seo_city_slug', 'p.city', 'p.district', 'p.locality')
             ->selectRaw("COALESCE(NULLIF(p.listing_name, ''), u.full_name) AS full_name")
             ->selectRaw('p.starting_rate AS rate')->addSelect('p.description', 'p.currency', 'p.rating_avg', 'p.rating_count', 'p.lesson_modes', 'p.trial_days', 'p.is_bsl_official')
             ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
@@ -254,11 +265,26 @@ final class SeoDirectory
             foreach (['city'] as $kind) {
                 $citySlug = $kind === 'online' ? 'online' : $profile->seo_city_slug;
                 $identity = ['route_id' => $route->id, 'kind' => $kind, 'city_slug' => $citySlug];
-                $page = DB::table('seo_directory_pages')->where($identity)->first();
-                $path = self::pagePath($route, $kind, $citySlug);
+                $page = isset($profile->city_id) ? DB::table('seo_directory_pages')->where('route_id', $route->id)
+                    ->where('kind', $kind)->where('city_id', $profile->city_id)->orderBy('id')->first() : null;
+                $page ??= DB::table('seo_directory_pages')->where($identity)->first();
+                if ($page !== null) {
+                    $collision = $page->city_id !== null && isset($profile->city_id) && (int) $page->city_id !== (int) $profile->city_id;
+                    if ($collision) {
+                        DB::table('seo_directory_pages')->where('id', $page->id)->update(['city_id' => null, 'state_id' => null, 'location_identity_ambiguous' => true]);
+                    } elseif (! $page->location_identity_ambiguous) {
+                        foreach (['country', 'state', 'city'] as $field) {
+                            if ($page->{$field.'_id'} === null && isset($profile->{$field.'_id'})) {
+                                DB::table('seo_directory_pages')->where('id', $page->id)->update([$field.'_id' => $profile->{$field.'_id'}]);
+                            }
+                        }
+                    }
+                }
+                $path = self::pagePath($route, $kind, $page->city_slug ?? $citySlug);
                 if ($page === null) {
                     $inserted = DB::table('seo_directory_pages')->insertOrIgnore([...$identity, 'subject_id' => $route->subject_id,
                         'country' => $route->country, 'language' => $route->language, 'city' => $kind === 'city' ? $profile->city : null,
+                        'country_id' => $profile->country_id ?? null, 'state_id' => $profile->state_id ?? null, 'city_id' => $profile->city_id ?? null,
                         'path' => $path, 'created_at' => now(), 'updated_at' => now()]);
                     $id = DB::table('seo_directory_pages')->where($identity)->value('id');
                     if ($id === null || ! self::claim($path, 'listing', (int) $id)) {
@@ -286,6 +312,13 @@ final class SeoDirectory
     public function ensureLocationPages(object $profile, array $subjects): void
     {
         $country = (string) ($profile->seo_country ?? '');
+        $identity = [];
+        foreach (LocationIdentity::TABLES as $field => $_) {
+            if ($field === 'subDistrict') {
+                continue;
+            }
+            $identity[$field.'_id'] = $profile->{$field.'_id'} ?? null;
+        }
         $countryConfig = config('seo.countries.'.$country);
         if ($countryConfig === null) {
             return;
@@ -295,32 +328,34 @@ final class SeoDirectory
         if (! is_file(resource_path('seo/'.$language.'.json'))) {
             return;
         }
-        $this->registerLocationPage(['kind' => 'country', 'country' => $country, 'language' => $language]);
+        $this->registerLocationPage(['kind' => 'country', 'country' => $country, 'language' => $language, 'country_id' => $identity['country_id']]);
 
         $district = trim((string) ($profile->district ?? ''));
         if ($district === '') {
             return;
         }
-        $districtSlug = substr(Str::slug($district), 0, 180);
+        $districtSlug = isset($profile->district_id) ? DB::table('seo_location_pages')->where('kind', 'district')->where('country', $country)->where('language', $language)->where('district_id', $profile->district_id)->orderBy('id')->value('district_slug') : null;
+        $districtSlug ??= substr(Str::slug($district), 0, 180);
         if ($districtSlug === '') {
             return;
         }
         $this->registerLocationPage(['kind' => 'district', 'country' => $country, 'language' => $language,
-            'district' => $district, 'district_slug' => $districtSlug]);
+            'district' => $district, 'district_slug' => $districtSlug, 'country_id' => $identity['country_id'], 'state_id' => $identity['state_id'], 'district_id' => $identity['district_id']]);
 
         $village = trim((string) ($profile->locality ?? '')) ?: trim((string) ($profile->city ?? ''));
-        $villageSlug = substr(Str::slug($village), 0, 180);
+        $villageSlug = isset($profile->locality_id) ? DB::table('seo_location_pages')->where('kind', 'village')->where('country', $country)->where('language', $language)->where('locality_id', $profile->locality_id)->orderBy('id')->value('village_slug') : null;
+        $villageSlug ??= substr(Str::slug($village), 0, 180);
         if ($village === '' || $villageSlug === '') {
             return;
         }
         $this->registerLocationPage(['kind' => 'village', 'country' => $country, 'language' => $language,
-            'district' => $district, 'district_slug' => $districtSlug, 'village' => $village, 'village_slug' => $villageSlug]);
+            ...$identity, 'district' => $district, 'district_slug' => $districtSlug, 'village' => $village, 'village_slug' => $villageSlug]);
 
         $routes = DB::table('seo_subject_routes')->where('country', $country)->where('language', $language)
             ->where('enabled', true)->whereIn('subject_id', $subjects)->orderBy('subject_id')->get();
         foreach ($routes as $route) {
             $this->registerLocationPage(['kind' => 'subject_village', 'country' => $country, 'language' => $language,
-                'district' => $district, 'district_slug' => $districtSlug, 'village' => $village,
+                ...$identity, 'district' => $district, 'district_slug' => $districtSlug, 'village' => $village,
                 'village_slug' => $villageSlug, 'subject_id' => (int) $route->subject_id, 'subject_slug' => $route->city_slug]);
         }
     }
@@ -329,6 +364,44 @@ final class SeoDirectory
     {
         $path = self::locationPath($values);
         $existing = DB::table('seo_location_pages')->where('path', $path)->first();
+        $identityField = match ($values['kind']) {
+            'country' => 'country_id', 'district' => 'district_id', default => 'locality_id'
+        };
+        if ($existing === null && isset($values[$identityField])) {
+            $lookup = DB::table('seo_location_pages')->where('kind', $values['kind'])->where('country', $values['country'])
+                ->where('language', $values['language'])->where($identityField, $values[$identityField]);
+            if (isset($values['subject_id'])) {
+                $lookup->where('subject_id', $values['subject_id']);
+            }
+            $existing = $lookup->orderBy('id')->first();
+            if ($existing !== null) {
+                $path = $existing->path;
+            }
+        }
+        if ($existing !== null) {
+            $collision = false;
+            foreach (['district', 'locality'] as $field) {
+                if (isset($values[$field.'_id'], $existing->{$field.'_id'}) && (int) $values[$field.'_id'] !== (int) $existing->{$field.'_id'}) {
+                    $collision = true;
+                }
+            }
+            if ($collision) {
+                DB::table('seo_location_pages')->where('id', $existing->id)->update(['district_id' => null, 'locality_id' => null, 'city_id' => null, 'state_id' => null, 'location_identity_ambiguous' => true]);
+            } elseif (! $existing->location_identity_ambiguous) {
+                $ids = [];
+                foreach (LocationIdentity::TABLES as $field => $_) {
+                    if ($field === 'subDistrict') {
+                        continue;
+                    }
+                    if ($existing->{$field.'_id'} === null && isset($values[$field.'_id'])) {
+                        $ids[$field.'_id'] = $values[$field.'_id'];
+                    }
+                }
+                if ($ids !== []) {
+                    DB::table('seo_location_pages')->where('id', $existing->id)->update($ids);
+                }
+            }
+        }
         if ($existing === null && $values['kind'] === 'subject_village') {
             $existing = DB::table('seo_location_pages')->where(array_intersect_key($values,
                 array_flip(['kind', 'country', 'language', 'district_slug', 'village_slug', 'subject_id'])))
@@ -344,10 +417,47 @@ final class SeoDirectory
                 $existing->path = $path;
             }
         }
+        if ($existing !== null && $values['kind'] === 'subject_village' && $existing->subject_slug !== $values['subject_slug']) {
+            $path = self::locationPath(array_merge($values, ['district_slug' => $existing->district_slug, 'village_slug' => $existing->village_slug]));
+            if (! self::claim($path, 'location', (int) $existing->id)) {
+                throw new \LogicException('SEO URL is already owned.');
+            }
+            DB::table('seo_location_pages')->where('id', $existing->id)->update(['path' => $path, 'subject_slug' => $values['subject_slug'], 'updated_at' => now()]);
+            app(BusinessActivityRecorder::class)->record('seo.location_page_updated', (int) $existing->id, null, before: ['path' => $existing->path], after: ['path' => $path]);
+            $existing->path = $path;
+        }
         $inserted = false;
         if ($existing === null) {
             $inserted = DB::table('seo_location_pages')->insertOrIgnore($values + ['path' => $path, 'created_at' => now(), 'updated_at' => now()]) === 1;
             $existing = DB::table('seo_location_pages')->where('path', $path)->first();
+            $identityField = match ($values['kind']) {
+                'country' => 'country_id', 'district' => 'district_id', default => 'locality_id'
+            };
+            if ($existing === null && isset($values[$identityField])) {
+                $lookup = DB::table('seo_location_pages')->where('kind', $values['kind'])->where('country', $values['country'])
+                    ->where('language', $values['language'])->where($identityField, $values[$identityField]);
+                if (isset($values['subject_id'])) {
+                    $lookup->where('subject_id', $values['subject_id']);
+                }
+                $existing = $lookup->orderBy('id')->first();
+                if ($existing !== null) {
+                    $path = $existing->path;
+                }
+            }
+            if ($existing !== null) {
+                $ids = [];
+                foreach (LocationIdentity::TABLES as $field => $_) {
+                    if ($field === 'subDistrict') {
+                        continue;
+                    }
+                    if ($existing->{$field.'_id'} === null && isset($values[$field.'_id'])) {
+                        $ids[$field.'_id'] = $values[$field.'_id'];
+                    }
+                }
+                if ($ids !== []) {
+                    DB::table('seo_location_pages')->where('id', $existing->id)->update($ids);
+                }
+            }
         }
         if ($existing === null || ! self::claim($path, 'location', (int) $existing->id)) {
             throw new \LogicException('SEO URL is already owned.');
@@ -419,10 +529,22 @@ final class SeoDirectory
         $query = DB::query()->fromSub($this->publicProviderRows($page->subject_id === null ? null : (int) $page->subject_id), 'providers')
             ->where('providers.seo_country', $page->country);
         if ($page->kind !== 'country') {
-            $query->where('providers.district', $page->district);
+            $query->where(function ($scope) use ($page): void {
+                if (isset($page->district_id)) {
+                    $scope->where('providers.district_id', $page->district_id)->orWhere(fn ($legacy) => $legacy->whereNull('providers.district_id')->where('providers.district', $page->district));
+                } else {
+                    $scope->where('providers.district', $page->district);
+                }
+            });
         }
         if (in_array($page->kind, ['village', 'subject_village'], true)) {
-            $query->whereRaw("COALESCE(NULLIF(providers.locality, ''), providers.city) = ?", [$page->village]);
+            $query->where(function ($scope) use ($page): void {
+                if (isset($page->locality_id)) {
+                    $scope->where('providers.locality_id', $page->locality_id)->orWhere(fn ($legacy) => $legacy->whereNull('providers.locality_id')->whereRaw("COALESCE(NULLIF(providers.locality, ''), providers.city) = ?", [$page->village]));
+                } else {
+                    $scope->whereRaw("COALESCE(NULLIF(providers.locality, ''), providers.city) = ?", [$page->village]);
+                }
+            });
         }
 
         return $query;

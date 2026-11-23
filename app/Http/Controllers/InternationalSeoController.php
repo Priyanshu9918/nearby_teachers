@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\LocationIdentity;
 use App\Services\ProfileEditor;
 use App\Services\SeoDirectory;
 use App\Services\TeacherPublicPages;
@@ -56,7 +57,7 @@ class InternationalSeoController extends Controller
                 }
             })->orderByRaw('CASE WHEN p.slug = ? THEN 0 ELSE 1 END', [$slug]);
         }
-        $teacher = $query->select('p.user_id', 'p.slug', 'p.public_page_slug', 'p.subject_profile_slug', 'p.seo_country', 'p.seo_city_slug',
+        $teacher = $query->select('p.country_id', 'p.state_id', 'p.city_id', 'p.district_id', 'p.locality_id', 'p.user_id', 'p.slug', 'p.public_page_slug', 'p.subject_profile_slug', 'p.seo_country', 'p.seo_city_slug',
             'p.bio', 'p.city', 'p.state', 'p.country', 'p.youtube_url', 'p.linkedin_url', 'p.rate_per_hour', 'p.currency',
             'p.lesson_modes', 'p.trial_days', 'p.rating_avg', 'p.rating_count',
             'p.address_text', 'p.locality', 'p.district', 'p.sub_district', 'p.postal_code', 'u.email', 'u.phone as contact_phone')
@@ -106,6 +107,7 @@ class InternationalSeoController extends Controller
             ->where('r.kind', 'city')->where('r.city_slug', $teacher->seo_city_slug)
             ->whereIn('r.subject_id', $subjects->pluck('id'))->orderBy('r.id')->limit(5)
             ->get(['r.path', 'r.city', 'sr.display_name']);
+        LocationIdentity::display([$teacher], $language);
         SeoProfileDetails::prepare($teacher);
         $this->logView($request, 'teacher', 'profile:'.$teacher->user_id);
 
@@ -142,19 +144,22 @@ class InternationalSeoController extends Controller
             $page->display_name = DB::table('seo_subject_routes')->where('country', $country)->where('language', $language)
                 ->where('subject_id', $page->subject_id)->where('enabled', true)->value('display_name') ?? $page->display_name;
         }
-        $providers = $this->directory->matching($page)->select('providers.provider_type', 'providers.user_id', 'providers.public_page_slug',
+        $providers = $this->directory->matching($page)->select('providers.country_id', 'providers.state_id', 'providers.city_id', 'providers.district_id', 'providers.locality_id', 'providers.provider_type', 'providers.user_id', 'providers.public_page_slug',
             'providers.city', 'providers.rate', 'providers.currency', 'providers.rating_avg', 'providers.rating_count',
             'providers.lesson_modes', 'providers.trial_days', 'providers.subject_names', 'providers.is_bsl_official',
             'providers.email', 'providers.contact_phone', 'providers.address_text', 'providers.state', 'providers.country', 'providers.sub_district', 'providers.postal_code', 'providers.youtube_url', 'providers.linkedin_url', 'providers.description', 'providers.locality', 'providers.district', 'providers.avatar_url', 'providers.referral_points', 'providers.full_name')
             ->orderByDesc('providers.referral_points')->orderByDesc('providers.is_bsl_official')
             ->orderByDesc('providers.rating_count')->orderByDesc('providers.rating_avg')->orderBy('providers.provider_type')->orderBy('providers.user_id')
             ->paginate(20)->withQueryString();
+        LocationIdentity::display($providers->getCollection(), $language);
         $providers->getCollection()->each(fn ($item) => SeoProfileDetails::prepare($item));
         abort_if($providers->isEmpty(), 404);
         $variants = [];
         $labels = SeoDirectory::labels($language);
-        $values = ['subject' => $page->display_name, 'city' => $page->city,
-            'country' => config('seo.countries.'.$country.'.name')];
+        $locationLabels = (object) ['country_id' => $page->country_id, 'city_id' => $page->city_id, 'country' => config('seo.countries.'.$country.'.name'), 'city' => $page->city];
+        LocationIdentity::display([$locationLabels], $language);
+        $values = ['subject' => $page->display_name, 'city' => $locationLabels->city,
+            'country' => $locationLabels->country];
         $title = SeoDirectory::text($labels, $page->kind.'_title', $values);
         $description = SeoDirectory::text($labels, $page->kind.'_description', $values);
         $canonicalUrl = $url.($providers->currentPage() > 1 ? '?page='.$providers->currentPage() : '');
@@ -175,7 +180,7 @@ class InternationalSeoController extends Controller
         } else {
             $query->where(fn (Builder $scope) => $scope->where('p.public_page_slug', $slug)->orWhere('p.slug', $slug));
         }
-        $institute = $query->select('p.user_id', 'p.slug', 'p.public_page_slug', 'p.seo_country', 'p.seo_city_slug',
+        $institute = $query->select('p.country_id', 'p.state_id', 'p.city_id', 'p.district_id', 'p.locality_id', 'p.user_id', 'p.slug', 'p.public_page_slug', 'p.seo_country', 'p.seo_city_slug',
             'p.description', 'p.youtube_url', 'p.website_url', 'p.city', 'p.state', 'p.country', 'p.starting_rate', 'p.currency',
             'p.lesson_modes', 'p.trial_days', 'p.rating_avg', 'p.rating_count', 'p.is_bsl_official', 'p.bsl_official_since', 'p.institute_type', 'p.address_text', 'p.locality', 'p.district', 'p.sub_district', 'p.postal_code', 'u.email', 'u.phone as contact_phone')
             ->selectRaw('COALESCE(NULLIF(p.listing_name, \'\'), u.full_name) AS full_name')
@@ -212,6 +217,7 @@ class InternationalSeoController extends Controller
             ->where('r.kind', 'city')->where('r.city_slug', $institute->seo_city_slug)
             ->whereIn('r.subject_id', $subjects->pluck('id'))->orderBy('r.id')->limit(5)
             ->get(['r.path', 'r.city', 'sr.display_name']);
+        LocationIdentity::display([$institute], $language);
         SeoProfileDetails::prepare($institute);
         $this->logView($request, 'institute', 'profile:'.$institute->user_id);
 
@@ -229,7 +235,7 @@ class InternationalSeoController extends Controller
             return $this->teacher($request, $slug);
         }
         $provider = $this->directory->institutes()->where('p.public_page_slug', $slug)
-            ->select('p.user_id', 'p.public_page_slug', 'p.slug as legacy_slug', 'p.seo_country', 'p.seo_city_slug', 'p.description',
+            ->select('p.country_id', 'p.state_id', 'p.city_id', 'p.district_id', 'p.locality_id', 'p.user_id', 'p.public_page_slug', 'p.slug as legacy_slug', 'p.seo_country', 'p.seo_city_slug', 'p.description',
                 'p.starting_rate as rate', 'p.currency', 'p.lesson_modes', 'p.city', 'p.state', 'p.country', 'p.website_url')
             ->selectRaw("COALESCE(NULLIF(p.listing_name, ''), u.full_name) AS full_name")
             ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
@@ -365,7 +371,7 @@ class InternationalSeoController extends Controller
         $searchTerm = trim((string) ($filters['q'] ?? ''));
         $trialOnly = in_array($filters['trial'] ?? null, [true, 1, '1'], true);
         $query = $this->directory->locationProviders($page)
-            ->select('providers.provider_type', 'providers.user_id', 'providers.public_page_slug', 'providers.city',
+            ->select('providers.country_id', 'providers.state_id', 'providers.city_id', 'providers.district_id', 'providers.locality_id', 'providers.provider_type', 'providers.user_id', 'providers.public_page_slug', 'providers.city',
                 'providers.district', 'providers.locality', 'providers.rate', 'providers.currency', 'providers.rating_avg',
                 'providers.rating_count', 'providers.lesson_modes', 'providers.trial_days', 'providers.full_name',
                 'providers.email', 'providers.contact_phone', 'providers.address_text', 'providers.state', 'providers.country', 'providers.sub_district', 'providers.postal_code', 'providers.youtube_url', 'providers.linkedin_url', 'providers.description', 'providers.avatar_url', 'providers.subject_names', 'providers.referral_points', 'providers.is_bsl_official')
@@ -397,8 +403,10 @@ class InternationalSeoController extends Controller
                 ->where('subject_id', $page->subject_id)->where('enabled', true)->value('display_name');
         }
         $copy = SeoDirectory::locationCopy($language);
-        $values = ['country' => config('seo.countries.'.$page->country.'.name'), 'district' => $page->district,
-            'village' => $page->village, 'subject' => $subject];
+        $displayLocation = (object) ['country' => config('seo.countries.'.$page->country.'.name'), 'district' => $page->district, 'locality' => $page->village, 'country_id' => $page->country_id, 'district_id' => $page->district_id, 'locality_id' => $page->locality_id];
+        LocationIdentity::display([$displayLocation], $language);
+        $values = ['country' => $displayLocation->country, 'district' => $displayLocation->district,
+            'village' => $displayLocation->locality, 'subject' => $subject];
         $titleKey = $page->kind.'_title';
         $title = SeoDirectory::text($copy, $titleKey, $values);
         $description = $title.'. '.SeoDirectory::text($copy, 'browse', $values);
@@ -415,20 +423,21 @@ class InternationalSeoController extends Controller
             $clearFiltersUrl .= '?lang='.rawurlencode($language);
         }
         $children = $this->locationChildren($page);
-        $breadcrumbs = [['label' => config('seo.countries.'.$page->country.'.name'), 'url' => SeoDirectory::url('/'.$page->country)]];
+        $breadcrumbs = [['label' => $displayLocation->country, 'url' => SeoDirectory::url('/'.$page->country)]];
         if ($page->kind !== 'country') {
             $districtPath = '/'.$page->country.'/'.$page->district_slug;
-            $breadcrumbs[] = ['label' => $page->district, 'url' => SeoDirectory::url($districtPath)];
+            $breadcrumbs[] = ['label' => $displayLocation->district, 'url' => SeoDirectory::url($districtPath)];
         }
         if (in_array($page->kind, ['village', 'subject_village'], true)) {
             $villagePath = '/'.$page->country.'/'.$page->district_slug.'/'.$page->village_slug;
-            $breadcrumbs[] = ['label' => $page->village, 'url' => SeoDirectory::url($villagePath)];
+            $breadcrumbs[] = ['label' => $displayLocation->locality, 'url' => SeoDirectory::url($villagePath)];
         }
         if ($page->kind === 'subject_village') {
             $breadcrumbs[] = ['label' => $subject, 'url' => null];
         }
         $this->logView($request, 'seo_'.$page->kind, $page->path);
 
+        LocationIdentity::display($providers->getCollection(), $language);
         $providers->getCollection()->each(fn ($item) => SeoProfileDetails::prepare($item));
 
         return response()->view('seo.location', compact('page', 'providers', 'title', 'description', 'variants', 'children', 'url', 'subject', 'values', 'breadcrumbs', 'filters', 'searchTerm', 'trialOnly', 'hasActiveFilters', 'canonicalUrl', 'robots', 'clearFiltersUrl')
@@ -496,8 +505,8 @@ class InternationalSeoController extends Controller
     {
         abort_unless(in_array($kind, ['teachers', 'institutes', 'directory', 'locations'], true), 404);
         $query = match ($kind) {
-            'teachers' => $this->directory->teachers()->select('p.user_id', 'p.public_page_slug')->orderBy('p.user_id'),
-            'institutes' => $this->directory->institutes()->select('p.user_id', 'p.public_page_slug')->orderBy('p.user_id'),
+            'teachers' => $this->directory->teachers()->select('p.country_id', 'p.state_id', 'p.city_id', 'p.district_id', 'p.locality_id', 'p.user_id', 'p.public_page_slug')->orderBy('p.user_id'),
+            'institutes' => $this->directory->institutes()->select('p.country_id', 'p.state_id', 'p.city_id', 'p.district_id', 'p.locality_id', 'p.user_id', 'p.public_page_slug')->orderBy('p.user_id'),
             'directory' => $this->directory->pages()->orderBy('r.id'),
             default => $this->directory->locationPages()->orderBy('lp.id'),
         };

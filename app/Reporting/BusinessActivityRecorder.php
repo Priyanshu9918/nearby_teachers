@@ -10,6 +10,14 @@ final class BusinessActivityRecorder
 {
     // Each event explicitly owns its snapshot contract. No raw request/user arrays.
     private const EVENTS = [
+        'location.translation_changed' => ['location_translation', ['name', 'location_type', 'location_id', 'language']],
+        'location.city_country_assigned' => ['city', ['country_id', 'state_id', 'name']],
+        'location.city_registered' => ['city', ['country_id', 'state_id', 'name']],
+        'location.district_registered' => ['district', ['country_id', 'state_id', 'city_id', 'name']],
+        'location.subDistrict_registered' => ['sub_district', ['country_id', 'state_id', 'city_id', 'district_id', 'name']],
+        'location.locality_registered' => ['locality', ['country_id', 'state_id', 'district_id', 'city_id', 'name']],
+        'teacher.location_identity_changed' => ['teacher_profile', ['country_id', 'state_id', 'city_id', 'district_id', 'sub_district_id', 'locality_id']],
+        'institute.location_identity_changed' => ['institute_profile', ['country_id', 'state_id', 'city_id', 'district_id', 'sub_district_id', 'locality_id']],
         'teacher.primary_subject_changed' => ['teacher_profile', ['primary_subject_id']],
         'teacher.share_url_changed' => ['teacher_profile', ['subject_profile_slug']],
         'support_ticket.screenshot_attached' => ['support_ticket', ['has_screenshot']],

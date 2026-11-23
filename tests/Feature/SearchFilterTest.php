@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Tests\Support\NumericTestIds;
@@ -16,6 +17,7 @@ class SearchFilterTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->withoutMiddleware(ThrottleRequests::class);
         $database = getenv('ONBOARDING_TEST_DATABASE');
         if (! $database) {
             $this->markTestSkipped('Set ONBOARDING_TEST_DATABASE to a disposable database ending in _test.');

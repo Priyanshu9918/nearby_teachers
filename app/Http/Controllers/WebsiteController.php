@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Reporting\BusinessActivityRecorder;
+use App\Services\LocationIdentity;
 use App\Services\SeoDirectory;
 use App\Support\PublicLanguages;
 use Illuminate\Database\Query\Builder;
@@ -111,8 +112,10 @@ class WebsiteController extends Controller
 
     public function city(Request $request, string $city): Response
     {
+        $location = app(LocationIdentity::class)->normalize($request->validate(LocationIdentity::rules()));
+        $cityId = $location['cityId'] ?? null;
         $teachers = $this->publicTeachers()
-            ->whereRaw('lower(p.city) = lower(?)', [$city])
+            ->when($cityId !== null, fn ($query) => $query->where('p.city_id', $cityId), fn ($query) => $query->whereRaw('lower(p.city) = lower(?)', [$city]))
             ->whereNotNull('p.slug')
             ->selectRaw('p.public_page_slug AS slug')->addSelect('p.rating_avg', 'p.rating_count')
             ->addSelect('u.referral_points')
@@ -122,7 +125,7 @@ class WebsiteController extends Controller
         $institutes = DB::table('institute_profiles as p')
             ->where('p.is_profile_complete', true)
             ->join('users as u', 'u.id', '=', 'p.user_id')
-            ->whereRaw('lower(p.city) = lower(?)', [$city])
+            ->when($cityId !== null, fn ($query) => $query->where('p.city_id', $cityId), fn ($query) => $query->whereRaw('lower(p.city) = lower(?)', [$city]))
             ->whereNotNull('p.slug')
             ->select('p.slug', 'p.rating_avg', 'p.rating_count', 'p.is_bsl_official', 'u.referral_points')
             ->selectRaw("COALESCE(NULLIF(p.listing_name, ''), u.full_name) AS full_name")
@@ -137,7 +140,12 @@ class WebsiteController extends Controller
             ->leftJoin('institute_profiles as ip', function ($join): void {
                 $join->on('ip.user_id', '=', 'ps.profile_id')->where('ps.profile_type', '=', 'institute')->where('ip.is_profile_complete', true);
             })
-            ->where(function ($query) use ($city): void {
+            ->where(function ($query) use ($city, $cityId): void {
+                if ($cityId !== null) {
+                    $query->where('tp.city_id', $cityId)->orWhere('ip.city_id', $cityId);
+
+                    return;
+                }
                 $query->whereRaw('lower(tp.city) = lower(?)', [$city])
                     ->orWhereRaw('lower(ip.city) = lower(?)', [$city]);
             })

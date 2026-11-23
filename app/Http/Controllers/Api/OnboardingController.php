@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Reporting\BusinessActivityRecorder;
+use App\Services\LocationIdentity;
 use App\Services\OnboardingState;
 use App\Services\OtherSubjects;
 use App\Services\TeacherAddress;
 use App\Services\TeacherLocation;
 use App\Services\TeacherPrimarySubject;
 use App\Services\TeacherPublicPages;
+use App\Support\PublicLanguages;
 use App\Support\ReferralRating;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -110,6 +112,9 @@ class OnboardingController extends Controller
 
     private function validatedDraft(Request $request, bool $completing, ?object $user = null): array
     {
+        $role = $request->input('accountType', $request->attributes->get('authenticated_user')?->account_type);
+        $profile = in_array($role, ['teacher', 'institute'], true) ? DB::table($role.'_profiles')->where('user_id', $request->attributes->get('authenticated_user')->id)->first() : null;
+        $request->merge(app(LocationIdentity::class)->forProfile($request->validate(LocationIdentity::inputRules()), $profile));
         $requiresCredentials = $completing && ! $this->hasGoogleIdentity($user);
         $rules = [
             'accountType' => [$completing ? 'required' : 'sometimes', 'in:student,learner,teacher,institute'],
@@ -232,9 +237,6 @@ class OnboardingController extends Controller
                 $this->ensureProviderProfile('teacher_profiles', $user->id);
                 app(TeacherPrimarySubject::class)->save((int) $user->id, $data);
                 $profileUpdates = ['updated_at' => $now];
-                if (array_key_exists('city', $data)) {
-                    $profileUpdates['city'] = $this->nullableString($data['city']);
-                }
                 if (array_key_exists('primarySubjects', $data)) {
                     DB::table('profile_subjects')->where('profile_type', 'teacher')->where('profile_id', $user->id)->delete();
                     foreach ($data['primarySubjects'] as $subjectId) {
@@ -253,9 +255,6 @@ class OnboardingController extends Controller
             } elseif ($accountType === 'institute') {
                 $this->ensureProviderProfile('institute_profiles', $user->id);
                 $profileUpdates = ['updated_at' => $now];
-                if (array_key_exists('city', $data)) {
-                    $profileUpdates['city'] = $this->nullableString($data['city']);
-                }
                 if (array_key_exists('contactPerson', $data)) {
                     $profileUpdates['contact_person'] = $this->nullableString($data['contactPerson']);
                 }
@@ -343,14 +342,17 @@ class OnboardingController extends Controller
         if ($accountType === 'teacher') {
             $teacher = DB::table('teacher_profiles as p')
                 ->where('p.user_id', $user->id)
-                ->select('p.public_page_slug', 'p.subject_profile_slug', 'p.seo_country', 'p.user_id', 'p.slug', 'p.seo_slug', 'p.public_profile_slug', 'p.city', 'p.primary_subject_id', 'p.latitude', 'p.longitude', 'p.location_details',
+                ->select('p.public_page_slug', 'p.subject_profile_slug', 'p.seo_country', 'p.user_id', 'p.slug', 'p.seo_slug', 'p.public_profile_slug', 'p.country_id', 'p.state_id', 'p.city_id', 'p.district_id', 'p.locality_id', 'p.primary_subject_id', 'p.latitude', 'p.longitude', 'p.location_details',
                     ...array_map(fn ($column) => 'p.'.$column, array_values(TeacherAddress::FIELDS)))
                 ->first();
         } elseif ($accountType === 'institute') {
-            $institute = DB::table('institute_profiles')->select('city', 'contact_person', 'latitude', 'longitude', 'location_details', ...array_values(TeacherAddress::FIELDS))->where('user_id', $user->id)->first();
+            $institute = DB::table('institute_profiles')->select('country_id', 'state_id', 'city_id', 'district_id', 'locality_id', 'contact_person', 'latitude', 'longitude', 'location_details', ...array_values(TeacherAddress::FIELDS))->where('user_id', $user->id)->first();
         }
 
         $provider = $teacher ?? $institute;
+        if ($provider !== null) {
+            LocationIdentity::display([$provider], PublicLanguages::resolve(request(), 'en'));
+        }
         $draft = [
             'accountType' => $accountType,
             'role' => $accountType === 'learner' ? 'student' : $accountType,

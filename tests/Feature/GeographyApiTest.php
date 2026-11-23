@@ -2,9 +2,8 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class GeographyApiTest extends TestCase
@@ -31,30 +30,7 @@ class GeographyApiTest extends TestCase
         $this->assertStringEndsWith('_test', $database);
         config(['database.default' => 'mysql', 'database.connections.mysql.url' => null, 'database.connections.mysql.database' => $database]);
         DB::purge('mysql');
-        // The imported SQL schema is separate from the legacy GeoNames migrations.
-        // Create only these fixture tables in the explicitly selected test database.
-        if (! Schema::hasTable('countries')) {
-            Schema::create('countries', function (Blueprint $table): void {
-                $table->increments('id');
-                $table->string('sortname', 3);
-                $table->string('name');
-                $table->integer('phonecode');
-            });
-        }
-        if (! Schema::hasTable('states')) {
-            Schema::create('states', function (Blueprint $table): void {
-                $table->increments('id');
-                $table->string('name');
-                $table->unsignedInteger('country_id')->index();
-            });
-        }
-        if (! Schema::hasTable('cities')) {
-            Schema::create('cities', function (Blueprint $table): void {
-                $table->increments('id');
-                $table->string('name');
-                $table->unsignedInteger('state_id')->index();
-            });
-        }
+        Artisan::call('migrate', ['--force' => true]);
         DB::beginTransaction();
         $this->transactionStarted = true;
         $this->country = DB::table('countries')->insertGetId(['sortname' => 'QX', 'name' => 'Geography country A', 'phonecode' => 999]);

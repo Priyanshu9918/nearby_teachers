@@ -66,9 +66,15 @@ final class OwnerMetrics
 
     public function snapshot(): array
     {
-        $districts = DB::table('teacher_profiles')->whereNotNull('district')->where('district', '!=', '')->distinct()->pluck('district')
-            ->merge(DB::table('institute_profiles')->whereNotNull('district')->where('district', '!=', '')->distinct()->pluck('district'))
-            ->map(fn ($district) => mb_strtolower(trim($district), 'UTF-8'))->unique()->count();
+        $districts = DB::query()->fromSub(
+            DB::table('teacher_profiles')->where(function (Builder $query): void {
+                $query->whereNotNull('district_id')->orWhere(fn (Builder $legacy) => $legacy->whereNotNull('district')->where('district', '<>', ''));
+            })->selectRaw("CASE WHEN district_id IS NULL THEN CONCAT('name:', LOWER(TRIM(district))) ELSE CONCAT('id:', district_id) END AS identity")
+                ->unionAll(DB::table('institute_profiles')->where(function (Builder $query): void {
+                    $query->whereNotNull('district_id')->orWhere(fn (Builder $legacy) => $legacy->whereNotNull('district')->where('district', '<>', ''));
+                })->selectRaw("CASE WHEN district_id IS NULL THEN CONCAT('name:', LOWER(TRIM(district))) ELSE CONCAT('id:', district_id) END AS identity")),
+            'districts',
+        )->distinct()->count('identity');
 
         return [
             'learners' => DB::table('users')->where('account_type', 'learner')->count(),
@@ -96,8 +102,8 @@ final class OwnerMetrics
                     ->join('users as other_user', 'other_user.id', '=', 'other_profile.user_id')
                     ->whereColumn('other_user.id', '!=', 'u.id')
                     ->whereRaw('LOWER(TRIM(other_user.full_name)) = LOWER(TRIM(u.full_name))')
-                    ->whereRaw('LOWER(TRIM(other_profile.city)) = LOWER(TRIM(p.city))')
-                    ->whereRaw("LOWER(TRIM(COALESCE(other_profile.country, ''))) = LOWER(TRIM(COALESCE(p.country, '')))");
+                    ->whereRaw('((other_profile.city_id IS NOT NULL AND p.city_id IS NOT NULL AND other_profile.city_id = p.city_id) OR ((other_profile.city_id IS NULL OR p.city_id IS NULL) AND LOWER(TRIM(other_profile.city)) = LOWER(TRIM(p.city))))')
+                    ->whereRaw("((other_profile.country_id IS NOT NULL AND p.country_id IS NOT NULL AND other_profile.country_id = p.country_id) OR ((other_profile.country_id IS NULL OR p.country_id IS NULL) AND LOWER(TRIM(COALESCE(other_profile.country, ''))) = LOWER(TRIM(COALESCE(p.country, '')))))");
             })->distinct()->count('u.id');
     }
 

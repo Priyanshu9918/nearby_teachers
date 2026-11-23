@@ -46,10 +46,10 @@ final class WorldGeographyImporter
                     foreach ($country['states'] as $state) {
                         $stateId = DB::table('states')->insertGetId(['country_id' => $countryId, 'name' => $state['name']]);
                         $counts['states']++;
-                        $counts['cities'] += $this->cities($state['cities'], $stateId);
+                        $counts['cities'] += $this->cities($state['cities'], $stateId, $countryId);
                     }
                     // Preserve missing administrative divisions without fabricating a state.
-                    $counts['cities'] += $this->cities($country['unassigned_cities'], null);
+                    $counts['cities'] += $this->cities($country['unassigned_cities'], null, $countryId);
                 }
                 if (! gzeof($handle) || $counts !== $manifest['counts']) {
                     throw new RuntimeException('Incomplete world dataset. Import rolled back.');
@@ -62,10 +62,10 @@ final class WorldGeographyImporter
         });
     }
 
-    private function cities(array $names, ?int $stateId): int
+    private function cities(array $names, ?int $stateId, int $countryId): int
     {
         foreach (array_chunk($names, 1000) as $chunk) {
-            DB::table('cities')->insert(array_map(fn (string $name): array => ['name' => $name, 'state_id' => $stateId], $chunk));
+            DB::table('cities')->insert(array_map(fn (string $name): array => ['name' => $name, 'state_id' => $stateId, 'country_id' => $countryId], $chunk));
         }
 
         return count($names);

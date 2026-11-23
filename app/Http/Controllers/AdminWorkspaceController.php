@@ -220,8 +220,8 @@ class AdminWorkspaceController extends Controller
                     ->join('users as other_user', 'other_user.id', '=', 'other_profile.user_id')
                     ->whereColumn('other_user.id', '!=', 'u.id')
                     ->whereRaw('LOWER(TRIM(other_user.full_name)) = LOWER(TRIM(u.full_name))')
-                    ->whereRaw('LOWER(TRIM(other_profile.city)) = LOWER(TRIM(p.city))')
-                    ->whereRaw("LOWER(TRIM(COALESCE(other_profile.country, ''))) = LOWER(TRIM(COALESCE(p.country, '')))");
+                    ->whereRaw('((other_profile.city_id IS NOT NULL AND p.city_id IS NOT NULL AND other_profile.city_id = p.city_id) OR ((other_profile.city_id IS NULL OR p.city_id IS NULL) AND LOWER(TRIM(other_profile.city)) = LOWER(TRIM(p.city))))')
+                    ->whereRaw("((other_profile.country_id IS NOT NULL AND p.country_id IS NOT NULL AND other_profile.country_id = p.country_id) OR ((other_profile.country_id IS NULL OR p.country_id IS NULL) AND LOWER(TRIM(COALESCE(other_profile.country, ''))) = LOWER(TRIM(COALESCE(p.country, '')))))");
             })
             ->select('u.id', 'u.full_name', 'u.phone', 'p.city', 'p.country', 'p.created_at')
             ->orderBy('u.full_name')->orderBy('p.city')->orderBy('u.id')

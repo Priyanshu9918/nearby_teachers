@@ -46,8 +46,12 @@ Route::get('/i18n/{lang}', [I18nController::class, 'translations']);
 Route::middleware(AttachOptionalApiUser::class)->get('/subjects', SubjectsController::class);
 Route::get('/contact-info', [SupportContactController::class, 'show'])->middleware('throttle:60,1');
 Route::prefix('geo')->middleware('throttle:60,1')->group(function (): void {
+    Route::post('/resolve', [GeographyController::class, 'resolve']);
     Route::get('/countries', [GeographyController::class, 'countries']);
     Route::get('/states', [GeographyController::class, 'states']);
+    Route::get('/districts', [GeographyController::class, 'districts']);
+    Route::get('/sub-districts', [GeographyController::class, 'subDistricts']);
+    Route::get('/localities', [GeographyController::class, 'localities']);
     Route::get('/cities', [GeographyController::class, 'cities']);
 });
 Route::post('/analytics/page-view', [OperationsController::class, 'recordPageView'])->middleware('throttle:120,1');
