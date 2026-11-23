@@ -32,7 +32,8 @@ class SendEmailCode implements ShouldBeEncrypted, ShouldQueue
     {
         $challenge = DB::table('email_otp_codes as c')->join('users as u', 'u.id', '=', 'c.user_id')
             ->where('c.id', $this->challengeId)->whereNull('c.consumed_at')
-            ->where('c.expires_at', '>', now())->whereColumn('c.email', 'u.email')
+            ->where('c.expires_at', '>', now())
+            ->where(fn ($query) => $query->where('c.purpose', 'email_verification')->orWhereColumn('c.email', 'u.email'))
             ->whereNull('u.suspended_at')->select('c.email', 'c.purpose')->first();
         if ($challenge === null) {
             return; // Do not send an expired, superseded, consumed or old-address code.

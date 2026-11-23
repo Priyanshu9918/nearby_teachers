@@ -7,6 +7,7 @@ use App\Reporting\BusinessActivityRecorder;
 use App\Services\LocationIdentity;
 use App\Services\OnboardingState;
 use App\Services\OtherSubjects;
+use App\Services\RegistrationEmailVerification;
 use App\Services\TeacherAddress;
 use App\Services\TeacherLocation;
 use App\Services\TeacherPrimarySubject;
@@ -93,7 +94,17 @@ class OnboardingController extends Controller
                 throw ValidationException::withMessages($errors);
             }
 
+            if (! $this->hasGoogleIdentity($saved)) {
+                $verifiedEmail = strtolower(trim((string) ($data['email'] ?? $saved->email ?? '')));
+                if (! app(RegistrationEmailVerification::class)->consumeForRegistration($verifiedEmail)) {
+                    throw ValidationException::withMessages(['email' => 'Verify this email address before submitting registration.']);
+                }
+            }
+
             $this->persistDraft($saved, $data, true, $location);
+            if (! $this->hasGoogleIdentity($saved)) {
+                DB::table('users')->where('id', $saved->id)->update(['email_verified_at' => now()]);
+            }
             $fresh = DB::table('users')->where('id', $saved->id)->first();
             app(BusinessActivityRecorder::class)->record('registration.submitted', $saved->id, $saved->id,
                 before: ['account_type' => $saved->account_type, 'registration_submitted_at' => $saved->registration_submitted_at ?? null],
@@ -291,6 +302,10 @@ class OnboardingController extends Controller
         $email = $data['email'] ?? $user->email;
         if (! $this->hasGoogleIdentity($user) && (! is_string($email) || filter_var($email, FILTER_VALIDATE_EMAIL) === false)) {
             $errors['email'] = 'Enter a valid email address.';
+        }
+        if (! $this->hasGoogleIdentity($user) && (! is_string($email)
+            || ! app(RegistrationEmailVerification::class)->hasVerified(strtolower(trim($email))))) {
+            $errors['email'] = 'Verify this email address with its OTP before submitting registration.';
         }
 
         $passwordSet = ! empty($data['password']) || (bool) ($user->password_set ?? filled($user->password_hash ?? null));

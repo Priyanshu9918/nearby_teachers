@@ -72,17 +72,25 @@ Logout also works while suspended. **Admin bearer** additionally requires
 | `PATCH` | `/auth/link-google` | Verified bearer | `firebaseIdToken` | Links a verified Google identity to the signed-in account. |
 | `POST` | `/auth/forgot-password` | Public | `email` | Generic `{ok:true,message,expiresInMinutes:10}`, including unknown addresses. |
 | `POST` | `/auth/reset-password` | Public | `email`, `code`, `password`, `password_confirmation` | `{ok:true,message}`; revokes earlier API sessions; log in again. |
-| `POST` | `/auth/email/verification/request` | Verified bearer | `{}` | `{ok:true,message,expiresInMinutes:10}`; uses saved email. |
-| `POST` | `/auth/email/verification/verify` | Verified bearer | `code` | `{ok:true,emailVerified:true}`. |
+| `POST` | `/auth/email/verification/request` | Public | `email` | Sends registration email OTP; no bearer required. |
+| `POST` | `/auth/email/verification/verify` | Public | `email`, `code` | Verifies email before registration; no bearer required. |
+
+Email code requests return `testMode:true` and `otp` only in local/testing when
+no mail transport is configured. With SMTP configured, the code is delivered
+by email and omitted from the API response. Production without mail returns 503.
+For normal signup, request and verify the email OTP before phone OTP and
+`/auth/register`; registration rejects an unverified or different email.
+Google signup uses Google's verified email and skips the separate email OTP.
 | `POST` | `/auth/otp/verify` | Google bearer | `authMethod:"google"`, `phone`, `code` | Fresh token for the same Google user, `authMethod:"google"` and routing fields. |
 
 ### Normal signup
 
-1. Open the registration form and retain unsaved input on the device.
-2. OTP request: `{authMethod:"phone_otp",phone:"+919876543210"}`, **no bearer**.
-3. OTP verify: same mode/phone plus `code`, **no bearer**. Save response `token`.
-4. Submit `/auth/register` with that bearer and full role-specific form.
-5. Student continues to Learner DOB; teacher/institute continue home/listing setup.
+1. Request email code with `POST /auth/email/verification/request` and `{"email":"user@example.com"}`; no bearer.
+2. Verify with `POST /auth/email/verification/verify` and `{"email":"user@example.com","code":"123456"}`; no bearer.
+3. OTP request: `{authMethod:"phone_otp",phone:"+919876543210"}`, **no bearer**.
+4. OTP verify: same mode/phone plus `code`, **no bearer**. Save response `token`.
+5. Submit `/auth/register` with that bearer and the same verified email plus full role-specific form.
+6. Student continues to Learner DOB; teacher/institute continue home/listing setup.
 
 A completed normal account cannot use registration OTP to log in; verification
 returns `409 loginRequired:true`. Use password or linked Google login. An

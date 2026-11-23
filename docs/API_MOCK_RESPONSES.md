@@ -3273,7 +3273,7 @@ Content-Type: `application/json`
 
 ### POST /auth/email/verification/request
 
-Verified phone bearer; email delivery required. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures.
+Public registration email verification; no bearer required. See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures.
 
 Request:
 
@@ -3281,15 +3281,16 @@ Request:
 POST {{baseUrl}}/auth/email/verification/request
 Accept: application/json
 Content-Type: application/json
-Authorization: Bearer {{token}}
 ```
 
-Access: Bearer; additional phone/role/participant restrictions apply as documented.
+Access: Public; rate limited.
 
 Request body:
 
 ```json
-{}
+{
+  "email": "user@example.com"
+}
 ```
 
 <details>
@@ -3308,13 +3309,13 @@ Content-Type: `application/json`
 </details>
 
 <details>
-<summary>Fictional example — 401 Bearer missing — HTTP 401</summary>
+<summary>Fictional example — 503 Email delivery unavailable — HTTP 503</summary>
 
 Content-Type: `application/json`
 
 ```json
 {
-  "error": "Missing Authorization header"
+  "message": "Email delivery is not configured."
 }
 ```
 
@@ -3322,7 +3323,7 @@ Content-Type: `application/json`
 
 ### POST /auth/email/verification/verify
 
- See docs/APP_TEAM_API.md for access gates, validation, response fields and limits. Saved examples are fictional contract illustrations, not live captures.
+Public registration email verification; no bearer required. Saved examples are fictional contract illustrations, not live captures.
 
 Request:
 
@@ -3330,15 +3331,15 @@ Request:
 POST {{baseUrl}}/auth/email/verification/verify
 Accept: application/json
 Content-Type: application/json
-Authorization: Bearer {{token}}
 ```
 
-Access: Bearer; additional phone/role/participant restrictions apply as documented.
+Access: Public; rate limited.
 
 Request body:
 
 ```json
 {
+  "email": "user@example.com",
   "code": "{{emailCode}}"
 }
 ```

@@ -101,9 +101,12 @@ Both known and unknown/suspended addresses receive the same HTTP 200 body:
 }
 ```
 
-For an eligible account a random six-digit OTP is emailed. The code is never
-returned in JSON, including when `OTP_TEST_MODE=true`. That flag affects only
-registration mobile OTP. Resend calls the same endpoint and invalidates the
+For an eligible account a random six-digit OTP is emailed when a mail transport
+is configured. With `MAIL_MAILER=log` or `null`, local/testing environments
+return `testMode:true` and `otp` in the response instead of queueing email.
+Production never returns an email OTP and returns 503 if delivery is not
+configured. `OTP_TEST_MODE` affects only registration mobile OTP. Resend calls
+the same endpoint and invalidates the
 previous code. Maximum three requests per normalized email per ten minutes,
 with a separate IP limit of twenty code requests per minute; excess is `429`.
 
@@ -138,16 +141,14 @@ Reset also records verified email ownership.
 ## Separate email verification
 
 Existing accounts can continue email/password login without a new verification
-gate. For explicit email verification after registration, use the current bearer:
+gate. Registration email verification is public and happens before signup.
 
-```http
-Authorization: Bearer <login-or-registration-token>
-```
-
-- `POST /auth/email/verification/request` with `{}` emails a verification code
-  for the account's saved email. No client-supplied alternate email is used.
-- `POST /auth/email/verification/verify` with `{"code":"123456"}` returns
-  `{"ok":true,"emailVerified":true}` after proving ownership.
+- `POST /auth/email/verification/request` with `{"email":"user@example.com"}`
+  is public and sends a code before signup; it needs no bearer token.
+- `POST /auth/email/verification/verify` with
+  `{"email":"user@example.com","code":"123456"}` is public and proves
+  ownership. The proof is used by normal registration, which must follow within
+  ten minutes. Local/testing without mail returns `testMode:true` and `otp`.
 
 Verification and password-reset codes have separate purposes and cannot be
 used interchangeably. Changing the saved email clears `email_verified_at`;

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Jobs\RevokeChatSessions;
 use App\Services\EmailCodes;
+use App\Services\RegistrationEmailVerification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,12 +19,13 @@ class PasswordRecoveryController extends Controller
     public function forgot(Request $request): JsonResponse
     {
         $data = $request->validate(['email' => ['required', 'email', 'max:255']]);
-        $this->codes->request(strtolower(trim($data['email'])), 'password_reset');
+        $otp = $this->codes->request(strtolower(trim($data['email'])), 'password_reset');
 
         return response()->json([
             'ok' => true,
             'message' => 'If an eligible account exists, a password reset code will be sent to its email.',
             'expiresInMinutes' => 10,
+            ...($otp === null ? [] : ['testMode' => true, 'otp' => $otp]),
         ]);
     }
 
@@ -49,24 +51,21 @@ class PasswordRecoveryController extends Controller
         return response()->json(['ok' => true, 'message' => 'Password reset successfully. Log in with your email and new password.']);
     }
 
-    public function requestVerification(Request $request): JsonResponse
+    public function requestVerification(Request $request, RegistrationEmailVerification $verification): JsonResponse
     {
-        $user = $request->attributes->get('authenticated_user');
-        if (! filled($user->email)) {
-            throw ValidationException::withMessages(['email' => 'Add your email address before verifying it.']);
-        }
-        $this->codes->request($user->email, 'email_verification');
+        $data = $request->validate(['email' => ['required', 'email', 'max:255']]);
+        $email = strtolower(trim($data['email']));
+        $otp = $verification->request($email);
 
-        return response()->json(['ok' => true, 'message' => 'An email verification code has been requested.', 'expiresInMinutes' => 10]);
+        return response()->json(['ok' => true, 'message' => 'An email verification code has been requested.', 'expiresInMinutes' => 10,
+            ...($otp === null ? [] : ['testMode' => true, 'otp' => $otp])]);
     }
 
-    public function verifyEmail(Request $request): JsonResponse
+    public function verifyEmail(Request $request, RegistrationEmailVerification $verification): JsonResponse
     {
-        $data = $request->validate(['code' => ['required', 'digits:6']]);
-        $user = $request->attributes->get('authenticated_user');
-        if (! filled($user->email) || ! $this->codes->consume($user->email, 'email_verification', $data['code'], function ($saved): void {
-            DB::table('users')->where('id', $saved->id)->update(['email_verified_at' => now(), 'updated_at' => now()]);
-        })) {
+        $data = $request->validate(['email' => ['required', 'email', 'max:255'], 'code' => ['required', 'digits:6']]);
+        $email = strtolower(trim($data['email']));
+        if (! $verification->verify($email, $data['code'])) {
             throw ValidationException::withMessages(['code' => 'Invalid or expired code. Request a new code and try again.']);
         }
 

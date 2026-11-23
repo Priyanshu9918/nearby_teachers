@@ -81,8 +81,8 @@ Raw timestamps may lack timezone offsets; use the configured server timezone.
 | `PATCH` | `/auth/link-google` | Verified bearer | `firebaseIdToken` | Links a verified Google identity to the signed-in account. |
 | `POST` | `/auth/forgot-password` | Public | `email` | Generic `{ok:true,message,expiresInMinutes:10}`, including unknown addresses. |
 | `POST` | `/auth/reset-password` | Public | `email`, `code`, `password`, `password_confirmation` | `{ok:true,message}`; revokes earlier API sessions; log in again. |
-| `POST` | `/auth/email/verification/request` | Verified bearer | `{}` | `{ok:true,message,expiresInMinutes:10}`; uses saved email. |
-| `POST` | `/auth/email/verification/verify` | Verified bearer | `code` | `{ok:true,emailVerified:true}`. |
+| `POST` | `/auth/email/verification/request` | Public | `email` | Requests a registration email code; no bearer required. |
+| `POST` | `/auth/email/verification/verify` | Public | `email`, `code` | Verifies email before registration; no bearer required. |
 | `POST` | `/auth/otp/verify` | Google bearer | `authMethod:"google"`, `phone`, `code` | Fresh token for the same Google user, `authMethod:"google"` and routing fields. |
 
 ### Signup token flows
@@ -90,10 +90,11 @@ Raw timestamps may lack timezone offsets; use the configured server timezone.
 | Step | Normal signup | Google signup |
 |---|---|---|
 | Identity | Open signup | Firebase Google SDK sign-in, then `POST /auth/google` with `firebaseIdToken`; save its Laravel token |
+| Email verification | `POST /auth/email/verification/request` with email, then `/verify` with email and code; public, no bearer | Google-verified email; skip separate email OTP |
 | OTP request | `POST /auth/otp/request`, `authMethod:"phone_otp"`, phone; no bearer | Same endpoint, `authMethod:"google"`, phone and Google bearer |
 | OTP verification | `POST /auth/otp/verify`, phone/code; no bearer | Same endpoint, `authMethod:"google"`, phone/code and Google bearer |
 | Token after verification | Save returned new token | Save returned fresh token; the user ID and Google identity stay the same |
-| Registration | Verification bearer; email/password required | Verification bearer; email/password optional |
+| Registration | Verification bearer; email/password required and email OTP verified first | Verification bearer; email/password optional |
 | Later APIs | Active saved bearer | Active saved bearer |
 
 Normal `authMethod` may be omitted for older clients. Google requests require
@@ -124,12 +125,15 @@ See [OTP delivery](OTP_DELIVERY.md).
 supplies the verified phone: `phone`, `phoneVerifiedAt` and `mobileVerified` are
 prohibited body fields. **DOB is never a registration-form requirement**; the
 student submits it on the separate Learner DOB API/page.
+For non-Google signup, request and verify the submitted email OTP before
+registration; the verified email on the bearer account must match the form.
+Google signup uses Google's verified email and skips this separate email OTP.
 
 | Field | Student | Teacher | Institute |
 |---|---|---|---|
 | `accountType` | `student` or `learner`, stored as `learner` | `teacher` | `institute` |
 | `fullName` | Name, max 160 | Name, max 160 | Institute name, max 160 |
-| `email` | Normal: required; Google: optional | Same | Same |
+| `email` | Normal: required and OTP-verified before submit; Google: optional, Google-verified email used | Same | Same |
 | `password` | Normal: required, 8–72 characters; Google: optional | Same | Same |
 | `termsAccepted` | `true` | `true` | `true` |
 | `acknowledgeTeachersNotBackgroundChecked` | `true` | `true` | `true` |
@@ -258,7 +262,8 @@ Queued chat revocation runs after commit on `broadcasts`.
 
 Forgot-password returns the same generic success for eligible/unknown accounts.
 Email codes expire in 10 minutes, are single-use, allow five attempts, and are
-invalidated on resend; never exposed by OTP test mode. Reset requires matching
+invalidated on resend. In local/testing without configured mail, the response
+includes `testMode:true` and `otp`; production never exposes it. Reset requires matching
 password confirmation, revokes prior API tokens and stale Firebase sessions,
 and verifies email ownership. Log in again after reset. Email verification
 uses the account's saved email and is not a new login gate. See

@@ -39,6 +39,8 @@ Route::post('/auth/login', [AuthController::class, 'login'])
     ->middleware('throttle:10,1');
 Route::post('/auth/forgot-password', [PasswordRecoveryController::class, 'forgot'])->middleware('throttle:email-code');
 Route::post('/auth/reset-password', [PasswordRecoveryController::class, 'reset'])->middleware('throttle:20,1');
+Route::post('/auth/email/verification/request', [PasswordRecoveryController::class, 'requestVerification'])->middleware('throttle:email-code');
+Route::post('/auth/email/verification/verify', [PasswordRecoveryController::class, 'verifyEmail'])->middleware('throttle:20,1');
 Route::post('/auth/parental-consent/confirm', [AuthController::class, 'confirmParentalConsent'])->middleware('throttle:20,1');
 Route::get('/auth/safety-disclaimer', [AuthController::class, 'safetyDisclaimer']);
 Route::get('/i18n/languages', [I18nController::class, 'languages']);
@@ -82,8 +84,6 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
     Route::delete('/push/devices/current', [PushDevicesController::class, 'unregister'])->middleware('throttle:30,1');
     Route::get('/auth/session', [AuthController::class, 'session']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
-    Route::post('/auth/email/verification/request', [PasswordRecoveryController::class, 'requestVerification'])->middleware('throttle:email-code');
-    Route::post('/auth/email/verification/verify', [PasswordRecoveryController::class, 'verifyEmail'])->middleware('throttle:20,1');
     Route::post('/auth/register', [OnboardingController::class, 'complete'])->middleware('throttle:10,1');
     Route::get('/auth/onboarding', [OnboardingController::class, 'show']);
     Route::patch('/auth/onboarding', [OnboardingController::class, 'autosave']);

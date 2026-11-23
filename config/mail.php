@@ -14,7 +14,8 @@ return [
     |
     */
 
-    'default' => env('MAIL_MAILER', filled(env('SMTP_HOST')) ? 'smtp' : 'log'),
+    'default' => filled(env('MAIL_MAILER')) ? env('MAIL_MAILER') : (filled(env('SMTP_HOST')) ? 'smtp' : 'log'),
+    'smtp_configured' => filled(env('MAIL_URL')) || filled(env('MAIL_HOST')) || filled(env('SMTP_HOST')),
 
     /*
     |--------------------------------------------------------------------------

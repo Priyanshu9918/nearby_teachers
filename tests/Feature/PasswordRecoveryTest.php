@@ -34,6 +34,7 @@ class PasswordRecoveryTest extends TestCase
         config([
             'database.connections.mysql.url' => null, 'database.connections.mysql.database' => $database,
             'services.nearby_teacher.jwt_secret' => str_repeat('test-secret-', 6),
+            'mail.default' => 'array',
         ]);
         DB::purge('mysql');
         Artisan::call('migrate', ['--force' => true]);
@@ -121,6 +122,27 @@ class PasswordRecoveryTest extends TestCase
         $row = DB::table('email_otp_codes')->where('id', $job->challengeId)->first();
         $this->assertNotSame($job->code, $row->code_hash);
         $this->assertTrue(Hash::check($job->code, $row->code_hash));
+    }
+
+    public function test_unconfigured_mail_returns_local_test_otp_without_queueing_email(): void
+    {
+        config(['mail.default' => 'log']);
+        $response = $this->postJson('/auth/forgot-password', ['email' => $this->email])->assertOk()
+            ->assertJsonPath('testMode', true);
+        $otp = $response->json('otp');
+        $this->assertMatchesRegularExpression('/^[0-9]{6}$/', $otp);
+        Queue::assertNotPushed(SendEmailCode::class);
+        $this->postJson('/auth/reset-password', $this->resetBody($otp))->assertOk();
+    }
+
+    public function test_email_verification_uses_same_local_fallback(): void
+    {
+        config(['mail.default' => 'null']);
+        $token = app(AuthenticationService::class)->issueSessionToken($this->userId);
+        $this->withHeader('Authorization', 'Bearer '.$token);
+        $otp = $this->postJson('/auth/email/verification/request')->assertOk()->assertJsonPath('testMode', true)->json('otp');
+        Queue::assertNotPushed(SendEmailCode::class);
+        $this->postJson('/auth/email/verification/verify', ['code' => $otp])->assertOk()->assertJsonPath('emailVerified', true);
     }
 
     public function test_registered_account_cannot_use_mobile_otp_as_login(): void
