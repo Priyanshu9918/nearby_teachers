@@ -107,8 +107,8 @@ class OnboardingController extends Controller
             }
             $fresh = DB::table('users')->where('id', $saved->id)->first();
             app(BusinessActivityRecorder::class)->record('registration.submitted', $saved->id, $saved->id,
-                before: ['account_type' => $saved->account_type, 'registration_submitted_at' => $saved->registration_submitted_at ?? null],
-                after: ['account_type' => $accountType, 'registration_submitted_at' => $fresh->registration_submitted_at]);
+                before: ['account_type' => $saved->account_type, 'preferred_language' => $saved->preferred_language, 'registration_submitted_at' => $saved->registration_submitted_at ?? null],
+                after: ['account_type' => $accountType, 'preferred_language' => $fresh->preferred_language, 'registration_submitted_at' => $fresh->registration_submitted_at]);
             if ($state->registrationCompleted($fresh)) {
                 app(BusinessActivityRecorder::class)->record('registration.completed', $saved->id, $saved->id,
                     before: ['account_type' => $saved->account_type, 'profile_completed_at' => $saved->profile_completed_at],
@@ -131,6 +131,7 @@ class OnboardingController extends Controller
             'accountType' => [$completing ? 'required' : 'sometimes', 'in:student,learner,teacher,institute'],
             'fullName' => [$completing ? 'required' : 'sometimes', 'nullable', 'string', 'max:160'],
             'email' => [$requiresCredentials ? 'required' : 'sometimes', 'nullable', 'email', 'max:255'],
+            'language' => ['sometimes', 'required', 'in:'.implode(',', PublicLanguages::codes())],
             'password' => ['sometimes', 'nullable', 'string', 'min:8', 'max:72'],
             'phone' => ['prohibited'],
             'phoneVerifiedAt' => ['prohibited'],
@@ -198,6 +199,10 @@ class OnboardingController extends Controller
 
             if (array_key_exists('fullName', $data)) {
                 $userUpdates['full_name'] = trim((string) $data['fullName']);
+            }
+
+            if (array_key_exists('language', $data)) {
+                $userUpdates['preferred_language'] = $data['language'];
             }
 
             if (array_key_exists('email', $data)) {
@@ -373,6 +378,7 @@ class OnboardingController extends Controller
             'role' => $accountType === 'learner' ? 'student' : $accountType,
             'fullName' => $user->full_name,
             'email' => $user->email,
+            'language' => $user->preferred_language,
             'phone' => $user->phone,
             'city' => $teacher->city ?? $institute->city ?? null,
             ...(in_array($accountType, ['teacher', 'institute'], true) ? TeacherAddress::draft($provider) : []),

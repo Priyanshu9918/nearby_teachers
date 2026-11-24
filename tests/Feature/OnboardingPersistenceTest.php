@@ -91,6 +91,41 @@ class OnboardingPersistenceTest extends TestCase
         $this->postJson('/auth/register', $this->sharedFields())->assertStatus(409);
     }
 
+    #[DataProvider('registrationLanguageRoles')]
+    public function test_registration_saves_language_for_each_profile(string $role): void
+    {
+        $fields = ['accountType' => $role, 'language' => 'hi'];
+        if ($role === 'teacher') {
+            $domain = DB::table('subject_domains')->insertGetId(['name' => 'Language test subjects']);
+            $subject = DB::table('subjects')->insertGetId(['domain_id' => $domain, 'name' => 'Language test course']);
+            $fields += ['city' => 'Delhi', 'primarySubjects' => [$subject]];
+        } elseif ($role === 'institute') {
+            $fields += ['city' => 'Delhi', 'contactPerson' => 'Anita Sharma'];
+        }
+
+        $this->postJson('/auth/register', array_replace($this->sharedFields(), $fields))
+            ->assertOk()->assertJsonPath('draft.language', 'hi')
+            ->assertJsonPath('user.preferred_language', 'hi');
+        $this->assertSame('hi', DB::table('users')->where('id', $this->userId)->value('preferred_language'));
+        $this->getJson('/auth/onboarding')->assertOk()->assertJsonPath('draft.language', 'hi');
+        $this->getJson('/auth/session')->assertOk()->assertJsonPath('user.preferred_language', 'hi');
+        $event = DB::table('business_activity')->where('event', 'registration.submitted')->where('entity_id', $this->userId)->first();
+        $this->assertSame('hi', json_decode($event->after_data, true)['preferred_language']);
+    }
+
+    public static function registrationLanguageRoles(): array
+    {
+        return ['student' => ['student'], 'teacher' => ['teacher'], 'institute' => ['institute']];
+    }
+
+    public function test_registration_rejects_unsupported_language_without_saving(): void
+    {
+        $this->postJson('/auth/register', array_replace($this->sharedFields(), ['language' => 'xx']))
+            ->assertUnprocessable()->assertJsonValidationErrors('language');
+        $this->assertSame('en', DB::table('users')->where('id', $this->userId)->value('preferred_language'));
+        $this->assertNull(DB::table('users')->where('id', $this->userId)->value('registration_submitted_at'));
+    }
+
     public function test_existing_incomplete_teacher_details_are_restored_without_new_autosave(): void
     {
         $domain = DB::table('subject_domains')->insertGetId(['name' => 'Saved subjects']);

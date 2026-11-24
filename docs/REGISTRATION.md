@@ -10,6 +10,12 @@ Learner, Teacher, Institute and Common. The deployed base URL is
 `http://157.245.125.79/nearby_teachers/public`, with no `/api` prefix.
 
 The Student, Teacher and Institute selectors belong to one registration page.
+All three roles may send an optional `language` code in `POST /auth/register`
+(or `POST /auth/onboarding/complete`). Use a code returned by
+`GET /i18n/languages`; omitted language keeps the user's existing preference
+(`en` for a new account). The selected code is stored as
+`users.preferred_language` and returned in `draft.language` and
+`user.preferred_language`.
 Keep all form values in frontend state until Register is pressed. Send and
 verify OTP on that same page. Registration saves the full form once; autosave
 is available only after registration succeeds.

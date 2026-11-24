@@ -181,7 +181,7 @@ Tracked activity events include:
 | `identity.phone_verified` | From 22 October 2026: verified flag before/after and phone-changed flag; no phone, OTP or token snapshot |
 | `identity.google_linked` | Previous/new link flag, local user ID; Firebase UID/email/token are not duplicated |
 | `auth.logged_out` | Previous/new auth version and `scope:all_sessions`; token revocation and history commit together |
-| `registration.submitted` | Previous/new account type and `registration_submitted_at`; the full form saved before learner DOB completion |
+| `registration.submitted` | Previous/new account type, preferred language and `registration_submitted_at`; the full form saved before learner DOB completion |
 | `registration.completed` | Previous/new account type and completion timestamp |
 | `referral.recorded` | Owner point delta after successful redemption; 50 for new redemptions, while older events retain their original delta; the referred account is actor and the referrer is related user |
 | `referral.redeemer_credited` | 50-point redeemer bonus after successful redemption; the referred account is actor and the referrer is related user |
@@ -262,8 +262,11 @@ Password login rejected for incomplete registration produces an unsuccessful
 `email_login` entry in `auth_activity` with status `409`. It issues no token and
 changes no business state, so no new business-history event is added. Reading
 saved onboarding details for autofill does not create a registration event.
-Form submission records `registration.submitted` transactionally; a learner
-without DOB remains incomplete, while teacher/institute form submission also
+Form submission records `registration.submitted` transactionally, including
+the previous and selected preferred language for all three roles. Later
+changes through `PATCH /auth/preferred-language` have no dedicated history
+event, so language preference history after registration is incomplete. A
+learner without DOB remains incomplete, while teacher/institute form submission also
 records `registration.completed`. DOB records `onboarding.age_verified` and,
 when it completes a submitted learner registration, `registration.completed`
 in the same transaction. A pending-DOB registration retry does not duplicate
