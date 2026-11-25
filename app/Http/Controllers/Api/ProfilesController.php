@@ -440,6 +440,8 @@ class ProfilesController extends Controller
         if ($profile === null) {
             return response()->json(['error' => 'Not found'], 404);
         }
+        $profile->youtube_url = $profile->youtube_url ?: null;
+        $profile->linkedin_url = $type === 'teacher' ? ($profile->linkedin_url ?: null) : null;
         ReferralRating::decorate($profile);
         LocationIdentity::display([$profile], PublicLanguages::resolve($request, 'en'));
         // Enrichment belongs to the owner onboarding response and admin reports only.

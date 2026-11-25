@@ -69,6 +69,30 @@ class ProviderProfileEditorTest extends TestCase
     }
 
     #[DataProvider('providers')]
+    public function test_public_profile_returns_saved_links_or_null(string $type): void
+    {
+        if ($type === 'teacher') {
+            $this->useTeacher();
+        }
+        $url = '/profiles/'.$type.'/'.$this->userId;
+        $this->withoutHeader('Authorization')->getJson($url)->assertOk()
+            ->assertJsonPath('profile.youtube_url', null)
+            ->assertJsonPath('profile.linkedin_url', null);
+
+        $youtube = 'https://www.youtube.com/@example';
+        $linkedin = 'https://www.linkedin.com/in/example';
+        $data = ['youtube_url' => $youtube];
+        if ($type === 'teacher') {
+            $data['linkedin_url'] = $linkedin;
+        }
+        DB::table($type.'_profiles')->where('user_id', $this->userId)->update($data);
+
+        $response = $this->getJson($url)->assertOk()
+            ->assertJsonPath('profile.youtube_url', $youtube);
+        $response->assertJsonPath('profile.linkedin_url', $type === 'teacher' ? $linkedin : null);
+    }
+
+    #[DataProvider('providers')]
     public function test_step_five_saves_restores_and_clears_youtube_without_overwriting_story(string $type): void
     {
         if ($type === 'teacher') {
