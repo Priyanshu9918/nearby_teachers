@@ -92,7 +92,7 @@ class AuthController extends Controller
         return response()->json([
             'ok' => true, 'expiresInMinutes' => self::OTP_TTL_MINUTES, 'channels' => $statuses,
             ...($partial ? ['partialDelivery' => true] : []),
-            ...($delivery['testMode'] && app()->environment(['local', 'testing']) ? ['testMode' => true, 'otp' => $code] : []),
+            ...($delivery['testMode'] && ($country !== 'IN' || app()->environment(['local', 'testing'])) ? ['testMode' => true, 'otp' => $code] : []),
         ], $partial ? 202 : 200);
     }
 

@@ -54,6 +54,20 @@ class MuzztechOtpTest extends TestCase
         Http::assertSentCount(1);
     }
 
+    public function test_live_international_number_returns_verifiable_otp_without_delivery(): void
+    {
+        $this->app->instance('env', 'production');
+        $phone = '+14155552671';
+        $response = $this->postJson('/auth/otp/request', ['phone' => $phone])->assertOk()
+            ->assertJsonPath('testMode', true)->assertJsonPath('channels.sms', 'simulated')
+            ->assertJsonStructure(['otp']);
+        $code = $response->json('otp');
+        $this->assertTrue(Hash::check($code, DB::table('otp_codes')->where('phone', $phone)->value('code_hash')));
+        $this->postJson('/auth/otp/verify', ['phone' => $phone, 'code' => $code])->assertOk()
+            ->assertJsonPath('mobileVerified', true);
+        Http::assertNothingSent();
+    }
+
     public function test_provider_rejection_invalidates_the_code_and_does_not_expose_gateway_details(): void
     {
         Http::fake(['connect.muzztech.com/*' => Http::response(['status' => 'error', 'message' => 'private-provider-diagnostic'])]);

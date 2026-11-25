@@ -24,7 +24,7 @@ class OtpDelivery
     {
         $channels = $this->channels();
         $result = [];
-        $testMode = config('services.nearby_teacher.otp_test_mode') && app()->environment(['local', 'testing']);
+        $testMode = $country !== 'IN' || (config('services.nearby_teacher.otp_test_mode') && app()->environment(['local', 'testing']));
         foreach ($channels as $channel) {
             $result[$channel] = ['provider' => $channel === 'sms' ? $this->sms->provider($country) : 'meta', 'status' => $testMode ? 'simulated' : 'not_sent'];
         }
