@@ -11,6 +11,7 @@ use App\Http\Controllers\DeveloperController;
 use App\Http\Controllers\InternationalSeoController;
 use App\Http\Controllers\LocationLookupController;
 use App\Http\Controllers\ParentalConsentController;
+use App\Http\Controllers\ShareLinkController;
 use App\Http\Controllers\WebsiteController;
 use App\Http\Middleware\RequireAdminSession;
 use App\Http\Middleware\RequireDeveloperSession;
@@ -25,6 +26,13 @@ Route::post('/parental-consent/{token}', [ParentalConsentController::class, 'dec
     ->middleware(ThrottleRequests::class.':20,1')->name('parental-consent.decide');
 
 Route::get('/health', fn () => response()->json(['ok' => true]));
+
+Route::get('/.well-known/assetlinks.json', [ShareLinkController::class, 'androidAssociation']);
+Route::get('/.well-known/apple-app-site-association', [ShareLinkController::class, 'iosAssociation']);
+Route::get('/share/teacher/{teacherUserId}', [ShareLinkController::class, 'show'])
+    ->where('teacherUserId', '[1-9][0-9]*')->name('share.teacher');
+Route::get('/share/city-feed/{city}', [ShareLinkController::class, 'show'])
+    ->where('city', '[^/]{1,100}')->name('share.city-feed');
 
 Route::get('/', [WebsiteController::class, 'home'])->name('website.home');
 Route::get('/privacy-policy', [WebsiteController::class, 'privacyPolicy'])->name('website.privacy-policy');
