@@ -757,14 +757,18 @@ class SearchController extends Controller
                 continue;
             }
             $locations = DB::table($type.'_profiles')->whereIn('user_id', $ids)
-                ->get(['user_id', 'country_id', 'state_id', 'city_id', 'district_id', 'sub_district_id', 'locality_id'])->keyBy('user_id');
+                ->get(['user_id', 'country_id', 'state_id', 'city_id', 'district_id', 'sub_district_id', 'locality_id',
+                    'youtube_url', ...($type === 'teacher' ? ['linkedin_url'] : [])])->keyBy('user_id');
             foreach ($data['results'] as $row) {
                 if ($row->profile_type !== $type) {
                     continue;
                 }
+                $profile = $locations->get($row->user_id);
+                $row->youtube_url = $profile?->youtube_url;
+                $row->linkedin_url = $type === 'teacher' ? $profile?->linkedin_url : null;
                 foreach (LocationIdentity::TABLES as $field => $_) {
                     $column = $field === 'subDistrict' ? 'sub_district_id' : $field.'_id';
-                    $value = $locations->get($row->user_id)?->$column;
+                    $value = $profile?->$column;
                     $row->$column = $value === null ? null : (int) $value;
                 }
             }

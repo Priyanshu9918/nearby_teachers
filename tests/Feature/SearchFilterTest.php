@@ -66,6 +66,30 @@ class SearchFilterTest extends TestCase
         ], $filters)));
     }
 
+    public function test_search_results_include_provider_social_links(): void
+    {
+        $teacher = $this->provider('teacher', [
+            'youtube_url' => 'https://www.youtube.com/@teacher',
+            'linkedin_url' => 'https://www.linkedin.com/in/teacher',
+        ]);
+        $institute = $this->provider('institute', [
+            'youtube_url' => 'https://www.youtube.com/@institute',
+        ]);
+
+        foreach (['/search/filter?mode=nearby&lat=28.58&lng=77.31',
+            '/search?lat=28.58&lng=77.31',
+            '/search/dashboard?lat=28.58&lng=77.31',
+            '/search/other-city?city=Noida',
+            '/search/by-subject/'.$this->subject.'?tier=city&city=Noida',
+        ] as $url) {
+            $rows = collect($this->getJson($url)->assertOk()->json('results'))->keyBy('user_id');
+            $this->assertSame('https://www.youtube.com/@teacher', $rows[$teacher]['youtube_url']);
+            $this->assertSame('https://www.linkedin.com/in/teacher', $rows[$teacher]['linkedin_url']);
+            $this->assertSame('https://www.youtube.com/@institute', $rows[$institute]['youtube_url']);
+            $this->assertNull($rows[$institute]['linkedin_url']);
+        }
+    }
+
     public function test_public_combined_filters_match_both_provider_types_before_pagination(): void
     {
         $teacher = $this->provider();
