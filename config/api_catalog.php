@@ -45,7 +45,7 @@ return [
             'paths' => ['/moderation/*', '/profiles/{type}/{id}/verify', '/profiles/institute/*', '/analytics/*']],
         ['id' => 'platform', 'label' => 'Shared platform APIs',
             'description' => 'Shared language, presence, reverse location lookup and health endpoints.',
-            'paths' => ['/presence/*', '/i18n/*', '/location-lookup/*', '/health', '/up']],
+            'paths' => ['/presence/*', '/i18n/*', '/location-lookup/*', '/api/share', '/health', '/up']],
         ['id' => 'other', 'label' => 'Other APIs',
             'description' => 'Registered endpoints that are not assigned to a dependency workflow yet.',
             'paths' => []],
@@ -55,6 +55,7 @@ return [
     // Shared capabilities appear in each applicable role and in Common for reference.
     'route_groups' => [
         'POST /presence/update' => ['Common'],
+        'GET /api/share' => ['Common'],
         'POST /chat/events/send' => ['Learner', 'Teacher', 'Institute', 'Common'],
         'POST /chat/events/delivered' => ['Learner', 'Teacher', 'Institute', 'Common'],
         'POST /chat/events/read' => ['Learner', 'Teacher', 'Institute', 'Common'],

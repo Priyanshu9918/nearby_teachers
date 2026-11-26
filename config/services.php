@@ -67,6 +67,7 @@ return [
         'app_base_url' => env('APP_BASE_URL', 'http://157.245.125.79/nearby_teachers/public'),
         'ios_app_store_url' => env('IOS_APP_STORE_URL'),
         'android_play_store_url' => env('ANDROID_PLAY_STORE_URL'),
+        'share_url' => env('SHARE_URL', 'https://teachers.britishschooloflanguages.com/share/'),
         'support_email' => env('SUPPORT_EMAIL'),
         'msg91_auth_key' => env('MSG91_AUTH_KEY'),
         'msg91_sender_id' => env('MSG91_SENDER_ID'),

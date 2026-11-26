@@ -7,6 +7,13 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ShareLinkController extends Controller
 {
+    public function api(): Response
+    {
+        return response()->json([
+            'shareUrl' => config('services.nearby_teacher.share_url'),
+        ]);
+    }
+
     public function show(Request $request): Response
     {
         return response()->view('site.share-download', [
@@ -39,7 +46,7 @@ class ShareLinkController extends Controller
                 'apps' => [],
                 'details' => [[
                     'appID' => '6A5V7Y4R6A.com.bsl.nearbyteacher',
-                    'paths' => ['/share/teacher/*', '/share/city-feed/*'],
+                    'paths' => ['/share', '/share/', '/share/teacher/*', '/share/city-feed/*'],
                 ]],
             ],
         ])->header('Content-Type', 'application/json')

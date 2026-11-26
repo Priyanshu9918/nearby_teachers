@@ -29,6 +29,8 @@ Route::get('/health', fn () => response()->json(['ok' => true]));
 
 Route::get('/.well-known/assetlinks.json', [ShareLinkController::class, 'androidAssociation']);
 Route::get('/.well-known/apple-app-site-association', [ShareLinkController::class, 'iosAssociation']);
+Route::get('/share', [ShareLinkController::class, 'show'])->name('share.app');
+Route::get('/share{slash?}', [ShareLinkController::class, 'show'])->where('slash', '/');
 Route::get('/share/teacher/{teacherUserId}', [ShareLinkController::class, 'show'])
     ->where('teacherUserId', '[1-9][0-9]*')->name('share.teacher');
 Route::get('/share/city-feed/{city}', [ShareLinkController::class, 'show'])

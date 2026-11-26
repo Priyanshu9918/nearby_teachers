@@ -11,7 +11,7 @@ class ShareLinksTest extends TestCase
         config()->set('services.nearby_teacher.android_play_store_url', 'https://play.google.com/store/apps/details?id=com.bsl_nearbyteacher');
         config()->set('services.nearby_teacher.ios_app_store_url', 'https://apps.apple.com/app/id6751044599');
 
-        foreach (['/share/teacher/123', '/share/city-feed/delhi'] as $path) {
+        foreach (['/share', '/share/', '/share/teacher/123', '/share/city-feed/delhi'] as $path) {
             $this->get($path)->assertOk()
                 ->assertSee('Download for Android')
                 ->assertSee('Download for iPhone')
@@ -24,6 +24,14 @@ class ShareLinksTest extends TestCase
         $this->get('/share/teacher/0')->assertNotFound();
     }
 
+    public function test_app_share_api_returns_the_public_share_url_without_authentication(): void
+    {
+        config()->set('services.nearby_teacher.share_url', 'https://teachers.britishschooloflanguages.com/share/');
+
+        $this->getJson('/api/share')->assertOk()
+            ->assertExactJson(['shareUrl' => 'https://teachers.britishschooloflanguages.com/share/']);
+    }
+
     public function test_mobile_association_endpoints_include_the_supplied_app_identifiers(): void
     {
         $this->getJson('/.well-known/assetlinks.json')->assertOk()
@@ -32,6 +40,7 @@ class ShareLinksTest extends TestCase
 
         $this->get('/.well-known/apple-app-site-association')->assertOk()
             ->assertJsonPath('applinks.details.0.appID', '6A5V7Y4R6A.com.bsl.nearbyteacher')
-            ->assertJsonPath('applinks.details.0.paths.0', '/share/teacher/*');
+            ->assertJsonPath('applinks.details.0.paths.0', '/share')
+            ->assertJsonPath('applinks.details.0.paths.1', '/share/');
     }
 }

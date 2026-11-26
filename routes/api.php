@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\SocketIoController;
 use App\Http\Controllers\Api\StudentProfilesController;
 use App\Http\Controllers\Api\SubjectsController;
 use App\Http\Controllers\Api\SupportContactController;
+use App\Http\Controllers\ShareLinkController;
 use App\Http\Middleware\AttachOptionalApiUser;
 use App\Http\Middleware\MeasureSearchTiming;
 use App\Http\Middleware\RequireAdminApi;
@@ -47,6 +48,7 @@ Route::get('/i18n/languages', [I18nController::class, 'languages']);
 Route::get('/i18n/{lang}', [I18nController::class, 'translations']);
 Route::middleware(AttachOptionalApiUser::class)->get('/subjects', SubjectsController::class);
 Route::get('/contact-info', [SupportContactController::class, 'show'])->middleware('throttle:60,1');
+Route::get('/api/share', [ShareLinkController::class, 'api'])->middleware('throttle:60,1');
 Route::prefix('geo')->middleware('throttle:60,1')->group(function (): void {
     Route::post('/resolve', [GeographyController::class, 'resolve']);
     Route::get('/countries', [GeographyController::class, 'countries']);
