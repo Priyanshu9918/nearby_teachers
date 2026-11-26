@@ -181,7 +181,7 @@ Tracked activity events include:
 | `identity.phone_verified` | From 22 October 2026: verified flag before/after and phone-changed flag; no phone, OTP or token snapshot |
 | `identity.google_linked` | Previous/new link flag, local user ID; Firebase UID/email/token are not duplicated |
 | `auth.logged_out` | Previous/new auth version and `scope:all_sessions`; token revocation and history commit together |
-| `user.deactivated` | User requested account deactivation; boolean state transition only. User, profile and business records remain for history. No reactivation event exists yet. |
+| `user.deactivated` / `user.reactivated` | User requested deactivation and admin restoration; boolean state transitions only. User, profile and business records remain for history. Admin suspension remains independent and still blocks login after restoration. |
 | `registration.submitted` | Previous/new account type, preferred language and `registration_submitted_at`; the full form saved before learner DOB completion |
 | `registration.completed` | Previous/new account type and completion timestamp |
 | `referral.recorded` | Owner point delta after successful redemption; 50 for new redemptions, while older events retain their original delta; the referred account is actor and the referrer is related user |

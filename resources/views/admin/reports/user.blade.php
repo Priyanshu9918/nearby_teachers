@@ -4,13 +4,18 @@
 @section('content')
 <div class="page-heading"><div><p class="eyebrow">{{ $user->account_type === 'learner' ? 'Student' : ucfirst($user->account_type) }}</p><h1>{{ $user->full_name }}</h1><p>{{ $user->email }} · {{ $user->phone }}</p></div><a class="btn" href="{{ route('admin.reports.index', ['report' => 'users']) }}">All users</a></div>
 <section class="panel account-safety-panel">
-    <div class="panel-head"><div><h2>Account access</h2><p>Suspending blocks this account from using the platform. Add a clear reason for the team.</p></div>
+    <div class="panel-head"><div><h2>Account access</h2><p>Review deactivation and suspension before restoring access.</p></div>
         @if ($user->is_admin)<span class="status-pill status-muted">Admin account</span>
+        @elseif ($user->deactivated_at)<span class="status-pill status-danger">Deactivated</span>
         @elseif ($user->suspended_at)<span class="status-pill status-danger">Suspended</span>
         @else<span class="status-pill status-good">Active</span>@endif
     </div>
     @if (! $user->is_admin)
         <div class="panel-body">
+            @if ($user->deactivated_at)
+                <p class="suspension-reason">This account was deactivated on {{ \Illuminate\Support\Carbon::parse($user->deactivated_at)->format('M j, Y · g:i A') }}. Reactivation does not clear a separate suspension.</p>
+                <form method="post" action="{{ route('admin.moderation.users.reactivate', ['userId' => $user->id]) }}" onsubmit="return confirm('Reactivate this account?')">@csrf<button class="btn btn-primary" type="submit">Reactivate account</button></form>
+            @endif
             @if ($user->suspended_at)
                 <p class="suspension-reason"><strong>Reason on file</strong><br>{{ $user->suspended_reason ?: 'No reason entered.' }}</p>
                 <form method="post" action="{{ route('admin.moderation.users.unsuspend', ['userId' => $user->id]) }}" onsubmit="return confirm('Restore access for this account?')">@csrf<button class="btn btn-primary" type="submit">Restore access</button></form>

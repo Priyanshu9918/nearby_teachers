@@ -146,6 +146,46 @@ class AdminWorkspaceController extends Controller
         return view('admin.moderation.suspended-users', compact('users'));
     }
 
+    public function deactivatedUsers(Request $request): View
+    {
+        $filters = $request->validate([
+            'page' => ['sometimes', 'integer', 'min:1'],
+            'per_page' => ['sometimes', 'integer', 'in:15,25,50'],
+        ]);
+        $users = DB::table('users')
+            ->whereNotNull('deactivated_at')
+            ->select('id', 'full_name', 'account_type', 'email', 'phone', 'deactivated_at', 'suspended_at')
+            ->orderByDesc('deactivated_at')->orderByDesc('id')
+            ->paginate((int) ($filters['per_page'] ?? 25))->withQueryString();
+        $this->access->record($request, 'users', 'deactivated-list');
+
+        return view('admin.moderation.deactivated-users', compact('users'));
+    }
+
+    public function reactivateUser(Request $request, int $userId): RedirectResponse
+    {
+        $changed = DB::transaction(function () use ($userId): bool {
+            $user = DB::table('users')->where('id', $userId)->lockForUpdate()
+                ->first(['id', 'deactivated_at']);
+            abort_if($user === null, 404);
+            if ($user->deactivated_at === null) {
+                return false;
+            }
+
+            DB::table('users')->where('id', $userId)->update([
+                'deactivated_at' => null,
+                'updated_at' => now(),
+            ]);
+            app(BusinessActivityRecorder::class)->record('user.reactivated', $userId, null, $userId,
+                before: ['deactivated' => true], after: ['deactivated' => false]);
+
+            return true;
+        }, 3);
+        $this->access->record($request, 'users', 'reactivate', $userId);
+
+        return back()->with('status', $changed ? 'Account reactivated.' : 'This account is already active.');
+    }
+
     public function suspendUser(Request $request, int $userId): RedirectResponse
     {
         $data = $request->validate(['reason' => ['required', 'string', 'max:1000']]);

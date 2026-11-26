@@ -38,8 +38,8 @@ class RequireApiAuthentication
 
         if (($user->deactivated_at ?? null) !== null) {
             return new JsonResponse([
-                'code' => 'ACCOUNT_DEACTIVATED',
-                'error' => 'This account has been deactivated. Contact support to restore it.',
+                'code' => 'ACCOUNT_DELETED',
+                'error' => 'This account has been deleted. Contact support to restore it.',
             ], 403);
         }
 

@@ -140,6 +140,9 @@ Route::middleware(RequireAdminSession::class)->prefix('admin')->name('admin.')->
     Route::patch('/moderation/bsl-centres/{userId}', [AdminWorkspaceController::class, 'setBslVerified'])
         ->where('userId', RecordId::ROUTE_PATTERN)->name('moderation.bsl.update');
     Route::get('/moderation/suspended-users', [AdminWorkspaceController::class, 'suspendedUsers'])->name('moderation.suspended');
+    Route::get('/moderation/deactivated-users', [AdminWorkspaceController::class, 'deactivatedUsers'])->name('moderation.deactivated');
+    Route::post('/moderation/users/{userId}/reactivate', [AdminWorkspaceController::class, 'reactivateUser'])
+        ->where('userId', RecordId::ROUTE_PATTERN)->name('moderation.users.reactivate');
     Route::post('/moderation/users/{userId}/suspend', [AdminWorkspaceController::class, 'suspendUser'])
         ->where('userId', RecordId::ROUTE_PATTERN)->name('moderation.users.suspend');
     Route::post('/moderation/users/{userId}/unsuspend', [AdminWorkspaceController::class, 'unsuspendUser'])

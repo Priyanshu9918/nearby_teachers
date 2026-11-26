@@ -225,6 +225,55 @@ class ModerationController extends Controller
         return response()->json(['user' => $user]);
     }
 
+    public function deactivatedUsers(): JsonResponse
+    {
+        $users = DB::table('users')
+            ->whereNotNull('deactivated_at')
+            ->select('id', 'full_name', 'account_type', 'deactivated_at', 'suspended_at')
+            ->orderByDesc('deactivated_at')->orderByDesc('id')
+            ->simplePaginate(50);
+
+        return response()->json($users);
+    }
+
+    public function reactivate(Request $request, int $userId): JsonResponse
+    {
+        $admin = $request->attributes->get('authenticated_user');
+        if ($userId === (int) $admin->id) {
+            return response()->json(['error' => 'You cannot reactivate your own account.'], 400);
+        }
+
+        $result = DB::transaction(function () use ($admin, $userId): array {
+            $user = DB::table('users')->where('id', $userId)->lockForUpdate()
+                ->first(['id', 'full_name', 'account_type', 'deactivated_at', 'suspended_at']);
+            if ($user === null) {
+                return ['error' => 'User not found', 'status' => 404];
+            }
+            if ($user->deactivated_at === null) {
+                return ['error' => 'Account is already active', 'status' => 409];
+            }
+
+            DB::table('users')->where('id', $userId)->update([
+                'deactivated_at' => null,
+                'updated_at' => now(),
+            ]);
+            app(BusinessActivityRecorder::class)->record('user.reactivated', $userId, $admin->id, $userId,
+                before: ['deactivated' => true], after: ['deactivated' => false]);
+
+            return ['user' => [
+                'id' => $user->id,
+                'fullName' => $user->full_name,
+                'accountType' => $user->account_type,
+                'deactivated' => false,
+                'suspended' => $user->suspended_at !== null,
+            ]];
+        }, 3);
+
+        return isset($result['error'])
+            ? response()->json(['error' => $result['error']], $result['status'])
+            : response()->json($result);
+    }
+
     public function suspendedUsers(): JsonResponse
     {
         $suspended = DB::table('users as u')

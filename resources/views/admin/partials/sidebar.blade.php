@@ -26,6 +26,7 @@
         <a href="{{ route('admin.moderation.photos') }}" @class(['nav-link', 'active' => request()->routeIs('admin.moderation.photos')]) data-nav-item><x-admin-icon name="photo" /><span>Profile photos</span></a>
         <a href="{{ route('admin.moderation.bsl') }}" @class(['nav-link', 'active' => request()->routeIs('admin.moderation.bsl')]) data-nav-item><x-admin-icon name="check" /><span>BSL Verified centres</span></a>
         <a href="{{ route('admin.moderation.suspended') }}" @class(['nav-link', 'active' => request()->routeIs('admin.moderation.suspended')]) data-nav-item><x-admin-icon name="shield" /><span>Suspended accounts</span></a>
+        <a href="{{ route('admin.moderation.deactivated') }}" @class(['nav-link', 'active' => request()->routeIs('admin.moderation.deactivated')]) data-nav-item><x-admin-icon name="users" /><span>Deactivated accounts</span></a>
         <a href="{{ route('admin.moderation.duplicates') }}" @class(['nav-link', 'active' => request()->routeIs('admin.moderation.duplicates')]) data-nav-item><x-admin-icon name="users" /><span>Possible duplicates</span></a>
         <a href="{{ route('admin.reports.index', ['report' => 'reports']) }}" @class(['nav-link', 'active' => request()->route('report') === 'reports']) data-nav-item><x-admin-icon name="flag" /><span>Safety reports</span></a>
         <a href="{{ route('admin.reports.index', ['report' => 'support']) }}" @class(['nav-link', 'active' => request()->route('report') === 'support']) data-nav-item><x-admin-icon name="chat" /><span>Support tickets</span></a>

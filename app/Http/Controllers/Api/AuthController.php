@@ -273,14 +273,14 @@ class AuthController extends Controller
             RevokeChatSessions::dispatch($saved->id, $version);
         });
 
-        return response()->json(['message' => 'Account deactivated successfully.']);
+        return response()->json(['message' => 'Account deleted successfully.']);
     }
 
     private function deactivatedResponse(): JsonResponse
     {
         return response()->json([
-            'code' => 'ACCOUNT_DEACTIVATED',
-            'error' => 'This account has been deactivated. Contact support to restore it.',
+            'code' => 'ACCOUNT_DELETED',
+            'error' => 'This account has been deleted. Contact support to restore it.',
         ], 403);
     }
 

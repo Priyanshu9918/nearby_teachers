@@ -174,6 +174,8 @@ return [
         'GET /moderation/contact-stats' => ['Common'],
         'POST /moderation/users/{userId}/suspend' => ['Common'],
         'POST /moderation/users/{userId}/unsuspend' => ['Common'],
+        'GET /moderation/users/deactivated' => ['Common'],
+        'POST /moderation/users/{userId}/reactivate' => ['Common'],
         'GET /moderation/users/suspended' => ['Common'],
 
         'GET /health' => ['Common'],

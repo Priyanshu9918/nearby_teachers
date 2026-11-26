@@ -189,6 +189,8 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
         Route::get('/moderation/contact-stats', [ModerationController::class, 'contactStats']);
         Route::post('/moderation/users/{userId}/suspend', [ModerationController::class, 'suspend'])->where('userId', RecordId::ROUTE_PATTERN);
         Route::post('/moderation/users/{userId}/unsuspend', [ModerationController::class, 'unsuspend'])->where('userId', RecordId::ROUTE_PATTERN);
+        Route::get('/moderation/users/deactivated', [ModerationController::class, 'deactivatedUsers']);
+        Route::post('/moderation/users/{userId}/reactivate', [ModerationController::class, 'reactivate'])->where('userId', RecordId::ROUTE_PATTERN);
         Route::get('/moderation/users/suspended', [ModerationController::class, 'suspendedUsers']);
     });
 });

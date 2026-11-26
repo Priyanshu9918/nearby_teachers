@@ -59,6 +59,7 @@ final class BusinessActivityRecorder
         'learner.avatar_submitted' => ['user', ['avatar_status']],
         'auth.logged_out' => ['user', ['auth_version', 'scope']],
         'user.deactivated' => ['user', ['deactivated']],
+        'user.reactivated' => ['user', ['deactivated']],
         'user.blocked' => ['user', ['blocked']],
         'user.unblocked' => ['user', ['blocked']],
         'user.suspended' => ['user', ['suspended', 'reason_set']],
