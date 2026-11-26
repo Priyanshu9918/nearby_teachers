@@ -26,7 +26,7 @@ final class InstitutePublicPages
         $subjects = ProfileEditor::subjects($userId, 'institute');
         $eligible = $user->account_type === 'institute' && (bool) $profile->is_profile_complete
             && $user->profile_completed_at !== null && $user->phone_verified_at !== null
-            && $user->suspended_at === null && trim($user->full_name) !== ''
+            && $user->suspended_at === null && ($user->deactivated_at ?? null) === null && trim($user->full_name) !== ''
             && trim((string) ($profile->listing_name ?: $user->full_name)) !== ''
             && trim((string) ($profile->city ?? '')) !== '' && $country !== null && $subjects->isNotEmpty();
 

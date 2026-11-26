@@ -12,8 +12,8 @@ final class DatabasePresenceStore implements PresenceStore
             // One stable lock serializes the user's devices, logout and token
             // invalidation. Never touch users.updated_at for presence traffic.
             $user = DB::table('users')->where('id', $userId)->lockForUpdate()
-                ->first(['auth_version', 'suspended_at']);
-            if ($user === null || (int) $user->auth_version !== $authVersion || $user->suspended_at !== null) {
+                ->first(['auth_version', 'suspended_at', 'deactivated_at']);
+            if ($user === null || (int) $user->auth_version !== $authVersion || $user->suspended_at !== null || $user->deactivated_at !== null) {
                 return [3, 0];
             }
             DB::table('user_presence_devices')->where('user_id', $userId)
@@ -67,7 +67,7 @@ final class DatabasePresenceStore implements PresenceStore
         $devices = DB::table('user_presence_devices as p')
             ->join('users as u', fn ($join) => $join->on('u.id', '=', 'p.user_id')->on('u.auth_version', '=', 'p.auth_version'))
             ->whereIn('p.user_id', array_keys($versions))->where('p.active_until', '>', $now)
-            ->whereNull('u.suspended_at')->select('p.user_id', 'p.auth_version')->distinct()->get();
+            ->whereNull('u.suspended_at')->whereNull('u.deactivated_at')->select('p.user_id', 'p.auth_version')->distinct()->get();
         foreach ($devices as $device) {
             $flags[$device->user_id] = (int) $device->auth_version === $versions[$device->user_id];
         }

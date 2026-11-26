@@ -232,7 +232,7 @@ class AuthenticationService
         $email = strtolower(trim($claims->email));
         $user = DB::table('users')->where('google_id', $googleId)->lockForUpdate()->first();
         if ($user !== null) {
-            if ($user->suspended_at !== null) {
+            if ($user->suspended_at !== null || $user->deactivated_at !== null) {
                 return $user;
             }
             if (! $this->firebaseSessionAllowed($user, $claims)) {
@@ -250,7 +250,7 @@ class AuthenticationService
         }
         $user = DB::table('users')->where('email', $email)->lockForUpdate()->first();
         if ($user !== null) {
-            if ($user->suspended_at !== null) {
+            if ($user->suspended_at !== null || $user->deactivated_at !== null) {
                 return $user;
             }
             if (! $this->firebaseSessionAllowed($user, $claims)) {

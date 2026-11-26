@@ -90,7 +90,7 @@ final class OwnerMetrics
         return DB::table($profileTable.' as p')->join('users as u', 'u.id', '=', 'p.user_id')
             ->where('p.is_profile_complete', true)->whereNotNull('p.public_page_slug')
             ->whereNotNull('p.seo_country')->whereNotNull('u.phone_verified_at')
-            ->whereNotNull('u.profile_completed_at')->whereNull('u.suspended_at')->count();
+            ->whereNotNull('u.profile_completed_at')->whereNull('u.suspended_at')->whereNull('u.deactivated_at')->count();
     }
 
     private function possibleDuplicateCount(): int

@@ -45,6 +45,10 @@ class AuthController extends Controller
 
         [$phone, $country] = $this->validatedPhone($request->input('phone'));
 
+        if (DB::table('users')->where('phone', $phone)->whereNotNull('deactivated_at')->exists()) {
+            return $this->deactivatedResponse();
+        }
+
         if (DB::table('otp_codes')
             ->where('phone', $phone)
             ->where('created_at', '>', now()->subMinutes(10))
@@ -134,6 +138,9 @@ class AuthController extends Controller
             DB::table('otp_codes')->where('id', $otp->id)->update(['consumed_at' => now()]);
             $user = DB::table('users')->where('phone', $phone)->first();
             if ($user !== null) {
+                if ($user->deactivated_at !== null) {
+                    return ['deactivated' => true];
+                }
                 if (app(OnboardingState::class)->registrationDetailsCompleted($user)) {
                     return ['error' => 'This account is already registered. Log in with your email and password.', 'loginRequired' => true];
                 }
@@ -153,6 +160,9 @@ class AuthController extends Controller
             return ['user' => DB::table('users')->where('id', $userId)->first()];
         });
 
+        if ($result['deactivated'] ?? false) {
+            return $this->deactivatedResponse();
+        }
         if (isset($result['error'])) {
             if ($result['loginRequired'] ?? false) {
                 return response()->json(['error' => $result['error'], 'loginRequired' => true, 'loginEndpoint' => '/auth/login'], 409);
@@ -200,6 +210,10 @@ class AuthController extends Controller
             return response()->json(['error' => 'This Google account conflicts with an existing account. Log in with the linked account or contact support.'], 409);
         }
 
+        if ($user->deactivated_at !== null) {
+            return $this->deactivatedResponse();
+        }
+
         if ($user->suspended_at !== null) {
             return response()->json(['error' => 'This account has been suspended.', 'suspended' => true], 403);
         }
@@ -237,6 +251,37 @@ class AuthController extends Controller
             'message' => 'Logged out successfully.',
             'loggedOutAllDevices' => true,
         ]);
+    }
+
+    public function deactivateAccount(Request $request): JsonResponse
+    {
+        $user = $request->attributes->get('authenticated_user');
+        DB::transaction(function () use ($user): void {
+            $saved = DB::table('users')->where('id', $user->id)->lockForUpdate()->first();
+            abort_if($saved === null || $saved->deactivated_at !== null
+                || (int) $saved->auth_version !== (int) $user->auth_version,
+                403, 'Invalid or expired token');
+            $version = (int) $saved->auth_version + 1;
+            DB::table('users')->where('id', $saved->id)->update([
+                'deactivated_at' => now(),
+                'auth_version' => $version,
+                'auth_tokens_invalid_before' => now(),
+                'updated_at' => now(),
+            ]);
+            app(BusinessActivityRecorder::class)->record('user.deactivated', $saved->id, $saved->id,
+                before: ['deactivated' => false], after: ['deactivated' => true]);
+            RevokeChatSessions::dispatch($saved->id, $version);
+        });
+
+        return response()->json(['message' => 'Account deactivated successfully.']);
+    }
+
+    private function deactivatedResponse(): JsonResponse
+    {
+        return response()->json([
+            'code' => 'ACCOUNT_DEACTIVATED',
+            'error' => 'This account has been deactivated. Contact support to restore it.',
+        ], 403);
     }
 
     public function session(Request $request): JsonResponse
@@ -336,6 +381,9 @@ class AuthController extends Controller
         $user = DB::table('users')->where('email', strtolower(trim($data['email'])))->first();
         if ($user === null || ! filled($user->password_hash) || ! Hash::check($data['password'], $user->password_hash)) {
             return response()->json(['error' => 'Incorrect email or password.'], 401);
+        }
+        if ($user->deactivated_at !== null) {
+            return $this->deactivatedResponse();
         }
         if ($user->suspended_at !== null) {
             return response()->json(['error' => 'This account has been suspended.', 'suspended' => true], 403);

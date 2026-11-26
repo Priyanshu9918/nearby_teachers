@@ -417,6 +417,7 @@ class ProfilesController extends Controller
         $profileTable = $type === 'teacher' ? 'teacher_profiles' : 'institute_profiles';
         $profile = DB::table($profileTable.' as p')
             ->join('users as u', 'u.id', '=', 'p.user_id')
+            ->whereNull('u.deactivated_at')
             ->leftJoinSub(
                 DB::table('bookings')
                     ->select('provider_id')

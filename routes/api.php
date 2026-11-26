@@ -86,6 +86,7 @@ Route::middleware(RequireApiAuthentication::class)->group(function () {
     Route::delete('/push/devices/current', [PushDevicesController::class, 'unregister'])->middleware('throttle:30,1');
     Route::get('/auth/session', [AuthController::class, 'session']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
+    Route::delete('/auth/account', [AuthController::class, 'deactivateAccount'])->middleware('throttle:5,1');
     Route::post('/auth/register', [OnboardingController::class, 'complete'])->middleware('throttle:10,1');
     Route::get('/auth/onboarding', [OnboardingController::class, 'show']);
     Route::patch('/auth/onboarding', [OnboardingController::class, 'autosave']);

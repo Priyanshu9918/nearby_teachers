@@ -60,7 +60,7 @@ class SearchController extends Controller
         $branches = [];
         foreach (['teacher' => 'rate_per_hour', 'institute' => 'starting_rate'] as $type => $price) {
             $query = DB::table($type.'_profiles as p')->join('users as u', 'u.id', '=', 'p.user_id')
-                ->where('u.account_type', $type)->whereNull('u.suspended_at')
+                ->where('u.account_type', $type)->whereNull('u.suspended_at')->whereNull('u.deactivated_at')
                 ->whereNotNull('u.phone_verified_at')->whereNotNull('u.profile_completed_at')
                 ->where('p.is_profile_complete', true)
                 ->selectRaw('? AS profile_type', [$type])
@@ -191,7 +191,7 @@ class SearchController extends Controller
             $profiles = DB::table($type.'_profiles as p')
                 ->join('users as u', 'u.id', '=', 'p.user_id')
                 ->where('u.account_type', $type)
-                ->whereNull('u.suspended_at')
+                ->whereNull('u.suspended_at')->whereNull('u.deactivated_at')
                 ->whereNotNull('u.phone_verified_at')
                 ->whereNotNull('u.profile_completed_at')
                 ->where(function ($query) use ($type, $bounds, $bindings): void {
@@ -432,7 +432,7 @@ class SearchController extends Controller
         foreach (['teacher' => 'rate_per_hour', 'institute' => 'starting_rate'] as $type => $price) {
             // Filter each profile table before combining rows; join its user only once.
             $branch = DB::table($type.'_profiles as p')->join('users as u', 'u.id', '=', 'p.user_id')
-                ->whereNull('u.suspended_at')
+                ->whereNull('u.suspended_at')->whereNull('u.deactivated_at')
                 ->selectRaw('? AS profile_type', [$type])
                 ->addSelect('p.user_id', 'u.full_name')
                 ->selectRaw("CASE WHEN u.avatar_status = 'approved' THEN u.avatar_url ELSE NULL END AS avatar_url")
@@ -651,7 +651,7 @@ class SearchController extends Controller
     {
         // BSL subject searches deliberately bypass geographic and online-only restrictions.
         $query = DB::table('institute_profiles as p')->join('users as u', 'u.id', '=', 'p.user_id')
-            ->where('p.is_bsl', true)->where('u.account_type', 'institute')->whereNull('u.suspended_at')
+            ->where('p.is_bsl', true)->where('u.account_type', 'institute')->whereNull('u.suspended_at')->whereNull('u.deactivated_at')
             ->select('p.id', 'p.user_id', 'u.full_name', 'u.referral_points', 'p.city', 'p.state', 'p.country',
                 'p.latitude', 'p.longitude', 'p.starting_rate', 'p.currency', 'p.lesson_modes', 'p.rating_avg',
                 'p.rating_count', 'p.is_verified', 'p.trial_days', 'p.is_bsl', 'p.is_bsl_official', 'p.institute_type')

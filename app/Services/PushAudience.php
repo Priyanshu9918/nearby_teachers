@@ -56,7 +56,7 @@ final class PushAudience
         $query = DB::table('push_devices as d')
             ->join('users as u', 'u.id', '=', 'd.user_id')
             ->whereNull('d.disabled_at')->whereNotNull('d.fid_ciphertext')
-            ->whereNull('u.suspended_at')->where('u.is_admin', false)
+            ->whereNull('u.suspended_at')->whereNull('u.deactivated_at')->where('u.is_admin', false)
             ->select(['d.id', 'd.user_id', 'd.fid_ciphertext', 'd.platform']);
 
         if ($targetType === 'user') {

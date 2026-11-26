@@ -39,18 +39,22 @@ class WebsiteController extends Controller
     public function directory(Request $request): Response
     {
         $teacherCities = DB::table('teacher_profiles')
-            ->whereNotNull('city')
-            ->whereNotNull('slug')
-            ->select('city')
+            ->join('users as teacher_user', 'teacher_user.id', '=', 'teacher_profiles.user_id')
+            ->whereNull('teacher_user.deactivated_at')
+            ->whereNotNull('teacher_profiles.city')
+            ->whereNotNull('teacher_profiles.slug')
+            ->select('teacher_profiles.city as city')
             ->selectRaw('count(*) as listing_count')
-            ->groupBy('city');
+            ->groupBy('teacher_profiles.city');
         $instituteCities = DB::table('institute_profiles')
+            ->join('users as institute_user', 'institute_user.id', '=', 'institute_profiles.user_id')
+            ->whereNull('institute_user.deactivated_at')
             ->where('is_profile_complete', true)
-            ->whereNotNull('city')
-            ->whereNotNull('slug')
-            ->select('city')
+            ->whereNotNull('institute_profiles.city')
+            ->whereNotNull('institute_profiles.slug')
+            ->select('institute_profiles.city as city')
             ->selectRaw('count(*) as listing_count')
-            ->groupBy('city');
+            ->groupBy('institute_profiles.city');
         $cities = DB::query()
             ->fromSub($teacherCities->unionAll($instituteCities), 'city_counts')
             ->select('city')
@@ -69,6 +73,7 @@ class WebsiteController extends Controller
     {
         $institute = DB::table('institute_profiles as p')
             ->join('users as u', 'u.id', '=', 'p.user_id')
+            ->whereNull('u.deactivated_at')
             ->where('p.slug', $slug)
             ->where('p.is_profile_complete', true)
             ->select('p.*')
@@ -125,6 +130,7 @@ class WebsiteController extends Controller
         $institutes = DB::table('institute_profiles as p')
             ->where('p.is_profile_complete', true)
             ->join('users as u', 'u.id', '=', 'p.user_id')
+            ->whereNull('u.deactivated_at')
             ->when($cityId !== null, fn ($query) => $query->where('p.city_id', $cityId), fn ($query) => $query->whereRaw('lower(p.city) = lower(?)', [$city]))
             ->whereNotNull('p.slug')
             ->select('p.slug', 'p.rating_avg', 'p.rating_count', 'p.is_bsl_official', 'u.referral_points')
@@ -139,6 +145,10 @@ class WebsiteController extends Controller
             })
             ->leftJoin('institute_profiles as ip', function ($join): void {
                 $join->on('ip.user_id', '=', 'ps.profile_id')->where('ps.profile_type', '=', 'institute')->where('ip.is_profile_complete', true);
+            })
+            ->whereExists(function ($query): void {
+                $query->selectRaw('1')->from('users as listing_user')
+                    ->whereColumn('listing_user.id', 'ps.profile_id')->whereNull('listing_user.deactivated_at');
             })
             ->where(function ($query) use ($city, $cityId): void {
                 if ($cityId !== null) {

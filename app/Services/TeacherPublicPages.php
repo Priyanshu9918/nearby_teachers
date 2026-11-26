@@ -26,7 +26,7 @@ final class TeacherPublicPages
         $subjects = self::subjects($userId);
         $eligible = $user->account_type === 'teacher' && (bool) $profile->is_profile_complete
             && $user->profile_completed_at !== null
-            && $user->phone_verified_at !== null && $user->suspended_at === null
+            && $user->phone_verified_at !== null && $user->suspended_at === null && ($user->deactivated_at ?? null) === null
             && trim($user->full_name) !== '' && trim($profile->city ?? '') !== '' && $country !== null && $subjects->isNotEmpty();
         $citySlug = $eligible ? SeoDirectory::citySlug($profile->city) : null;
         $slug = $profile->public_page_slug;

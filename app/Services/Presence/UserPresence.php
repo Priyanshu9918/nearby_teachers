@@ -53,7 +53,7 @@ class UserPresence
                 // Current versions exclude logout/password-reset sessions immediately.
                 // Bounded account and presence queries per batch, never per result.
                 $versions = DB::table('users')->whereIn('id', $chunk)->whereIn('account_type', ['teacher', 'institute'])
-                    ->whereNull('suspended_at')->whereNotNull('phone_verified_at')->whereNotNull('profile_completed_at')
+                    ->whereNull('suspended_at')->whereNull('deactivated_at')->whereNotNull('phone_verified_at')->whereNotNull('profile_completed_at')
                     ->pluck('auth_version', 'id')->map(static fn ($version) => (int) $version)->all();
                 $active += $this->store->activeFor($versions, now()->timestamp);
             }

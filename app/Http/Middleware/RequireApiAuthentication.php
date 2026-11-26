@@ -36,6 +36,13 @@ class RequireApiAuthentication
             return new JsonResponse(['error' => 'Invalid or expired token'], 403);
         }
 
+        if (($user->deactivated_at ?? null) !== null) {
+            return new JsonResponse([
+                'code' => 'ACCOUNT_DEACTIVATED',
+                'error' => 'This account has been deactivated. Contact support to restore it.',
+            ], 403);
+        }
+
         if ($user->suspended_at !== null && ! $request->is('auth/logout')) {
             return new JsonResponse(array_filter([
                 'error' => 'This account has been suspended.',

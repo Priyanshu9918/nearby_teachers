@@ -21,6 +21,7 @@ class AttachOptionalApiUser
             try {
                 $user = $this->authentication->authenticate($token);
                 if ($user !== null
+                    && ($user->deactivated_at ?? null) === null
                     && $user->suspended_at === null
                     && ($user->is_admin || $user->phone_verified_at !== null)) {
                     $request->attributes->set('authenticated_user', $user);

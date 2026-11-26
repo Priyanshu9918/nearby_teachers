@@ -29,7 +29,7 @@ class EmailCodes
         $hash = Hash::make($code);
         $issued = DB::transaction(function () use ($email, $purpose, $code, $hash, $responseMode): bool {
             $user = DB::table('users')->where('email', $email)->lockForUpdate()->first();
-            if ($user === null || $user->suspended_at !== null) {
+            if ($user === null || $user->suspended_at !== null || $user->deactivated_at !== null) {
                 return false;
             }
             DB::table('email_otp_codes')->where('user_id', $user->id)->where('purpose', $purpose)
@@ -51,7 +51,7 @@ class EmailCodes
     {
         return DB::transaction(function () use ($email, $purpose, $code, $onVerified): bool {
             $user = DB::table('users')->where('email', $email)->lockForUpdate()->first();
-            if ($user === null || $user->suspended_at !== null) {
+            if ($user === null || $user->suspended_at !== null || $user->deactivated_at !== null) {
                 return false;
             }
             $challenge = DB::table('email_otp_codes')->where('user_id', $user->id)

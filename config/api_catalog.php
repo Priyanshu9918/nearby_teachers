@@ -76,6 +76,7 @@ return [
         'POST /auth/reset-password' => ['Auth'],
         'GET /auth/session' => ['Auth'],
         'POST /auth/logout' => ['Auth'],
+        'DELETE /auth/account' => ['Auth'],
         'POST /auth/email/verification/request' => ['Auth'],
         'POST /auth/email/verification/verify' => ['Auth'],
         'POST /auth/register' => ['Auth'],
